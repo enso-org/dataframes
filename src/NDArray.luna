@@ -1,0 +1,275 @@
+import Std.Foreign.C.Value
+import Std.Foreign
+
+import Dataframes.Scanf
+import Dataframes.Types
+
+def csv sym:
+    lookupSymbol "csv" sym
+
+class NDArray a:
+    NDArray a
+    NDArrayVal (List Int) (List Int) Int (ManagedPointer a)
+
+    def ptr: case self of
+        NDArray a: ManagedPointer a
+        NDArrayVal _ _ _ p: p
+
+    def size: case self of
+        NDArrayVal s _ _ _:s
+
+    def stride: case self of
+        NDArrayVal _ stride _ _: stride
+
+    def offset: case self of
+        NDArrayVal _ _ offset _: offset
+
+    def elems: case self of
+        NDArrayVal s _ _ _: s.fold 1 (*)
+
+    def make: NDArrayVal
+
+    def alloc size stride offset:
+        ptr = self.ptr.mallocElems self.elems
+        NDArrayVal size stride offset ptr
+
+    def free:
+        self.ptr.free
+
+    def moveByIndex index:
+        lsMatch = index.length == self.size.length
+        elemSize = index.zipWith (*) self.stride
+        elems = elemSize.fold self.offset (+)
+        self . ptr . moveElems ( elems )
+
+
+    def assertInBounds index:
+        lsMatch = index.length == self.size.length
+        allLess = index.zipWith (<) self.size . _all (== True)
+        allNonZero = index._all (>= 0)
+        inBounds = lsMatch . and allLess . and allNonZero
+        when (inBounds.not) (throw "Array index out of bounds.")
+
+    def uncheckedReadAt index:
+        pointer = self . moveByIndex index
+        pointer.read
+
+    def readAt index:
+        self.assertInBounds index
+        self.uncheckedReadAt index
+
+    def uncheckedWriteAt index val:
+        self . moveByIndex index . write val
+
+    def writeAt index val:
+        self.assertInBounds index
+        self.uncheckedWriteAt index val
+
+    def getAt index:
+        self.assertInBounds index
+        self.moveByIndex index
+
+    def tmp flatIndex size acc:
+        case size of
+            Prepend x xs :
+                n = xs.fold 1 (*)
+                accNew =  acc.prepend (flatIndex/n)
+                tmp (flatIndex % n) xs accNew
+            Empty:
+                index = acc.reverse
+                index
+
+    def toList:
+        index = []
+        0 . upto self.elems-1 . each (k:
+            case (k < self.size.fold 1 (*)) of
+                False: throw "element index out of range"
+                True :
+                    indexN = self.tmp k self.size index
+                    pointer = self.getAt indexN
+                    case pointer.read.isNull of
+                        False:
+                            pointer . read . toText
+                        True: "")
+
+    def copyRowToArray n:
+        index = []
+        arr = self.alloc (self.size.tail.get) self.stride.tail.get 0
+        x = NDArrayVal (self.size.tail.get) (self.stride.tail.get) n*(self.stride.getAt 0) self.ptr
+        0 . upto x.elems-1 . each (k:
+            case (k < x.size.fold 1 (*)) of
+                False: throw "element index out of range"
+                True :
+                    indexN = x.tmp k x.size index
+                    pointer = x.getAt indexN
+                    case pointer.read.isNull of
+                        True : arr.writeAt [k] (Pointer None . null)
+                        False:  data = x.readAt indexN
+                                arr.writeAt [k] data)
+        arr
+
+    def copyColToArray n:
+        index = []
+        arr = self.alloc (self.size.take 1) self.stride.tail.get 0
+        x = NDArrayVal (self.size.take 1) (self.stride.take 1) n self.ptr
+        0 . upto x.elems-1 . each (k:
+            case (k < x.size.fold 1 (*)) of
+                False: throw "element index out of range"
+                True :
+                    indexN = x.tmp k x.size index
+                    record = x.getAt indexN
+                    case record.read.isNull of
+                        True: arr.writeAt [k] (Pointer None . null)
+                        False:
+                            data = x.readAt indexN
+                            arr.writeAt [k] data)
+        arr
+
+
+    def copyRowsToArray listOfRows:
+        index = []
+        l = listOfRows.length
+        newSize = [l,(self.size.getAt 1)]
+        arr = self.alloc newSize self.stride 0
+        0 . upto (l - 1) . each n:
+            offset = (listOfRows.getAt n) * (self.stride.getAt 0)
+            x = NDArrayVal (self.size.tail.get) self.stride.tail.get offset self.ptr
+            0 . upto x.elems-1 . each k:
+                case (k < x.size.fold 1 (*)) of
+                    False: throw "element index out of range"
+                    True :
+                        indexN = x.tmp k x.size index
+                        record = x.readAt indexN
+                        arr.writeAt [n,k] record
+        arr
+
+
+    def copyColsToArray listOfCols:
+        index = []
+        l = listOfCols.length
+        newSize = [self.size.head.get, l]
+        arr = self.alloc newSize self.stride 0
+        0 . upto (l - 1) . each (n:
+            offset = (listOfCols.getAt n) * (self.stride.getAt 1)
+            xSize = self.size.take 1
+            xStride = (self.stride.take 1)
+            x = NDArrayVal xSize xStride offset self.ptr
+            0 . upto x.elems-1 . each (k:
+                case (k < x.size.fold 1 (*)) of
+                    False: throw "element index out of range"
+                    True :
+                        indexN = x.tmp k x.size index
+                        record = x.readAt indexN
+                        arr.writeAt [k,n] record))
+        arr
+
+    def dropRow n:
+        index = []
+        rows = self.size.getAt 0
+        cols = self.size.getAt 1
+        arr = self.alloc [rows-1, cols] self.stride 0
+
+        x = NDArrayVal [rows-1, cols] self.stride (self.stride.getAt 0)*n self.ptr
+
+        0 . upto x.elems-1 . each (k:
+            case (k < x.size.fold 1 (*)) of
+                False: throw "element index out of range"
+                True :
+                    indexN = x.tmp k x.size index
+                    record = x.readAt indexN
+                    arr.writeAt indexN record)
+        arr
+
+    def transpose:
+        index = []
+        rows = self.size.getAt 0
+        cols = self.size.getAt 1
+        strideRows = self.stride.getAt 0
+        strideCols = self.stride.getAt 1
+        arr = self.alloc [cols,rows] [rows,strideCols] 0
+        x = NDArrayVal [cols,rows] [strideCols,strideRows] 0 self.ptr
+        0 . upto x.elems-1 . each k:
+            case (k < x.size.fold 1 (*)) of
+                False: throw "element index out of range"
+                True :
+                    indexN = x.tmp k x.size index
+                    pointer = x.getAt indexN
+                    case pointer.read.isNull of
+                        False: readData = pointer . read
+                               text = readData . toText
+                               readData.free
+                               arr.writeAt indexN (CString.fromText text)
+                        True: arr.writeAt indexN (Pointer None . null)
+        arr
+
+    def mapRow n ft f:
+        index = []
+        x = NDArrayVal (self.size.tail.get) (self.stride.tail.get) n*(self.stride.getAt 0) self.ptr
+        0 . upto x.elems-1 . each (k:
+            case (k < x.size.fold 1 (*)) of
+                False: throw "element index out of range"
+                True :
+                    indexN = x.tmp k x.size index
+                    record = x.getAt indexN
+                    cstringPointer = record.read
+                    string = cstringPointer.toText
+                    cstringPointer.free
+                    modifiedRecord = case ft of
+                        FieldReal:
+                            real = scanf string
+                            value = ValueReal real
+                            f value
+                        _:
+                            value = ValueText string
+                            f value
+                    record.write (CString.fromText modifiedRecord.toText))
+        self
+
+    def mapColumn n c:
+        index = []
+        x = NDArrayVal (self.size.take 1) (self.stride.take 1) n self.ptr
+        0 . upto x.elems-1 . each (k:
+            case (k < x.size.fold 1 (*)) of
+                False: throw "element index out of range"
+                True :
+                    indexN = x.tmp k x.size index
+                    record = x.getAt indexN
+                    cdoublePointer = record.read
+                    modifiedRecord = f cdoublePointer
+                    record.write  modifiedRecord)
+        self
+
+    def findNA:
+        index = []
+        0 . upto self.elems-1 . each (k:
+            case (k < self.size.fold 1 (*)) of
+                False: throw "element index out of range"
+                True :
+                    indexN = self.tmp k self.size index
+                    pointer = self.getAt indexN
+                    if pointer.read.isNull then (Just indexN) else Nothing)
+
+    def map f:
+        index = []
+        0 . upto self.elems-1 . each (k:
+            case (k < self.size.fold 1 (*)) of
+                False: throw "element index out of range"
+                True :
+                    indexN = self.tmp k self.size index
+                    pointer = self.getAt indexN
+                    if pointer.read.isNull then (Pointer None . null) else f pointer.read)
+
+    def copy_column n:
+        rows = self.size.head.get
+        print rows
+        cols = self.size.getAt 1
+        priont cols
+        stride_r = self.stride.head.get
+        print stride_r
+        stride_c = self.stride.getAt 1
+        print stride_c
+        off = self.offset
+        print off
+        new_mat = csv "copy_column" . call (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg, CInt.fromInt off . toCArg]
+        matManaged = ManagedPointer CString . fromPointer (csv "mat_delete") new_mat
+        NDArrayVal (self.size.take 1) self.stride.tail.get 0 matManaged

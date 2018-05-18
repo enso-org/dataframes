@@ -1,0 +1,17 @@
+import Std.Foreign.C.Value
+import Std.Foreign
+
+class FieldType:
+    FieldReal
+    FieldText
+    FieldCategory (List Text)
+
+    def toText: case self of
+        FieldReal: "FieldReal"
+        FieldText: "FieldText"
+        FieldCategory a: "FieldCategory " + a.toText
+
+
+class FieldValue:
+    ValueReal Real
+    ValueText Text
