@@ -80,10 +80,10 @@ class NDArray a:
         self.assertInBounds index
         self.unsafeElemPointer index
 
-    def tmp flatIndex: self.tmp2 flatIndex []
+    def tmp flatIndex: self.tmp2 flatIndex self.size []
 
-    def tmp2 flatIndex acc:
-        case self.size of
+    def tmp2 flatIndex size acc:
+        case size of
             Prepend x xs :
                 n = xs.fold 1 (*)
                 accNew =  acc.prepend (flatIndex/n)
