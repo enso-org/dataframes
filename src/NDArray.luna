@@ -29,8 +29,14 @@ class NDArray a:
 
     def make: NDArrayVal
 
-    def alloc size stride offset:
-        ptr = self.ptr.mallocElems self.elems
+    def alloc size :
+        elems = size.fold 1 (*)
+        stride = case size.length of
+            0: throw "Empty size list"
+            1: [1]
+            _: size.tail.get + [1]
+        offset = 0
+        ptr = self.ptr.mallocElems elems
         NDArrayVal size stride offset ptr
 
     def free:
@@ -94,7 +100,7 @@ class NDArray a:
 
     def copyRowToArray n:
         index = []
-        arr = self.alloc (self.size.tail.get) self.stride.tail.get 0
+        arr = self.alloc (self.size.tail.get)
         x = NDArrayVal (self.size.tail.get) (self.stride.tail.get) n*(self.stride.getAt 0) self.ptr
         0 . upto x.elems-1 . each (k:
             case (k < x.size.fold 1 (*)) of
@@ -110,7 +116,7 @@ class NDArray a:
 
     def copyColToArray n:
         index = []
-        arr = self.alloc (self.size.take 1) self.stride.tail.get 0
+        arr = self.alloc (self.size.take 1)
         x = NDArrayVal (self.size.take 1) (self.stride.take 1) n self.ptr
         0 . upto x.elems-1 . each (k:
             case (k < x.size.fold 1 (*)) of
@@ -130,7 +136,7 @@ class NDArray a:
         index = []
         l = listOfRows.length
         newSize = [l,(self.size.getAt 1)]
-        arr = self.alloc newSize self.stride 0
+        arr = self.alloc newSize
         0 . upto (l - 1) . each n:
             offset = (listOfRows.getAt n) * (self.stride.getAt 0)
             x = NDArrayVal (self.size.tail.get) self.stride.tail.get offset self.ptr
@@ -148,7 +154,7 @@ class NDArray a:
         index = []
         l = listOfCols.length
         newSize = [self.size.head.get, l]
-        arr = self.alloc newSize self.stride 0
+        arr = self.alloc newSize
         0 . upto (l - 1) . each (n:
             offset = (listOfCols.getAt n) * (self.stride.getAt 1)
             xSize = self.size.take 1
@@ -167,7 +173,7 @@ class NDArray a:
         index = []
         rows = self.size.getAt 0
         cols = self.size.getAt 1
-        arr = self.alloc [rows-1, cols] self.stride 0
+        arr = self.alloc [rows-1, cols]
 
         x = NDArrayVal [rows-1, cols] self.stride (self.stride.getAt 0)*n self.ptr
 
@@ -186,7 +192,7 @@ class NDArray a:
         cols = self.size.getAt 1
         strideRows = self.stride.getAt 0
         strideCols = self.stride.getAt 1
-        arr = self.alloc [cols,rows] [rows,strideCols] 0
+        arr = self.alloc [cols,rows]
         x = NDArrayVal [cols,rows] [strideCols,strideRows] 0 self.ptr
         0 . upto x.elems-1 . each k:
             case (k < x.size.fold 1 (*)) of
