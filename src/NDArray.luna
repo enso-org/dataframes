@@ -26,6 +26,8 @@ class NDArray a:
 
     def elems: self.size.fold 1 (*)
 
+    def forEach f: 0 . upto self.elems-1 . each (k: f k)
+
     def make: NDArrayVal
 
     def alloc size :
@@ -86,7 +88,7 @@ class NDArray a:
 
     def toList:
         index = []
-        0 . upto self.elems-1 . each (k:
+        self.forEach (k:
             indexN = self.tmp k self.size index
             pointer = self.elemPointer indexN
             case pointer.read.isNull of
@@ -98,7 +100,7 @@ class NDArray a:
         index = []
         arr = self.alloc (self.size.tail.get)
         x = NDArrayVal (self.size.tail.get) (self.stride.tail.get) n*(self.stride.getAt 0) self.ptr
-        0 . upto x.elems-1 . each (k:
+        x.forEach (k:
             indexN = x.tmp k x.size index
             pointer = x.elemPointer indexN
             case pointer.read.isNull of
@@ -111,7 +113,7 @@ class NDArray a:
         index = []
         arr = self.alloc (self.size.take 1)
         x = NDArrayVal (self.size.take 1) (self.stride.take 1) n self.ptr
-        0 . upto x.elems-1 . each (k:
+        x.forEach (k:
             indexN = x.tmp k x.size index
             record = x.elemPointer indexN
             case record.read.isNull of
@@ -130,7 +132,7 @@ class NDArray a:
         0 . upto (l - 1) . each n:
             offset = (listOfRows.getAt n) * (self.stride.getAt 0)
             x = NDArrayVal (self.size.tail.get) self.stride.tail.get offset self.ptr
-            0 . upto x.elems-1 . each k:
+            x.forEach k:
                 indexN = x.tmp k x.size index
                 record = x.readAt indexN
                 arr.writeAt [n,k] record
@@ -142,15 +144,15 @@ class NDArray a:
         l = listOfCols.length
         newSize = [self.size.head.get, l]
         arr = self.alloc newSize
-        0 . upto (l - 1) . each (n:
+        0 . upto (l - 1) . each n:
             offset = (listOfCols.getAt n) * (self.stride.getAt 1)
             xSize = self.size.take 1
             xStride = (self.stride.take 1)
             x = NDArrayVal xSize xStride offset self.ptr
-            0 . upto x.elems - 1 . each (k:
+            x.forEach k:
                 indexN = x.tmp k x.size index
                 record = x.readAt indexN
-                arr.writeAt [k,n] record))
+                arr.writeAt [k,n] record
         arr
 
     def dropRow n:
@@ -161,10 +163,10 @@ class NDArray a:
 
         x = NDArrayVal [rows-1, cols] self.stride (self.stride.getAt 0)*n self.ptr
 
-        0 . upto x.elems-1 . each (k:
+        x.forEach k:
             indexN = x.tmp k x.size index
             record = x.readAt indexN
-            arr.writeAt indexN record)
+            arr.writeAt indexN record
         arr
 
     def transpose:
@@ -175,7 +177,7 @@ class NDArray a:
         strideCols = self.stride.getAt 1
         arr = self.alloc [cols,rows]
         x = NDArrayVal [cols,rows] [strideCols,strideRows] 0 self.ptr
-        0 . upto x.elems-1 . each k:
+        x.forEach k:
             indexN = x.tmp k x.size index
             pointer = x.elemPointer indexN
             case pointer.read.isNull of
@@ -189,7 +191,7 @@ class NDArray a:
     def mapRow n ft f:
         index = []
         x = NDArrayVal (self.size.tail.get) (self.stride.tail.get) n*(self.stride.getAt 0) self.ptr
-        0 . upto x.elems-1 . each (k:
+        x.forEach k:
             indexN = x.tmp k x.size index
             record = x.elemPointer indexN
             cstringPointer = record.read
@@ -203,33 +205,39 @@ class NDArray a:
                 _:
                     value = ValueText string
                     f value
-            record.write (CString.fromText modifiedRecord.toText))
+            record.write (CString.fromText modifiedRecord.toText)
         self
 
     def mapColumn n c:
         index = []
         x = NDArrayVal (self.size.take 1) (self.stride.take 1) n self.ptr
-        0 . upto x.elems-1 . each (k:
+        x.forEach k:
             indexN = x.tmp k x.size index
             record = x.elemPointer indexN
             cdoublePointer = record.read
             modifiedRecord = f cdoublePointer
-            record.write  modifiedRecord)
+            record.write  modifiedRecord
         self
 
     def findNA:
         index = []
-        0 . upto self.elems-1 . each (k:
+        self.forEach k:
             indexN = self.tmp k self.size index
             pointer = self.elemPointer indexN
-            if pointer.read.isNull then (Just indexN) else Nothing)
+            if pointer.read.isNull then (Just indexN) else Nothing
 
     def map f:
         index = []
-        0 . upto self.elems-1 . each (k:
+        self.forEach k:
             indexN = self.tmp k self.size index
             pointer = self.elemPointer indexN
-            if pointer.read.isNull then (Pointer None . null) else f pointer.read)
+            elem = pointer.read
+            case elem.isNull of
+                True: Pointer None . null
+                False:
+                    value = f elem
+                    elem.free
+                    elem.write value
 
     def copy_column n:
         rows = self.size.head.get
