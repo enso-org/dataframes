@@ -27,7 +27,7 @@ class NDArray a:
     def elems: self.size.fold 1 (*)
 
     def forEach f: 0 . upto self.elems-1 . each k:
-        indexN = self.tmp k self.size
+        indexN = self.tmp k
         f indexN
 
     def forEachLinear f: 0 . upto self.elems-1 . each k: f k
@@ -80,10 +80,10 @@ class NDArray a:
         self.assertInBounds index
         self.unsafeElemPointer index
 
-    def tmp flatIndex size: self.tmp2 flatIndex size []
+    def tmp flatIndex: self.tmp2 flatIndex []
 
-    def tmp2 flatIndex size acc:
-        case size of
+    def tmp2 flatIndex acc:
+        case self.size of
             Prepend x xs :
                 n = xs.fold 1 (*)
                 accNew =  acc.prepend (flatIndex/n)
@@ -104,7 +104,7 @@ class NDArray a:
         arr = self.alloc (self.size.tail.get)
         x = NDArrayVal (self.size.tail.get) (self.stride.tail.get) n*(self.stride.getAt 0) self.ptr
         x.forEachLinear (k:
-            indexN = x.tmp k x.size
+            indexN = x.tmp k
             pointer = x.elemPointer indexN
             case pointer.read.isNull of
                 True : arr.writeAt [k] (Pointer None . null)
@@ -116,7 +116,7 @@ class NDArray a:
         arr = self.alloc (self.size.take 1)
         x = NDArrayVal (self.size.take 1) (self.stride.take 1) n self.ptr
         x.forEachLinear (k:
-            indexN = x.tmp k x.size
+            indexN = x.tmp k
             record = x.elemPointer indexN
             case record.read.isNull of
                 True: arr.writeAt [k] (Pointer None . null)
@@ -134,7 +134,7 @@ class NDArray a:
             offset = (listOfRows.getAt n) * (self.stride.getAt 0)
             x = NDArrayVal (self.size.tail.get) self.stride.tail.get offset self.ptr
             x.forEachLinear k:
-                indexN = x.tmp k x.size
+                indexN = x.tmp k
                 record = x.readAt indexN
                 arr.writeAt [n,k] record
         arr
@@ -150,7 +150,7 @@ class NDArray a:
             xStride = (self.stride.take 1)
             x = NDArrayVal xSize xStride offset self.ptr
             x.forEachLinear k:
-                indexN = x.tmp k x.size
+                indexN = x.tmp k
                 record = x.readAt indexN
                 arr.writeAt [k,n] record
         arr
@@ -213,7 +213,6 @@ class NDArray a:
 
     def findNA:
         self.forEach indexN:
-            indexN = self.tmp k self.size index
             pointer = self.elemPointer indexN
             if pointer.read.isNull then (Just indexN) else Nothing
 
