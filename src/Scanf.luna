@@ -6,4 +6,5 @@ def csv sym:
 
 def scanf x:
     double = csv "luna_scanf" . call CDouble [CString.fromText x . toCArg]
+    x.free
     double.toReal
