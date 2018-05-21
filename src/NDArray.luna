@@ -41,7 +41,7 @@ class NDArray a:
     def free:
         self.ptr.free
 
-    def moveByIndex index:
+    def unsafeElemPointer index:
         lsMatch = index.length == self.size.length
         elemSize = index.zipWith (*) self.stride
         elems = elemSize.fold self.offset (+)
@@ -56,7 +56,7 @@ class NDArray a:
         when (inBounds.not) (throw "Array index out of bounds.")
 
     def uncheckedReadAt index:
-        pointer = self . moveByIndex index
+        pointer = self . unsafeElemPointer index
         pointer.read
 
     def readAt index:
@@ -64,15 +64,15 @@ class NDArray a:
         self.uncheckedReadAt index
 
     def uncheckedWriteAt index val:
-        self . moveByIndex index . write val
+        self . unsafeElemPointer index . write val
 
     def writeAt index val:
         self.assertInBounds index
         self.uncheckedWriteAt index val
 
-    def getAt index:
+    def elemPointer index:
         self.assertInBounds index
-        self.moveByIndex index
+        self.unsafeElemPointer index
 
     def tmp flatIndex size acc:
         case size of
@@ -88,7 +88,7 @@ class NDArray a:
         index = []
         0 . upto self.elems-1 . each (k:
             indexN = self.tmp k self.size index
-            pointer = self.getAt indexN
+            pointer = self.elemPointer indexN
             case pointer.read.isNull of
                 False:
                     pointer . read . toText
@@ -100,7 +100,7 @@ class NDArray a:
         x = NDArrayVal (self.size.tail.get) (self.stride.tail.get) n*(self.stride.getAt 0) self.ptr
         0 . upto x.elems-1 . each (k:
             indexN = x.tmp k x.size index
-            pointer = x.getAt indexN
+            pointer = x.elemPointer indexN
             case pointer.read.isNull of
                 True : arr.writeAt [k] (Pointer None . null)
                 False:  data = x.readAt indexN
@@ -113,7 +113,7 @@ class NDArray a:
         x = NDArrayVal (self.size.take 1) (self.stride.take 1) n self.ptr
         0 . upto x.elems-1 . each (k:
             indexN = x.tmp k x.size index
-            record = x.getAt indexN
+            record = x.elemPointer indexN
             case record.read.isNull of
                 True: arr.writeAt [k] (Pointer None . null)
                 False:
@@ -177,7 +177,7 @@ class NDArray a:
         x = NDArrayVal [cols,rows] [strideCols,strideRows] 0 self.ptr
         0 . upto x.elems-1 . each k:
             indexN = x.tmp k x.size index
-            pointer = x.getAt indexN
+            pointer = x.elemPointer indexN
             case pointer.read.isNull of
                 False: readData = pointer . read
                        text = readData . toText
@@ -191,7 +191,7 @@ class NDArray a:
         x = NDArrayVal (self.size.tail.get) (self.stride.tail.get) n*(self.stride.getAt 0) self.ptr
         0 . upto x.elems-1 . each (k:
             indexN = x.tmp k x.size index
-            record = x.getAt indexN
+            record = x.elemPointer indexN
             cstringPointer = record.read
             string = cstringPointer.toText
             cstringPointer.free
@@ -211,7 +211,7 @@ class NDArray a:
         x = NDArrayVal (self.size.take 1) (self.stride.take 1) n self.ptr
         0 . upto x.elems-1 . each (k:
             indexN = x.tmp k x.size index
-            record = x.getAt indexN
+            record = x.elemPointer indexN
             cdoublePointer = record.read
             modifiedRecord = f cdoublePointer
             record.write  modifiedRecord)
@@ -221,14 +221,14 @@ class NDArray a:
         index = []
         0 . upto self.elems-1 . each (k:
             indexN = self.tmp k self.size index
-            pointer = self.getAt indexN
+            pointer = self.elemPointer indexN
             if pointer.read.isNull then (Just indexN) else Nothing)
 
     def map f:
         index = []
         0 . upto self.elems-1 . each (k:
             indexN = self.tmp k self.size index
-            pointer = self.getAt indexN
+            pointer = self.elemPointer indexN
             if pointer.read.isNull then (Pointer None . null) else f pointer.read)
 
     def copy_column n:
