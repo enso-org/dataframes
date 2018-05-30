@@ -160,7 +160,7 @@ char **copy_columns(char **mat, size_t rows, size_t cols, size_t stride_r, size_
             int elem = (r * stride_r + column * stride_c);
             printf("%s: %d\n","elem",elem );
             int new_index = r * stride_r + c * stride_c;
-            printf("%s: %d\n","new_index",new_index)
+            printf("%s: %d\n","new_index",new_index);
             char *tmp = mat[elem];
             printf("%s\n", tmp ? tmp : "NULL");
             memcpy(&new_mat[new_index], &mat[elem], sizeof(*mat));
@@ -191,7 +191,7 @@ char **copy_rows(char **mat, size_t rows, size_t cols, size_t stride_r, size_t s
             int elem = (row * stride_r + c * stride_c);
             printf("%s: %d\n","elem",elem );
             int new_index = r * stride_r + c * stride_c;
-            printf("%s: %d\n","new_index",new_index)
+            printf("%s: %d\n","new_index",new_index);
             char *tmp = mat[elem];
             printf("%s\n", tmp ? tmp : "NULL");
             memcpy(&new_mat[new_index], &mat[elem], sizeof(*mat));

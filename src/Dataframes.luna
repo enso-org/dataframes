@@ -3,9 +3,6 @@ import Std.Foreign
 import Dataframes.NDArray
 import Dataframes.Types
 
-import Dataframes.Plotly
-
-
 «0»def csv sym:
     «3»lookupSymbol "csv" sym
 
@@ -39,10 +36,10 @@ class Dataframe:
             True:
                 headerArray = NDArrayVal [r, c] [c,1] 0 matManaged . copyRowToArray 0
                 header = headerArray . toList
-                data   = NDArrayVal [r, c] [c,1] 0 matManaged . dropRow 1 . transpose
+                data   = NDArrayVal [r, c] [c,1] 0 matManaged . dropRow 1 . cTranspose
                 DataframeVal (Just header) type data
             False:
-                DataframeVal Nothing type ((NDArrayVal [r, c] [c,1] 0 matManaged) . transpose)
+                DataframeVal Nothing type ((NDArrayVal [r, c] [c,1] 0 matManaged) . cTranspose)
 
     def at x y:
         record = self.data.readAt [y,x]
