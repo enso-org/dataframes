@@ -157,15 +157,15 @@ char **copy_columns(char **mat, size_t rows, size_t cols, size_t stride_r, size_
         for(size_t c = 0; c < number_of_cols; c++)
         {
 
-            printf("%s: %d\n","r",r );
-            printf("%s: %d\n","c",c );
+            // printf("%s: %d\n","r",r );
+            // printf("%s: %d\n","c",c );
             int column =  columns_to_copy[c];
             int elem = (r * column + column * stride_c);
-            printf("%s: %d\n","elem",elem );
+            // printf("%s: %d\n","elem",elem );
             int new_index = r * number_of_cols + c;
-            printf("%s: %d\n","new_index",new_index);
+            // printf("%s: %d\n","new_index",new_index);
             char *tmp = mat[elem];
-            printf("%s\n", tmp ? tmp : "NULL");
+            // printf("%s\n", tmp ? tmp : "NULL");
             memcpy(&new_mat[new_index], &mat[elem], sizeof(*mat));
 
         }
@@ -192,11 +192,11 @@ char **copy_rows(char **mat, size_t rows, size_t cols, size_t stride_r, size_t s
         {
             int row =  rows_to_copy[r];
             int elem = (row * stride_r + c * stride_c);
-            printf("%s: %d\n","elem",elem );
+            // printf("%s: %d\n","elem",elem );
             int new_index = r * stride_r + c * stride_c;
-            printf("%s: %d\n","new_index",new_index);
+            // printf("%s: %d\n","new_index",new_index);
             char *tmp = mat[elem];
-            printf("%s\n", tmp ? tmp : "NULL");
+            // printf("%s\n", tmp ? tmp : "NULL");
             memcpy(&new_mat[new_index], &mat[elem], sizeof(*mat));
 
         }
@@ -216,11 +216,11 @@ char **transpose(char **mat, size_t rows, size_t cols, size_t stride_r, size_t s
         for(size_t c = 0; c < cols; c++)
         {
             int elem = (r * stride_r + c * stride_c);
-            printf("%s: %d\n","elem",elem );
+            // printf("%s: %d\n","elem",elem );
             int new_index =  c * rows + r ;
-            printf("%s: %d\n","new_index",new_index);
+            // printf("%s: %d\n","new_index",new_index);
             char *tmp = mat[elem];
-            printf("%s\n", tmp ? tmp : "NULL");
+            // printf("%s\n", tmp ? tmp : "NULL");
             memcpy(&new_mat[new_index], &mat[elem], sizeof(*mat));
 
         }
