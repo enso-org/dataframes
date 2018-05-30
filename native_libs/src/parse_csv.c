@@ -157,11 +157,12 @@ char **copy_columns(char **mat, size_t rows, size_t cols, size_t stride_r, size_
         for(size_t c = 0; c < number_of_cols; c++)
         {
             int column =  columns_to_copy[c];
-            int elem = (r * stride_r + column);
-            // printf("%s: %d\n","elem",elem );
-            int new_index = r;
+            int elem = (r * stride_r + column * stride_c);
+            printf("%s: %d\n","elem",elem );
+            int new_index = r * stride_r + c * stride_c;
+            printf("%s: %d\n","new_index",new_index)
             char *tmp = mat[elem];
-            // printf("%s\n", tmp ? tmp : "NULL");
+            printf("%s\n", tmp ? tmp : "NULL");
             memcpy(&new_mat[new_index], &mat[elem], sizeof(*mat));
 
         }
@@ -187,9 +188,33 @@ char **copy_rows(char **mat, size_t rows, size_t cols, size_t stride_r, size_t s
         for(size_t c = 0; c < cols; c++)
         {
             int row =  rows_to_copy[r];
-            int elem = (row * stride_r + c);
+            int elem = (row * stride_r + c * stride_c);
+            printf("%s: %d\n","elem",elem );
+            int new_index = r * stride_r + c * stride_c;
+            printf("%s: %d\n","new_index",new_index)
+            char *tmp = mat[elem];
+            printf("%s\n", tmp ? tmp : "NULL");
+            memcpy(&new_mat[new_index], &mat[elem], sizeof(*mat));
+
+        }
+    }
+    return new_mat;
+}
+
+char **transpose(char **mat, size_t rows, size_t cols, size_t stride_r, size_t stride_c)
+{
+    if (mat == NULL)
+        return NULL;
+
+    char **new_mat = malloc(rows*cols*sizeof(*mat));
+
+    for(size_t r = 0; r < rows; r++)
+    {
+        for(size_t c = 0; c < cols; c++)
+        {
+            int elem = (r * stride_r + c * stride_c);
             // printf("%s: %d\n","elem",elem );
-            int new_index = c;
+            int new_index =  c * stride_r + r * stride_c;
             char *tmp = mat[elem];
             // printf("%s\n", tmp ? tmp : "NULL");
             memcpy(&new_mat[new_index], &mat[elem], sizeof(*mat));
@@ -199,11 +224,10 @@ char **copy_rows(char **mat, size_t rows, size_t cols, size_t stride_r, size_t s
     return new_mat;
 }
 
-
 int main(void){
     size_t rows, cols;
     int error;
-    char **mat = read_csv("/home/sylwia/luna/projects/HPPLuna/data/HPI_master.csv", &rows, &cols, &error);
+    char **mat = read_csv("/home/sylwia/project/csv-parser/test/data/simple_empty.csv", &rows, &cols, &error);
     printf("%ld,\n",cols);
     printf("%ld,\n",rows);
     int j[]  = {2,3};
