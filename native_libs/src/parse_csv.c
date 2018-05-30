@@ -156,10 +156,13 @@ char **copy_columns(char **mat, size_t rows, size_t cols, size_t stride_r, size_
     {
         for(size_t c = 0; c < number_of_cols; c++)
         {
+
+            printf("%s: %d\n","r",r );
+            printf("%s: %d\n","c",c );
             int column =  columns_to_copy[c];
-            int elem = (r * stride_r + column * stride_c);
+            int elem = (r * column + column * stride_c);
             printf("%s: %d\n","elem",elem );
-            int new_index = r * stride_r + c * stride_c;
+            int new_index = r * number_of_cols + c;
             printf("%s: %d\n","new_index",new_index);
             char *tmp = mat[elem];
             printf("%s\n", tmp ? tmp : "NULL");
@@ -213,10 +216,11 @@ char **transpose(char **mat, size_t rows, size_t cols, size_t stride_r, size_t s
         for(size_t c = 0; c < cols; c++)
         {
             int elem = (r * stride_r + c * stride_c);
-            // printf("%s: %d\n","elem",elem );
-            int new_index =  c * stride_r + r * stride_c;
+            printf("%s: %d\n","elem",elem );
+            int new_index =  c * rows + r ;
+            printf("%s: %d\n","new_index",new_index);
             char *tmp = mat[elem];
-            // printf("%s\n", tmp ? tmp : "NULL");
+            printf("%s\n", tmp ? tmp : "NULL");
             memcpy(&new_mat[new_index], &mat[elem], sizeof(*mat));
 
         }
@@ -230,9 +234,10 @@ int main(void){
     char **mat = read_csv("/home/sylwia/project/csv-parser/test/data/simple_empty.csv", &rows, &cols, &error);
     printf("%ld,\n",cols);
     printf("%ld,\n",rows);
-    int j[]  = {2,3};
-    char **column = copy_rows(mat,rows,cols,cols,1,2,j);
-
+    int j[]  = {2,1};
+    // char **row = copy_rows(mat,rows,cols,cols,1,2,j);
+    // char **column = copy_columns(mat,rows,cols,cols,1,2,j);
+    char **new_mat = transpose(mat,rows,cols,cols,1);
     // for(size_t r = 0; r < rows; ++r){
     //     for(size_t c = 0; c < cols; ++c){
     //         if(c)
@@ -242,7 +247,9 @@ int main(void){
     //     }
     //     puts("");
     // }
-    free(mat);
-    free(column);
+    // free(mat);
+    // free(column);
+    // free(row);
+    free(new_mat);
     return 0;
 }

@@ -13,6 +13,6 @@ import Dataframes.NDArray
 «2»def main:
     filename = "/home/sylwia/project/csv-parser/test/data/simple_empty.csv"
     csv = Dataframe.readFromCSV filename False
-    column = csv.data.copyColumns [1]
+    column = csv.data
     print column.toList
     None
