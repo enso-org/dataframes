@@ -1,0 +1,100 @@
+import Std.Foreign.C.Value
+import Std.Foreign
+import Dataframes.NDArray
+import Dataframes.Types
+
+import Dataframes.Plotly
+
+
+«0»def csv sym:
+    «3»lookupSymbol "csv" sym
+
+
+
+class Dataframe:
+    Dataframe
+    DataframeVal:
+        header:: Maybe (List Text)
+        type  :: List FieldType
+        data  :: NDArray CString
+
+    def header: case self of
+        DataframeVal h _ _: h
+
+    def type: case self of
+        DataframeVal _ t _: t
+
+    def data: case self of
+        DataframeVal _ _ d: d
+
+    def readFromCSV file readHeader:
+        rows = ManagedPointer CInt . malloc
+        cols = ManagedPointer CInt . malloc
+        mat = csv "read_csv" . call (Pointer CString) [CString.fromText file . toCArg, rows.toCArg, cols.toCArg]
+        matManaged = ManagedPointer CString . fromPointer (csv "mat_delete") mat
+        r = rows.read.toInt
+        c = cols.read.toInt
+        type = 0 . upto c . each (k: FieldReal)
+        case readHeader of
+            True:
+                headerArray = NDArrayVal [r, c] [c,1] 0 matManaged . copyRowToArray 0
+                header = headerArray . toList
+                data   = NDArrayVal [r, c] [c,1] 0 matManaged . dropRow 1 . transpose
+                DataframeVal (Just header) type data
+            False:
+                DataframeVal Nothing type ((NDArrayVal [r, c] [c,1] 0 matManaged) . transpose)
+
+    def at x y:
+        record = self.data.readAt [y,x]
+        record
+
+    def selectColumns x:
+        newHeader = x.foldLeft [] (selectItems self.header)
+        newType = x.foldLeft [] (selectItems self.type)
+        newData = self.data.copyRowsToArray x
+        DataframeVal (Just newHeader) newType newData
+
+    def selectColumnsByNames listOfNames:
+        None
+
+    def dif a b:
+        (a == b).not
+
+    def dropRows list:
+        rows = 0 . upto (self.data.size.head.get)
+        x = rows.filter (k: list._any (Dataframe.dif k))
+        newFrame = self.selectRows x
+        newFrame
+
+
+
+    def selectRows x:
+        newData = self.data.copyColsToArray x
+        DataframeVal self.header self.type newData
+
+    def selectItems l1 x l2:
+        n = l1.getAt x
+        l22 = l2 + [n]
+        l22
+
+    def selectColumnRange a b:
+        range = a . upto b
+        self.selectColumns range
+
+    def selectRowRange a b:
+        range = a . upto b
+        print range
+        self.selectRows range
+
+
+    def mapColumn n f:
+        newData = self.data.mapRow n (self.type.getAt n) f
+        DataframeVal self.header self.type newData
+
+    def fillNA defValue column:
+        None
+
+    def dropNA:
+        naList = self.data.findNA . filter (k: k.isJust)
+        rows = naList.each (k: k.get . head . get)
+        self.dropRows rows

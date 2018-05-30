@@ -128,6 +128,8 @@ class NDArray a:
 
     def copyRowsToArray listOfRows:
         l = listOfRows.length
+
+
         newSize = [l,(self.size.getAt 1)]
         arr = self.alloc newSize
         0 . upto (l - 1) . each n:
@@ -227,17 +229,13 @@ class NDArray a:
                     elem.free
                     elem.write value
 
-    def copy_column n:
+    def copyColumns listOfColumns:
+        l = listOfColumns.length
         rows = self.size.head.get
-        print rows
         cols = self.size.getAt 1
-        priont cols
         stride_r = self.stride.head.get
-        print stride_r
         stride_c = self.stride.getAt 1
-        print stride_c
-        off = self.offset
-        print off
-        new_mat = csv "copy_column" . call (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg, CInt.fromInt off . toCArg]
+        columnsArray = Array CInt . fromList (listOfColumns . map CInt.fromInt)
+        new_mat = csv "copy_columns" . call (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg, CInt.fromInt l . toCArg, columnsArray.toCArg]
         matManaged = ManagedPointer CString . fromPointer (csv "mat_delete") new_mat
         NDArrayVal (self.size.take 1) self.stride.tail.get 0 matManaged

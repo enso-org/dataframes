@@ -139,15 +139,29 @@ void mat_delete(void **mat)
     free(mat);
 }
 
-char **copy_column(char **mat, size_t rows, size_t cols, size_t stride_r, size_t stride_c, int offset)
+char **copy_columns(char **mat, size_t rows, size_t cols, size_t stride_r, size_t stride_c, int number_of_cols, int *columns_to_copy)
 {
-    char **new_mat = malloc(rows*cols*sizeof(*mat));
+    if (number_of_cols<1)
+        return NULL;
+
+    if (columns_to_copy == NULL)
+        return NULL;
+
+    if (mat == NULL)
+        return NULL;
+
+    char **new_mat = malloc(rows*number_of_cols*sizeof(*mat));
+
     for(size_t r = 0; r < rows; r++)
     {
-        for(size_t c = 0; c < cols; c++)
+        for(size_t c = 0; c < number_of_cols; c++)
         {
-            int elem = (r * stride_r + c * stride_c + offset)  ;
+            int column =  columns_to_copy[c];
+            int elem = (r * stride_r + column);
+            // printf("%s: %d\n","elem",elem );
             int new_index = r;
+            char *tmp = mat[elem];
+            // printf("%s\n", tmp ? tmp : "NULL");
             memcpy(&new_mat[new_index], &mat[elem], sizeof(*mat));
 
         }
@@ -155,41 +169,56 @@ char **copy_column(char **mat, size_t rows, size_t cols, size_t stride_r, size_t
     return new_mat;
 }
 
-#include <ctype.h>
+char **copy_rows(char **mat, size_t rows, size_t cols, size_t stride_r, size_t stride_c, int number_of_rows, int *rows_to_copy)
+{
+    if (number_of_rows<1)
+        return NULL;
 
-char *trim(char *s){
-    if(!s || !*s)
-        return s;
+    if (rows_to_copy == NULL)
+        return NULL;
 
-    char *from, *to;
+    if (mat == NULL)
+        return NULL;
 
-    for(from = s; *from && isspace((unsigned char)*from); ++from);
-    for(to = s; *from;){
-        *to++ = *from++;
+    char **new_mat = malloc(number_of_rows*cols*sizeof(*mat));
+
+    for(size_t r = 0; r < number_of_rows; r++)
+    {
+        for(size_t c = 0; c < cols; c++)
+        {
+            int row =  rows_to_copy[r];
+            int elem = (row * stride_r + c);
+            // printf("%s: %d\n","elem",elem );
+            int new_index = c;
+            char *tmp = mat[elem];
+            // printf("%s\n", tmp ? tmp : "NULL");
+            memcpy(&new_mat[new_index], &mat[elem], sizeof(*mat));
+
+        }
     }
-    *to = 0;
-    while(s != to && isspace((unsigned char)to[-1])){
-        *--to = 0;
-    }
-    return s;
+    return new_mat;
 }
+
 
 int main(void){
     size_t rows, cols;
     int error;
-    char **mat = read_csv("/home/sylwia/project/csv-parser/test/data/simple_empty.csv", &rows, &cols, &error);
+    char **mat = read_csv("/home/sylwia/luna/projects/HPPLuna/data/HPI_master.csv", &rows, &cols, &error);
     printf("%ld,\n",cols);
     printf("%ld,\n",rows);
-    char **column = copy_column(**mat,rows,cols,cols,1,1);
+    int j[]  = {2,3};
+    char **column = copy_rows(mat,rows,cols,cols,1,2,j);
 
-    for(size_t r = 0; r < rows; ++r){
-        for(size_t c = 0; c < 1; ++c){
-            if(c)
-                putchar(',');
-            printf("%s", (column[r*cols+c]));
-        }
-        puts("");
-    }
+    // for(size_t r = 0; r < rows; ++r){
+    //     for(size_t c = 0; c < cols; ++c){
+    //         if(c)
+    //             putchar(',');
+    //         printf("%s", "(column[r*cols+c])");
+    //         printf("%s", (column[r*cols+c]));
+    //     }
+    //     puts("");
+    // }
     free(mat);
+    free(column);
     return 0;
 }
