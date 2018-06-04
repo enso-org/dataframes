@@ -169,6 +169,11 @@ class NDArray a:
             arr.writeAt indexN record
         arr
 
+    def cDropRow n:
+        rows = self.size.getAt 0
+        rowsToCopy = (0 . upto n-1) + (n+1 . upto rows-1)
+        self.copyRows rowsToCopy
+
     def transpose:
         rows = self.size.getAt 0
         cols = self.size.getAt 1

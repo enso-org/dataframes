@@ -36,7 +36,7 @@ class Dataframe:
             True:
                 headerArray = NDArrayVal [r, c] [c,1] 0 matManaged . copyRowToArray 0
                 header = headerArray . toList
-                data   = NDArrayVal [r, c] [c,1] 0 matManaged . dropRow 1 . cTranspose
+                data   = NDArrayVal [r, c] [c,1] 0 matManaged . cDropRow 0 . cTranspose
                 DataframeVal (Just header) type data
             False:
                 DataframeVal Nothing type ((NDArrayVal [r, c] [c,1] 0 matManaged) . cTranspose)
@@ -46,8 +46,8 @@ class Dataframe:
         record
 
     def selectColumns x:
-        newHeader = x.foldLeft [] (selectItems self.header)
-        newType = x.foldLeft [] (selectItems self.type)
+        newHeader = x.foldLeft [] (self.selectItems self.header)
+        newType = x.foldLeft [] (self.selectItems self.type)
         newData = self.data.copyRowsToArray x
         DataframeVal (Just newHeader) newType newData
 
@@ -70,7 +70,7 @@ class Dataframe:
         DataframeVal self.header self.type newData
 
     def selectItems l1 x l2:
-        n = l1.getAt x
+        n = l1.get.getAt x
         l22 = l2 + [n]
         l22
 
