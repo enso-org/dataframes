@@ -1,11 +1,8 @@
 import Std.Foreign.C.Value
 import Std.Foreign
 
-def csv sym:
-    lookupSymbol "csv" sym
-
 def scanf x:
     cString = CString.fromText x
-    double = csv "luna_scanf" . call CDouble [cString . toCArg]
+    double = lookupSymbol "scanf" "luna_scanf" . call CDouble [cString . toCArg]
     cString.free
     double.toReal

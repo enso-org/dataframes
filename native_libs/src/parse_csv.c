@@ -3,14 +3,6 @@
 #include <string.h>
 #include <stdbool.h>
 
-double luna_scanf(char *data)
-{
-    double d;
-    sscanf(data,"%lf", &d);
-    return d;
-}
-
-
 //https://tools.ietf.org/html/rfc4180
 char *getCSVField(FILE *fp, char separator, int *state){
     int ch = fgetc(fp);
