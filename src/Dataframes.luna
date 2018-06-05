@@ -11,7 +11,7 @@ class Dataframe:
         data  :: NDArray CString
 
     def _cSym name:
-        lookupSymbol "csv" sym
+        lookupSymbol "csv" name
 
     def _cCall name ret args:
         self . _cSym name . call ret args
@@ -81,7 +81,6 @@ class Dataframe:
 
     def selectRowRange a b:
         range = a . upto b
-        print range
         self.selectRows range
 
 

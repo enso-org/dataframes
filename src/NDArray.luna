@@ -10,7 +10,7 @@ class NDArray a:
     NDArrayVal (List Int) (List Int) Int (ManagedPointer a)
 
     def _cSym name:
-        lookupSymbol "2d_array" sym
+        lookupSymbol "2d_array" name
 
     def _cCall name ret args:
         self . _cSym name . call ret args
@@ -104,74 +104,6 @@ class NDArray a:
                     pointer . read . toText
                 True: "")
 
-    def copyRowToArray n:
-        arr = self.alloc (self.size.tail.get)
-        x = NDArrayVal (self.size.tail.get) (self.stride.tail.get) n*(self.stride.getAt 0) self.ptr
-        x.forEachLinear (k:
-            indexN = x.tmp k
-            pointer = x.elemPointer indexN
-            case pointer.read.isNull of
-                True : arr.writeAt [k] (Pointer None . null)
-                False:  data = x.readAt indexN
-                        arr.writeAt [k] data)
-        arr
-
-    def copyColToArray n:
-        arr = self.alloc (self.size.take 1)
-        x = NDArrayVal (self.size.take 1) (self.stride.take 1) n self.ptr
-        x.forEachLinear (k:
-            indexN = x.tmp k
-            record = x.elemPointer indexN
-            case record.read.isNull of
-                True: arr.writeAt [k] (Pointer None . null)
-                False:
-                    data = x.readAt indexN
-                    arr.writeAt [k] data)
-        arr
-
-
-    def copyRowsToArray listOfRows:
-        l = listOfRows.length
-
-
-        newSize = [l,(self.size.getAt 1)]
-        arr = self.alloc newSize
-        0 . upto (l - 1) . each n:
-            offset = (listOfRows.getAt n) * (self.stride.getAt 0)
-            x = NDArrayVal (self.size.tail.get) self.stride.tail.get offset self.ptr
-            x.forEachLinear k:
-                indexN = x.tmp k
-                record = x.readAt indexN
-                arr.writeAt [n,k] record
-        arr
-
-
-    def copyColsToArray listOfCols:
-        l = listOfCols.length
-        newSize = [self.size.head.get, l]
-        arr = self.alloc newSize
-        0 . upto (l - 1) . each n:
-            offset = (listOfCols.getAt n) * (self.stride.getAt 1)
-            xSize = self.size.take 1
-            xStride = (self.stride.take 1)
-            x = NDArrayVal xSize xStride offset self.ptr
-            x.forEachLinear k:
-                indexN = x.tmp k
-                record = x.readAt indexN
-                arr.writeAt [k,n] record
-        arr
-
-    def dropRow n:
-        rows = self.size.getAt 0
-        cols = self.size.getAt 1
-        arr = self.alloc [rows-1, cols]
-
-        x = NDArrayVal [rows-1, cols] self.stride (self.stride.getAt 0)*n self.ptr
-
-        x.forEach indexN:
-            record = x.readAt indexN
-            arr.writeAt indexN record
-        arr
 
     def cDropRow n:
         rows = self.size.head.get
@@ -182,23 +114,6 @@ class NDArray a:
         new_mat = self._cCall "drop_row" (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg, CInt.fromInt n . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self._cSym "mat_delete") new_mat
         NDArrayVal [rows-1, cols] self.stride 0 matManaged
-
-    def transpose:
-        rows = self.size.getAt 0
-        cols = self.size.getAt 1
-        strideRows = self.stride.getAt 0
-        strideCols = self.stride.getAt 1
-        arr = self.alloc [cols,rows]
-        x = NDArrayVal [cols,rows] [strideCols,strideRows] 0 self.ptr
-        x.forEach indexN:
-            pointer = x.elemPointer indexN
-            case pointer.read.isNull of
-                False: readData = pointer . read
-                       text = readData . toText
-                       readData.free
-                       arr.writeAt indexN (CString.fromText text)
-                True: arr.writeAt indexN (Pointer None . null)
-        arr
 
     def mapRow n ft f:
         x = NDArrayVal (self.size.tail.get) (self.stride.tail.get) n*(self.stride.getAt 0) self.ptr
