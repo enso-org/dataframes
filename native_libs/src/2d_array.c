@@ -127,3 +127,8 @@ char **transpose(char **mat, size_t rows, size_t cols, size_t stride_r, size_t s
     }
     return new_mat;
 }
+
+void mat_delete(void **mat)
+{
+    free(mat);
+}

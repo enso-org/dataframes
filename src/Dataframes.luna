@@ -35,7 +35,7 @@ class Dataframe:
         type = 0 . upto c . each (k: FieldReal)
         case readHeader of
             True:
-                headerArray = NDArrayVal [r, c] [c,1] 0 matManaged . copyRowToArray 0
+                headerArray = NDArrayVal [r, c] [c,1] 0 matManaged . copyRows [0]
                 header = headerArray . toList
                 data   = NDArrayVal [r, c] [c,1] 0 matManaged . cDropRow 0 . cTranspose
                 DataframeVal (Just header) type data
