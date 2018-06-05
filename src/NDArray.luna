@@ -170,9 +170,14 @@ class NDArray a:
         arr
 
     def cDropRow n:
-        rows = self.size.getAt 0
-        rowsToCopy = (0 . upto n-1) + (n+1 . upto rows-1)
-        self.copyRows rowsToCopy
+        rows = self.size.head.get
+        cols = self.size.getAt 1
+        stride_r = self.stride.head.get
+        stride_c = self.stride.getAt 1
+
+        new_mat = csv "drop_row" . call (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg, CInt.fromInt n . toCArg]
+        matManaged = ManagedPointer CString . fromPointer (csv "mat_delete") new_mat
+        NDArrayVal [rows-1, cols] self.stride 0 matManaged
 
     def transpose:
         rows = self.size.getAt 0
