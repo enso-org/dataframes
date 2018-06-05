@@ -4,12 +4,16 @@ import Std.Foreign
 import Dataframes.Scanf
 import Dataframes.Types
 
-def csv sym:
-    lookupSymbol "csv" sym
 
 class NDArray a:
     NDArray a
     NDArrayVal (List Int) (List Int) Int (ManagedPointer a)
+
+    def _cSym name:
+        lookupSymbol "2d_array" sym
+
+    def _cCall name ret args:
+        self . _cSym name . call ret args
 
     def ptr: case self of
         NDArray a: ManagedPointer a
@@ -175,8 +179,8 @@ class NDArray a:
         stride_r = self.stride.head.get
         stride_c = self.stride.getAt 1
 
-        new_mat = csv "drop_row" . call (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg, CInt.fromInt n . toCArg]
-        matManaged = ManagedPointer CString . fromPointer (csv "mat_delete") new_mat
+        new_mat = self._cCall "drop_row" (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg, CInt.fromInt n . toCArg]
+        matManaged = ManagedPointer CString . fromPointer (self._cSym "mat_delete") new_mat
         NDArrayVal [rows-1, cols] self.stride 0 matManaged
 
     def transpose:
@@ -246,8 +250,8 @@ class NDArray a:
         stride_r = self.stride.head.get
         stride_c = self.stride.getAt 1
         columnsArray = Array CInt . fromList (listOfColumns . map CInt.fromInt)
-        new_mat = csv "copy_columns" . call (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg, CInt.fromInt l . toCArg, columnsArray.toCArg]
-        matManaged = ManagedPointer CString . fromPointer (csv "mat_delete") new_mat
+        new_mat = self._cCall "copy_columns" (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg, CInt.fromInt l . toCArg, columnsArray.toCArg]
+        matManaged = ManagedPointer CString . fromPointer (self._cSym "mat_delete") new_mat
         NDArrayVal [rows, l] [l, stride_c] 0 matManaged
 
     def copyRows listOfRows:
@@ -257,8 +261,8 @@ class NDArray a:
         stride_r = self.stride.head.get
         stride_c = self.stride.getAt 1
         rowsArray = Array CInt . fromList (listOfRows . map CInt.fromInt)
-        new_mat = csv "copy_rows" . call (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg, CInt.fromInt l . toCArg, rowsArray.toCArg]
-        matManaged = ManagedPointer CString . fromPointer (csv "mat_delete") new_mat
+        new_mat = self._cCall "copy_rows" (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg, CInt.fromInt l . toCArg, rowsArray.toCArg]
+        matManaged = ManagedPointer CString . fromPointer (self._cSym "mat_delete") new_mat
         NDArrayVal [l, cols] self.stride 0 matManaged
 
     def cTranspose:
@@ -266,6 +270,6 @@ class NDArray a:
         cols = self.size.getAt 1
         stride_r = self.stride.head.get
         stride_c = self.stride.getAt 1
-        new_mat = csv "transpose" . call (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg]
-        matManaged = ManagedPointer CString . fromPointer (csv "mat_delete") new_mat
+        new_mat = self._cCall "transpose" (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg]
+        matManaged = ManagedPointer CString . fromPointer (self._cSym "mat_delete") new_mat
         NDArrayVal [cols,rows] [rows,1] 0 matManaged

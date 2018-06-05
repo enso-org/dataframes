@@ -3,17 +3,18 @@ import Std.Foreign
 import Dataframes.NDArray
 import Dataframes.Types
 
-«0»def csv sym:
-    «3»lookupSymbol "csv" sym
-
-
-
 class Dataframe:
     Dataframe
     DataframeVal:
         header:: Maybe (List Text)
         type  :: List FieldType
         data  :: NDArray CString
+
+    def _cSym name:
+        lookupSymbol "csv" sym
+
+    def _cCall name ret args:
+        self . _cSym name . call ret args
 
     def header: case self of
         DataframeVal h _ _: h
@@ -27,8 +28,8 @@ class Dataframe:
     def readFromCSV file readHeader:
         rows = ManagedPointer CInt . malloc
         cols = ManagedPointer CInt . malloc
-        mat = csv "read_csv" . call (Pointer CString) [CString.fromText file . toCArg, rows.toCArg, cols.toCArg]
-        matManaged = ManagedPointer CString . fromPointer (csv "mat_delete") mat
+        mat = self._cCall "read_csv" (Pointer CString) [CString.fromText file . toCArg, rows.toCArg, cols.toCArg]
+        matManaged = ManagedPointer CString . fromPointer (self._cSym "mat_delete") mat
         r = rows.read.toInt
         c = cols.read.toInt
         type = 0 . upto c . each (k: FieldReal)
