@@ -133,7 +133,7 @@ class NDArray a:
             record.write (CString.fromText modifiedRecord.toText)
         self
 
-    def mapColumn n c:
+    def mapColumn n f:
         x = NDArrayVal (self.size.take 1) (self.stride.take 1) n self.ptr
         x.forEach indexN:
             record = x.elemPointer indexN
