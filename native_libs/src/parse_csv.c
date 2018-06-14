@@ -136,7 +136,7 @@ void mat_delete(void **mat)
 int main(void){
     size_t rows, cols;
     int error;
-    char **mat = read_csv("/home/sylwia/project/csv-parser/test/data/simple_empty.csv", &rows, &cols, &error);
+    char **mat = read_csv("../../data/simple_empty.csv", &rows, &cols, &error);
     printf("%ld,\n",cols);
     printf("%ld,\n",rows);
     int j[]  = {2,1};

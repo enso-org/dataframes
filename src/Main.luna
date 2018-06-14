@@ -11,7 +11,7 @@ import Dataframes.NDArray
         ValueText t: throw "invalid type"
 
 «2»def main:
-    filename = "/home/sylwia/project/csv-parser/test/data/simple_empty.csv"
+    filename = "./data/simple_empty.csv"
     csv = Dataframe.readFromCSV filename False
     column = csv.data
     print column.toList
