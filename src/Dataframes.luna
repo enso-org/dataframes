@@ -47,10 +47,8 @@ class Dataframe:
         record
 
     def selectColumns x:
-        newHeader = case self.header of
-            Nothing: Nothing
-            Just h: newH = x.foldLeft [] (self.selectItems h)
-                    Just newH
+        newHeader = self.header.map (h: x.foldLeft [] (self.selectItems h))
+            
         newType = x.foldLeft [] (self.selectItems self.type)
         newData = self.data.copyRows x
         DataframeVal newHeader newType newData
