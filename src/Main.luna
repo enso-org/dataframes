@@ -12,7 +12,7 @@ import Dataframes.NDArray
 
 «2»def main:
     filename = "./data/simple_empty.csv"
-    csv = Dataframe.readFromCSV filename False
-    column = csv.data
-    print column.toList
+    csv = Dataframe.readFromCSV filename True
+    column = csv.selectColumns [1]
+    print column.data.toList
     None

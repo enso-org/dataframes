@@ -165,7 +165,7 @@ class NDArray a:
         stride_r = self.stride.head.get
         stride_c = self.stride.getAt 1
         columnsArray = Array CInt . fromList (listOfColumns . map CInt.fromInt)
-        new_mat = self._cCall "copy_columns" (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg, CInt.fromInt l . toCArg, columnsArray.toCArg]
+        new_mat = self._cCall "copy_columns" (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg, CInt.fromInt l . toCArg, columnsArray.ptr . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self._cSym "mat_delete") new_mat
         NDArrayVal [rows, l] [l, stride_c] 0 matManaged
 
@@ -176,7 +176,7 @@ class NDArray a:
         stride_r = self.stride.head.get
         stride_c = self.stride.getAt 1
         rowsArray = Array CInt . fromList (listOfRows . map CInt.fromInt)
-        new_mat = self._cCall "copy_rows" (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg, CInt.fromInt l . toCArg, rowsArray.toCArg]
+        new_mat = self._cCall "copy_rows" (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg, CInt.fromInt l . toCArg, rowsArray.ptr . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self._cSym "mat_delete") new_mat
         NDArrayVal [l, cols] self.stride 0 matManaged
 
