@@ -188,3 +188,12 @@ class NDArray a:
         new_mat = self._cCall "transpose" (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self._cSym "mat_delete") new_mat
         NDArrayVal [cols,rows] [rows,1] 0 matManaged
+
+    def join arrayToJoin:
+        fstRows = self.size.head.get
+        fstCols = self.size.getAt 1
+        sndRows = arrayToJoin.size.head.get
+        sndCols = arrayToJoin.size.getAt 1
+        new_mat = self._cCall "join" (Pointer CString) [self.ptr . toCArg, arrayToJoin.ptr . toCArg, CSize.fromInt fstRows . toCArg, CSize.fromInt fstCols . toCArg, CSize.fromInt sndRows . toCArg, CSize.fromInt sndCols . toCArg]
+        matManaged = ManagedPointer CString . fromPointer (self._cSym "mat_delete") new_mat
+        NDArrayVal [fstRows+sndRows,cols] [fstCols,1] 0 matManaged

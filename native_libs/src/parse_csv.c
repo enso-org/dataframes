@@ -131,7 +131,26 @@ void mat_delete(void **mat)
     free(mat);
 }
 
+void write_csv(const char *filename, char **mat, size_t rows, size_t cols){
+    FILE *fp = fopen(filename, "w+");
+    if(!fp){
+        fprintf(stderr, "%s can't open in %s\n", filename, __func__);
+        perror("fopen");
 
+    }
+    for(size_t r = 0; r < rows; ++r){
+        for(size_t c = 0; c < cols; ++c){
+            if(c)
+                fprintf(fp,"%s", ",");
+                int record = r*cols+c;
+                fprintf(fp, "%s","\"" );
+                fprintf(fp,"%s", (mat[record]));
+                fprintf(fp, "%s","\"" );
+        }
+        fprintf(fp,"%s","\n");
+    }
+
+}
 
 int main(void){
     size_t rows, cols;
@@ -140,9 +159,10 @@ int main(void){
     printf("%ld,\n",cols);
     printf("%ld,\n",rows);
     int j[]  = {2,1};
+    write_csv("../../data/simple2.csv", mat, rows, cols);
     // char **row = copy_rows(mat,rows,cols,cols,1,2,j);
     // char **column = copy_columns(mat,rows,cols,cols,1,2,j);
-    char **new_mat = transpose(mat,rows,cols,cols,1);
+    // char **new_mat = transpose(mat,rows,cols,cols,1);
     // for(size_t r = 0; r < rows; ++r){
     //     for(size_t c = 0; c < cols; ++c){
     //         if(c)
@@ -155,6 +175,6 @@ int main(void){
     // free(mat);
     // free(column);
     // free(row);
-    free(new_mat);
+    // free(new_mat);
     return 0;
 }

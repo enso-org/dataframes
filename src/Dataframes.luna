@@ -42,13 +42,16 @@ class Dataframe:
             False:
                 DataframeVal Nothing type ((NDArrayVal [r, c] [c,1] 0 matManaged) . cTranspose)
 
+    def writeToCSV filename:
+        file = self._cCall "write_csv" None [CString.fromText file . toCArg, rows.toCArg, cols.toCArg]
+
     def at x y:
         record = self.data.readAt [y,x]
         record
 
     def selectColumns x:
         newHeader = self.header.map (h: x.foldLeft [] (self.selectItems h))
-            
+
         newType = x.foldLeft [] (self.selectItems self.type)
         newData = self.data.copyRows x
         DataframeVal newHeader newType newData
