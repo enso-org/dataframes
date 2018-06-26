@@ -136,30 +136,33 @@ void write_csv(const char *filename, char **mat, size_t rows, size_t cols){
     if(!fp){
         fprintf(stderr, "%s can't open in %s\n", filename, __func__);
         perror("fopen");
+        abort();
 
     }
     for(size_t r = 0; r < rows; ++r){
         for(size_t c = 0; c < cols; ++c){
-            if(c)
-                fprintf(fp,"%s", ",");
-                int record = r*cols+c;
-                fprintf(fp, "%s","\"" );
-                fprintf(fp,"%s", (mat[record]));
-                fprintf(fp, "%s","\"" );
+            int record = r*cols+c;
+            fprintf(fp, "\"" );
+            fprintf(fp, "%s", (mat[record] ? mat[record] : ""));
+            // fprintf(fp, "dupa");
+            fprintf(fp, "\"" );
+            if (c !=cols-1) {
+                fprintf(fp, ",");
+            }
+
         }
         fprintf(fp,"%s","\n");
     }
+    fclose(fp);
 
 }
 
 int main(void){
     size_t rows, cols;
     int error;
-    char **mat = read_csv("../../data/simple_empty.csv", &rows, &cols, &error);
-    printf("%ld,\n",cols);
-    printf("%ld,\n",rows);
+    char **mat = read_csv("./data/simple_empty.csv", &rows, &cols, &error);
     int j[]  = {2,1};
-    write_csv("../../data/simple2.csv", mat, rows, cols);
+    write_csv("./data/simple2.csv", mat, rows, cols);
     // char **row = copy_rows(mat,rows,cols,cols,1,2,j);
     // char **column = copy_columns(mat,rows,cols,cols,1,2,j);
     // char **new_mat = transpose(mat,rows,cols,cols,1);

@@ -118,7 +118,7 @@ char **join(char **fst_mat, char **snd_mat, size_t fst_rows, size_t fst_cols, si
                 // printf("%s: %d\n","new_index",new_index);
                 char *tmp = fst_mat[elem];
                 // printf("%s\n", tmp ? tmp : "NULL");
-                memcpy(&new_mat[new_index], &mat[elem], sizeof(*mat));
+                memcpy(&new_mat[new_index], &fst_mat[elem], sizeof(*fst_mat));
             } else {
                 int elem = ((r - fst_rows) * cols + c);
                 // printf("%s: %d\n","elem",elem );
@@ -126,7 +126,7 @@ char **join(char **fst_mat, char **snd_mat, size_t fst_rows, size_t fst_cols, si
                 // printf("%s: %d\n","new_index",new_index);
                 char *tmp = snd_mat[elem];
                 // printf("%s\n", tmp ? tmp : "NULL");
-                memcpy(&new_mat[new_index], &mat[elem], sizeof(*mat));
+                memcpy(&new_mat[new_index], &snd_mat[elem], sizeof(*snd_mat));
             }
 
 

@@ -13,6 +13,9 @@ import Dataframes.NDArray
 «2»def main:
     filename = "./data/simple_empty.csv"
     csv = Dataframe.readFromCSV filename True
-    column = csv.selectColumns [1]
+    column = csv.selectColumns [1,2]
+
     print column.data.toList
+    print column.header
+    column.writeToCSV "dupa"
     None

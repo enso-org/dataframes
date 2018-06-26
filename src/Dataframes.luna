@@ -13,6 +13,9 @@ class Dataframe:
     def _cSym name:
         lookupSymbol "csv" name
 
+    def _cStdSym name:
+        lookupSymbol cStdLib name
+
     def _cCall name ret args:
         self . _cSym name . call ret args
 
@@ -43,7 +46,18 @@ class Dataframe:
                 DataframeVal Nothing type ((NDArrayVal [r, c] [c,1] 0 matManaged) . cTranspose)
 
     def writeToCSV filename:
-        file = self._cCall "write_csv" None [CString.fromText file . toCArg, rows.toCArg, cols.toCArg]
+        withHeader = case self.header of
+            Nothing: self.data.cTranspose
+            Just h :
+                    headerArray = Array CString . fromList (h . map CString.fromText)
+                    managed = ManagedPointer CString . fromPointer (self._cStdSym "free") headerArray.ptr
+                    headerNDArray = NDArrayVal [1,h.length] [1,1] 0 managed
+                    dataT = self.data.cTranspose
+                    headerNDArray.join dataT
+        rows = withHeader.size.head.get
+        cols = withHeader.size.getAt 1
+        self._cCall "write_csv" None [CString.fromText filename . toCArg, withHeader.ptr . toCArg, CInt.fromInt rows . toCArg, CInt.fromInt cols . toCArg]
+
 
     def at x y:
         record = self.data.readAt [y,x]
@@ -68,8 +82,6 @@ class Dataframe:
         newFrame = self.selectRows x
         newFrame
 
-
-
     def selectRows x:
         newData = self.data.copyColumns x
         DataframeVal self.header self.type newData
@@ -91,9 +103,6 @@ class Dataframe:
     def mapColumn n f:
         newData = self.data.mapRow n (self.type.getAt n) f
         DataframeVal self.header self.type newData
-
-    def fillNA defValue column:
-        None
 
     def dropNA:
         naList = self.data.findNA . filter (k: k.isJust)
