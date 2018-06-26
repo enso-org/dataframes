@@ -144,7 +144,6 @@ void write_csv(const char *filename, char **mat, size_t rows, size_t cols){
             int record = r*cols+c;
             fprintf(fp, "\"" );
             fprintf(fp, "%s", (mat[record] ? mat[record] : ""));
-            // fprintf(fp, "dupa");
             fprintf(fp, "\"" );
             if (c !=cols-1) {
                 fprintf(fp, ",");
@@ -163,21 +162,6 @@ int main(void){
     char **mat = read_csv("./data/simple_empty.csv", &rows, &cols, &error);
     int j[]  = {2,1};
     write_csv("./data/simple2.csv", mat, rows, cols);
-    // char **row = copy_rows(mat,rows,cols,cols,1,2,j);
-    // char **column = copy_columns(mat,rows,cols,cols,1,2,j);
-    // char **new_mat = transpose(mat,rows,cols,cols,1);
-    // for(size_t r = 0; r < rows; ++r){
-    //     for(size_t c = 0; c < cols; ++c){
-    //         if(c)
-    //             putchar(',');
-    //         printf("%s", "(column[r*cols+c])");
-    //         printf("%s", (column[r*cols+c]));
-    //     }
-    //     puts("");
-    // }
-    // free(mat);
-    // free(column);
-    // free(row);
-    // free(new_mat);
+
     return 0;
 }
