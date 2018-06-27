@@ -17,5 +17,5 @@ import Dataframes.NDArray
 
     print column.data.toList
     print column.header
-    column.writeToCSV "dupa"
+    column.writeToCSV "./data/new"
     None
