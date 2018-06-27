@@ -1,7 +1,7 @@
 import Std.Foreign.C.Value
 import Std.Foreign
 
-import Dataframes.Scanf
+import Dataframes.Utils
 import Dataframes.Types
 
 
@@ -123,7 +123,7 @@ class NDArray a:
             cstringPointer.free
             modifiedRecord = case ft of
                 FieldReal:
-                    real = scanf string
+                    real = textToDouble string
                     value = ValueReal real
                     f value
                 _:
