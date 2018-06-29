@@ -70,7 +70,6 @@ char **read_csv(const char *filename, size_t *rows, size_t *cols, int* error){
     while((field = getCSVField(fp, ',', &state))){
         if(c == 0){
             if(r>0){
-                // printf ("%ld\n", (((r+1) * *cols)*sizeof(*mat)));
                 char** newmat = realloc(mat, ((r+1) * *cols)*sizeof(*mat));
                 if (newmat == NULL)
                     goto err;
@@ -78,7 +77,6 @@ char **read_csv(const char *filename, size_t *rows, size_t *cols, int* error){
                     mat = newmat;
             }
             else{
-                // printf ("%ld\n", sizeof(*mat));
                 char **newmat = realloc(mat, sizeof(*mat));
                 if (newmat == NULL)
                     goto err;
@@ -87,7 +85,6 @@ char **read_csv(const char *filename, size_t *rows, size_t *cols, int* error){
             }
         }
         if (r == 0){
-            // printf("realloc: %ld\n", (c+1)*sizeof(*mat));
             char **newmat = realloc(mat, (c+1)*sizeof(*mat));
             if (newmat == NULL)
                 goto err;
@@ -95,7 +92,6 @@ char **read_csv(const char *filename, size_t *rows, size_t *cols, int* error){
                 mat = newmat;
         }
         int index = r * (*cols) + c;
-        // printf("index: %ld\n", index);
         if (strncmp(field,"",1)==0)
         {
             mat[index] = NULL;
