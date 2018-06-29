@@ -3,6 +3,6 @@ import Std.Foreign
 
 def scanf x:
     cString = CString.fromText x
-    double = lookupSymbol "scanf" "luna_scanf" . call CDouble [cString . toCArg]
+    double = lookupSymbol "scanf" "luna_utils" . call CDouble [cString . toCArg]
     cString.free
     double.toReal
