@@ -57,7 +57,7 @@ char **read_csv(const char *filename, size_t *rows, size_t *cols, int* error){
     FILE *fp = fopen(filename, "r");
     if(!fp){
         fprintf(stderr, "%s can't open in %s\n", filename, __func__);
-        perror("fopen");
+        *error = 1;
         return NULL;
     }
 
@@ -70,7 +70,6 @@ char **read_csv(const char *filename, size_t *rows, size_t *cols, int* error){
     while((field = getCSVField(fp, ',', &state))){
         if(c == 0){
             if(r>0){
-                // printf ("%ld\n", (((r+1) * *cols)*sizeof(*mat)));
                 char** newmat = realloc(mat, ((r+1) * *cols)*sizeof(*mat));
                 if (newmat == NULL)
                     goto err;
@@ -78,7 +77,6 @@ char **read_csv(const char *filename, size_t *rows, size_t *cols, int* error){
                     mat = newmat;
             }
             else{
-                // printf ("%ld\n", sizeof(*mat));
                 char **newmat = realloc(mat, sizeof(*mat));
                 if (newmat == NULL)
                     goto err;
@@ -87,7 +85,6 @@ char **read_csv(const char *filename, size_t *rows, size_t *cols, int* error){
             }
         }
         if (r == 0){
-            // printf("realloc: %ld\n", (c+1)*sizeof(*mat));
             char **newmat = realloc(mat, (c+1)*sizeof(*mat));
             if (newmat == NULL)
                 goto err;
@@ -95,7 +92,6 @@ char **read_csv(const char *filename, size_t *rows, size_t *cols, int* error){
                 mat = newmat;
         }
         int index = r * (*cols) + c;
-        // printf("index: %ld\n", index);
         if (strncmp(field,"",1)==0)
         {
             mat[index] = NULL;
@@ -109,7 +105,7 @@ char **read_csv(const char *filename, size_t *rows, size_t *cols, int* error){
             if(*cols == 0){
                 *cols = c;
             } else if(c != *cols){
-                *error = 1;
+                *error = 2;
                 return NULL;
             }
             c  = 0;
@@ -117,12 +113,13 @@ char **read_csv(const char *filename, size_t *rows, size_t *cols, int* error){
         }
     }
     fclose(fp);
+    *error = 0;
 
     return mat;
 
 err:
     free(mat);
-    *error = 2;
+    *error = 3;
     return NULL;
 }
 
@@ -131,30 +128,24 @@ void mat_delete(void **mat)
     free(mat);
 }
 
+void write_csv(const char *filename, char **mat, size_t rows, size_t cols, int* error){
+    FILE *fp = fopen(filename, "w+");
+    if(!fp){
+        fprintf(stderr, "%s can't open in %s\n", filename, __func__);
+        *error = 1;
+    }
+    for(size_t r = 0; r < rows; ++r){
+        for(size_t c = 0; c < cols; ++c){
+            int record = r*cols+c;
+            fprintf(fp, "\"%s\"", (mat[record] ? mat[record] : ""));
+            if (c !=cols-1) {
+                fprintf(fp, ",");
+            }
 
+        }
+        fprintf(fp,"\n");
+    }
+    fclose(fp);
+    *error = 0;
 
-int main(void){
-    size_t rows, cols;
-    int error;
-    char **mat = read_csv("../../data/simple_empty.csv", &rows, &cols, &error);
-    printf("%ld,\n",cols);
-    printf("%ld,\n",rows);
-    int j[]  = {2,1};
-    // char **row = copy_rows(mat,rows,cols,cols,1,2,j);
-    // char **column = copy_columns(mat,rows,cols,cols,1,2,j);
-    char **new_mat = transpose(mat,rows,cols,cols,1);
-    // for(size_t r = 0; r < rows; ++r){
-    //     for(size_t c = 0; c < cols; ++c){
-    //         if(c)
-    //             putchar(',');
-    //         printf("%s", "(column[r*cols+c])");
-    //         printf("%s", (column[r*cols+c]));
-    //     }
-    //     puts("");
-    // }
-    // free(mat);
-    // free(column);
-    // free(row);
-    free(new_mat);
-    return 0;
 }

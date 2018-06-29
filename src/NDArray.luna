@@ -1,7 +1,7 @@
 import Std.Foreign.C.Value
 import Std.Foreign
 
-import Dataframes.Scanf
+import Dataframes.Utils
 import Dataframes.Types
 
 
@@ -104,7 +104,6 @@ class NDArray a:
                     pointer . read . toText
                 True: "")
 
-
     def cDropRow n:
         rows = self.size.head.get
         cols = self.size.getAt 1
@@ -124,7 +123,7 @@ class NDArray a:
             cstringPointer.free
             modifiedRecord = case ft of
                 FieldReal:
-                    real = scanf string
+                    real = textToDouble string
                     value = ValueReal real
                     f value
                 _:
@@ -188,3 +187,17 @@ class NDArray a:
         new_mat = self._cCall "transpose" (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self._cSym "mat_delete") new_mat
         NDArrayVal [cols,rows] [rows,1] 0 matManaged
+
+    def join arrayToJoin:
+        print "def join"
+        fstRows = self.size.head.get
+        print fstRows
+        fstCols = self.size.getAt 1
+        print fstCols
+        sndRows = arrayToJoin.size.head.get
+        print sndRows
+        sndCols = arrayToJoin.size.getAt 1
+        print sndCols
+        new_mat = self._cCall "join" (Pointer CString) [self.ptr . toCArg, arrayToJoin.ptr . toCArg, CSize.fromInt fstRows . toCArg, CSize.fromInt fstCols . toCArg, CSize.fromInt sndRows . toCArg, CSize.fromInt sndCols . toCArg]
+        matManaged = ManagedPointer CString . fromPointer (self._cSym "mat_delete") new_mat
+        NDArrayVal [fstRows+sndRows,fstCols] [fstCols,1] 0 matManaged
