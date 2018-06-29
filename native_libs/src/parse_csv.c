@@ -143,7 +143,7 @@ void write_csv(const char *filename, char **mat, size_t rows, size_t cols, int* 
             }
 
         }
-        fprintf(fp,"%s","\n");
+        fprintf(fp,"\n");
     }
     fclose(fp);
     *error = 0;
