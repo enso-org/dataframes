@@ -31,8 +31,11 @@ class Dataframe:
     def readFromCSV file readHeader:
         rows = ManagedPointer CInt . malloc
         cols = ManagedPointer CInt . malloc
-        mat = self._cCall "read_csv" (Pointer CString) [CString.fromText file . toCArg, rows.toCArg, cols.toCArg]
-        matManaged = ManagedPointer CString . fromPointer (self._cSym "mat_delete") mat
+        err = ManagedPointer CInt . malloc
+        mat = self._cCall "read_csv" (Pointer CString) [CString.fromText file . toCArg, rows.toCArg, cols.toCArg, err.toCArg]
+        matManaged = case err.read.toInt of
+            0: ManagedPointer CString . fromPointer (self._cSym "mat_delete") mat
+            _: throw err.read.toText
         r = rows.read.toInt
         c = cols.read.toInt
         type = 0 . upto c . each (k: FieldReal)
@@ -56,7 +59,13 @@ class Dataframe:
                     headerNDArray.join dataT
         rows = withHeader.size.head.get
         cols = withHeader.size.getAt 1
-        self._cCall "write_csv" None [CString.fromText filename . toCArg, withHeader.ptr . toCArg, CInt.fromInt rows . toCArg, CInt.fromInt cols . toCArg]
+        err = ManagedPointer CInt . malloc
+        self._cCall "write_csv" None [CString.fromText filename . toCArg, withHeader.ptr . toCArg, CInt.fromInt rows . toCArg, CInt.fromInt cols . toCArg, err.toCArg]
+        case err.read.toInt of
+            0: None
+            _: throw err.read.toText
+
+
 
 
     def at x y:

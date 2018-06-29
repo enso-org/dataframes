@@ -57,7 +57,7 @@ char **read_csv(const char *filename, size_t *rows, size_t *cols, int* error){
     FILE *fp = fopen(filename, "r");
     if(!fp){
         fprintf(stderr, "%s can't open in %s\n", filename, __func__);
-        perror("fopen");
+        *error = 1;
         return NULL;
     }
 
@@ -109,7 +109,7 @@ char **read_csv(const char *filename, size_t *rows, size_t *cols, int* error){
             if(*cols == 0){
                 *cols = c;
             } else if(c != *cols){
-                *error = 1;
+                *error = 2;
                 return NULL;
             }
             c  = 0;
@@ -117,12 +117,13 @@ char **read_csv(const char *filename, size_t *rows, size_t *cols, int* error){
         }
     }
     fclose(fp);
+    *error = 0;
 
     return mat;
 
 err:
     free(mat);
-    *error = 2;
+    *error = 3;
     return NULL;
 }
 
@@ -131,11 +132,11 @@ void mat_delete(void **mat)
     free(mat);
 }
 
-void write_csv(const char *filename, char **mat, size_t rows, size_t cols){
+void write_csv(const char *filename, char **mat, size_t rows, size_t cols, int* error){
     FILE *fp = fopen(filename, "w+");
     if(!fp){
         fprintf(stderr, "%s can't open in %s\n", filename, __func__);
-        perror("fopen");
+        *error = 1;
     }
     for(size_t r = 0; r < rows; ++r){
         for(size_t c = 0; c < cols; ++c){
@@ -149,15 +150,6 @@ void write_csv(const char *filename, char **mat, size_t rows, size_t cols){
         fprintf(fp,"%s","\n");
     }
     fclose(fp);
+    *error = 0;
 
-}
-
-int main(void){
-    size_t rows, cols;
-    int error;
-    char **mat = read_csv("./data/simple_empty.csv", &rows, &cols, &error);
-    int j[]  = {2,1};
-    write_csv("./data/simple2.csv", mat, rows, cols);
-
-    return 0;
 }
