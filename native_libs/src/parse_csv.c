@@ -136,15 +136,11 @@ void write_csv(const char *filename, char **mat, size_t rows, size_t cols){
     if(!fp){
         fprintf(stderr, "%s can't open in %s\n", filename, __func__);
         perror("fopen");
-        abort();
-
     }
     for(size_t r = 0; r < rows; ++r){
         for(size_t c = 0; c < cols; ++c){
             int record = r*cols+c;
-            fprintf(fp, "\"" );
-            fprintf(fp, "%s", (mat[record] ? mat[record] : ""));
-            fprintf(fp, "\"" );
+            fprintf(fp, "%s%s%s", "\"", (mat[record] ? mat[record] : ""), "\"");
             if (c !=cols-1) {
                 fprintf(fp, ",");
             }
