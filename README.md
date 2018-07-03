@@ -4,7 +4,7 @@
 This project is a library with dataframes implementation. Dataframes are structures allowing more comfortable work with big datasets.
 
 ## Build & Install
-
+Run `make all` to generate shared libraries.
 
 ## Tutorial
 Luna Dataframes are structures consisting of a header, type and data. The header is type of `Maybe(List Text)`, the type is a list of `FieldType` and data has 2 dimensional array of `CStrings`. The `FieldType` can be `Text`, `Real` or custom category. At this point by default the type is set to `Text`.
