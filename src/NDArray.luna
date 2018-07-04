@@ -189,15 +189,10 @@ class NDArray a:
         NDArrayVal [cols,rows] [rows,1] 0 matManaged
 
     def join arrayToJoin:
-        print "def join"
         fstRows = self.size.head.get
-        print fstRows
         fstCols = self.size.getAt 1
-        print fstCols
         sndRows = arrayToJoin.size.head.get
-        print sndRows
         sndCols = arrayToJoin.size.getAt 1
-        print sndCols
         new_mat = self._cCall "join" (Pointer CString) [self.ptr . toCArg, arrayToJoin.ptr . toCArg, CSize.fromInt fstRows . toCArg, CSize.fromInt fstCols . toCArg, CSize.fromInt sndRows . toCArg, CSize.fromInt sndCols . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self._cSym "mat_delete") new_mat
         NDArrayVal [fstRows+sndRows,fstCols] [fstCols,1] 0 matManaged
