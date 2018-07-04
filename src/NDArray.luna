@@ -107,7 +107,7 @@ class NDArray a:
     def toList:
         rows = self.size.head.get
         cols = self.size.getAt 1
-        0 . upto (cols-1) . each (x: x*rows . upto (rows-1+rows*x)) . each i:
+        0 . upto (rows-1) . each (x: x*cols . upto (cols-1+cols*x)) . each i:
             i . each k:
                 pointer = self.elemPointer (self.tmp k)
                 case pointer.read.isNull of

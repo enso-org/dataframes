@@ -1,6 +1,18 @@
 modulesSettings:
   src/Main.luna:
-    typeRepToVisMap: []
+    typeRepToVisMap:
+    - - tag: TCons
+        contents:
+        - List
+        - - tag: TCons
+            contents:
+            - List
+            - - tag: TCons
+                contents:
+                - Text
+                - []
+      - - ! 'LunaVisualizer: base: table'
+        - base/table/table.html
     currentBreadcrumb: main
     breadcrumbsSettings:
     - - items:

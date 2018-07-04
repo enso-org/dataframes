@@ -65,9 +65,6 @@ class Dataframe:
             0: None
             _: throw err.read.toText
 
-
-
-
     def at x y:
         record = self.data.readAt [y,x]
         record
@@ -108,7 +105,6 @@ class Dataframe:
         range = a . upto b
         self.selectRows range
 
-
     def mapColumn n f:
         newData = self.data.mapRow n (self.type.getAt n) f
         DataframeVal self.header self.type newData
@@ -117,3 +113,7 @@ class Dataframe:
         naList = self.data.findNA . filter (k: k.isJust)
         rows = naList.each (k: k.get . head . get)
         self.dropRows rows
+
+    def toJSON:
+        transposedData = self.data.cTranspose
+        JSON.empty . insert "header" self.header . insert "data" transposedData.toList
