@@ -42,7 +42,7 @@ class Dataframe:
         case readHeader of
             True:
                 headerArray = NDArrayVal [r, c] [c,1] 0 matManaged . copyRows [0]
-                header = headerArray . toList
+                header = headerArray . toFlatList
                 data   = NDArrayVal [r, c] [c,1] 0 matManaged . cDropRow 0 . cTranspose
                 DataframeVal (Just header) type data
             False:

@@ -96,13 +96,23 @@ class NDArray a:
                 index = acc.reverse
                 index
 
-    def toList:
+    def toFlatList:
         self.forEach (indexN:
             pointer = self.elemPointer indexN
             case pointer.read.isNull of
                 False:
                     pointer . read . toText
                 True: "")
+
+    def toList:
+        rows = self.size.head.get
+        cols = self.size.getAt 1
+        0 . upto (cols-1) . each (x: x*rows . upto (rows-1+rows*x)) . each i:
+            i . each k:
+                pointer = self.elemPointer (self.tmp k)
+                case pointer.read.isNull of
+                    False: pointer . read . toText
+                    True: ""
 
     def cDropRow n:
         rows = self.size.head.get
@@ -123,7 +133,7 @@ class NDArray a:
             cstringPointer.free
             modifiedRecord = case ft of
                 FieldReal:
-                    real = textToDouble string
+                    real = parseTextToDouble string
                     value = ValueReal real
                     f value
                 _:
@@ -190,7 +200,9 @@ class NDArray a:
 
     def join arrayToJoin:
         fstRows = self.size.head.get
+        print fstRows
         fstCols = self.size.getAt 1
+        print fstCols
         sndRows = arrayToJoin.size.head.get
         sndCols = arrayToJoin.size.getAt 1
         new_mat = self._cCall "join" (Pointer CString) [self.ptr . toCArg, arrayToJoin.ptr . toCArg, CSize.fromInt fstRows . toCArg, CSize.fromInt fstCols . toCArg, CSize.fromInt sndRows . toCArg, CSize.fromInt sndCols . toCArg]

@@ -1,8 +1,8 @@
 import Std.Foreign.C.Value
 import Std.Foreign
 
-def scanf x:
+def parseTextToDouble x:
     cString = CString.fromText x
-    double = lookupSymbol "scanf" "luna_utils" . call CDouble [cString . toCArg]
+    double = lookupSymbol "utils" "luna_to_double" . call CDouble [cString . toCArg]
     cString.free
     double.toReal
