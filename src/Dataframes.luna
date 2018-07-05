@@ -58,7 +58,7 @@ class Dataframe:
                     dataT = self.data.cTranspose
                     headerNDArray.join dataT
         rows = withHeader.getSize.getRows
-        cols = withHeader.getSize.getcolumns
+        cols = withHeader.getSize.getColumns
         err = ManagedPointer CInt . malloc
         self._cCall "write_csv" None [CString.fromText filename . toCArg, withHeader.getPtr . toCArg, CInt.fromInt rows . toCArg, CInt.fromInt cols . toCArg, err.toCArg]
         case err.read.toInt of
