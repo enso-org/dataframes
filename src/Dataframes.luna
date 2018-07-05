@@ -1,6 +1,6 @@
 import Std.Foreign.C.Value
 import Std.Foreign
-import Dataframes.NDArray
+import Dataframes.Array2D
 import Dataframes.Types
 
 class Dataframe:
@@ -8,7 +8,7 @@ class Dataframe:
     DataframeVal:
         header:: Maybe (List Text)
         type  :: List FieldType
-        data  :: NDArray CString
+        data  :: Array2D CString
 
     def _cSym name:
         lookupSymbol "csv" name
@@ -31,8 +31,8 @@ class Dataframe:
     def readFromCSV file readHeader:
         rows = ManagedPointer CInt . malloc
         cols = ManagedPointer CInt . malloc
-        err = ManagedPointer CInt . malloc
-        mat = self._cCall "read_csv" (Pointer CString) [CString.fromText file . toCArg, rows.toCArg, cols.toCArg, err.toCArg]
+        err  = ManagedPointer CInt . malloc
+        mat  = self._cCall "read_csv" (Pointer CString) [CString.fromText file . toCArg, rows.toCArg, cols.toCArg, err.toCArg]
         matManaged = case err.read.toInt of
             0: ManagedPointer CString . fromPointer (self._cSym "mat_delete") mat
             _: throw err.read.toText
@@ -41,12 +41,12 @@ class Dataframe:
         type = 0 . upto c . each (k: FieldReal)
         case readHeader of
             True:
-                headerArray = NDArrayVal (SizeVal r c) (StrideVal c 1) 0 matManaged . copyRows [0]
+                headerArray = Array2DVal (SizeVal r c) (StrideVal c 1) 0 matManaged . copyRows [0]
                 header = headerArray . toFlatList
-                data   = NDArrayVal (SizeVal r c) (StrideVal c 1) 0 matManaged . cDropRow 0 . cTranspose
+                data   = Array2DVal (SizeVal r c) (StrideVal c 1) 0 matManaged . cDropRow 0 . cTranspose
                 DataframeVal (Just header) type data
             False:
-                DataframeVal Nothing type ((NDArrayVal (SizeVal r c) (StrideVal c 1) 0 matManaged) . cTranspose)
+                DataframeVal Nothing type ((Array2DVal (SizeVal r c) (StrideVal c 1) 0 matManaged) . cTranspose)
 
     def writeToCSV filename:
         withHeader = case self.header of
@@ -54,9 +54,9 @@ class Dataframe:
             Just h :
                     headerArray = Array CString . fromList (h . map CString.fromText)
                     managed = ManagedPointer CString . fromPointer (self._cStdSym "free") headerArray.ptr
-                    headerNDArray = NDArrayVal (SizeVal 1 h.length) (StrideVal 1 1) 0 managed
+                    headerArray2D = Array2DVal (SizeVal 1 h.length) (StrideVal 1 1) 0 managed
                     dataT = self.data.cTranspose
-                    headerNDArray.join dataT
+                    headerArray2D.join dataT
         rows = withHeader.getSize.getRows
         cols = withHeader.getSize.getColumns
         err = ManagedPointer CInt . malloc

@@ -1,7 +1,7 @@
 import Std.Foreign.C.Value
 import Std.Foreign
 import Dataframes.Dataframes
-import Dataframes.NDArray
+import Dataframes.Array2D
 
 
 
@@ -18,7 +18,8 @@ import Dataframes.NDArray
     «8»json = column.toJSON
     «9»print json
     «10»print column.header
-    «11»column.writeToCSV "./data/new"
+    naDropped = column.dropNA
+    naDropped.writeToCSV "./data/new"
     None
 
 ### META {"metas":[{"marker":4,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":5,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":6,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":176}}}},{"marker":7,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":352}}}},{"marker":8,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":528}}}},{"marker":9,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":704}}}},{"marker":10,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":528}}}},{"marker":11,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":528}}}}]}
