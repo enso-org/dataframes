@@ -4,10 +4,24 @@ import Std.Foreign
 import Dataframes.Utils
 import Dataframes.Types
 
+class Size:
+    SizeVal:
+        rows   :: Int
+        columns:: Int
+
+    def getRows: case self of
+        SizeVal rows _: rows
+
+    def getColumns: case self of
+        SizeVal _ columns: columns
 
 class NDArray a:
     NDArray a
-    NDArrayVal (List Int) (List Int) Int (ManagedPointer a)
+    NDArrayVal:
+        size  :: Size
+        stride:: (List Int)
+        offset:: Int
+        ptr   :: (ManagedPointer a)
 
     def _cSym name:
         lookupSymbol "2d_array" name
@@ -15,20 +29,22 @@ class NDArray a:
     def _cCall name ret args:
         self . _cSym name . call ret args
 
-    def ptr: case self of
+    def getPtr: case self of
         NDArray a: ManagedPointer a
         NDArrayVal _ _ _ p: p
 
-    def size: case self of
+    def getSize: case self of
         NDArrayVal s _ _ _:s
 
-    def stride: case self of
+    def getStride: case self of
         NDArrayVal _ stride _ _: stride
 
-    def offset: case self of
+    def getOffset: case self of
         NDArrayVal _ _ offset _: offset
 
-    def elems: self.size.fold 1 (*)
+    def sizeList: [self.getSize.rows, self.getSize.columns]
+
+    def elems: self.getSize.getRows * self.getSize.getColumns
 
     def forEach f: 0 . upto self.elems-1 . each k:
         indexN = self.tmp k
@@ -39,28 +55,26 @@ class NDArray a:
     def make: NDArrayVal
 
     def alloc size :
-        elems = size.fold 1 (*)
-        stride = case size.length of
-            0: throw "Empty size list"
-            1: [1]
-            _: size.tail.get + [1]
+        elems = size.getRows * size.getColumns
+        stride = [size.getColumns, 1]
         offset = 0
-        ptr = self.ptr.mallocElems elems
+        ptr = self.getPtr.mallocElems elems
         NDArrayVal size stride offset ptr
 
     def free:
-        self.ptr.free
+        self.getPtr.free
 
     def unsafeElemPointer index:
-        lsMatch = index.length == self.size.length
-        elemSize = index.zipWith (*) self.stride
-        elems = elemSize.fold self.offset (+)
-        self . ptr . moveElems elems
+
+        lsMatch = index.length == self.sizeList.length
+        elemSize = index.zipWith (*) self.getStride
+        elems = elemSize.fold self.getOffset (+)
+        self . getPtr . moveElems elems
 
 
     def assertInBounds index:
-        lsMatch = index.length == self.size.length
-        allLess = index.zipWith (<) self.size . _all (== True)
+        lsMatch = index.length == self.sizeList.length
+        allLess = index.zipWith (<) self.sizeList . _all (== True)
         allNonZero = index._all (>= 0)
         inBounds = lsMatch . and allLess . and allNonZero
         when (inBounds.not) (throw "Array index out of bounds.")
@@ -84,7 +98,7 @@ class NDArray a:
         self.assertInBounds index
         self.unsafeElemPointer index
 
-    def tmp flatIndex: self.tmp2 flatIndex self.size []
+    def tmp flatIndex: self.tmp2 flatIndex self.sizeList []
 
     def tmp2 flatIndex size acc:
         case size of
@@ -105,8 +119,8 @@ class NDArray a:
                 True: "")
 
     def toList:
-        rows = self.size.head.get
-        cols = self.size.getAt 1
+        rows = self.getSize.getRows
+        cols = self.getSize.getColumns
         0 . upto (rows-1) . each (x: x*cols . upto (cols-1+cols*x)) . each i:
             i . each k:
                 pointer = self.elemPointer (self.tmp k)
@@ -115,17 +129,17 @@ class NDArray a:
                     True: ""
 
     def cDropRow n:
-        rows = self.size.head.get
-        cols = self.size.getAt 1
-        stride_r = self.stride.head.get
-        stride_c = self.stride.getAt 1
+        rows = self.getSize.getRows
+        cols = self.getSize.getColumns
+        stride_r = self.getStride.head.get
+        stride_c = self.getStride.getAt 1
 
-        new_mat = self._cCall "drop_row" (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg, CInt.fromInt n . toCArg]
+        new_mat = self._cCall "drop_row" (Pointer CString) [self.getPtr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg, CInt.fromInt n . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self._cSym "mat_delete") new_mat
-        NDArrayVal [rows-1, cols] self.stride 0 matManaged
+        NDArrayVal (SizeVal rows-1 cols) self.getStride 0 matManaged
 
     def mapRow n ft f:
-        x = NDArrayVal (self.size.tail.get) (self.stride.tail.get) n*(self.stride.getAt 0) self.ptr
+        x = NDArrayVal (self.getSize.tail.get) (self.getStride.tail.get) n*(self.getStride.getAt 0) self.getPtr
         x.forEach indexN:
             record = x.elemPointer indexN
             cstringPointer = record.read
@@ -169,42 +183,40 @@ class NDArray a:
 
     def copyColumns listOfColumns:
         l = listOfColumns.length
-        rows = self.size.head.get
-        cols = self.size.getAt 1
-        stride_r = self.stride.head.get
-        stride_c = self.stride.getAt 1
+        rows = self.getSize.getRows
+        cols = self.getSize.getColumns
+        stride_r = self.getStride.head.get
+        stride_c = self.getStride.getAt 1
         columnsArray = Array CInt . fromList (listOfColumns . map CInt.fromInt)
-        new_mat = self._cCall "copy_columns" (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg, CInt.fromInt l . toCArg, columnsArray.ptr . toCArg]
+        new_mat = self._cCall "copy_columns" (Pointer CString) [self.getPtr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg, CInt.fromInt l . toCArg, columnsArray.getPtr . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self._cSym "mat_delete") new_mat
-        NDArrayVal [rows, l] [l, stride_c] 0 matManaged
+        NDArrayVal (SizeVal rows l) [l, stride_c] 0 matManaged
 
     def copyRows listOfRows:
         l = listOfRows.length
-        rows = self.size.head.get
-        cols = self.size.getAt 1
-        stride_r = self.stride.head.get
-        stride_c = self.stride.getAt 1
+        rows = self.getSize.getRows
+        cols = self.getSize.getColumns
+        stride_r = self.getStride.head.get
+        stride_c = self.getStride.getAt 1
         rowsArray = Array CInt . fromList (listOfRows . map CInt.fromInt)
-        new_mat = self._cCall "copy_rows" (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg, CInt.fromInt l . toCArg, rowsArray.ptr . toCArg]
+        new_mat = self._cCall "copy_rows" (Pointer CString) [self.getPtr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg, CInt.fromInt l . toCArg, rowsArray.ptr . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self._cSym "mat_delete") new_mat
-        NDArrayVal [l, cols] self.stride 0 matManaged
+        NDArrayVal (SizeVal l cols) self.getStride 0 matManaged
 
     def cTranspose:
-        rows = self.size.head.get
-        cols = self.size.getAt 1
-        stride_r = self.stride.head.get
-        stride_c = self.stride.getAt 1
-        new_mat = self._cCall "transpose" (Pointer CString) [self.ptr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg]
+        rows = self.getSize.getRows
+        cols = self.getSize.getColumns
+        stride_r = self.getStride.head.get
+        stride_c = self.getStride.getAt 1
+        new_mat = self._cCall "transpose" (Pointer CString) [self.getPtr . toCArg, CSize.fromInt rows . toCArg, CSize.fromInt cols . toCArg, CSize.fromInt stride_r . toCArg, CSize.fromInt stride_c . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self._cSym "mat_delete") new_mat
-        NDArrayVal [cols,rows] [rows,1] 0 matManaged
+        NDArrayVal (SizeVal cols rows) [rows,1] 0 matManaged
 
     def join arrayToJoin:
-        fstRows = self.size.head.get
-        print fstRows
-        fstCols = self.size.getAt 1
-        print fstCols
-        sndRows = arrayToJoin.size.head.get
-        sndCols = arrayToJoin.size.getAt 1
-        new_mat = self._cCall "join" (Pointer CString) [self.ptr . toCArg, arrayToJoin.ptr . toCArg, CSize.fromInt fstRows . toCArg, CSize.fromInt fstCols . toCArg, CSize.fromInt sndRows . toCArg, CSize.fromInt sndCols . toCArg]
+        fstRows = self.getSize.getRows
+        fstCols = self.getSize.getColumns
+        sndRows = arrayToJoin.getSize.getRows
+        sndCols = arrayToJoin.getSize.getColumns
+        new_mat = self._cCall "join" (Pointer CString) [self.getPtr . toCArg, arrayToJoin.getPtr . toCArg, CSize.fromInt fstRows . toCArg, CSize.fromInt fstCols . toCArg, CSize.fromInt sndRows . toCArg, CSize.fromInt sndCols . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self._cSym "mat_delete") new_mat
-        NDArrayVal [fstRows+sndRows,fstCols] [fstCols,1] 0 matManaged
+        NDArrayVal (SizeVal fstRows+sndRows fstCols) [fstCols,1] 0 matManaged

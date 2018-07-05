@@ -41,12 +41,12 @@ class Dataframe:
         type = 0 . upto c . each (k: FieldReal)
         case readHeader of
             True:
-                headerArray = NDArrayVal [r, c] [c,1] 0 matManaged . copyRows [0]
+                headerArray = NDArrayVal (SizeVal r c) [c,1] 0 matManaged . copyRows [0]
                 header = headerArray . toFlatList
-                data   = NDArrayVal [r, c] [c,1] 0 matManaged . cDropRow 0 . cTranspose
+                data   = NDArrayVal (SizeVal r c) [c,1] 0 matManaged . cDropRow 0 . cTranspose
                 DataframeVal (Just header) type data
             False:
-                DataframeVal Nothing type ((NDArrayVal [r, c] [c,1] 0 matManaged) . cTranspose)
+                DataframeVal Nothing type ((NDArrayVal (SizeVal r c) [c,1] 0 matManaged) . cTranspose)
 
     def writeToCSV filename:
         withHeader = case self.header of
@@ -54,13 +54,13 @@ class Dataframe:
             Just h :
                     headerArray = Array CString . fromList (h . map CString.fromText)
                     managed = ManagedPointer CString . fromPointer (self._cStdSym "free") headerArray.ptr
-                    headerNDArray = NDArrayVal [1,h.length] [1,1] 0 managed
+                    headerNDArray = NDArrayVal (SizeVal 1 h.length) [1,1] 0 managed
                     dataT = self.data.cTranspose
                     headerNDArray.join dataT
-        rows = withHeader.size.head.get
-        cols = withHeader.size.getAt 1
+        rows = withHeader.getSize.getRows
+        cols = withHeader.getSize.getcolumns
         err = ManagedPointer CInt . malloc
-        self._cCall "write_csv" None [CString.fromText filename . toCArg, withHeader.ptr . toCArg, CInt.fromInt rows . toCArg, CInt.fromInt cols . toCArg, err.toCArg]
+        self._cCall "write_csv" None [CString.fromText filename . toCArg, withHeader.getPtr . toCArg, CInt.fromInt rows . toCArg, CInt.fromInt cols . toCArg, err.toCArg]
         case err.read.toInt of
             0: None
             _: throw err.read.toText
@@ -83,7 +83,7 @@ class Dataframe:
         (a == b).not
 
     def dropRows list:
-        rows = 0 . upto (self.data.size.head.get)
+        rows = 0 . upto (self.data.getSize.getRows)
         x = rows.filter (k: list._any (Dataframe.dif k))
         newFrame = self.selectRows x
         newFrame
