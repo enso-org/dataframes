@@ -15,16 +15,17 @@ char **copy_columns(char **mat, size_t rows, size_t cols, size_t stride_r, size_
         return NULL;
 
     char **new_mat = malloc(rows*number_of_cols*sizeof(*mat));
-
     for(size_t r = 0; r < rows; r++)
     {
         for(size_t c = 0; c < number_of_cols; c++)
         {
 
             int column =  columns_to_copy[c];
-            int elem = (r * column + column * stride_c);
+            int elem = (r * stride_r + column * stride_c);
             int new_index = r * number_of_cols + c;
+
             char *tmp = mat[elem];
+
             memcpy(&new_mat[new_index], &mat[elem], sizeof(*mat));
 
         }
@@ -72,7 +73,7 @@ char **drop_row(char **mat, size_t rows, size_t cols, size_t stride_r, size_t st
         for(int i = 0; i < row_to_drop; i++) {
                 rows_to_copy[i] = i;
         }
-        for(int i = row_to_drop+1; i <= rows; i++) {
+        for(int i = row_to_drop+1; i < rows; i++) {
                 rows_to_copy[i-1] = i;
         }
 
@@ -84,11 +85,8 @@ char **drop_row(char **mat, size_t rows, size_t cols, size_t stride_r, size_t st
         {
             int row =  rows_to_copy[r];
             int elem = (row * stride_r + c * stride_c);
-            // printf("%s: %d\n","elem",elem );
             int new_index = r * stride_r + c * stride_c;
-            // printf("%s: %d\n","new_index",new_index);
             char *tmp = mat[elem];
-            // printf("%s\n", tmp ? tmp : "NULL");
             memcpy(&new_mat[new_index], &mat[elem], sizeof(*mat));
 
         }

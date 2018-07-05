@@ -83,7 +83,7 @@ class Dataframe:
         (a == b).not
 
     def dropRows list:
-        rows = 0 . upto (self.data.getSize.getRows)
+        rows = 0 . upto (self.data.getSize.getColumns-1)
         x = rows.filter (k: list._any (Dataframe.dif k))
         newFrame = self.selectRows x
         newFrame
@@ -111,7 +111,9 @@ class Dataframe:
 
     def dropNA:
         naList = self.data.findNA . filter (k: k.isJust)
-        rows = naList.each (k: k.get . head . get)
+        print naList
+        rows = naList.each (k: k.get . getAt 1)
+        print rows
         self.dropRows rows
 
     def toJSON:
