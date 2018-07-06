@@ -11,20 +11,12 @@ import Dataframes.Array2D
         ValueText t: throw "invalid type"
 
 «2»def main:
-    «5»filename = "./data/simple_empty.csv"
-    «6»csv = Dataframe.readFromCSV filename True
-    «7»column = csv.selectColumns [1,2]
-    rows = column.data.getSize.getRows
-    print rows
-    cols = column.data.getSize.getColumns
-    print cols
-
-    «8»json = column.toJSON
-    «9»print json
-    «10»print column.header
+    filename = "./data/simple_empty.csv"
+    csv = Dataframe.readFromCSV filename True
+    column = csv.selectColumns [1,2]
+    json = column.toJSON
     naDropped = column.dropNA
     jsn = naDropped.toJSON
-    print jsn
     naDropped.writeToCSV "./data/new"
     None
 
