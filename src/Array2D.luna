@@ -152,7 +152,7 @@ class Array2D a:
         Array2DVal (SizeVal rows-1 cols) self.getStride 0 matManaged
 
     def mapRow n ft f:
-        x = Array2DVal (self.getSize.getColumns) (self.getStride.getStrideC) n*(self.getStride.getStrideR) self.getPtr
+        x = Array2DVal (SizeVal self.getSize.getColumns 1) (StrideVal self.getStride.getStrideC 1) n*(self.getStride.getStrideR) self.getPtr
         x.forEach indexN:
             record = x.elemPointer indexN
             cstringPointer = record.read
