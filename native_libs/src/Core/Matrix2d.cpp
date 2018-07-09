@@ -80,7 +80,8 @@ Matrix2d * Matrix2d::fromData(MatrixDataPtr data)
 	return pointersToTheirManagers.at(data);
 }
 
-std::unique_ptr<Matrix2d> Matrix2d::copyColumns(size_t columnCount, size_t *columnsToCopy) const
+
+std::unique_ptr<Matrix2d> Matrix2d::copyColumns(size_t columnCount, int *columnsToCopy) const
 {
 	auto ret = std::make_unique<Matrix2d>(rowCount, columnCount);
 	for(auto row = 0ull; row < rowCount; row++)
@@ -88,9 +89,63 @@ std::unique_ptr<Matrix2d> Matrix2d::copyColumns(size_t columnCount, size_t *colu
 		for(auto column = 0ull; column < columnCount; column++)
 		{
 			const auto sourceColumnIndex = columnsToCopy[column];
-
 			auto value = load(row, sourceColumnIndex);
 			ret->store(row, column, std::move(value));
+		}
+	}
+	return ret;
+}
+
+std::unique_ptr<Matrix2d> Matrix2d::copyRows(size_t rowCount, int *rowsToCopy) const
+{
+	auto ret = std::make_unique<Matrix2d>(rowCount, columnCount);
+	for (auto row = 0ull; row < rowCount; row++)
+	{
+		for (auto column = 0ull; column < columnCount; column++)
+		{
+			const auto sourceRowIndex = rowsToCopy[row];
+			auto value = load(sourceRowIndex, column);
+			ret->store(row, column, std::move(value));
+		}
+	}
+	return ret;
+}
+
+std::unique_ptr<Matrix2d> Matrix2d::dropRow(int rowToDrop) const 
+{
+	auto ret = std::make_unique<Matrix2d>(rowCount-1, columnCount);
+	int *rowsToCopy = new int[rowCount-1];
+	for (int i = 0ull; i < rowToDrop; i++)
+	{
+		rowsToCopy[i]=i;
+	}
+	for (int i = rowToDrop+1; i < rowCount; i++)
+	{
+		rowsToCopy[i-1] = i;
+	}
+
+	for(auto row = 0ull; row < rowCount-1; row++) //should call copyRows 
+	{
+		for (auto column = 0ull; column < columnCount; column++)
+		{
+			const auto sourceRowIndex = rowsToCopy[row];
+			auto value = load(sourceRowIndex, column);
+			ret->store(row, column, std::move(value));
+		}
+	}
+	
+	return ret;
+}
+
+std::unique_ptr<Matrix2d> Matrix2d::transpose() const
+{
+	auto ret = std::make_unique<Matrix2d>(columnCount, rowCount);
+	for (auto row = 0ull; row < rowCount; row++)
+	{
+		for (auto column = 0ull; column < columnCount; column++)
+		{
+			auto value = load(row, column);
+			ret->store(column, row, std::move(value));
 		}
 	}
 	return ret;
@@ -107,13 +162,49 @@ extern "C"
 		catch(...) {}
 	}
 
-	MatrixDataPtr copyColums(MatrixDataPtr mat, size_t colummCount, size_t *columnsToCopy) noexcept
+	MatrixDataPtr copyColumns(MatrixDataPtr mat, size_t columnCount, int *columnsToCopy) noexcept
 	{
 		try
 		{
-			return Matrix2d::fromData(mat)->copyColumns(colummCount, columnsToCopy).release()->data();
+			return Matrix2d::fromData(mat)->copyColumns(columnCount, columnsToCopy).release()->data();
 		}
 		catch(...) 
+		{
+			return nullptr;
+		}
+	}
+
+	MatrixDataPtr copyRows(MatrixDataPtr mat, size_t rowCount, int *rowsToCopy) noexcept
+	{
+		try
+		{
+			return Matrix2d::fromData(mat)->copyRows(rowCount, rowsToCopy).release()->data();
+		}
+		catch(...)
+		{
+			return nullptr;
+		}
+	}
+
+	MatrixDataPtr dropRow(MatrixDataPtr mat, int rowToDrop) noexcept
+	{
+		try
+		{
+			return Matrix2d::fromData(mat)->dropRow(rowToDrop).release()->data();
+		}
+		catch(...)
+		{
+			return nullptr;
+		}
+	}
+	
+	MatrixDataPtr transpose(MatrixDataPtr mat) noexcept
+	{
+		try
+		{
+			return Matrix2d::fromData(mat)->transpose().release()->data();
+		}
+		catch(...)
 		{
 			return nullptr;
 		}

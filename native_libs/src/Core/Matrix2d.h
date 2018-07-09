@@ -36,13 +36,19 @@ public:
 	MatrixDataPtr data() const noexcept;
 	static Matrix2d *fromData(MatrixDataPtr data);
 
-	std::unique_ptr<Matrix2d> copyColumns(size_t columnCount, size_t *columnsToCopy) const;
+	std::unique_ptr<Matrix2d> copyColumns(size_t columnCount, int *columnsToCopy) const;
+	std::unique_ptr<Matrix2d> copyRows(size_t rowCount, int *rowsToCopy) const;
+	std::unique_ptr<Matrix2d> dropRow(int rowToDrop) const;
+	std::unique_ptr<Matrix2d> transpose() const;
 };
 
 extern "C"
 {
 	EXPORT MatrixDataPtr mat_clone(MatrixDataPtr mat) noexcept;
 	EXPORT void mat_delete(MatrixDataPtr mat) noexcept;
-	EXPORT MatrixDataPtr copyColums(MatrixDataPtr mat, size_t colummCount, size_t *columnsToCopy) noexcept;
+	EXPORT MatrixDataPtr copyColumns(MatrixDataPtr mat, size_t columnCount, int *columnsToCopy) noexcept;
+	EXPORT MatrixDataPtr copyRows(MatrixDataPtr mat, size_t rowCount, int *rowsToCopy) noexcept;
+	EXPORT MatrixDataPtr dropRow(MatrixDataPtr mat, int rowToDrop) noexcept;
+	EXPORT MatrixDataPtr transpose(MatrixDataPtr mat) noexcept;
 	EXPORT void store(MatrixDataPtr mat, size_t row, size_t column, const char *string) noexcept;
 }

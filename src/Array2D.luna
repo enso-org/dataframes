@@ -162,7 +162,6 @@ class Array2D a:
             record = x.elemPointer indexN
             cstringPointer = record.read
             string = cstringPointer.toText
-            cstringPointer.free
             modifiedRecord = case ft of
                 FieldReal:
                     real = parseTextToDouble string
