@@ -11,7 +11,7 @@ class Dataframe:
         data  :: Array2D CString
 
     def _cSym name:
-        lookupSymbol "csv" name
+        lookupSymbol "libDataframeHelper" name
 
     def _cStdSym name:
         lookupSymbol cStdLib name
