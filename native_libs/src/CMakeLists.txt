@@ -49,7 +49,7 @@ endif()
 file(GLOB_RECURSE HEADER_FILES ${PROJECT_SOURCE_DIR}/*.h)
 file(GLOB_RECURSE SRC_FILES ${PROJECT_SOURCE_DIR}/*.cpp)
 
-add_executable(DataframeHelper ${HEADER_FILES} ${SRC_FILES})
+add_library(DataframeHelper SHARED ${HEADER_FILES} ${SRC_FILES})
 
 target_include_directories(DataframeHelper PRIVATE ${XLNT_INCLUDE} ${PROJECT_SOURCE_DIR})
 if(WIN32)
