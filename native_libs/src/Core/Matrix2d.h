@@ -22,7 +22,10 @@ public:
 	const size_t columnCount = 0;
 
 	Matrix2d(size_t rowCount, size_t columnCount);
+	explicit Matrix2d(const Matrix2d &rhs);
 	~Matrix2d();
+
+	Matrix2d &operator=(const Matrix2d&) = delete;
 
 	void store(size_t row, size_t column, std::string contents);
 	const std::string& load(size_t row, size_t column) const;
@@ -38,7 +41,8 @@ public:
 
 extern "C"
 {
-	EXPORT void mat_delete(MatrixDataPtr mat) noexcept; // NOTE: mat is not the Matrix2d object but its data() value
+	EXPORT MatrixDataPtr mat_clone(MatrixDataPtr mat) noexcept;
+	EXPORT void mat_delete(MatrixDataPtr mat) noexcept;
 	EXPORT MatrixDataPtr copyColums(MatrixDataPtr mat, size_t colummCount, size_t *columnsToCopy) noexcept;
 	EXPORT void store(MatrixDataPtr mat, size_t row, size_t column, const char *string) noexcept;
 }

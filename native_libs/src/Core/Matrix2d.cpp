@@ -37,6 +37,12 @@ Matrix2d::Matrix2d(size_t rowCount, size_t columnCount) : rowCount(rowCount), co
 	pointersToTheirManagers[data()] = this;
 }
 
+Matrix2d::Matrix2d(const Matrix2d &rhs)
+	: cellContents(rhs.cellContents), items(rhs.items), rowCount(rhs.rowCount), columnCount(rhs.columnCount)
+{
+	pointersToTheirManagers[data()] = this;
+}
+
 Matrix2d::~Matrix2d()
 {
 	pointersToTheirManagers.erase(data());
@@ -112,15 +118,26 @@ extern "C"
 			return nullptr;
 		}
 	}
-}
 
-EXPORT void store(MatrixDataPtr mat, size_t row, size_t column, const char *string) noexcept
-{
+	void store(MatrixDataPtr mat, size_t row, size_t column, const char *string) noexcept
+	{
 		try
 		{
 			return Matrix2d::fromData(mat)->store(row, column, string);
 		}
 		catch(...) 
 		{}
-}
+	}
 
+	MatrixDataPtr mat_clone(MatrixDataPtr mat) noexcept
+	{
+		try
+		{
+			return std::make_unique<Matrix2d>(*Matrix2d::fromData(mat)).release()->data();
+		}
+		catch(...) 
+		{
+			return nullptr;
+		}
+	}
+}
