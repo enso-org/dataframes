@@ -146,6 +146,11 @@ class Array2D a:
                     False: pointer . read . toText
                     True: ""
 
+    def clone:
+        newMat = self._cppCall "mat_clone" (Pointer CString) [self.getPtr . toCArg]
+        newMatManaged = ManagedPointer CString . fromPointer (self._cppSym "mat_delete") newMat
+        newMatManaged
+
     def cDropRow n:
         rows = self.getSize.getRows
         cols = self.getSize.getColumns
@@ -157,8 +162,7 @@ class Array2D a:
         Array2DVal (SizeVal rows-1 cols) self.getStride 0 matManaged
 
     def mapRow n ft f:
-        newMat = self._cppCall "mat_clone" (Pointer CString) [self.getPtr . toCArg]
-        newMatManaged = ManagedPointer CString . fromPointer (self._cppSym "mat_delete") newMat
+        newMatManaged = self.clone
         x = Array2DVal (SizeVal self.getSize.getColumns 1) (StrideVal self.getStride.getStrideC 1) n*(self.getStride.getStrideR) newMatManaged
         x.forEach indexN:
             record = x.elemPointer indexN
@@ -183,8 +187,7 @@ class Array2D a:
             if pointer.read.isNull then (Just indexN) else Nothing
 
     def map ft f:
-        newMat = self._cppCall "mat_clone" (Pointer CString) [self.getPtr . toCArg]
-        newMatManaged = ManagedPointer CString . fromPointer (self._cppSym "mat_delete") newMat
+        newMatManaged = self.clone
         x = Array2DVal self.getSize self.getStride self.getOffset newMatManaged
 
         x.forEach indexN:
