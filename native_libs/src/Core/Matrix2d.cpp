@@ -1,5 +1,6 @@
 #include "Matrix2d.h"
 
+#include <algorithm>
 #include <unordered_map>
 #include <utility>
 
@@ -41,6 +42,19 @@ Matrix2d::Matrix2d(const Matrix2d &rhs)
 	: cellContents(rhs.cellContents), items(rhs.items), rowCount(rhs.rowCount), columnCount(rhs.columnCount)
 {
 	pointersToTheirManagers[data()] = this;
+}
+
+Matrix2d::Matrix2d(const Matrix2d &top, const Matrix2d &bottom)
+	: Matrix2d(top.rowCount + bottom.rowCount, std::max(top.columnCount, bottom.columnCount))
+{
+	top.foreach_index([&](auto row, auto column)
+	{
+		store(row, column, top.load(row, column));
+	});
+	bottom.foreach_index([&](auto row, auto column)
+	{
+		store(top.rowCount + row, column, bottom.load(row, column));
+	});
 }
 
 Matrix2d::~Matrix2d()
@@ -229,6 +243,42 @@ extern "C"
 		catch(...) 
 		{
 			return nullptr;
+		}
+	}
+
+	MatrixDataPtr join(MatrixDataPtr top, MatrixDataPtr bottom) noexcept
+	{
+		try
+		{
+			return std::make_unique<Matrix2d>(*Matrix2d::fromData(top), *Matrix2d::fromData(bottom)).release()->data();
+		}
+		catch(...) 
+		{
+			return nullptr;
+		}
+	}
+
+	size_t columnCount(MatrixDataPtr mat) noexcept
+	{
+		try
+		{
+			return Matrix2d::fromData(mat)->columnCount;
+		}
+		catch(...)
+		{
+			return 0;
+		}
+	}
+
+	size_t rowCount(MatrixDataPtr mat) noexcept
+	{
+		try
+		{
+			return Matrix2d::fromData(mat)->rowCount;
+		}
+		catch(...)
+		{
+			return 0;
 		}
 	}
 }

@@ -24,6 +24,7 @@ public:
 
 	Matrix2d(size_t rowCount, size_t columnCount);
 	explicit Matrix2d(const Matrix2d &rhs);
+	Matrix2d(const Matrix2d &top, const Matrix2d &bottom); // joins matrices -- places the first one above the second one
 	~Matrix2d();
 
 	Matrix2d &operator=(const Matrix2d&) = delete;
@@ -41,12 +42,27 @@ public:
 	std::unique_ptr<Matrix2d> copyRows(size_t rowCount, int *rowsToCopy) const;
 	std::unique_ptr<Matrix2d> dropRow(int rowToDrop) const;
 	std::unique_ptr<Matrix2d> transpose() const;
+
+	template<typename Function>
+	void foreach_index(Function &&f) const
+	{
+		for(auto row = 0ull; row < rowCount; row++)
+		{
+			for(auto column = 0ull; column < columnCount; column++)
+			{
+				f(row, column);
+			}
+		}
+	}
 };
 
 extern "C"
 {
 	EXPORT MatrixDataPtr mat_clone(MatrixDataPtr mat) noexcept;
 	EXPORT void mat_delete(MatrixDataPtr mat) noexcept;
+	EXPORT size_t columnCount(MatrixDataPtr mat) noexcept;
+	EXPORT size_t rowCount(MatrixDataPtr mat) noexcept;
+	EXPORT MatrixDataPtr join(MatrixDataPtr top, MatrixDataPtr bottom) noexcept;
 	EXPORT MatrixDataPtr copyColumns(MatrixDataPtr mat, size_t columnCount, int *columnsToCopy) noexcept;
 	EXPORT MatrixDataPtr copyRows(MatrixDataPtr mat, size_t rowCount, int *rowsToCopy) noexcept;
 	EXPORT MatrixDataPtr dropRow(MatrixDataPtr mat, int rowToDrop) noexcept;
