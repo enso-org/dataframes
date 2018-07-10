@@ -40,7 +40,7 @@ class Array2D a:
         lookupSymbol "2d_array" name
 
     def _cppSym name:
-        lookupSymbol "libDataframeHelper" name
+        lookupSymbol "DataframeHelper" name
 
     def _cppCall name ret args:
         self._cppSym name . call ret args

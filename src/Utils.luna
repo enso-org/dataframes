@@ -3,6 +3,6 @@ import Std.Foreign
 
 def parseTextToDouble x:
     cString = CString.fromText x
-    double = lookupSymbol "utils" "luna_to_double" . call CDouble [cString . toCArg]
+    double = lookupSymbol "DataframeHelper" "luna_to_double" . call CDouble [cString . toCArg]
     cString.free
     double.toReal
