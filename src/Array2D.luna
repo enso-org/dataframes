@@ -182,16 +182,29 @@ class Array2D a:
             pointer = self.elemPointer indexN
             if pointer.read.isNull then (Just indexN) else Nothing
 
-    def map f:
-        self.forEach indexN:
-            pointer = self.elemPointer indexN
+    def map ft f:
+        newMat = self._cppCall "mat_clone" (Pointer CString) [self.getPtr . toCArg]
+        newMatManaged = ManagedPointer CString . fromPointer (self._cppSym "mat_delete") newMat
+        x = Array2DVal self.getSize self.getStride self.getOffset newMatManaged
+
+        x.forEach indexN:
+            pointer = x.elemPointer indexN
             elem = pointer.read
-            case elem.isNull of
+            modifiedRecord = case elem.isNull of
                 True: Pointer None . null
                 False:
-                    value = f elem
-                    elem.free
-                    elem.write value
+                    case ft of
+                        FieldReal:
+                            real = parseTextToDouble string
+                            value = ValueReal real
+                            f value
+                        _:
+                            value = ValueText string
+                            f value
+            r = indexN.head.get 
+            c = indexN.getAt 1
+            self._cppCall "store" None [x.getPtr . toCArg, CInt.fromInt c . toCArg, CInt.fromInt r . toCArg, CString.fromText modifiedRecord.toText . toCArg]
+        Array2DVal self.getSize self.getStride 0 x.getPtr
 
     def copyColumns listOfColumns:
         l = listOfColumns.length
