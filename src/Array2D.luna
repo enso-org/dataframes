@@ -161,9 +161,14 @@ class Array2D a:
         matManaged = ManagedPointer CString . fromPointer (self._cppSym "mat_delete") new_mat
         Array2DVal (SizeVal rows-1 cols) self.getStride 0 matManaged
 
-    def _store row column text:
-        self._cppCall "store" None [self.getPtr . toCArg, CInt.fromInt column . toCArg, CInt.fromInt row . toCArg, CString.fromText text . toCArg]
+    def _store indexN text:
+        row = indexN.head.get 
+        column = indexN.getAt 1
+        textC = CString.fromText text
+        self._cppCall "store" None [self.getPtr . toCArg, CInt.fromInt column . toCArg, CInt.fromInt row . toCArg, textC.toCArg]
+        textC.free
     
+    # Takes element by index, interprests as `ft` type, passes through the function and returns result
     def _mappedValue indexN ft f:
         record = self.elemPointer indexN
         cstringPointer = record.read
@@ -181,20 +186,22 @@ class Array2D a:
                         value = ValueText string
                         f value
 
-    def mapRow n ft f:
-        newMatManaged = self.clone
-        x = Array2DVal (SizeVal self.getSize.getColumns 1) (StrideVal self.getStride.getStrideC 1) n*(self.getStride.getStrideR) newMatManaged
-        x.forEach indexN:
-            record = x.elemPointer indexN
-            maybeValueToStore = x._mappedValue indexN ft f
+    # NOTE: warning, function modifies in-place object storage, should be used only to implement other operations
+    def _mapInPlace ft f:
+        self.forEach indexN:
+            record = self.elemPointer indexN
+            maybeValueToStore = self._mappedValue indexN ft f
             case maybeValueToStore of
                 Nothing: 
                     None
                 Just value:
-                    r = indexN.head.get 
-                    c = indexN.getAt 1
-                    x._store r c value.toText
+                    self._store indexN value.toText
                     None
+
+    def mapRow n ft f:
+        newMatManaged = self.clone
+        x = Array2DVal (SizeVal self.getSize.getColumns 1) (StrideVal self.getStride.getStrideC 1) n*(self.getStride.getStrideR) newMatManaged
+        x._mapInPlace ft f
         Array2DVal self.getSize self.getStride 0 x.getPtr
 
     def findNA:
@@ -220,9 +227,7 @@ class Array2D a:
                         _:
                             value = ValueText string
                             f value
-            r = indexN.head.get 
-            c = indexN.getAt 1
-            self._cppCall "store" None [x.getPtr . toCArg, CInt.fromInt c . toCArg, CInt.fromInt r . toCArg, CString.fromText modifiedRecord.toText . toCArg]
+            self._store indexN modifiedRecord.toText
         Array2DVal self.getSize self.getStride 0 x.getPtr
 
     def copyColumns listOfColumns:
