@@ -1,30 +1,29 @@
 #pragma once
 #include <string>
 
-extern thread_local std::string errorMessage;
+void setError(const char **outError, const char *errorToSet) noexcept;
+void clearError(const char **outError) noexcept;
 
 template<typename Function>
 auto translateExceptionToError(const char **outError, Function &&f)
 {
 	try
 	{
-		*outError = nullptr;
+		clearError(outError);
 		return f();
 	}
 	catch(std::exception &e)
 	{
-		errorMessage = e.what();
-		*outError = errorMessage.c_str();
+		setError(outError, e.what());
 	}
 	catch(...)
 	{
-		errorMessage = "unknown exception";
-		*outError = errorMessage.c_str();
+		setError(outError, "unknown exception");
 	}
 
 	using ResultType = decltype(f());
 	if constexpr(!std::is_same_v<void, ResultType>)
-	{
 		return ResultType{};
-	}
+	else
+		return;
 }

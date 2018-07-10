@@ -1,17 +1,32 @@
 #define _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING
-#include <xlnt/xlnt.hpp>
 
 #include "Core/Matrix2d.h"
 #include "Core/Common.h"
 #include "Core/Error.h"
 
-#ifdef _MSC_VER
-#ifdef _DEBUG
-#pragma comment(lib, "xlntd.lib")
-#else
-#pragma comment(lib, "xlnt.lib")
-#endif
-#endif
+#ifdef DISABLE_XLSX
+
+#pragma message("Note: DataframeHelper is being compiled without XLSX support.")  
+
+extern "C"
+{
+	// Provide stub methods that just report error.
+
+	EXPORT MatrixDataPtr read_xlsx(const char *filename, const char **error) noexcept
+	{
+		setError(error, "The library was compiled without XLSX support!");
+		return nullptr;
+	}
+
+	EXPORT void write_xlsx(MatrixDataPtr mat, const char *filename, const char **error) noexcept
+	{
+		setError(error, "The library was compiled without XLSX support!");
+	}
+}
+
+#else // DISABLE_XLSX
+
+#include <xlnt/xlnt.hpp>
 
 namespace
 {
@@ -70,7 +85,6 @@ namespace
 
 extern "C"
 {
-
 	EXPORT MatrixDataPtr read_xlsx(const char *filename, const char **error) noexcept
 	{
 		return translateExceptionToError(error, [&] 
@@ -87,13 +101,6 @@ extern "C"
 			xlsxPrintToFile(*Matrix2d::fromData(mat), filename); 
 		});
 	}
-
-
 }
 
-// int main()
-// {
-// 	auto matrix = xlsxParseFile(R"(C:\Users\mwurb\Documents\kalkulator.xlsx)");
-// 	xlsxPrintToFile(*matrix, R"(C:\Users\mwurb\Documents\kalkulator2.xlsx)");
-// 	return EXIT_SUCCESS;
-// }
+#endif // DISABLE_XLSX
