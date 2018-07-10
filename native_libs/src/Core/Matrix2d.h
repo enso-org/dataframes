@@ -60,6 +60,7 @@ extern "C"
 {
 	EXPORT MatrixDataPtr mat_clone(MatrixDataPtr mat) noexcept;
 	EXPORT void mat_delete(MatrixDataPtr mat) noexcept;
+	EXPORT MatrixDataPtr allocate(size_t rowCount, size_t columnCount) noexcept;
 	EXPORT size_t columnCount(MatrixDataPtr mat) noexcept;
 	EXPORT size_t rowCount(MatrixDataPtr mat) noexcept;
 	EXPORT MatrixDataPtr join(MatrixDataPtr top, MatrixDataPtr bottom) noexcept;

@@ -175,6 +175,17 @@ extern "C"
 		}
 		catch(...) {}
 	}
+	MatrixDataPtr allocate(size_t rowCount, size_t columnCount) noexcept
+	{
+		try
+		{
+			return std::make_unique<Matrix2d>(rowCount, columnCount).release()->data();
+		}
+		catch(...) 
+		{
+			return nullptr;
+		}
+	}
 
 	MatrixDataPtr copyColumns(MatrixDataPtr mat, size_t columnCount, int *columnsToCopy) noexcept
 	{
