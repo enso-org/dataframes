@@ -43,8 +43,9 @@ class Dataframe:
             True:
                 headerArray = Array2DVal (SizeVal r c) (StrideVal c 1) 0 matManaged . copyRows [0]
                 header = headerArray . toFlatList
-                data   = Array2DVal (SizeVal r c) (StrideVal c 1) 0 matManaged . cDropRow 0 . cTranspose
-                DataframeVal (Just header) type data
+                data   = Array2DVal (SizeVal r c) (StrideVal c 1) 0 matManaged . cDropRow 0 
+                transposed = data.cTranspose
+                DataframeVal (Just header) type transposed
             False:
                 DataframeVal Nothing type ((Array2DVal (SizeVal r c) (StrideVal c 1) 0 matManaged) . cTranspose)
 
@@ -76,15 +77,9 @@ class Dataframe:
         newData = self.data.copyRows x
         DataframeVal newHeader newType newData
 
-    def selectColumnsByNames listOfNames:
-        None
-
-    def dif a b:
-        (a == b).not
-
     def dropRows list:
         rows = 0 . upto (self.data.getSize.getColumns-1)
-        x = rows.filter (k: list._any (Dataframe.dif k))
+        x = rows.filter (k: list . contains k . not)
         newFrame = self.selectRows x
         newFrame
 
@@ -109,12 +104,21 @@ class Dataframe:
         newData = self.data.mapRow n (self.type.getAt n) f
         DataframeVal self.header self.type newData
 
+    def nubOrd l: self.nubOrd2 [] l 
+
+    def nubOrd2 s l:
+        case l of
+            Prepend x xs: if (s.contains x) then (self.nubOrd2 s xs) else Prepend x (self.nubOrd2 (s.prepend x) xs)
+            Empty: []
+                    
+
     def dropNA:
         naList = self.data.findNA . filter (k: k.isJust)
-        print naList
-        rows = naList.each (k: k.get . getAt 1)
-        print rows
-        self.dropRows rows
+        rows = naList.each (k: k.get . getAt 1) . sort . reverse
+        s = self.nubOrd rows 
+        dropped = self.dropRows s
+        dropped
+
 
     def toJSON:
         transposedData = self.data.cTranspose

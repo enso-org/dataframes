@@ -157,7 +157,9 @@ class Array2D a:
         Array2DVal (SizeVal rows-1 cols) self.getStride 0 matManaged
 
     def mapRow n ft f:
-        x = Array2DVal (SizeVal self.getSize.getColumns 1) (StrideVal self.getStride.getStrideC 1) n*(self.getStride.getStrideR) self.getPtr
+        newMat = self._cppCall "mat_clone" (Pointer CString) [self.getPtr . toCArg]
+        newMatManaged = ManagedPointer CString . fromPointer (self._cppSym "mat_delete") newMat
+        x = Array2DVal (SizeVal self.getSize.getColumns 1) (StrideVal self.getStride.getStrideC 1) n*(self.getStride.getStrideR) newMatManaged
         x.forEach indexN:
             record = x.elemPointer indexN
             cstringPointer = record.read
@@ -170,17 +172,10 @@ class Array2D a:
                 _:
                     value = ValueText string
                     f value
-            record.write (CString.fromText modifiedRecord.toText)
-        self
-
-    def mapColumn n f:
-        x = Array2DVal (self.getSize.getColumns) (self.getStride.getStrideC) n self.ptr
-        x.forEach indexN:
-            record = x.elemPointer indexN
-            cdoublePointer = record.read
-            modifiedRecord = f cdoublePointer
-            record.write  modifiedRecord
-        self
+            r = indexN.head.get 
+            c = indexN.getAt 1
+            self._cppCall "store" None [x.getPtr . toCArg, CInt.fromInt c . toCArg, CInt.fromInt r . toCArg, CString.fromText modifiedRecord.toText . toCArg]
+        Array2DVal self.getSize self.getStride 0 x.getPtr
 
     def findNA:
         self.forEach indexN:

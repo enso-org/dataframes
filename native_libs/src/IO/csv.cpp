@@ -203,16 +203,16 @@ extern "C"
 	}
 }
 
- int main()
- {
- 	try
- 	{
- 		auto matrix = loadCSV(R"(F:\dev\Dataframes\data\simple_empty.csv)", ',');
- 		std::cout << "";
- 	}
- 	catch(std::exception &e)
- 	{
- 		std::cout << e.what() << std::endl;
- 	}
- 	return EXIT_SUCCESS;
- }
+//  int main()
+//  {
+//  	try
+//  	{
+//  		auto matrix = loadCSV(R"(F:\dev\Dataframes\data\simple_empty.csv)", ',');
+//  		std::cout << "";
+//  	}
+//  	catch(std::exception &e)
+//  	{
+//  		std::cout << e.what() << std::endl;
+//  	}
+//  	return EXIT_SUCCESS;
+//  }
