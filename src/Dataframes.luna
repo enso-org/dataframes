@@ -60,6 +60,8 @@ class Dataframe:
                     headerArray2D.join dataT
         rows = withHeader.getSize.rows
         cols = withHeader.getSize.columns
+        print rows 
+        print cols 
         err = ManagedPointer CInt . malloc
         self._cCall "write_csv" None [CString.fromText filename . toCArg, withHeader.getPtr . toCArg, CInt.fromInt rows . toCArg, CInt.fromInt cols . toCArg, err.toCArg]
         case err.read.toInt of

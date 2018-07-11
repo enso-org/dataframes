@@ -48,11 +48,14 @@ Matrix2d::Matrix2d(const Matrix2d &top, const Matrix2d &bottom)
 	: Matrix2d(top.rowCount + bottom.rowCount, std::max(top.columnCount, bottom.columnCount))
 {
 	top.foreach_index([&](auto row, auto column)
-	{
+	{	
+		printf("TOP: row: %ld column: %ld", row, column);
 		store(row, column, top.load(row, column));
 	});
 	bottom.foreach_index([&](auto row, auto column)
 	{
+		printf("BOTTOM: row: %ld column: %ld", row, column);
+		printf("BOTTOM2: row: %ld column: %ld", top.rowCount + row, column);
 		store(top.rowCount + row, column, bottom.load(row, column));
 	});
 }
