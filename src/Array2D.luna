@@ -10,7 +10,7 @@ class Size:
         columns:: Int
     
     def toList: [self.rows, self.columns]
-    
+
 class Stride:
     StrideVal:
         strideR:: Int
@@ -188,7 +188,7 @@ class Array2D a:
 
     def mapRow n ft f:
         newMatManaged = self.clone
-        x = Array2DVal (SizeVal self.getSize.columns 1) (StrideVal self.stride.strideC 1) n*(self.getStride.strideR) newMatManaged
+        x = Array2DVal (SizeVal self.getSize.columns 1) (StrideVal self.getStride.strideC 1) n*(self.getStride.strideR) newMatManaged
         x._mapInPlace ft f
         Array2DVal self.getSize self.getStride 0 x.getPtr
 
