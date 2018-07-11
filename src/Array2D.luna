@@ -1,0 +1,251 @@
+import Std.Foreign.C.Value
+import Std.Foreign
+
+import Dataframes.Utils
+import Dataframes.Types
+
+class Size:
+    SizeVal:
+        rows   :: Int
+        columns:: Int
+    
+    def toList: [self.rows, self.columns]
+
+class Stride:
+    StrideVal:
+        strideR:: Int
+        strideC:: Int
+    
+    def toList: [self.strideR, self.strideC]
+
+class Array2D a:
+    Array2D a
+    Array2DVal:
+        size  :: Size
+        stride:: Stride
+        offset:: Int
+        ptr   :: ManagedPointer a
+
+    def cppSym name:
+        lookupSymbol "DataframeHelper" name
+
+    def cppCall name ret args:
+        self.cppSym name . call ret args
+
+    def getPtr: case self of
+        Array2DVal _ _ _ p: p
+
+    def getSize: case self of
+        Array2DVal s _ _ _:s
+
+    def getStride: case self of
+        Array2DVal _ stride _ _: stride
+
+    def getOffset: case self of
+        Array2DVal _ _ offset _: offset
+
+    def elems: self.getSize.rows * self.getSize.columns
+
+    def forEach f: 0 . upto self.elems-1 . each k:
+        indexN = self.unpackIndex k
+        f indexN
+
+    def forEachLinear f: 0 . upto self.elems-1 . each k: f k
+
+    def make: Array2DVal
+
+    def alloc size :
+        elems = size.rows * size.columns
+        stride = StrideVal size.columns 1
+        offset = 0
+        ptr = self.getPtr.mallocElems elems
+        Array2DVal size stride offset ptr
+
+    def free:
+        self.getPtr.free
+
+    def unsafeElemPointer index:
+        lsMatch = index.length == self.getSize.toList.length
+        elemSize = index.zipWith (*) self.getStride.toList
+        elems = elemSize.fold self.getOffset (+)
+        self . getPtr . moveElems elems
+
+    def assertInBounds index:
+        lsMatch = index.length == self.getSize.toList.length
+        allLess = index.zipWith (<) self.getSize.toList . _all (== True)
+        allNonZero = index._all (>= 0)
+        inBounds = lsMatch . and allLess . and allNonZero
+        when (inBounds.not) (throw "Array index out of bounds.")
+
+    def uncheckedReadAt index:
+        pointer = self . unsafeElemPointer index
+        pointer.read
+
+    def readAt index:
+        self.assertInBounds index
+        self.uncheckedReadAt index
+
+    def uncheckedWriteAt index val:
+        self . unsafeElemPointer index . write val
+
+    def writeAt index val:
+        self.assertInBounds index
+        self.uncheckedWriteAt index val
+
+    def elemPointer index:
+        self.assertInBounds index
+        self.unsafeElemPointer index
+
+    def unpackIndex flatIndex: self.unpackIndex' flatIndex self.getSize.toList []
+
+    def unpackIndex' flatIndex size acc:
+        case size of
+            Prepend x xs :
+                n = xs.fold 1 (*)
+                accNew =  acc.prepend (flatIndex/n)
+                self.unpackIndex' (flatIndex % n) xs accNew
+            Empty:
+                index = acc.reverse
+                index
+
+    def toFlatList:
+        self.forEach (indexN:
+            pointer = self.elemPointer indexN
+            case pointer.read.isNull of
+                False:
+                    pointer . read . toText
+                True: "")
+
+    def toList:
+        rows = self.getSize.rows
+        cols = self.getSize.columns
+        0 . upto (rows-1) . each (x: x*cols . upto (cols-1+cols*x)) . each i:
+            i . each k:
+                pointer = self.elemPointer (self.unpackIndex k)
+                case pointer.read.isNull of
+                    False: pointer . read . toText
+                    True: ""
+
+    def clone:
+        newMat = self.cppCall "mat_clone" (Pointer CString) [self.getPtr . toCArg]
+        newMatManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") newMat
+        newMatManaged
+
+    def cDropRow n:
+        rows = self.getSize.rows
+        cols = self.getSize.columns
+        strideR = self.getStride.strideR
+        strideC = self.getStride.strideC
+
+        new_mat = self.cppCall "dropRow" (Pointer CString) [self.getPtr . toCArg, CInt.fromInt n . toCArg]
+        matManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") new_mat
+        Array2DVal (SizeVal rows-1 cols) self.getStride 0 matManaged
+
+    def store indexN text:
+        row = indexN.head.get 
+        column = indexN.getAt 1
+        textC = CString.fromText text
+        self.cppCall "store" None [self.getPtr . toCArg, CInt.fromInt column . toCArg, CInt.fromInt row . toCArg, textC.toCArg]
+        textC.free
+    
+    # Takes element by index, interprests as `ft` type, passes through the function and returns result
+    def mappedValue indexN ft f:
+        record = self.elemPointer indexN
+        cstringPointer = record.read
+        case cstringPointer.isNull of
+            True:
+                Nothing
+            False:
+                string = cstringPointer.toText
+                Just case ft of
+                    FieldReal:
+                        real = parseTextToDouble string
+                        value = ValueReal real
+                        f value
+                    _:
+                        value = ValueText string
+                        f value
+
+    # NOTE: warning, function modifies in-place object storage, should be used only to implement other operations
+    def mapInPlace ft f:
+        self.forEach indexN:
+            record = self.elemPointer indexN
+            maybeValueToStore = self.mappedValue indexN ft f
+            case maybeValueToStore of
+                Nothing: 
+                    None
+                Just value:
+                    self.store indexN value.toText
+                    None
+
+    def mapRow n ft f:
+        newMatManaged = self.clone
+        x = Array2DVal (SizeVal self.getSize.columns 1) (StrideVal self.getStride.strideC 1) n*(self.getStride.strideR) newMatManaged
+        x.mapInPlace ft f
+        Array2DVal self.getSize self.getStride 0 x.getPtr
+
+    def findNA:
+        self.forEach indexN:
+            pointer = self.elemPointer indexN
+            if pointer.read.isNull then (Just indexN) else Nothing
+
+    def map ft f:
+        newMatManaged = self.clone
+        x = Array2DVal self.getSize self.getStride self.getOffset newMatManaged
+
+        x.forEach indexN:
+            pointer = x.elemPointer indexN
+            elem = pointer.read
+            modifiedRecord = case elem.isNull of
+                True: Pointer None . null
+                False:
+                    case ft of
+                        FieldReal:
+                            real = parseTextToDouble string
+                            value = ValueReal real
+                            f value
+                        _:
+                            value = ValueText string
+                            f value
+            self.store indexN modifiedRecord.toText
+        Array2DVal self.getSize self.getStride 0 x.getPtr
+
+    def copyColumns listOfColumns:
+        l = listOfColumns.length
+        rows = self.getSize.rows
+        cols = self.getSize.columns
+        strideR = self.getStride.strideR
+        strideC = self.getStride.strideC
+        columnsArray = Array CInt . fromList (listOfColumns . map CInt.fromInt)
+        new_mat = self.cppCall "copyColumns" (Pointer CString) [self.getPtr . toCArg, CInt.fromInt l . toCArg, columnsArray.ptr . toCArg]
+        matManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") new_mat
+        Array2DVal (SizeVal rows l) (StrideVal l strideC) 0 matManaged
+
+    def copyRows listOfRows:
+        l = listOfRows.length
+        rows = self.getSize.rows
+        cols = self.getSize.columns
+        strideR = self.getStride.strideR
+        strideC = self.getStride.strideC
+        rowsArray = Array CInt . fromList (listOfRows . map CInt.fromInt)
+        new_mat = self.cppCall "copyRows" (Pointer CString) [self.getPtr . toCArg, CInt.fromInt l . toCArg, rowsArray.ptr . toCArg]
+        matManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") new_mat
+        Array2DVal (SizeVal l cols) self.getStride 0 matManaged
+
+    def cTranspose:
+        rows = self.getSize.rows
+        cols = self.getSize.columns
+        strideR = self.getStride.strideR
+        strideC = self.getStride.strideC
+        new_mat = self.cppCall "transpose" (Pointer CString) [self.getPtr . toCArg]
+        matManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") new_mat
+        Array2DVal (SizeVal cols rows) (StrideVal rows 1) 0 matManaged
+
+    def join arrayToJoin:
+        fstRows = self.getSize.rows
+        fstCols = self.getSize.columns
+        sndRows = arrayToJoin.getSize.rows
+        sndCols = arrayToJoin.getSize.columns
+        new_mat = self.cppCall "join" (Pointer CString) [self.getPtr . toCArg, arrayToJoin.getPtr . toCArg]
+        matManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") new_mat
+        Array2DVal (SizeVal fstRows+sndRows fstCols) (StrideVal fstCols 1) 0 matManaged
