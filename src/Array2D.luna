@@ -246,8 +246,6 @@ class Array2D a:
         fstCols = self.getSize.columns
         sndRows = arrayToJoin.getSize.rows
         sndCols = arrayToJoin.getSize.columns
-        print "join"
         new_mat = self.cppCall "join" (Pointer CString) [self.getPtr . toCArg, arrayToJoin.getPtr . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") new_mat
-        print "join2"
         Array2DVal (SizeVal fstRows+sndRows fstCols) (StrideVal fstCols 1) 0 matManaged

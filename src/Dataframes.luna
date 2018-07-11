@@ -7,7 +7,7 @@ import Dataframes.Types
 class Dataframe:
     Dataframe
     DataframeVal:
-        header:: Maybe (List Text)
+        header:: Maybe (Array2D CString)
         type  :: List FieldType
         data  :: Array2D CString
 
@@ -22,6 +22,9 @@ class Dataframe:
 
     def header: case self of
         DataframeVal h _ _: h
+    
+    def headerList:
+        self.header . map (x: x.toFlatList)
 
     def type: case self of
         DataframeVal _ t _: t
@@ -43,10 +46,9 @@ class Dataframe:
         case readHeader of
             True:
                 headerArray = Array2DVal (SizeVal r c) (StrideVal c 1) 0 matManaged . copyRows [0]
-                header = headerArray . toFlatList
                 data   = Array2DVal (SizeVal r c) (StrideVal c 1) 0 matManaged . cDropRow 0 
                 transposed = data.cTranspose
-                DataframeVal (Just header) type transposed
+                DataframeVal (Just headerArray) type transposed
             False:
                 DataframeVal Nothing type ((Array2DVal (SizeVal r c) (StrideVal c 1) 0 matManaged) . cTranspose)
 
@@ -54,11 +56,9 @@ class Dataframe:
         withHeader = case self.header of
             Nothing: self.data.cTranspose
             Just h :
-                    headerArray = Array CString . fromList (h . map CString.fromText)
-                    managed = ManagedPointer CString . fromPointer (self.cStdSym "free") headerArray.ptr
-                    headerArray2D = Array2DVal (SizeVal 1 h.length) (StrideVal 1 1) 0 managed
+                    
                     dataT = self.data.cTranspose
-                    headerArray2D.join dataT
+                    h.join dataT
         rows = withHeader.getSize.rows
         cols = withHeader.getSize.columns
         err = ManagedPointer CInt . malloc
@@ -79,10 +79,9 @@ class Dataframe:
         case readHeader of
             True:
                 headerArray = Array2DVal (SizeVal r c) (StrideVal c 1) 0 matManaged . copyRows [0]
-                header = headerArray . toFlatList
                 data   = Array2DVal (SizeVal r c) (StrideVal c 1) 0 matManaged . cDropRow 0 
                 transposed = data.cTranspose
-                DataframeVal (Just header) type transposed
+                DataframeVal (Just headerArray) type transposed
             False:
                 DataframeVal Nothing type ((Array2DVal (SizeVal r c) (StrideVal c 1) 0 matManaged) . cTranspose)
 
@@ -91,7 +90,7 @@ class Dataframe:
         record
 
     def selectColumns x:
-        newHeader = self.header.map (h: x.foldLeft [] (self.selectItems h))
+        newHeader = self.header . map (k: k.copyColumns x)
 
         newType = x.foldLeft [] (self.selectItems self.type)
         newData = self.data.copyRows x
@@ -142,4 +141,4 @@ class Dataframe:
 
     def toJSON:
         transposedData = self.data.cTranspose
-        JSON.empty . insert "header" self.header . insert "data" transposedData.toList
+        JSON.empty . insert "header" self.headerList . insert "data" transposedData.toList
