@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -142,6 +143,20 @@ std::unique_ptr<Matrix2d> loadCSV(const char *filename, char separator)
 	}
 }
 
+bool needsEscaping(const std::string &record, char seperator)
+{
+	if(record.empty())
+		return false;
+
+	if(record.front() == ' ' || record.back() == ' ')
+		return true;
+
+	if(record.find(seperator) != std::string::npos)
+		return true;
+
+	return false;
+}
+
 }
 
 extern "C"
@@ -167,8 +182,9 @@ extern "C"
 		return nullptr;
 	}
 
-	void write_csv(const char *filename, char **mat, size_t rows, size_t cols, int* error) noexcept
+	void write_csv(const char *filename, MatrixDataPtr mat, size_t rows, size_t cols, int* error) noexcept
 	{
+		char separator = ',';
 		*error = 0;
 
 		try
@@ -179,21 +195,26 @@ extern "C"
 
 			for(size_t r = 0; r < rows; ++r)
 			{
+				if(r > 0)
+					out << '\n';
+
 				for(size_t c = 0; c < cols; ++c)
 				{
 					auto index = r * cols + c;
 					auto record = mat[index];
 				
-					out << '"';
 					if(record)
-						out << record;
-					out << '"';
+					{
+						if(needsEscaping(record, separator))
+							out << std::quoted(record, '"', '"');
+						else
+							out << record;
+					}
 
 					if(c != cols - 1)
-						out << ',';
+						out << separator;
 
 				}
-				out << '\n';
 			}
 		}
 		catch(std::exception &e)
@@ -203,16 +224,19 @@ extern "C"
 	}
 }
 
-//  int main()
-//  {
-//  	try
-//  	{
-//  		auto matrix = loadCSV(R"(F:\dev\Dataframes\data\simple_empty.csv)", ',');
+//int main()
+//{
+//	try
+//	{
+//		auto matrix = loadCSV(R"(F:\dev\Dataframes\data\simple_empty.csv)", ',');
+//		int i = 0;
+//		write_csv(R"(F:\dev\Dataframes\data\simple_empty2.csv)", matrix->data(), matrix->rowCount, matrix->columnCount, &i);
+//		auto matrix2 = loadCSV(R"(F:\dev\Dataframes\data\simple_empty2.csv)", ',');
 //  		std::cout << "";
-//  	}
-//  	catch(std::exception &e)
-//  	{
+//	}
+//	catch(std::exception &e)
+//	{
 //  		std::cout << e.what() << std::endl;
-//  	}
-//  	return EXIT_SUCCESS;
-//  }
+//	}
+//	return EXIT_SUCCESS;
+//}
