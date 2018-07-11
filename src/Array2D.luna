@@ -8,25 +8,15 @@ class Size:
     SizeVal:
         rows   :: Int
         columns:: Int
-
-    def getRows: case self of
-        SizeVal rows _: rows
-
-    def getColumns: case self of
-        SizeVal _ columns: columns
     
     def toList: [self.rows, self.columns]
-
+    
 class Stride:
     StrideVal:
         strideR:: Int
         strideC:: Int
-
-    def getStrideR: case self of
-        StrideVal strideR _: strideR
-
-    def getStrideC: case self of
-        StrideVal _ strideC: strideC
+    
+    def toList: [self.strideR, self.strideC]
 
 class Array2D a:
     Array2D a
@@ -60,9 +50,7 @@ class Array2D a:
     def getOffset: case self of
         Array2DVal _ _ offset _: offset
 
-    def strideList: [self.getStride.getStrideR, self.getStride.getStrideC]
-
-    def elems: self.getSize.getRows * self.getSize.getColumns
+    def elems: self.getSize.rows * self.getSize.columns
 
     def forEach f: 0 . upto self.elems-1 . each k:
         indexN = self.unpackIndex k
@@ -73,8 +61,8 @@ class Array2D a:
     def make: Array2DVal
 
     def alloc size :
-        elems = size.getRows * size.getColumns
-        stride = StrideVal size.getColumns 1
+        elems = size.rows * size.columns
+        stride = StrideVal size.columns 1
         offset = 0
         ptr = self.getPtr.mallocElems elems
         Array2DVal size stride offset ptr
@@ -85,7 +73,7 @@ class Array2D a:
     def unsafeElemPointer index:
 
         lsMatch = index.length == self.getSize.toList.length
-        elemSize = index.zipWith (*) self.strideList
+        elemSize = index.zipWith (*) self.getStride.toList
         elems = elemSize.fold self.getOffset (+)
         self . getPtr . moveElems elems
 
@@ -137,8 +125,8 @@ class Array2D a:
                 True: "")
 
     def toList:
-        rows = self.getSize.getRows
-        cols = self.getSize.getColumns
+        rows = self.getSize.rows
+        cols = self.getSize.columns
         0 . upto (rows-1) . each (x: x*cols . upto (cols-1+cols*x)) . each i:
             i . each k:
                 pointer = self.elemPointer (self.unpackIndex k)
@@ -152,10 +140,10 @@ class Array2D a:
         newMatManaged
 
     def cDropRow n:
-        rows = self.getSize.getRows
-        cols = self.getSize.getColumns
-        strideR = self.getStride.getStrideR
-        strideC = self.getStride.getStrideC
+        rows = self.getSize.rows
+        cols = self.getSize.columns
+        strideR = self.getStride.strideR
+        strideC = self.getStride.strideC
 
         new_mat = self._cppCall "dropRow" (Pointer CString) [self.getPtr . toCArg, CInt.fromInt n . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self._cppSym "mat_delete") new_mat
@@ -200,7 +188,7 @@ class Array2D a:
 
     def mapRow n ft f:
         newMatManaged = self.clone
-        x = Array2DVal (SizeVal self.getSize.getColumns 1) (StrideVal self.getStride.getStrideC 1) n*(self.getStride.getStrideR) newMatManaged
+        x = Array2DVal (SizeVal self.getSize.columns 1) (StrideVal self.stride.strideC 1) n*(self.getStride.strideR) newMatManaged
         x._mapInPlace ft f
         Array2DVal self.getSize self.getStride 0 x.getPtr
 
@@ -232,10 +220,10 @@ class Array2D a:
 
     def copyColumns listOfColumns:
         l = listOfColumns.length
-        rows = self.getSize.getRows
-        cols = self.getSize.getColumns
-        strideR = self.getStride.getStrideR
-        strideC = self.getStride.getStrideC
+        rows = self.getSize.rows
+        cols = self.getSize.columns
+        strideR = self.getStride.strideR
+        strideC = self.getStride.strideC
         columnsArray = Array CInt . fromList (listOfColumns . map CInt.fromInt)
         new_mat = self._cppCall "copyColumns" (Pointer CString) [self.getPtr . toCArg, CInt.fromInt l . toCArg, columnsArray.ptr . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self._cppSym "mat_delete") new_mat
@@ -243,29 +231,29 @@ class Array2D a:
 
     def copyRows listOfRows:
         l = listOfRows.length
-        rows = self.getSize.getRows
-        cols = self.getSize.getColumns
-        strideR = self.getStride.getStrideR
-        strideC = self.getStride.getStrideC
+        rows = self.getSize.rows
+        cols = self.getSize.columns
+        strideR = self.getStride.strideR
+        strideC = self.getStride.strideC
         rowsArray = Array CInt . fromList (listOfRows . map CInt.fromInt)
         new_mat = self._cppCall "copyRows" (Pointer CString) [self.getPtr . toCArg, CInt.fromInt l . toCArg, rowsArray.ptr . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self._cppSym "mat_delete") new_mat
         Array2DVal (SizeVal l cols) self.getStride 0 matManaged
 
     def cTranspose:
-        rows = self.getSize.getRows
-        cols = self.getSize.getColumns
-        strideR = self.getStride.getStrideR
-        strideC = self.getStride.getStrideC
+        rows = self.getSize.rows
+        cols = self.getSize.columns
+        strideR = self.getStride.strideR
+        strideC = self.getStride.strideC
         new_mat = self._cppCall "transpose" (Pointer CString) [self.getPtr . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self._cppSym "mat_delete") new_mat
         Array2DVal (SizeVal cols rows) (StrideVal rows 1) 0 matManaged
 
     def join arrayToJoin:
-        fstRows = self.getSize.getRows
-        fstCols = self.getSize.getColumns
-        sndRows = arrayToJoin.getSize.getRows
-        sndCols = arrayToJoin.getSize.getColumns
-        new_mat = self._cppCall "join_c" (Pointer CString) [self.getPtr . toCArg, arrayToJoin.getPtr . toCArg, CSize.fromInt fstRows . toCArg, CSize.fromInt fstCols . toCArg, CSize.fromInt sndRows . toCArg, CSize.fromInt sndCols . toCArg]
+        fstRows = self.getSize.rows
+        fstCols = self.getSize.columns
+        sndRows = arrayToJoin.getSize.rows
+        sndCols = arrayToJoin.getSize.columns
+        new_mat = self._cppCall "join" (Pointer CString) [self.getPtr . toCArg, arrayToJoin.getPtr . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self._cppSym "mat_delete") new_mat
         Array2DVal (SizeVal fstRows+sndRows fstCols) (StrideVal fstCols 1) 0 matManaged

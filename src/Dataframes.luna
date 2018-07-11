@@ -58,8 +58,8 @@ class Dataframe:
                     headerArray2D = Array2DVal (SizeVal 1 h.length) (StrideVal 1 1) 0 managed
                     dataT = self.data.cTranspose
                     headerArray2D.join dataT
-        rows = withHeader.getSize.getRows
-        cols = withHeader.getSize.getColumns
+        rows = withHeader.getSize.rows
+        cols = withHeader.getSize.columns
         err = ManagedPointer CInt . malloc
         self._cCall "write_csv" None [CString.fromText filename . toCArg, withHeader.getPtr . toCArg, CInt.fromInt rows . toCArg, CInt.fromInt cols . toCArg, err.toCArg]
         case err.read.toInt of
@@ -78,7 +78,7 @@ class Dataframe:
         DataframeVal newHeader newType newData
 
     def dropRows list:
-        rows = 0 . upto (self.data.getSize.getColumns-1)
+        rows = 0 . upto (self.data.getSize.columns-1)
         x = rows.filter (k: list . contains k . not)
         newFrame = self.selectRows x
         newFrame
