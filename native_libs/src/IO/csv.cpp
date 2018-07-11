@@ -184,6 +184,12 @@ extern "C"
 
 	EXPORT void write_csv(const char *filename, MatrixDataPtr mat, size_t rows, size_t cols, int* error) noexcept
 	{
+		if(!mat)
+		{
+			*error = 2;
+			return;
+		}
+
 		char separator = ',';
 		*error = 0;
 
