@@ -182,7 +182,7 @@ extern "C"
 		return nullptr;
 	}
 
-	void write_csv(const char *filename, MatrixDataPtr mat, size_t rows, size_t cols, int* error) noexcept
+	EXPORT void write_csv(const char *filename, MatrixDataPtr mat, size_t rows, size_t cols, int* error) noexcept
 	{
 		char separator = ',';
 		*error = 0;
