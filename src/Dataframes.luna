@@ -1,6 +1,7 @@
 import Std.Foreign.C.Value
 import Std.Foreign
 import Dataframes.Array2D
+import Dataframes.Utils 
 import Dataframes.Types
 
 class Dataframe:
@@ -10,14 +11,14 @@ class Dataframe:
         type  :: List FieldType
         data  :: Array2D CString
 
-    def _cSym name:
+    def cSym name:
         lookupSymbol "DataframeHelper" name
 
-    def _cStdSym name:
+    def cStdSym name:
         lookupSymbol cStdLib name
 
-    def _cCall name ret args:
-        self . _cSym name . call ret args
+    def cCall name ret args:
+        self . cSym name . call ret args
 
     def header: case self of
         DataframeVal h _ _: h
@@ -32,9 +33,9 @@ class Dataframe:
         rows = ManagedPointer CInt . malloc
         cols = ManagedPointer CInt . malloc
         err  = ManagedPointer CInt . malloc
-        mat  = self._cCall "read_csv" (Pointer CString) [CString.fromText file . toCArg, rows.toCArg, cols.toCArg, err.toCArg]
+        mat  = self.cCall "read_csv" (Pointer CString) [CString.fromText file . toCArg, rows.toCArg, cols.toCArg, err.toCArg]
         matManaged = case err.read.toInt of
-            0: ManagedPointer CString . fromPointer (self._cSym "mat_delete") mat
+            0: ManagedPointer CString . fromPointer (self.cSym "mat_delete") mat
             _: throw err.read.toText
         r = rows.read.toInt
         c = cols.read.toInt
@@ -54,19 +55,36 @@ class Dataframe:
             Nothing: self.data.cTranspose
             Just h :
                     headerArray = Array CString . fromList (h . map CString.fromText)
-                    managed = ManagedPointer CString . fromPointer (self._cStdSym "free") headerArray.ptr
+                    managed = ManagedPointer CString . fromPointer (self.cStdSym "free") headerArray.ptr
                     headerArray2D = Array2DVal (SizeVal 1 h.length) (StrideVal 1 1) 0 managed
                     dataT = self.data.cTranspose
                     headerArray2D.join dataT
         rows = withHeader.getSize.rows
         cols = withHeader.getSize.columns
-        print rows 
-        print cols 
         err = ManagedPointer CInt . malloc
-        self._cCall "write_csv" None [CString.fromText filename . toCArg, withHeader.getPtr . toCArg, CInt.fromInt rows . toCArg, CInt.fromInt cols . toCArg, err.toCArg]
+        self.cCall "write_csv" None [CString.fromText filename . toCArg, withHeader.getPtr . toCArg, CInt.fromInt rows . toCArg, CInt.fromInt cols . toCArg, err.toCArg]
         case err.read.toInt of
             0: None
             _: throw err.read.toText
+
+    def readFromXlsx file readHeader:
+        err  = ManagedPointer CInt . malloc
+        mat  = self.cCall "read_xlsx" (Pointer CString) [CString.fromText file . toCArg, err.toCArg]
+        matManaged = case err.isNull of
+            True: ManagedPointer CString . fromPointer (self.cSym "mat_delete") mat
+            False: throw (err.read . toText)
+        r = rowCount matManaged
+        c = columnCount matManaged
+        type = 0 . upto c . each (k: FieldReal)
+        case readHeader of
+            True:
+                headerArray = Array2DVal (SizeVal r c) (StrideVal c 1) 0 matManaged . copyRows [0]
+                header = headerArray . toFlatList
+                data   = Array2DVal (SizeVal r c) (StrideVal c 1) 0 matManaged . cDropRow 0 
+                transposed = data.cTranspose
+                DataframeVal (Just header) type transposed
+            False:
+                DataframeVal Nothing type ((Array2DVal (SizeVal r c) (StrideVal c 1) 0 matManaged) . cTranspose)
 
     def at x y:
         record = self.data.readAt [y,x]

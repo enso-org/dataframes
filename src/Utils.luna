@@ -6,3 +6,11 @@ def parseTextToDouble x:
     double = lookupSymbol "DataframeHelper" "luna_to_double" . call CDouble [cString . toCArg]
     cString.free
     double.toReal
+
+def rowCount ptr: 
+    rows = lookupSymbol "DataframeHelper" "rowCount" . call CInt [ptr . toCArg]
+    rows.toInt
+
+def columnCount ptr: 
+    columns = lookupSymbol "DataframeHelper" "columnCount" . call CInt [ptr . toCArg]
+    columns.toInt
