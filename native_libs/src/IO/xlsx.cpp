@@ -14,13 +14,18 @@ extern "C"
 
 	EXPORT MatrixDataPtr read_xlsx(const char *filename, const char **error) noexcept
 	{
-		setError(error, "The library was compiled without XLSX support!");
-		return nullptr;
+		return translateExceptionToError(error, [&] () -> MatrixDataPtr
+		{
+			throw std::runtime_error("The library was compiled without XLSX support!");
+		});
 	}
 
 	EXPORT void write_xlsx(MatrixDataPtr mat, const char *filename, const char **error) noexcept
 	{
-		setError(error, "The library was compiled without XLSX support!");
+		return translateExceptionToError(error, [&]
+		{
+			throw std::runtime_error("The library was compiled without XLSX support!");
+		});
 	}
 }
 
