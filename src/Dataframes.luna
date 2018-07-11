@@ -70,9 +70,9 @@ class Dataframe:
     def readFromXlsx file readHeader:
         err  = ManagedPointer CString . malloc
         mat  = self.cCall "read_xlsx" (Pointer CString) [CString.fromText file . toCArg, err.toCArg]
-        matManaged = case err.isNull of
+        matManaged = case err.read.isNull of
             True: ManagedPointer CString . fromPointer (self.cSym "mat_delete") mat
-            False: throw (err.read . toText)
+            False: throw (err.read.toText)
         r = rowCount matManaged
         c = columnCount matManaged
         type = 0 . upto c . each (k: FieldReal)
