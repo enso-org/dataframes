@@ -72,8 +72,8 @@ class Array2D a:
 
     def assertInBounds index:
         lsMatch = index.length == self.getSize.toList.length
-        allLess = index.zipWith (<) self.getSize.toList . _all (== True)
-        allNonZero = index._all (>= 0)
+        allLess = index.zipWith (<) self.getSize.toList . all (== True)
+        allNonZero = index.all (>= 0)
         inBounds = lsMatch . and allLess . and allNonZero
         when (inBounds.not) (throw "Array index out of bounds.")
 
@@ -137,8 +137,8 @@ class Array2D a:
         strideR = self.getStride.strideR
         strideC = self.getStride.strideC
 
-        new_mat = self.cppCall "dropRow" (Pointer CString) [self.getPtr . toCArg, CInt.fromInt n . toCArg]
-        matManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") new_mat
+        newMat = self.cppCall "dropRow" (Pointer CString) [self.getPtr . toCArg, CInt.fromInt n . toCArg]
+        matManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") newMat
         Array2DVal (SizeVal rows-1 cols) self.getStride 0 matManaged
 
     def store indexN text:
@@ -217,8 +217,8 @@ class Array2D a:
         strideR = self.getStride.strideR
         strideC = self.getStride.strideC
         columnsArray = Array CInt . fromList (listOfColumns . map CInt.fromInt)
-        new_mat = self.cppCall "copyColumns" (Pointer CString) [self.getPtr . toCArg, CInt.fromInt l . toCArg, columnsArray.ptr . toCArg]
-        matManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") new_mat
+        newMat = self.cppCall "copyColumns" (Pointer CString) [self.getPtr . toCArg, CInt.fromInt l . toCArg, columnsArray.ptr . toCArg]
+        matManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") newMat
         Array2DVal (SizeVal rows l) (StrideVal l strideC) 0 matManaged
 
     def copyRows listOfRows:
@@ -228,8 +228,8 @@ class Array2D a:
         strideR = self.getStride.strideR
         strideC = self.getStride.strideC
         rowsArray = Array CInt . fromList (listOfRows . map CInt.fromInt)
-        new_mat = self.cppCall "copyRows" (Pointer CString) [self.getPtr . toCArg, CInt.fromInt l . toCArg, rowsArray.ptr . toCArg]
-        matManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") new_mat
+        newMat = self.cppCall "copyRows" (Pointer CString) [self.getPtr . toCArg, CInt.fromInt l . toCArg, rowsArray.ptr . toCArg]
+        matManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") newMat
         Array2DVal (SizeVal l cols) self.getStride 0 matManaged
 
     def cTranspose:
@@ -237,8 +237,8 @@ class Array2D a:
         cols = self.getSize.columns
         strideR = self.getStride.strideR
         strideC = self.getStride.strideC
-        new_mat = self.cppCall "transpose" (Pointer CString) [self.getPtr . toCArg]
-        matManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") new_mat
+        newMat = self.cppCall "transpose" (Pointer CString) [self.getPtr . toCArg]
+        matManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") newMat
         Array2DVal (SizeVal cols rows) (StrideVal rows 1) 0 matManaged
 
     def join arrayToJoin:
@@ -246,6 +246,6 @@ class Array2D a:
         fstCols = self.getSize.columns
         sndRows = arrayToJoin.getSize.rows
         sndCols = arrayToJoin.getSize.columns
-        new_mat = self.cppCall "join" (Pointer CString) [self.getPtr . toCArg, arrayToJoin.getPtr . toCArg]
-        matManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") new_mat
+        newMat = self.cppCall "join" (Pointer CString) [self.getPtr . toCArg, arrayToJoin.getPtr . toCArg]
+        matManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") newMat
         Array2DVal (SizeVal fstRows+sndRows fstCols) (StrideVal fstCols 1) 0 matManaged
