@@ -49,13 +49,13 @@ Matrix2d::Matrix2d(const Matrix2d &top, const Matrix2d &bottom)
 {
 	top.foreach_index([&](auto row, auto column)
 	{	
-		printf("TOP: row: %ld column: %ld", row, column);
+		//std::printf("TOP: row: %zu column: %zu\n", row, column);
 		store(row, column, top.load(row, column));
 	});
 	bottom.foreach_index([&](auto row, auto column)
 	{
-		printf("BOTTOM: row: %ld column: %ld", row, column);
-		printf("BOTTOM2: row: %ld column: %ld", top.rowCount + row, column);
+ 		//std::printf("BOTTOM: row: %zu column: %zu\n", row, column);
+ 		//std::printf("BOTTOM2: row: %zu column: %zu\n", top.rowCount + row, column);
 		store(top.rowCount + row, column, bottom.load(row, column));
 	});
 }
