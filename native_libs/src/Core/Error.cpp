@@ -8,11 +8,15 @@ namespace
 	thread_local std::string errorMessage;
 }
 
-void setError(const char **outError, const char *errorToSet) noexcept
+void setError(const char **outError, const char *errorToSet, const char *functionName) noexcept
 {
 	try
 	{
-		errorMessage = errorToSet;
+		if(functionName)
+			errorMessage = std::string(functionName) + ": " + errorToSet;
+		else
+			errorMessage = errorToSet;
+
 		*outError = errorMessage.c_str();
 	}
 	catch(...)

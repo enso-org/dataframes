@@ -29,9 +29,6 @@ class Array2D a:
     def cppSym name:
         lookupSymbol "DataframeHelper" name
 
-    def cppCall name ret args:
-        self.cppSym name . call ret args
-
     def getPtr: case self of
         Array2DVal _ _ _ p: p
 
@@ -127,7 +124,7 @@ class Array2D a:
                     True: ""
 
     def clone:
-        newMat = self.cppCall "mat_clone" (Pointer CString) [self.getPtr . toCArg]
+        newMat = cCallHandlingError "mat_clone" (Pointer CString) [self.getPtr . toCArg]
         newMatManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") newMat
         newMatManaged
 
@@ -137,7 +134,7 @@ class Array2D a:
         strideR = self.getStride.strideR
         strideC = self.getStride.strideC
 
-        newMat = self.cppCall "dropRow" (Pointer CString) [self.getPtr . toCArg, CInt.fromInt n . toCArg]
+        newMat = cCallHandlingError "dropRow" (Pointer CString) [self.getPtr . toCArg, CInt.fromInt n . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") newMat
         Array2DVal (SizeVal rows-1 cols) self.getStride 0 matManaged
 
@@ -145,7 +142,7 @@ class Array2D a:
         row = indexN.head.get 
         column = indexN.getAt 1
         textC = CString.fromText text
-        self.cppCall "store" None [self.getPtr . toCArg, CInt.fromInt column . toCArg, CInt.fromInt row . toCArg, textC.toCArg]
+        cCallHandlingError "store" None [self.getPtr . toCArg, CInt.fromInt column . toCArg, CInt.fromInt row . toCArg, textC.toCArg]
         textC.free
     
     # Takes element by index, interprests as `ft` type, passes through the function and returns result
@@ -217,7 +214,7 @@ class Array2D a:
         strideR = self.getStride.strideR
         strideC = self.getStride.strideC
         columnsArray = Array CInt . fromList (listOfColumns . map CInt.fromInt)
-        newMat = self.cppCall "copyColumns" (Pointer CString) [self.getPtr . toCArg, CInt.fromInt l . toCArg, columnsArray.ptr . toCArg]
+        newMat = cCallHandlingError "copyColumns" (Pointer CString) [self.getPtr . toCArg, CInt.fromInt l . toCArg, columnsArray.ptr . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") newMat
         Array2DVal (SizeVal rows l) (StrideVal l strideC) 0 matManaged
 
@@ -228,7 +225,7 @@ class Array2D a:
         strideR = self.getStride.strideR
         strideC = self.getStride.strideC
         rowsArray = Array CInt . fromList (listOfRows . map CInt.fromInt)
-        newMat = self.cppCall "copyRows" (Pointer CString) [self.getPtr . toCArg, CInt.fromInt l . toCArg, rowsArray.ptr . toCArg]
+        newMat = cCallHandlingError "copyRows" (Pointer CString) [self.getPtr . toCArg, CInt.fromInt l . toCArg, rowsArray.ptr . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") newMat
         Array2DVal (SizeVal l cols) self.getStride 0 matManaged
 
@@ -237,7 +234,7 @@ class Array2D a:
         cols = self.getSize.columns
         strideR = self.getStride.strideR
         strideC = self.getStride.strideC
-        newMat = self.cppCall "transpose" (Pointer CString) [self.getPtr . toCArg]
+        newMat = cCallHandlingError "transpose" (Pointer CString) [self.getPtr . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") newMat
         Array2DVal (SizeVal cols rows) (StrideVal rows 1) 0 matManaged
 
@@ -246,6 +243,6 @@ class Array2D a:
         fstCols = self.getSize.columns
         sndRows = arrayToJoin.getSize.rows
         sndCols = arrayToJoin.getSize.columns
-        newMat = self.cppCall "join" (Pointer CString) [self.getPtr . toCArg, arrayToJoin.getPtr . toCArg]
+        newMat = cCallHandlingError "join" (Pointer CString) [self.getPtr . toCArg, arrayToJoin.getPtr . toCArg]
         matManaged = ManagedPointer CString . fromPointer (self.cppSym "mat_delete") newMat
         Array2DVal (SizeVal fstRows+sndRows fstCols) (StrideVal fstCols 1) 0 matManaged
