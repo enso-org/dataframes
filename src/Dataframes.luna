@@ -14,12 +14,6 @@ class Dataframe:
     def cSym name:
         lookupSymbol "DataframeHelper" name
 
-    def cStdSym name:
-        lookupSymbol cStdLib name
-
-    def cCall name ret args:
-        self . cSym name . call ret args
-
     def header: case self of
         DataframeVal h _ _: h
     
@@ -33,15 +27,11 @@ class Dataframe:
         DataframeVal _ _ d: d
 
     def readFromCSV file readHeader:
-        rows = ManagedPointer CInt . malloc
-        cols = ManagedPointer CInt . malloc
-        err  = ManagedPointer CInt . malloc
-        mat  = self.cCall "read_csv" (Pointer CString) [CString.fromText file . toCArg, rows.toCArg, cols.toCArg, err.toCArg]
-        matManaged = case err.read.toInt of
-            0: ManagedPointer CString . fromPointer (self.cSym "mat_delete") mat
-            _: throw err.read.toText
-        r = rows.read.toInt
-        c = cols.read.toInt
+        commaSeparator = CChar.fromInt 44
+        mat = cCallHandlingError "read_csv" (Pointer CString) [CString.fromText file . toCArg, commaSeparator.toCArg]
+        matManaged = ManagedPointer CString . fromPointer (self.cSym "mat_delete") mat
+        r = rowCount matManaged
+        c = columnCount matManaged
         type = 0 . upto c . each (k: FieldReal)
         case readHeader of
             True:
@@ -53,26 +43,17 @@ class Dataframe:
                 DataframeVal Nothing type ((Array2DVal (SizeVal r c) (StrideVal c 1) 0 matManaged) . cTranspose)
 
     def writeToCSV filename:
+        commaSeparator = CChar.fromInt 44
         withHeader = case self.header of
             Nothing: self.data.cTranspose
             Just h :
-                    
-                    dataT = self.data.cTranspose
-                    h.join dataT
-        rows = withHeader.getSize.rows
-        cols = withHeader.getSize.columns
-        err = ManagedPointer CInt . malloc
-        self.cCall "write_csv" None [CString.fromText filename . toCArg, withHeader.getPtr . toCArg, CInt.fromInt rows . toCArg, CInt.fromInt cols . toCArg, err.toCArg]
-        case err.read.toInt of
-            0: None
-            _: throw err.read.toText
+                dataT = self.data.cTranspose
+                h.join dataT
+        cCallHandlingError "write_csv" None [CString.fromText filename . toCArg, withHeader.getPtr . toCArg, commaSeparator.toCArg]
 
     def readFromXlsx file readHeader:
-        err  = ManagedPointer CString . malloc
-        mat  = self.cCall "read_xlsx" (Pointer CString) [CString.fromText file . toCArg, err.toCArg]
-        matManaged = case err.read.isNull of
-            True: ManagedPointer CString . fromPointer (self.cSym "mat_delete") mat
-            False: throw (err.read.toText)
+        mat = cCallHandlingError "read_xlsx" (Pointer CString) [CString.fromText file . toCArg]
+        matManaged = ManagedPointer CString . fromPointer (self.cSym "mat_delete") mat
         r = rowCount matManaged
         c = columnCount matManaged
         type = 0 . upto c . each (k: FieldReal)

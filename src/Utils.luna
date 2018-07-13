@@ -1,6 +1,18 @@
 import Std.Foreign.C.Value
 import Std.Foreign
 
+def cCallHandlingError fname ret args:
+    err  = Pointer CString . malloc
+    result = lookupSymbol "DataframeHelper" fname . call ret (args + [err.toCArg])
+    case err.read.isNull of
+        True:
+            err.free
+            result
+        False:
+            errorMsg = err.read.toText
+            err.free
+            throw errorMsg
+
 def parseTextToDouble x:
     cString = CString.fromText x
     double = lookupSymbol "DataframeHelper" "luna_to_double" . call CDouble [cString . toCArg]
@@ -8,9 +20,9 @@ def parseTextToDouble x:
     double.toReal
 
 def rowCount ptr: 
-    rows = lookupSymbol "DataframeHelper" "rowCount" . call CInt [ptr . toCArg]
+    rows = cCallHandlingError "rowCount" CInt [ptr . toCArg]
     rows.toInt
 
 def columnCount ptr: 
-    columns = lookupSymbol "DataframeHelper" "columnCount" . call CInt [ptr . toCArg]
+    columns = cCallHandlingError "columnCount" CInt [ptr . toCArg]
     columns.toInt

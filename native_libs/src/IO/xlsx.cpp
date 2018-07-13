@@ -12,20 +12,20 @@ extern "C"
 {
 	// Provide stub methods that just report error.
 
-	EXPORT MatrixDataPtr read_xlsx(const char *filename, const char **error) noexcept
+	EXPORT MatrixDataPtr read_xlsx(const char *filename, const char **outError) noexcept
 	{
-		return translateExceptionToError(error, [&] () -> MatrixDataPtr
+		return TRANSLATE_EXCEPTION(outError) -> MatrixDataPtr
 		{
 			throw std::runtime_error("The library was compiled without XLSX support!");
-		});
+		};
 	}
 
-	EXPORT void write_xlsx(MatrixDataPtr mat, const char *filename, const char **error) noexcept
+	EXPORT void write_xlsx(MatrixDataPtr mat, const char *filename, const char **outError) noexcept
 	{
-		return translateExceptionToError(error, [&]
+		return TRANSLATE_EXCEPTION(outError)
 		{
 			throw std::runtime_error("The library was compiled without XLSX support!");
-		});
+		};
 	}
 }
 
@@ -90,21 +90,21 @@ namespace
 
 extern "C"
 {
-	EXPORT MatrixDataPtr read_xlsx(const char *filename, const char **error) noexcept
+	EXPORT MatrixDataPtr read_xlsx(const char *filename, const char **outError) noexcept
 	{
-		return translateExceptionToError(error, [&] 
+		return TRANSLATE_EXCEPTION(outError)
 		{
 			auto mat = xlsxParseFile(filename);
 			return mat.release()->data();
-		});
+		};
 	}
 
-	EXPORT void write_xlsx(MatrixDataPtr mat, const char *filename, const char **error) noexcept
+	EXPORT void write_xlsx(MatrixDataPtr mat, const char *filename, const char **outError) noexcept
 	{
-		translateExceptionToError(error, [&] 
+		return TRANSLATE_EXCEPTION(outError)
 		{
 			xlsxPrintToFile(*Matrix2d::fromData(mat), filename); 
-		});
+		};
 	}
 }
 
