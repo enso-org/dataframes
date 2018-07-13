@@ -138,6 +138,13 @@ class Dataframe:
         dropped = self.dropRows s
         dropped
 
+    def fillNAColumn n x:
+        clonedData = self.data.clone
+        newArray = Array2DVal self.data.getSize self.data.getStride 0 clonedData
+        naList = self.data.findNA . filter (k: k.isJust)
+        naInColumn = naList.filter (k: k.get . getAt 0 == n)
+        naInColumn.each (k: newArray.store k.get.reverse x.toText)
+        DataframeVal self.header self.type newArray
 
     def toJSON:
         transposedData = self.data.cTranspose

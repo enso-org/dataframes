@@ -19,9 +19,10 @@ import Dataframes.Array2D
     print json
 
     mpd = column.mapColumn 0 f
-    jsnMpd = mpd.toJSON
+    fill = mpd.fillNAColumn 0 3666666
+    jsnMpd = fill.toJSON
     print jsnMpd
-    mpd.writeToCSV "./data/write.csv"
+    column.writeToCSV "./data/write.csv"
     filename2= "./data/sample_xlsx.xlsx"
     xlsx = Dataframe.readFromXlsx filename2 False
     xlsxjsn = xlsx.toJSON
