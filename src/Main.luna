@@ -6,12 +6,12 @@ import Dataframes.Array2D
 
 
 
-«1»def f x:
-    «4»case x of
+def f x:
+    case x of
         ValueReal r: r*0.776
         ValueText t: throw "invalid type"
 
-«2»def main:
+def main:
     filename = "./data/simple_empty.csv"
     csv = Dataframe.readFromCSV filename True
     column = csv.selectColumns [0,2]
