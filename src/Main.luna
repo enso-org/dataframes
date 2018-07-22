@@ -1,0 +1,128 @@
+import Std.Base
+import Std.Foreign
+import Std.Foreign.C.Value
+import Std.Time
+
+import Dataframes.Internal.Utils
+
+# type-erased class that wraps an array builder for some type (identified by string)
+class ArrayBuilderWrapper:
+    ptr :: ManagedPtr None
+    typename :: Text
+
+    def cCall nameSuffix ret args: 
+        callHandlingError ("builder" + self.typename + nameSuffix) ret ([self.ptr.toCArg] + args)
+
+    # value should be a C-compatible value (type-erased base doesn't know what is the argument size)
+    def append value:
+        self.cCall "AppendValue" None [value.toCArg]
+
+    def appendNull:
+        self.cCall "AppendNull" None []
+
+    # resize if needed
+    def reserve count:
+        self.cCall "Reserve" None [CInt64.fromInt count . toCArg]
+
+    def resize count:
+        self.cCall "Resize" None [CInt64.fromInt count . toCArg]
+
+    # 
+    def finish:
+        print "ArrayBuilderWrapper.finish enter"
+        arrPtr = self.cCall "Finish" (Pointer None) []
+        ret = ArrayWrapper (ManagedPointer None . fromPointer releaseMethod arrPtr) self.typename
+        print "ArrayBuilderWrapper.finish leave"
+        ret
+
+class ArrayWrapper:
+    ptr :: ManagedPointer None
+    typename :: Text
+
+    def length:
+        callHelper "arrayLength" CInt64 [self.ptr.toCArg] . toInt
+
+    def value index retType:
+        callHandlingError ("array" + self.typename + "ValueAt") retType [self.ptr.toCArg, CInt64.fromInt index . toCArg]
+
+
+def createBuilderWrapper type:
+    result = callHandlingError ("builder" + type + "New") (Pointer None) []
+    ptr = ManagedPointer None . fromPointer releaseMethod result
+    ArrayBuilderWrapper ptr type
+
+class FieldType:
+    FieldInt64
+    FieldDouble
+
+    # workaround for bug https://github.com/luna/luna/issues/217
+    def dummy: ()
+
+class Int32TypeHelper:
+    def withValueAsC value f:
+        f (CInt32.fromInt value)
+    def typename: "Int32"
+    def ctype: CInt32
+    def fromC val:
+        CInt64.toInt val
+class Int64TypeHelper:
+    def withValueAsC value f:
+        f (CInt64.fromInt value)
+    def typename: "Int64"
+    def ctype: CInt64
+    def fromC val:
+        val.toInt
+
+class AArray a:
+    typeTag :: a
+    ptr :: ArrayWrapper
+
+    def length: 
+        self.ptr.length
+    def valueAt index:
+        cval = self.ptr.value index self.typeTag.ctype
+        print cval
+        self.typeTag.fromC cval
+
+
+class ArrayBuilder a:
+    typeTag :: a
+    bw :: ArrayBuilderWrapper
+
+    def create type:
+        case type of
+            FieldInt64: BuilderInt64 (self.internalNew "Int64")
+            FieldDouble: BuilderDouble (self.internalNew "Double")
+    
+    def append value:
+        self.typeTag.withValueAsC value self.bw.append
+    def appendMany values:
+        values . each self.append
+    def finish:
+        print "ArrayBuilder.finish starting"
+        ptr = self.bw.finish
+        print "Inner should be done, calling length first time"
+        ptr.length
+        print "Inner should be done, calling length second time"
+        ptr.length
+        ret = AArray (self.typeTag) ptr
+        print "ArrayBuilder.finish finishing"
+        ret
+
+def createBuilder type:
+    case type of
+        FieldInt64: 
+            hlp = Int64TypeHelper
+            bw = createBuilderWrapper hlp.typename
+            ArrayBuilder hlp bw
+
+def main:
+    builder = createBuilder FieldInt64
+    builder.append 7
+    arrw = builder.finish
+    print "after finish"
+    print arrw.length
+    print (arrw.valueAt 0)
+    a = [2,3,1]
+    b = a.sort
+    print b
