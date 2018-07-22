@@ -26,3 +26,6 @@ def callHandlingError fname ret args:
             errorMsg = err.read.toText
             err.free
             throw errorMsg
+
+def setHelperVerbosity isVerbose:
+    callHelper "setVerbosity" None [CInt8.fromInt (if isVerbose then 1 else 0) . toCArg]

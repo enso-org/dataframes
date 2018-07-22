@@ -29,11 +29,9 @@ class ArrayBuilderWrapper:
 
     # 
     def finish:
-        print "ArrayBuilderWrapper.finish enter"
         arrPtr = self.cCall "Finish" (Pointer None) []
-        ret = ArrayWrapper (ManagedPointer None . fromPointer releaseMethod arrPtr) self.typename
-        print "ArrayBuilderWrapper.finish leave"
-        ret
+        managedPtr = ManagedPointer None . fromPointer releaseMethod arrPtr
+        ArrayWrapper managedPtr self.typename
 
 class ArrayWrapper:
     ptr :: ManagedPointer None
@@ -81,9 +79,11 @@ class AArray a:
         self.ptr.length
     def valueAt index:
         cval = self.ptr.value index self.typeTag.ctype
-        print cval
         self.typeTag.fromC cval
-
+    def toList:
+        0.upto (self.length - 1) . each (self.valueAt _)
+    def toText:
+        self.toList.toText
 
 class ArrayBuilder a:
     typeTag :: a
@@ -99,15 +99,8 @@ class ArrayBuilder a:
     def appendMany values:
         values . each self.append
     def finish:
-        print "ArrayBuilder.finish starting"
         ptr = self.bw.finish
-        print "Inner should be done, calling length first time"
-        ptr.length
-        print "Inner should be done, calling length second time"
-        ptr.length
-        ret = AArray (self.typeTag) ptr
-        print "ArrayBuilder.finish finishing"
-        ret
+        AArray (self.typeTag) ptr
 
 def createBuilder type:
     case type of
@@ -119,10 +112,10 @@ def createBuilder type:
 def main:
     builder = createBuilder FieldInt64
     builder.append 7
+    benchmark "append x200" (builder.appendMany (1 . upto 20))
     arrw = builder.finish
     print "after finish"
     print arrw.length
-    print (arrw.valueAt 0)
-    a = [2,3,1]
-    b = a.sort
-    print b
+    print (arrw.valueAt 10)
+    print arrw
+    print "Done"

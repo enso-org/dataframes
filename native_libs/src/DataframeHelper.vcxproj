@@ -84,6 +84,7 @@
     <ClCompile Include="API\ArrayData.cpp" />
     <ClCompile Include="API\Buffer.cpp" />
     <ClCompile Include="Core\Error.cpp" />
+    <ClCompile Include="Core\Logger.cpp" />
     <ClCompile Include="Core\Utils.cpp" />
     <ClCompile Include="LifetimeManager.cpp" />
     <ClCompile Include="main.cpp" />
@@ -91,6 +92,7 @@
   <ItemGroup>
     <ClInclude Include="Core\Common.h" />
     <ClInclude Include="Core\Error.h" />
+    <ClInclude Include="Core\Logger.h" />
     <ClInclude Include="LifetimeManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
