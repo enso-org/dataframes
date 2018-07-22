@@ -49,13 +49,6 @@ def createBuilderWrapper type:
     ptr = ManagedPointer None . fromPointer releaseMethod result
     ArrayBuilderWrapper ptr type
 
-class FieldType:
-    FieldInt64
-    FieldDouble
-
-    # workaround for bug https://github.com/luna/luna/issues/217
-    def dummy: ()
-
 class Int32TypeHelper:
     def withValueAsC value f:
         f (CInt32.fromInt value)
@@ -84,16 +77,19 @@ class AArray a:
         0.upto (self.length - 1) . each (self.valueAt _)
     def toText:
         self.toList.toText
+    
+    # TODO: could be faster: deep copy buffer and overwrite with new values
+    # TODO: handle null presence
+    def map f:
+        builder = createBuilder self.typeTag
+        self.toList.each val:
+            builder.append (f val)
+        builder.finish
 
 class ArrayBuilder a:
     typeTag :: a
     bw :: ArrayBuilderWrapper
 
-    def create type:
-        case type of
-            FieldInt64: BuilderInt64 (self.internalNew "Int64")
-            FieldDouble: BuilderDouble (self.internalNew "Double")
-    
     def append value:
         self.typeTag.withValueAsC value self.bw.append
     def appendMany values:
@@ -102,15 +98,12 @@ class ArrayBuilder a:
         ptr = self.bw.finish
         AArray (self.typeTag) ptr
 
-def createBuilder type:
-    case type of
-        FieldInt64: 
-            hlp = Int64TypeHelper
-            bw = createBuilderWrapper hlp.typename
-            ArrayBuilder hlp bw
+def createBuilder typeTag:
+    bw = createBuilderWrapper typeTag.typename
+    ArrayBuilder typeTag bw
 
 def main:
-    builder = createBuilder FieldInt64
+    builder = createBuilder Int64TypeHelper
     builder.append 7
     benchmark "append x200" (builder.appendMany (1 . upto 20))
     arrw = builder.finish
@@ -118,4 +111,6 @@ def main:
     print arrw.length
     print (arrw.valueAt 10)
     print arrw
+    arrwInc = arrw.map (_ + 1)
+    print arrwInc
     print "Done"
