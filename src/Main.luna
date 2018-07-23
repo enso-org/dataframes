@@ -43,6 +43,30 @@ class ArrayWrapper:
     def value index retType:
         callHandlingError ("array" + self.typename + "ValueAt") retType [self.ptr.toCArg, CInt64.fromInt index . toCArg]
 
+    def data:
+        ptr = callHandlingError ("arrayData") (Pointer None) [self.ptr.toCArg]
+        managedPtr = ManagedPointer None . fromPointer releaseMethod ptr
+        ArrayDataWrapper managedPtr
+
+class BufferWrapper:
+    ptr :: ManagedPointer None
+
+    def size:
+        callHandlingError "bufferSize" CInt64 [self.ptr.toCArg] . toInt
+    def data:
+        callHandlingError "bufferData" (Pointer None) [self.ptr.toCArg]
+
+class ArrayDataWrapper:
+    ptr :: ManagedPointer None
+
+    def length:
+        callHelper "arrayDataLength" CInt64 [self.ptr.toCArg] . toInt
+    def bufferCount:
+        callHelper "arrayDataBufferCount" CInt64 [self.ptr.toCArg] . toInt
+    def bufferAt index:
+        ptr = callHandlingError "arrayDataBufferAt" (Pointer None) [self.ptr.toCArg, CInt64.fromInt index . toCArg]
+        managedPtr = ManagedPointer None . fromPointer releaseMethod ptr
+        BufferWrapper managedPtr
 
 def createBuilderWrapper type:
     result = callHandlingError ("builder" + type + "New") (Pointer None) []
@@ -74,6 +98,9 @@ class Int64TypeHelper:
 class AArray a:
     typeTag :: a
     ptr :: ArrayWrapper
+
+    def data:
+        self.ptr.data
 
     def length: 
         self.ptr.length
@@ -110,6 +137,7 @@ def createBuilder typeTag:
     ArrayBuilder typeTag bw
 
 def main:
+    setHelperVerbosity False
     builderString = createBuilder StringTypeHelper
     builderString.append "foo"
     builderString.appendMany ["foo", "1", "bar"]
@@ -118,15 +146,27 @@ def main:
 
     builder32 = createBuilder Int32TypeHelper
     builder32.append 7
-    print builder32.finish
+    arr32 = builder32.finish
+    print arr32
+    print arr32.data.length
 
     builder = createBuilder Int64TypeHelper
     builder.append 7
-    benchmark "append x200" (builder.appendMany (1 . upto 20))
+    benchmark "append x20" (builder.appendMany (1 . upto 20))
     arrw = builder.finish
     print "after finish"
     print arrw.length
     print (arrw.valueAt 10)
+
+    def valuePtr:
+        ptr = arrw.data.bufferAt 1 . data
+        v = PointerVal CInt64 ptr.ptr.cast
+        l = arrw.length
+        car = ArrayVal l v
+        car.toList
+        
+    benchmark "as C array" valuePtr
+
     print arrw
     arrwInc = arrw.map (_ + 1)
     print arrwInc

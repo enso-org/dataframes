@@ -220,13 +220,21 @@ extern "C"
 // ARRAY DATA
 extern "C"
 {
-    // NOTE: does not account for offset!!!
-    EXPORT int64_t arrayDataBufferCount(arrow::ArrayData *arrayData) noexcept
+    EXPORT int64_t arrayDataLength(arrow::ArrayData *arrayData) noexcept
     {
         LOG("@{}", (void*)arrayData);
         return TRANSLATE_EXCEPTION(nullptr)
         {
             return arrayData->length;
+        };
+    }
+
+    EXPORT int64_t arrayDataBufferCount(arrow::ArrayData *arrayData) noexcept
+    {
+        LOG("@{}", (void*)arrayData);
+        return TRANSLATE_EXCEPTION(nullptr)
+        {
+            return arrayData->buffers.size();
         };
     }
 
