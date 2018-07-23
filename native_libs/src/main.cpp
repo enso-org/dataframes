@@ -195,12 +195,27 @@ extern "C"
     }
 
     // NOTE: needs release 
+    // (shallow view)
+    EXPORT arrow::Buffer *bufferSlice(arrow::Buffer *buffer, int64_t start, int64_t byteCount, const char **outError) noexcept
+    {
+        LOG("@{} beginning from {} will copy {} bytes", (void*)buffer, start, byteCount);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            // TODO check bounds
+            auto src = LifetimeManager::instance().obtainOwned<arrow::Buffer>(buffer);
+            auto ret = arrow::SliceBuffer(src, start, byteCount);
+            return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
+
+    // NOTE: needs release 
     // (deep copy)
     EXPORT arrow::Buffer *bufferCopy(arrow::Buffer *buffer, int64_t start, int64_t byteCount, const char **outError) noexcept
     {
         LOG("@{} beginning from {} will copy {} bytes", (void*)buffer, start, byteCount);
         return TRANSLATE_EXCEPTION(outError)
         {
+            // TODO check if needs checking bounds
             std::shared_ptr<arrow::Buffer> ret = nullptr;
             checkStatus(buffer->Copy(start, byteCount, &ret));
             return LifetimeManager::instance().addOwnership(ret);

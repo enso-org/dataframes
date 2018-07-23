@@ -30,7 +30,7 @@ class ArrayBuilderWrapper:
     # 
     def finish:
         ptr = self.cCall "Finish" (Pointer None) []
-        wrapReleasableResouce ArrayDataWrapper ptr
+        (wrapReleasableResouce ArrayWrapper ptr) self.typename
 
 class ArrayWrapper:
     ptr :: ManagedPointer None
@@ -52,6 +52,9 @@ class BufferWrapper:
     def copyNFrom copyFromIndex copyLength:
         ptr = callHandlingError "bufferCopy" (Pointer None) [self.ptr.toCArg, CInt64.fromInt copyFromIndex . toCArg, CInt64.fromInt copyLength . toCArg]
         wrapReleasableResouce BufferWrapper ptr
+    def slice sliceFromIndex sliceLength:
+        ptr = callHandlingError "bufferSlice" (Pointer None) [self.ptr.toCArg, CInt64.fromInt sliceFromIndex . toCArg, CInt64.fromInt sliceLength . toCArg]
+        wrapReleasableResouce BufferWrapper ptr
     def size:
         callHandlingError "bufferSize" CInt64 [self.ptr.toCArg] . toInt
     def data:
@@ -69,8 +72,8 @@ class ArrayDataWrapper:
         wrapReleasableResouce BufferWrapper ptr
 
 def createBuilderWrapper type:
-    result = callHandlingError ("builder" + type + "New") (Pointer None) []
-    wrapReleasableResouce ArrayBuilderWrapper ptr
+    ptr = callHandlingError ("builder" + type + "New") (Pointer None) []
+    wrapReleasableResouce ArrayBuilderWrapper ptr type
 
 class StringTypeHelper:
     def withValueAsC value f:
@@ -168,6 +171,8 @@ def main:
     buffer = arrw.data.bufferAt 1
     bufferCopy = buffer . copyNFrom 0 buffer.size
     print ("Buffer's copy size: " + bufferCopy.size.toText)
+    bufferSlice = buffer . slice 2 (buffer.size - 2)
+    print ("Buffer's slice size: " + bufferSlice.size.toText)
 
     print arrw
     arrwInc = arrw.map (_ + 1)

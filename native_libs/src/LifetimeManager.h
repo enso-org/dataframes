@@ -50,6 +50,20 @@ public:
         throw std::runtime_error(out.str());
     }
 
+    template<typename T>
+    std::shared_ptr<T> obtainOwned(void *ptr)
+    {
+        std::unique_lock<std::mutex> lock{ mx };
+        if(auto itr = storage.find(ptr); itr != storage.end())
+        {
+            return std::any_cast<std::shared_ptr<T>>(itr->second);
+        }
+
+        std::ostringstream out;
+        out << "Cannot resolve pointer " << ptr << " -- was it previously registered?";
+        throw std::runtime_error(out.str());
+    }
+
     // TODO reconsider at some stage more explicit global state
     static auto &instance()
     {
