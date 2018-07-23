@@ -36,3 +36,7 @@ def setHelperVerbosity isVerbose:
     
 def withCString text f:
     bracket (CString.fromText text) (_.free) f
+
+def wrapReleasableResouce f ptr:
+    managedPtr = ManagedPointer None . fromPointer releaseMethod ptr
+    f managedPtr

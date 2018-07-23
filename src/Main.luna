@@ -29,9 +29,8 @@ class ArrayBuilderWrapper:
 
     # 
     def finish:
-        arrPtr = self.cCall "Finish" (Pointer None) []
-        managedPtr = ManagedPointer None . fromPointer releaseMethod arrPtr
-        ArrayWrapper managedPtr self.typename
+        ptr = self.cCall "Finish" (Pointer None) []
+        wrapReleasableResouce ArrayDataWrapper ptr
 
 class ArrayWrapper:
     ptr :: ManagedPointer None
@@ -45,12 +44,14 @@ class ArrayWrapper:
 
     def data:
         ptr = callHandlingError ("arrayData") (Pointer None) [self.ptr.toCArg]
-        managedPtr = ManagedPointer None . fromPointer releaseMethod ptr
-        ArrayDataWrapper managedPtr
+        wrapReleasableResouce ArrayDataWrapper ptr
 
 class BufferWrapper:
     ptr :: ManagedPointer None
 
+    def copyNFrom copyFromIndex copyLength:
+        ptr = callHandlingError "bufferCopy" (Pointer None) [self.ptr.toCArg, CInt64.fromInt copyFromIndex . toCArg, CInt64.fromInt copyLength . toCArg]
+        wrapReleasableResouce BufferWrapper ptr
     def size:
         callHandlingError "bufferSize" CInt64 [self.ptr.toCArg] . toInt
     def data:
@@ -65,13 +66,11 @@ class ArrayDataWrapper:
         callHelper "arrayDataBufferCount" CInt64 [self.ptr.toCArg] . toInt
     def bufferAt index:
         ptr = callHandlingError "arrayDataBufferAt" (Pointer None) [self.ptr.toCArg, CInt64.fromInt index . toCArg]
-        managedPtr = ManagedPointer None . fromPointer releaseMethod ptr
-        BufferWrapper managedPtr
+        wrapReleasableResouce BufferWrapper ptr
 
 def createBuilderWrapper type:
     result = callHandlingError ("builder" + type + "New") (Pointer None) []
-    ptr = ManagedPointer None . fromPointer releaseMethod result
-    ArrayBuilderWrapper ptr type
+    wrapReleasableResouce ArrayBuilderWrapper ptr
 
 class StringTypeHelper:
     def withValueAsC value f:
@@ -166,6 +165,9 @@ def main:
         car.toList
         
     benchmark "as C array" valuePtr
+    buffer = arrw.data.bufferAt 1
+    bufferCopy = buffer . copyNFrom 0 buffer.size
+    print ("Buffer's copy size: " + bufferCopy.size.toText)
 
     print arrw
     arrwInc = arrw.map (_ + 1)
