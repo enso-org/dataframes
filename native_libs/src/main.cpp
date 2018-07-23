@@ -108,7 +108,7 @@ extern "C"
 
 extern "C"
 {
-#define PRIMITIVE_BUILDER(TYPENAME) \
+#define COMMON_BUILDER(TYPENAME) \
     EXPORT TypeDescription<TYPENAME>::BuilderType *builder##TYPENAME##New(const char **outError) noexcept                                                               \
     {                                                                                                                                                       \
         LOG(""); \
@@ -162,17 +162,17 @@ extern "C"
         };                                                                                                                                                   \
     }
 
-    PRIMITIVE_BUILDER(UInt8);
-    PRIMITIVE_BUILDER(UInt16);
-    PRIMITIVE_BUILDER(UInt32);
-    PRIMITIVE_BUILDER(UInt64);
-    PRIMITIVE_BUILDER(Int8);
-    PRIMITIVE_BUILDER(Int16);
-    PRIMITIVE_BUILDER(Int32);
-    PRIMITIVE_BUILDER(Int64);
-    PRIMITIVE_BUILDER(Float);
-    PRIMITIVE_BUILDER(Double);
-    //PRIMITIVE_BUILDER(String);
+    COMMON_BUILDER(UInt8);
+    COMMON_BUILDER(UInt16);
+    COMMON_BUILDER(UInt32);
+    COMMON_BUILDER(UInt64);
+    COMMON_BUILDER(Int8);
+    COMMON_BUILDER(Int16);
+    COMMON_BUILDER(Int32);
+    COMMON_BUILDER(Int64);
+    COMMON_BUILDER(Float);
+    COMMON_BUILDER(Double);
+    COMMON_BUILDER(String);
 }
 
 // BUFFER
@@ -278,6 +278,7 @@ extern "C"
             return asSpecificArray<TYPENAME>(array)->raw_values();                                                                       \
         };                                                                                                                                 \
     }
+
     
     NUMERIC_ARRAY_METHODS(UInt8);
     NUMERIC_ARRAY_METHODS(UInt16);
@@ -289,6 +290,27 @@ extern "C"
     NUMERIC_ARRAY_METHODS(Int64);
     NUMERIC_ARRAY_METHODS(Float);
     NUMERIC_ARRAY_METHODS(Double);
+
+    // string array uses somewhat different interface than numeric -- and needs a special method thereof
+    // TODO should an actual array subtype be required? generally speaking having right data in array should be enough
+    EXPORT const char * arrayStringValueAt(arrow::Array *array, int64_t index, const char **outError) noexcept
+    {                                                                                                         
+        LOG("[{}]", index);                                                                                   
+        /* NOTE: needs release */                                                                             
+        return TRANSLATE_EXCEPTION(outError)                                                                  
+        {                                                                                                     
+            if(index < 0 || index >= array->length())                                                         
+            {                                                                                                 
+                std::ostringstream out;                                                                       
+                out << "wrong index " << index << "; array length is " << array->length();                    
+                throw std::out_of_range{out.str()};                                                           
+            }
+            static thread_local std::string buffer;
+            buffer = asSpecificArray<String>(array)->GetString(index);
+            return buffer.c_str();
+        };
+    }
+
 
     // NOTE: needs release
     EXPORT arrow::Buffer *primitiveArrayValueBuffer(arrow::Array *array, const char **outError) noexcept

@@ -3,21 +3,25 @@ import Std.Foreign
 import Std.Foreign.C.Value
 import Std.Time
 
+def lookupHelper fname:
+    lookupSymbol "DataframeHelper" fname
+
 def callHelper fname ret args:
-    lookupSymbol "DataframeHelper" fname . call ret args
+    lookupHelper fname . call ret args
 
 def benchmark desc act:
     t0 = Time.now
     a = act
     t1 = Time.now
     print ("Benchmarking: " + desc + ": " + (t1.diff t0).toText + " ms")
+    a
 
 def releaseMethod:
-    lookupSymbol "DataframeHelper" "release"
+    lookupHelper "release"
 
 def callHandlingError fname ret args:
     err  = Pointer CString . malloc
-    result = lookupSymbol "DataframeHelper" fname . call ret (args + [err.toCArg])
+    result = callHelper fname ret (args + [err.toCArg])
     case err.read.isNull of
         True:
             err.free
@@ -29,3 +33,6 @@ def callHandlingError fname ret args:
 
 def setHelperVerbosity isVerbose:
     callHelper "setVerbosity" None [CInt8.fromInt (if isVerbose then 1 else 0) . toCArg]
+    
+def withCString text f:
+    bracket (CString.fromText text) (_.free) f

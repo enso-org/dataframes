@@ -49,13 +49,20 @@ def createBuilderWrapper type:
     ptr = ManagedPointer None . fromPointer releaseMethod result
     ArrayBuilderWrapper ptr type
 
+class StringTypeHelper:
+    def withValueAsC value f:
+        withCString value f
+    def typename: "String"
+    def ctype: CString
+    def fromC val:
+        val.toText
 class Int32TypeHelper:
     def withValueAsC value f:
         f (CInt32.fromInt value)
     def typename: "Int32"
     def ctype: CInt32
     def fromC val:
-        CInt64.toInt val
+        val.toInt
 class Int64TypeHelper:
     def withValueAsC value f:
         f (CInt64.fromInt value)
@@ -103,6 +110,16 @@ def createBuilder typeTag:
     ArrayBuilder typeTag bw
 
 def main:
+    builderString = createBuilder StringTypeHelper
+    builderString.append "foo"
+    builderString.appendMany ["foo", "1", "bar"]
+    arrayString = builderString.finish
+    print arrayString
+
+    builder32 = createBuilder Int32TypeHelper
+    builder32.append 7
+    print builder32.finish
+
     builder = createBuilder Int64TypeHelper
     builder.append 7
     benchmark "append x200" (builder.appendMany (1 . upto 20))
