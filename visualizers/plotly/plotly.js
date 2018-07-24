@@ -22,15 +22,19 @@
         g = header.indexOf('color.g')
         b = header.indexOf('color.b')
         s = header.indexOf('size')
+        labels = header.indexOf('labels')
 
         color = dataSeries.map(function(p){ return ('rgb(' + p[r] + ',' + p[g] + ',' + p[b] + ')')});
         datax = dataSeries.map(function(p) { return p[x]; });
         datay = dataSeries.map(function(p) { return p[y]; });
         dataz = dataSeries.map(function(p) { return p[z]; });
         sizes = dataSeries.map(function(p) { return p[s]; });
+        dataLabels = dataSeries.map(function(p) { return p[labels]; });
         var trace = {
           x: datax,
           y: datay,
+          z: dataz,
+          text: dataLabels,
           marker: {
             color: color,
             size: sizes
