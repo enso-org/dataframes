@@ -1,0 +1,59 @@
+import Dataframes.Internal.ArrayWrapper
+import Dataframes.Internal.Utils
+
+# TODO: consider whether some trickery could be used to hide bitWidth method
+class DataType:
+    ptr :: DataTypeWrapper
+
+    def name: self.ptr.name
+    def toText: self.ptr.toText
+    def typeId: self.ptr.typeId
+    def bitWidth: self.ptr.bitWidth
+
+class Array a:
+    typeTag :: a
+    ptr :: ArrayWrapper
+
+    def data:
+        self.ptr.data
+
+    def length: 
+        self.ptr.length
+    def valueAt index:
+        cval = self.ptr.value index self.typeTag.ctype
+        self.typeTag.fromC cval
+    def toList:
+        0.upto (self.length - 1) . each (self.valueAt _)
+    def toText:
+        self.toList.toText
+    
+    # TODO: could be faster: deep copy buffer and overwrite with new values
+    # TODO: handle null presence
+    def map f:
+        builder = createBuilder self.typeTag
+        self.toList.each val:
+            builder.append (f val)
+        builder.finish
+
+def createBuilder typeTag:
+    bw = createBuilderWrapper typeTag.typename
+    ArrayBuilder typeTag bw
+
+class ArrayBuilder a:
+    typeTag :: a
+    bw :: ArrayBuilderWrapper
+
+    def append value:
+        self.typeTag.withValueAsC value self.bw.append
+    def appendMany values:
+        values . each self.append
+    def finish:
+        ptr = self.bw.finish
+        Array (self.typeTag) ptr
+    def capacity:
+        self.bw.capacity
+    def length:
+        self.bw.length
+    def type:
+        ptr = self.bw.type
+        DataType ptr

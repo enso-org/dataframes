@@ -76,7 +76,7 @@ template<> struct TypeDescription<String>
 };
 
 template<typename To, typename From>
-auto *throwingCast(From *from)
+To throwingCast(From *from)
 {
     if(auto ret = dynamic_cast<To>(from))
         return ret;
@@ -98,6 +98,19 @@ void checkStatus(const arrow::Status &status)
         throw std::runtime_error(status.ToString());
 }
 
+namespace
+{
+    // NOTE: we need an object that will keep returned strings alive in memory
+    // it must be thread local, as two luna threads can concurrently call out methods
+    thread_local std::string returnedStringBuffer;
+
+    const char *returnString(std::string s)
+    {
+        returnedStringBuffer = std::move(s);
+        return returnedStringBuffer.c_str();
+    }
+}
+
 extern "C"
 {
     EXPORT void setVerbosity(bool verbose)
@@ -105,6 +118,40 @@ extern "C"
         Logger::instance().enabled.store(verbose);
     }
 }
+
+// DATATYPE
+extern "C"
+{
+    EXPORT const char *dataTypeName(arrow::DataType *datatype, const char **outError) noexcept
+    {
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return returnString(datatype->name());
+        };
+    }
+    EXPORT const char *dataTypeToString(arrow::DataType *datatype, const char **outError) noexcept
+    {
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return returnString(datatype->ToString());
+        };
+    }
+    EXPORT std::int8_t dataTypeId(arrow::DataType *datatype, const char **outError) noexcept
+    {
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return datatype->id();
+        };
+    }
+    EXPORT std::int32_t dataTypeFixedWidthTypeBitWidth(const arrow::DataType *datatype, const char **outError) noexcept
+    {
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return throwingCast<const arrow::FixedWidthType*>(datatype)->bit_width();
+        };
+    }
+}
+
 
 extern "C"
 {
@@ -173,6 +220,48 @@ extern "C"
     COMMON_BUILDER(Float);
     COMMON_BUILDER(Double);
     COMMON_BUILDER(String);
+
+    EXPORT int64_t builderLength(arrow::ArrayBuilder *builder) noexcept
+    {
+        LOG("@{}", (void*)builder);
+        return TRANSLATE_EXCEPTION(nullptr)
+        {
+            return builder->length();
+        };
+    }
+    EXPORT int64_t builderCapacity(arrow::ArrayBuilder *builder) noexcept
+    {
+        LOG("@{}", (void*)builder);
+        return TRANSLATE_EXCEPTION(nullptr)
+        {
+            return builder->capacity();
+        };
+    }
+    EXPORT int64_t builderNullCount(arrow::ArrayBuilder *builder) noexcept
+    {
+        LOG("@{}", (void*)builder);
+        return TRANSLATE_EXCEPTION(nullptr)
+        {
+            return builder->null_count();
+        };
+    }
+    EXPORT arrow::PoolBuffer *builderObtainNullBuffer(arrow::ArrayBuilder *builder) noexcept
+    {
+        LOG("@{}", (void*)builder);
+        return TRANSLATE_EXCEPTION(nullptr)
+        {
+            return LifetimeManager::instance().addOwnership(builder->null_bitmap());
+        };
+    }
+    // needs release
+    EXPORT arrow::DataType *builderObtainType(arrow::ArrayBuilder *builder) noexcept
+    {
+        LOG("@{}", (void*)builder);
+        return TRANSLATE_EXCEPTION(nullptr)
+        {
+            return LifetimeManager::instance().addOwnership(builder->type());
+        };
+    }
 }
 
 // BUFFER

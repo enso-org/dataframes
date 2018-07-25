@@ -1,144 +1,15 @@
 import Std.Base
-import Std.Foreign
 import Std.Foreign.C.Value
-import Std.Time
 
 import Dataframes.Internal.Utils
+import Dataframes.Array
+import Dataframes.Types
+import Dataframes.Internal.Test.Test
 
-# type-erased class that wraps an array builder for some type (identified by string)
-class ArrayBuilderWrapper:
-    ptr :: ManagedPtr None
-    typename :: Text
 
-    def cCall nameSuffix ret args: 
-        callHandlingError ("builder" + self.typename + nameSuffix) ret ([self.ptr.toCArg] + args)
-
-    # value should be a C-compatible value (type-erased base doesn't know what is the argument size)
-    def append value:
-        self.cCall "AppendValue" None [value.toCArg]
-
-    def appendNull:
-        self.cCall "AppendNull" None []
-
-    # resize if needed
-    def reserve count:
-        self.cCall "Reserve" None [CInt64.fromInt count . toCArg]
-
-    def resize count:
-        self.cCall "Resize" None [CInt64.fromInt count . toCArg]
-
-    # 
-    def finish:
-        ptr = self.cCall "Finish" (Pointer None) []
-        (wrapReleasableResouce ArrayWrapper ptr) self.typename
-
-class ArrayWrapper:
-    ptr :: ManagedPointer None
-    typename :: Text
-
-    def length:
-        callHelper "arrayLength" CInt64 [self.ptr.toCArg] . toInt
-
-    def value index retType:
-        callHandlingError ("array" + self.typename + "ValueAt") retType [self.ptr.toCArg, CInt64.fromInt index . toCArg]
-
-    def data:
-        ptr = callHandlingError ("arrayData") (Pointer None) [self.ptr.toCArg]
-        wrapReleasableResouce ArrayDataWrapper ptr
-
-class BufferWrapper:
-    ptr :: ManagedPointer None
-
-    def copyNFrom copyFromIndex copyLength:
-        ptr = callHandlingError "bufferCopy" (Pointer None) [self.ptr.toCArg, CInt64.fromInt copyFromIndex . toCArg, CInt64.fromInt copyLength . toCArg]
-        wrapReleasableResouce BufferWrapper ptr
-    def slice sliceFromIndex sliceLength:
-        ptr = callHandlingError "bufferSlice" (Pointer None) [self.ptr.toCArg, CInt64.fromInt sliceFromIndex . toCArg, CInt64.fromInt sliceLength . toCArg]
-        wrapReleasableResouce BufferWrapper ptr
-    def size:
-        callHandlingError "bufferSize" CInt64 [self.ptr.toCArg] . toInt
-    def data:
-        callHandlingError "bufferData" (Pointer None) [self.ptr.toCArg]
-
-class ArrayDataWrapper:
-    ptr :: ManagedPointer None
-
-    def length:
-        callHelper "arrayDataLength" CInt64 [self.ptr.toCArg] . toInt
-    def bufferCount:
-        callHelper "arrayDataBufferCount" CInt64 [self.ptr.toCArg] . toInt
-    def bufferAt index:
-        ptr = callHandlingError "arrayDataBufferAt" (Pointer None) [self.ptr.toCArg, CInt64.fromInt index . toCArg]
-        wrapReleasableResouce BufferWrapper ptr
-
-def createBuilderWrapper type:
-    ptr = callHandlingError ("builder" + type + "New") (Pointer None) []
-    wrapReleasableResouce ArrayBuilderWrapper ptr type
-
-class StringTypeHelper:
-    def withValueAsC value f:
-        withCString value f
-    def typename: "String"
-    def ctype: CString
-    def fromC val:
-        val.toText
-class Int32TypeHelper:
-    def withValueAsC value f:
-        f (CInt32.fromInt value)
-    def typename: "Int32"
-    def ctype: CInt32
-    def fromC val:
-        val.toInt
-class Int64TypeHelper:
-    def withValueAsC value f:
-        f (CInt64.fromInt value)
-    def typename: "Int64"
-    def ctype: CInt64
-    def fromC val:
-        val.toInt
-
-class AArray a:
-    typeTag :: a
-    ptr :: ArrayWrapper
-
-    def data:
-        self.ptr.data
-
-    def length: 
-        self.ptr.length
-    def valueAt index:
-        cval = self.ptr.value index self.typeTag.ctype
-        self.typeTag.fromC cval
-    def toList:
-        0.upto (self.length - 1) . each (self.valueAt _)
-    def toText:
-        self.toList.toText
-    
-    # TODO: could be faster: deep copy buffer and overwrite with new values
-    # TODO: handle null presence
-    def map f:
-        builder = createBuilder self.typeTag
-        self.toList.each val:
-            builder.append (f val)
-        builder.finish
-
-class ArrayBuilder a:
-    typeTag :: a
-    bw :: ArrayBuilderWrapper
-
-    def append value:
-        self.typeTag.withValueAsC value self.bw.append
-    def appendMany values:
-        values . each self.append
-    def finish:
-        ptr = self.bw.finish
-        AArray (self.typeTag) ptr
-
-def createBuilder typeTag:
-    bw = createBuilderWrapper typeTag.typename
-    ArrayBuilder typeTag bw
 
 def main:
+    TestArrayBuilder.run
     setHelperVerbosity False
     builderString = createBuilder StringTypeHelper
     builderString.append "foo"

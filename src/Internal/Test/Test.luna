@@ -1,0 +1,37 @@
+import Std.Test
+
+import Dataframes.Array
+import Dataframes.Types
+
+def assert msg act:
+    result = runError act
+    case result of
+        Left e: print ("[FAILURE] " + msg + ": " + e)
+        Right v: print ("[SUCCESS] " + msg + ": " + v)
+    None
+
+def require pred msg:
+    if pred then msg else throw msg
+
+def assertEqual msg a b:
+    assert msg (require (a == b) (a.toText + " == " + b.toText))
+def assertGE msg a b:
+    assert msg (require (a >= b) (a.toText + " >= " + b.toText))
+
+class TestArrayBuilder:
+    def testInt64Builder:
+        builder = createBuilder Int64TypeHelper
+        type = builder.type
+        assertEqual "initial capacity" builder.capacity 0
+        assertEqual "initial length" builder.length 0
+        assertEqual "type width" type.bitWidth 64
+        assertEqual "type name" type.name "int64"
+        assertEqual "type as text" type.toText "int64"
+        builder.append 7
+        assertGE "builder.capacity" builder.capacity 1
+        assertEqual "builder.length" builder.length 1
+        builtArray = builder.finish
+        assertEqual "built single elem array" builtArray.toList [7]
+
+    def run:
+        self.testInt64Builder

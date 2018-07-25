@@ -1,0 +1,25 @@
+import Std.Foreign.C.Value
+
+import Dataframes.Internal.Utils
+
+class StringTypeHelper:
+    def withValueAsC value f:
+        withCString value f
+    def typename: "String"
+    def ctype: CString
+    def fromC val:
+        val.toText
+class Int32TypeHelper:
+    def withValueAsC value f:
+        f (CInt32.fromInt value)
+    def typename: "Int32"
+    def ctype: CInt32
+    def fromC val:
+        val.toInt
+class Int64TypeHelper:
+    def withValueAsC value f:
+        f (CInt64.fromInt value)
+    def typename: "Int64"
+    def ctype: CInt64
+    def fromC val:
+        val.toInt

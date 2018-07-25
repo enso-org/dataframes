@@ -1,0 +1,103 @@
+import Std.Foreign
+import Std.Foreign.C.Value
+
+import Dataframes.Internal.Utils
+
+class DataTypeWrapper:
+    ptr :: ManagedPointer None
+    
+    def callSelf nameSuffix ret args:
+        callHandlingError ("dataType" + nameSuffix) ret ([self.ptr.toCArg] + args)
+    def name:
+        self.callSelf "Name" CString [] . toText
+    def toText:
+        self.callSelf "ToString" CString [] . toText
+    def typeId:
+        self.callSelf "Id" CInt8 [] . toInt
+    # warning: only fixed-width types support this operation
+    # TODO: somehow enforce this on the type level 
+    def bitWidth:
+        self.callSelf "FixedWidthTypeBitWidth" CInt32 [] . toInt
+
+# type-erased class that wraps an array builder for some type (identified by string)
+class ArrayBuilderWrapper:
+    ptr :: ManagedPtr None
+    typename :: Text
+
+    def toCArg: 
+        self.ptr.toCArg
+    def selfCall fullNameSuffix ret args:
+        callHandlingError ("builder" + fullNameSuffix) ret ([self.ptr.toCArg] + args)
+    def typeCall nameSuffix ret args:
+        self.selfCall (self.typename + nameSuffix) ret args
+
+    # value should be a C-compatible value (type-erased base doesn't know what is the argument size)
+    def append value:
+        self.typeCall "AppendValue" None [value.toCArg]
+
+    def appendNull:
+        self.typeCall "AppendNull" None []
+
+    # resize if needed
+    def reserve count:
+        self.typeCall "Reserve" None [CInt64.fromInt count . toCArg]
+
+    def resize count:
+        self.typeCall "Resize" None [CInt64.fromInt count . toCArg]
+
+    def capacity:
+        callHelper "builderCapacity" CInt64 [self.toCArg] . toInt
+    def length:
+        callHelper "builderLength" CInt64 [self.toCArg] . toInt
+
+    # 
+    def finish:
+        ptr = self.typeCall "Finish" (Pointer None) []
+        (wrapReleasableResouce ArrayWrapper ptr) self.typename
+
+    def type:
+        ptr = self.selfCall "ObtainType" (Pointer None) []
+        wrapReleasableResouce DataTypeWrapper ptr
+
+class ArrayWrapper:
+    ptr :: ManagedPointer None
+    typename :: Text
+
+    def length:
+        callHelper "arrayLength" CInt64 [self.ptr.toCArg] . toInt
+
+    def value index retType:
+        callHandlingError ("array" + self.typename + "ValueAt") retType [self.ptr.toCArg, CInt64.fromInt index . toCArg]
+
+    def data:
+        ptr = callHandlingError ("arrayData") (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce ArrayDataWrapper ptr
+
+class BufferWrapper:
+    ptr :: ManagedPointer None
+
+    def copyNFrom copyFromIndex copyLength:
+        ptr = callHandlingError "bufferCopy" (Pointer None) [self.ptr.toCArg, CInt64.fromInt copyFromIndex . toCArg, CInt64.fromInt copyLength . toCArg]
+        wrapReleasableResouce BufferWrapper ptr
+    def slice sliceFromIndex sliceLength:
+        ptr = callHandlingError "bufferSlice" (Pointer None) [self.ptr.toCArg, CInt64.fromInt sliceFromIndex . toCArg, CInt64.fromInt sliceLength . toCArg]
+        wrapReleasableResouce BufferWrapper ptr
+    def size:
+        callHandlingError "bufferSize" CInt64 [self.ptr.toCArg] . toInt
+    def data:
+        callHandlingError "bufferData" (Pointer None) [self.ptr.toCArg]
+
+class ArrayDataWrapper:
+    ptr :: ManagedPointer None
+
+    def length:
+        callHelper "arrayDataLength" CInt64 [self.ptr.toCArg] . toInt
+    def bufferCount:
+        callHelper "arrayDataBufferCount" CInt64 [self.ptr.toCArg] . toInt
+    def bufferAt index:
+        ptr = callHandlingError "arrayDataBufferAt" (Pointer None) [self.ptr.toCArg, CInt64.fromInt index . toCArg]
+        wrapReleasableResouce BufferWrapper ptr
+
+def createBuilderWrapper type:
+    ptr = callHandlingError ("builder" + type + "New") (Pointer None) []
+    wrapReleasableResouce ArrayBuilderWrapper ptr type
