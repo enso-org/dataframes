@@ -1,7 +1,7 @@
 import Std.Foreign.C.Value
 import Std.Foreign
 import Dataframes.Dataframes
-import Dataframes.Types 
+import Dataframes.Types
 import Dataframes.Array2D
 
 
@@ -18,15 +18,8 @@ import Dataframes.Array2D
     json = column.toJSON
     print json
 
-    mpd = column.mapColumn 0 f
-    jsnMpd = mpd.toJSON
-    print jsnMpd
-    mpd.writeToCSV "./data/write.csv"
-    filename2= "./data/sample_xlsx.xlsx"
-    xlsx = Dataframe.readFromXlsx filename2 False
-    xlsxjsn = xlsx.toJSON
-    print xlsxjsn
-    xlsx.writeToCSV "./data/newxls.csv"
+
+
     None
 
 ### META {"metas":[{"marker":4,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":5,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":6,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":176}}}},{"marker":7,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":352}}}},{"marker":8,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":528}}}},{"marker":9,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":704}}}},{"marker":10,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":528}}}},{"marker":11,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":528}}}}]}
