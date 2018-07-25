@@ -202,7 +202,7 @@ extern "C"
         return TRANSLATE_EXCEPTION(outError)
         {
             // TODO check bounds
-            auto src = LifetimeManager::instance().obtainOwned<arrow::Buffer>(buffer);
+            auto src = LifetimeManager::instance().accessOwned<arrow::Buffer>(buffer);
             auto ret = arrow::SliceBuffer(src, start, byteCount);
             return LifetimeManager::instance().addOwnership(ret);
         };

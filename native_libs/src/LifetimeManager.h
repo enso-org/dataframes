@@ -50,8 +50,9 @@ public:
         throw std::runtime_error(out.str());
     }
 
+    // NOTE: be careful, as this does not handle shared_ptr casting (type should exactly match)
     template<typename T>
-    std::shared_ptr<T> obtainOwned(void *ptr)
+    std::shared_ptr<T> accessOwned(void *ptr)
     {
         std::unique_lock<std::mutex> lock{ mx };
         if(auto itr = storage.find(ptr); itr != storage.end())

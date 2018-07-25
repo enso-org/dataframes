@@ -29,6 +29,6 @@ public:
             fmt::print(__VA_ARGS__); std::cout << std::endl;  \
         }                                                     \
     } while(0)
-    #else
+#else
     #define LOG(...) 
 #endif
