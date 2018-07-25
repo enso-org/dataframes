@@ -1,5 +1,6 @@
 #include "Core/Matrix2d.h"
 #include "Core/Common.h"
+#include "Core/Error.h"
 
 #include <algorithm>
 #include <fstream>
@@ -69,8 +70,8 @@ struct ParsedCsv
 
 auto parseCsvContents(const std::string &contents, char separator)
 {
-	// Each line is a record. Record consist of string fields separated by separator.
-	// Additionally, a field can be enclosed within a quote, eg: "field"
+	// Each line is a record. Record consists of string fields separated by a separator character.
+	// Additionally, a field can be enclosed within quotes, eg: "field"
 	// In such case, it is possible to use newline and separator characters within the field.
 	// To use quote character within a quoted field, the character should be repeated: "blah "" blah"
 	// Using quote in an unquoted field is not allowed but we don't really care about enforcing this. 
@@ -161,55 +162,34 @@ bool needsEscaping(const std::string &record, char seperator)
 
 extern "C"
 {
-	EXPORT MatrixDataPtr read_csv(const char *filename, size_t *rows, size_t *cols, int* error) noexcept
+	EXPORT MatrixDataPtr read_csv(const char *filename, char separator, const char **outError) noexcept
 	{
-		try
+		return TRANSLATE_EXCEPTION(outError)
 		{
-			auto ret = loadCSV(filename, ',');
-			*rows = ret->rowCount;
-			*cols = ret->columnCount;
-			*error = 0;
+			auto ret = loadCSV(filename, separator);
 			return ret.release()->data();
-		}
-		catch(std::exception &e)
-		{
-			*error = 2;
-		}
-		catch(...)
-		{
-			*error = 1;
-		}
-		return nullptr;
+		};
 	}
 
-	EXPORT void write_csv(const char *filename, MatrixDataPtr mat, size_t rows, size_t cols, int* error) noexcept
+	EXPORT void write_csv(const char *filename, MatrixDataPtr mat, char separator, const char **outError) noexcept
 	{
-		if(!mat)
+		TRANSLATE_EXCEPTION(outError)
 		{
-			*error = 2;
-			return;
-		}
+			auto matrix = Matrix2d::fromData(mat);
 
-		char separator = ',';
-		*error = 0;
-
-		try
-		{
 			std::ofstream out{filename};
 			if(!out)
 				throw std::runtime_error("cannot write csv: file `"s + filename + "` cannot be opened!");
 
-			for(size_t r = 0; r < rows; ++r)
+			for(size_t r = 0; r < matrix->rowCount; ++r)
 			{
 				if(r > 0)
 					out << '\n';
 
-				for(size_t c = 0; c < cols; ++c)
+				for(size_t c = 0; c < matrix->columnCount; ++c)
 				{
-					auto index = r * cols + c;
-					auto record = mat[index];
-				
-					if(record)
+					const auto record = matrix->load(r, c);
+					if(!record.empty())
 					{
 						if(needsEscaping(record, separator))
 							out << std::quoted(record, '"', '"');
@@ -217,16 +197,11 @@ extern "C"
 							out << record;
 					}
 
-					if(c != cols - 1)
+					if(c != matrix->columnCount - 1)
 						out << separator;
-
 				}
 			}
-		}
-		catch(std::exception &e)
-		{
-			*error = 1;
-		}
+		};
 	}
 }
 

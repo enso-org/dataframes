@@ -15,6 +15,7 @@ class Matrix2d
 	std::vector<std::string> cellContents; // manages memory for cell contents
 	std::vector<const char *> items; // exposes strings as Luna-consumable array of C-style strings
 
+	void verifyIndex(size_t row, size_t column) const;
 	std::string &access(size_t row, size_t column);
 	void fixPointer(size_t row, size_t column);
 
@@ -58,15 +59,15 @@ public:
 
 extern "C"
 {
-	EXPORT MatrixDataPtr mat_clone(MatrixDataPtr mat) noexcept;
+	EXPORT MatrixDataPtr mat_clone(MatrixDataPtr mat, const char **outError) noexcept;
 	EXPORT void mat_delete(MatrixDataPtr mat) noexcept;
-	EXPORT MatrixDataPtr allocate(size_t rowCount, size_t columnCount) noexcept;
-	EXPORT size_t columnCount(MatrixDataPtr mat) noexcept;
-	EXPORT size_t rowCount(MatrixDataPtr mat) noexcept;
-	EXPORT MatrixDataPtr join(MatrixDataPtr top, MatrixDataPtr bottom) noexcept;
-	EXPORT MatrixDataPtr copyColumns(MatrixDataPtr mat, size_t columnCount, int *columnsToCopy) noexcept;
-	EXPORT MatrixDataPtr copyRows(MatrixDataPtr mat, size_t rowCount, int *rowsToCopy) noexcept;
-	EXPORT MatrixDataPtr dropRow(MatrixDataPtr mat, int rowToDrop) noexcept;
-	EXPORT MatrixDataPtr transpose(MatrixDataPtr mat) noexcept;
-	EXPORT void store(MatrixDataPtr mat, size_t row, size_t column, const char *string) noexcept;
+	EXPORT MatrixDataPtr allocate(size_t rowCount, size_t columnCount, const char **outError) noexcept;
+	EXPORT size_t columnCount(MatrixDataPtr mat, const char **outError) noexcept;
+	EXPORT size_t rowCount(MatrixDataPtr mat, const char **outError) noexcept;
+	EXPORT MatrixDataPtr join(MatrixDataPtr top, MatrixDataPtr bottom, const char **outError) noexcept;
+	EXPORT MatrixDataPtr copyColumns(MatrixDataPtr mat, size_t columnCount, int *columnsToCopy, const char **outError) noexcept;
+	EXPORT MatrixDataPtr copyRows(MatrixDataPtr mat, size_t rowCount, int *rowsToCopy, const char **outError) noexcept;
+	EXPORT MatrixDataPtr dropRow(MatrixDataPtr mat, int rowToDrop, const char **outError) noexcept;
+	EXPORT MatrixDataPtr transpose(MatrixDataPtr mat, const char **outError) noexcept;
+	EXPORT void store(MatrixDataPtr mat, size_t row, size_t column, const char *string, const char **outError) noexcept;
 }

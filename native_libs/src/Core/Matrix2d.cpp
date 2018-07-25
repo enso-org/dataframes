@@ -1,8 +1,13 @@
 #include "Matrix2d.h"
+#include "Error.h"
 
 #include <algorithm>
+#include <iostream>
+#include <sstream>
 #include <unordered_map>
 #include <utility>
+
+using namespace std::literals;
 
 namespace
 {
@@ -13,16 +18,37 @@ namespace
 	// TODO: at some point in future thread-safety should be considered
 	// (either hide this map behind mutex or document safety requirements)
 	std::unordered_map<MatrixDataPtr, Matrix2d*> pointersToTheirManagers;
+
+	std::ostream &printIndex(std::ostream &out, size_t row, size_t column)
+	{
+		return out << "(" << row << ", " << column << ")";
+	}
+}
+
+void Matrix2d::verifyIndex(size_t row, size_t column) const
+{
+	const auto index = makeIndex(row, column);
+	if(index < 0 || index >= cellContents.size())
+	{
+		std::ostringstream errorMsg;
+		errorMsg << "Invalid index access: ";
+		printIndex(errorMsg, row, column);
+		errorMsg << ", matrix size is: ";
+		printIndex(errorMsg, rowCount, columnCount);
+		throw std::out_of_range(errorMsg.str());
+	}
 }
 
 std::string & Matrix2d::access(size_t row, size_t column)
 {
+	verifyIndex(row, column);
 	const auto index = makeIndex(row, column);
 	return cellContents.at(index);
 }
 
 void Matrix2d::fixPointer(size_t row, size_t column)
 {
+	verifyIndex(row, column);
 	const auto index = makeIndex(row, column);
 	const auto &value = cellContents.at(index);
 	items.at(index) = value.empty()
@@ -49,13 +75,13 @@ Matrix2d::Matrix2d(const Matrix2d &top, const Matrix2d &bottom)
 {
 	top.foreach_index([&](auto row, auto column)
 	{	
-		printf("TOP: row: %ld column: %ld", row, column);
+		//std::printf("TOP: row: %zu column: %zu\n", row, column);
 		store(row, column, top.load(row, column));
 	});
 	bottom.foreach_index([&](auto row, auto column)
 	{
-		printf("BOTTOM: row: %ld column: %ld", row, column);
-		printf("BOTTOM2: row: %ld column: %ld", top.rowCount + row, column);
+ 		//std::printf("BOTTOM: row: %zu column: %zu\n", row, column);
+ 		//std::printf("BOTTOM2: row: %zu column: %zu\n", top.rowCount + row, column);
 		store(top.rowCount + row, column, bottom.load(row, column));
 	});
 }
@@ -83,6 +109,7 @@ void Matrix2d::store(size_t row, size_t column, std::string contents)
 
 const std::string& Matrix2d::load(size_t row, size_t column) const
 {
+	verifyIndex(row, column);
 	const auto index = makeIndex(row, column);
 	return cellContents.at(index);
 }
@@ -94,7 +121,16 @@ MatrixDataPtr Matrix2d::data() const noexcept
 
 Matrix2d * Matrix2d::fromData(MatrixDataPtr data)
 {
-	return pointersToTheirManagers.at(data);
+	try
+	{
+		return pointersToTheirManagers.at(data);
+	}
+	catch(std::exception &e)
+	{
+		std::ostringstream errorMessage;
+		errorMessage << "failed to match data pointer " << data << " to a known Matrix2d object: " << e.what();
+		throw std::runtime_error(errorMessage.str());
+	}
 }
 
 
@@ -118,9 +154,9 @@ std::unique_ptr<Matrix2d> Matrix2d::copyRows(size_t rowCount, int *rowsToCopy) c
 	auto ret = std::make_unique<Matrix2d>(rowCount, columnCount);
 	for (auto row = 0ull; row < rowCount; row++)
 	{
+		const auto sourceRowIndex = rowsToCopy[row];
 		for (auto column = 0ull; column < columnCount; column++)
 		{
-			const auto sourceRowIndex = rowsToCopy[row];
 			auto value = load(sourceRowIndex, column);
 			ret->store(row, column, std::move(value));
 		}
@@ -170,129 +206,99 @@ std::unique_ptr<Matrix2d> Matrix2d::transpose() const
 
 extern "C" 
 {
+	// Note: as an exception, this function does not take ourError argument
+	// because ManagedPtr expects single argument function to call
 	void mat_delete(MatrixDataPtr mat) noexcept
 	{
 		try
 		{
 			delete Matrix2d::fromData(mat);
 		}
-		catch(...) {}
+		catch(...) 
+		{
+			// Note: generally we don't want this library to print anything
+			// but this should really not happen and we have no other means
+			// of thelling the world that something went wrong.
+			std::cout << __FUNCTION__ << ": " << "error" << std::endl;
+		}
 	}
-	MatrixDataPtr allocate(size_t rowCount, size_t columnCount) noexcept
+	MatrixDataPtr allocate(size_t rowCount, size_t columnCount, const char **outError) noexcept
 	{
-		try
+		return TRANSLATE_EXCEPTION(outError)
 		{
 			return std::make_unique<Matrix2d>(rowCount, columnCount).release()->data();
-		}
-		catch(...) 
-		{
-			return nullptr;
-		}
+		};
 	}
 
-	MatrixDataPtr copyColumns(MatrixDataPtr mat, size_t columnCount, int *columnsToCopy) noexcept
+	MatrixDataPtr copyColumns(MatrixDataPtr mat, size_t columnCount, int *columnsToCopy, const char **outError) noexcept
 	{
-		try
+		return TRANSLATE_EXCEPTION(outError)
 		{
 			return Matrix2d::fromData(mat)->copyColumns(columnCount, columnsToCopy).release()->data();
-		}
-		catch(...) 
-		{
-			return nullptr;
-		}
+		};
 	}
 
-	MatrixDataPtr copyRows(MatrixDataPtr mat, size_t rowCount, int *rowsToCopy) noexcept
+	MatrixDataPtr copyRows(MatrixDataPtr mat, size_t rowCount, int *rowsToCopy, const char **outError) noexcept
 	{
-		try
+		return TRANSLATE_EXCEPTION(outError)
 		{
 			return Matrix2d::fromData(mat)->copyRows(rowCount, rowsToCopy).release()->data();
-		}
-		catch(...)
-		{
-			return nullptr;
-		}
+		};
 	}
 
-	MatrixDataPtr dropRow(MatrixDataPtr mat, int rowToDrop) noexcept
+	MatrixDataPtr dropRow(MatrixDataPtr mat, int rowToDrop, const char **outError) noexcept
 	{
-		try
+		return TRANSLATE_EXCEPTION(outError)
 		{
 			return Matrix2d::fromData(mat)->dropRow(rowToDrop).release()->data();
-		}
-		catch(...)
-		{
-			return nullptr;
-		}
+		};
 	}
 	
-	MatrixDataPtr transpose(MatrixDataPtr mat) noexcept
+	MatrixDataPtr transpose(MatrixDataPtr mat, const char **outError) noexcept
 	{
-		try
+		return TRANSLATE_EXCEPTION(outError)
 		{
 			return Matrix2d::fromData(mat)->transpose().release()->data();
-		}
-		catch(...)
-		{
-			return nullptr;
-		}
+		};
 	}
 
-	void store(MatrixDataPtr mat, size_t row, size_t column, const char *string) noexcept
+	void store(MatrixDataPtr mat, size_t row, size_t column, const char *string, const char **outError) noexcept
 	{
-		try
+		return TRANSLATE_EXCEPTION(outError)
 		{
 			return Matrix2d::fromData(mat)->store(row, column, string);
-		}
-		catch(...) 
-		{}
+		};
 	}
 
-	MatrixDataPtr mat_clone(MatrixDataPtr mat) noexcept
+	MatrixDataPtr mat_clone(MatrixDataPtr mat, const char **outError) noexcept
 	{
-		try
+		return TRANSLATE_EXCEPTION(outError)
 		{
 			return std::make_unique<Matrix2d>(*Matrix2d::fromData(mat)).release()->data();
-		}
-		catch(...) 
-		{
-			return nullptr;
-		}
+		};
 	}
 
-	MatrixDataPtr join(MatrixDataPtr top, MatrixDataPtr bottom) noexcept
+	MatrixDataPtr join(MatrixDataPtr top, MatrixDataPtr bottom, const char **outError) noexcept
 	{
-		try
+		return TRANSLATE_EXCEPTION(outError)
 		{
 			return std::make_unique<Matrix2d>(*Matrix2d::fromData(top), *Matrix2d::fromData(bottom)).release()->data();
-		}
-		catch(...) 
-		{
-			return nullptr;
-		}
+		};
 	}
 
-	size_t columnCount(MatrixDataPtr mat) noexcept
+	size_t columnCount(MatrixDataPtr mat, const char **outError) noexcept
 	{
-		try
+		return TRANSLATE_EXCEPTION(outError)
 		{
 			return Matrix2d::fromData(mat)->columnCount;
-		}
-		catch(...)
-		{
-			return 0;
-		}
+		};
 	}
 
-	size_t rowCount(MatrixDataPtr mat) noexcept
+	size_t rowCount(MatrixDataPtr mat, const char **outError) noexcept
 	{
-		try
+		return TRANSLATE_EXCEPTION(outError)
 		{
 			return Matrix2d::fromData(mat)->rowCount;
-		}
-		catch(...)
-		{
-			return 0;
-		}
+		};
 	}
 }
