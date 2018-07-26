@@ -20,7 +20,7 @@ class Array a:
     def length: 
         self.ptr.length
     def valueAt index:
-        isNull = self.typeTag.nullable . and self.nullAt index
+        isNull = self.typeTag.nullable.and (self.nullAt index)
         cval = self.ptr.value index self.typeTag.ctype
         self.typeTag.fromC isNull cval
     def toList:
@@ -35,7 +35,8 @@ class Array a:
     def map f:
         builder = createBuilder self.typeTag
         self.toList.each val:
-            builder.append (f val)
+            s = f val
+            builder.append s
         builder.finish
 
 def createBuilder typeTag:
@@ -47,13 +48,9 @@ class ArrayBuilder a:
     bw :: ArrayBuilderWrapper
 
     def append value:
-        self.typeTag.withValueAsC value self.bw.append
+        self.typeTag.append self.bw value
     def appendMany values:
-        values . each self.append
-    def appendNull:
-        case self.typeTag.nullable of
-            True: self.bw.appendNull
-            False: throw "nulls are not allowed"            
+        values . each self.append    
 
     def finish:
         ptr = self.bw.finish

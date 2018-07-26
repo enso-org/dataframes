@@ -221,6 +221,8 @@ extern "C"
     COMMON_BUILDER(Double);
     COMMON_BUILDER(String);
 
+    // TODO current string append needlessly allocates std::string for BinaryBuilder::Append argument
+
     EXPORT int64_t builderLength(arrow::ArrayBuilder *builder) noexcept
     {
         LOG("@{}", (void*)builder);

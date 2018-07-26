@@ -7,7 +7,7 @@ def assert msg act:
     result = runError act
     case result of
         Left e: print ("[FAILURE] " + msg + ": " + e)
-        Right v: print ("[SUCCESS] " + msg + ": " + v)
+        Right v: print ("[SUCCESS] " + msg + ": " + v.toText)
     None
 
 def require pred msg:
@@ -26,6 +26,7 @@ def expectThrow msg action:
 
 class TestArrayBuilder:
     def testInt64Builder:
+        print "=== Testing for Int ==="
         builder = createBuilder Int64TypeHelper
         type = builder.type
         assertEqual "initial capacity" builder.capacity 0
@@ -35,12 +36,12 @@ class TestArrayBuilder:
         assertEqual "type as text" type.toText "int64"
         builder.append 7
         builder.appendMany (1 . upto 5)
-        print (runError (expectThrow "appending null throws" (builder.appendNull)))
         assertGE "builder.capacity" builder.capacity 6
         assertEqual "builder.length" builder.length 6
         builtArray = builder.finish
         assertEqual "built single elem array" builtArray.toList [7, 1, 2, 3, 4, 5]
     def testMaybeInt64Builder:
+        print "=== Testing for (Maybe Int) ==="
         builder = createBuilder MaybeInt64TypeHelper
         type = builder.type
         assertEqual "initial capacity" builder.capacity 0
@@ -48,12 +49,54 @@ class TestArrayBuilder:
         assertEqual "type width" type.bitWidth 64
         assertEqual "type name" type.name "int64"
         assertEqual "type as text" type.toText "int64"
-        builder.append 7
-        builder.appendNull
-        builder.appendMany (1 . upto 5)
-        assertGE "builder.capacity" builder.capacity 7
-        assertEqual "builder.length" builder.length 7
+        builder.append (Just 7)
+        builder.append (Nothing)
+        builder.appendMany (1 . upto 3 . each (Just))
+        assertGE "builder.capacity" builder.capacity 5
+        assertEqual "builder.length" builder.length 5
         builtArray = builder.finish
+        assert "not null at 0" (builtArray.nullAt 0 . not)
+        assert "null at 1" (builtArray.nullAt 1)
+        assertEqual "value at 0" (builtArray.valueAt 0) (Just 7)
+        assertEqual "value at 1" (builtArray.valueAt 1) Nothing
+        assertEqual "built single elem array" builtArray.toList [Just 7, Nothing, Just 1, Just 2, Just 3]
+        print "================================="
+        print (builtArray.map elem:
+            case elem of 
+                Just val: Just (val + 10)
+                Nothing: Nothing)
+
+    # TODO: properly handle `assertEqual "type width" type.bitWidth 64`
+    def testMaybeStringBuilder:
+        print "=== Testing for (Maybe Text) ==="
+        builder = createBuilder MaybeStringTypeHelper
+        type = builder.type
+        assertEqual "initial capacity" builder.capacity 0
+        assertEqual "initial length" builder.length 0
+        
+        assertEqual "type name" type.name "utf8"
+        assertEqual "type as text" type.toText "string"
+        builder.append (Just "first")
+        builder.append (Nothing)
+        nums = (1 . upto 3) . each (Just _.toText)
+        print ("nums: " + nums.toText)
+        builder.appendMany (nums)
+        assertGE "builder.capacity" builder.capacity 5
+        assertEqual "builder.length" builder.length 5
+        builtArray = builder.finish
+        assert "not null at 0" (builtArray.nullAt 0 . not)
+        assert "null at 1" (builtArray.nullAt 1)
+        assertEqual "value at 0" (builtArray.valueAt 0) (Just "first")
+        assertEqual "value at 1" (builtArray.valueAt 1) Nothing
+        assertEqual "built single elem array" builtArray.toList [Just "first", Nothing, Just "1", Just "2", Just "3"]
+        print "================================="
+        print (builtArray.map elem:
+            case elem of 
+                Just val: Just (val + "-suffix")
+                Nothing: Nothing)
+
 
     def run:
+        self.testMaybeStringBuilder
+        self.testInt64Builder
         self.testMaybeInt64Builder
