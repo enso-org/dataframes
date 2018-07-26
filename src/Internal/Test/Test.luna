@@ -18,6 +18,12 @@ def assertEqual msg a b:
 def assertGE msg a b:
     assert msg (require (a >= b) (a.toText + " >= " + b.toText))
 
+def expectThrow msg action:
+    result = runError action
+    print case result of
+        Left e: "[SUCCESS] " + msg + ": threw " + e
+        Right v: "[FAILURE]" + msg + ": no throw: " + v.toText
+
 class TestArrayBuilder:
     def testInt64Builder:
         builder = createBuilder Int64TypeHelper
@@ -28,10 +34,26 @@ class TestArrayBuilder:
         assertEqual "type name" type.name "int64"
         assertEqual "type as text" type.toText "int64"
         builder.append 7
-        assertGE "builder.capacity" builder.capacity 1
-        assertEqual "builder.length" builder.length 1
+        builder.appendMany (1 . upto 5)
+        print (runError (expectThrow "appending null throws" (builder.appendNull)))
+        assertGE "builder.capacity" builder.capacity 6
+        assertEqual "builder.length" builder.length 6
         builtArray = builder.finish
-        assertEqual "built single elem array" builtArray.toList [7]
+        assertEqual "built single elem array" builtArray.toList [7, 1, 2, 3, 4, 5]
+    def testMaybeInt64Builder:
+        builder = createBuilder MaybeInt64TypeHelper
+        type = builder.type
+        assertEqual "initial capacity" builder.capacity 0
+        assertEqual "initial length" builder.length 0
+        assertEqual "type width" type.bitWidth 64
+        assertEqual "type name" type.name "int64"
+        assertEqual "type as text" type.toText "int64"
+        builder.append 7
+        builder.appendNull
+        builder.appendMany (1 . upto 5)
+        assertGE "builder.capacity" builder.capacity 7
+        assertEqual "builder.length" builder.length 7
+        builtArray = builder.finish
 
     def run:
-        self.testInt64Builder
+        self.testMaybeInt64Builder

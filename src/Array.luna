@@ -20,12 +20,15 @@ class Array a:
     def length: 
         self.ptr.length
     def valueAt index:
+        isNull = self.typeTag.nullable . and self.nullAt index
         cval = self.ptr.value index self.typeTag.ctype
-        self.typeTag.fromC cval
+        self.typeTag.fromC isNull cval
     def toList:
         0.upto (self.length - 1) . each (self.valueAt _)
     def toText:
         self.toList.toText
+    def nullAt index:
+        self.ptr.nullAt index
     
     # TODO: could be faster: deep copy buffer and overwrite with new values
     # TODO: handle null presence
@@ -47,6 +50,11 @@ class ArrayBuilder a:
         self.typeTag.withValueAsC value self.bw.append
     def appendMany values:
         values . each self.append
+    def appendNull:
+        case self.typeTag.nullable of
+            True: self.bw.appendNull
+            False: throw "nulls are not allowed"            
+
     def finish:
         ptr = self.bw.finish
         Array (self.typeTag) ptr

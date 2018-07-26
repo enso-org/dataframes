@@ -35,6 +35,9 @@ class ArrayBuilderWrapper:
     def append value:
         self.typeCall "AppendValue" None [value.toCArg]
 
+    # NOTE: should not be called if builded array is expected to be null free 
+    # (rule should be enforced by owning code)
+    # TODO: in future enforce by type system
     def appendNull:
         self.typeCall "AppendNull" None []
 
@@ -72,6 +75,10 @@ class ArrayWrapper:
     def data:
         ptr = callHandlingError ("arrayData") (Pointer None) [self.ptr.toCArg]
         wrapReleasableResouce ArrayDataWrapper ptr
+
+    def nullAt index:
+        ret = callHandlingError "arrayIsNullAt" CInt8 [self.ptr.toCArg, CInt64.fromInt index . toCArg] . toInt
+        ret == 1
 
 class BufferWrapper:
     ptr :: ManagedPointer None

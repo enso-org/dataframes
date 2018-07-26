@@ -7,19 +7,32 @@ class StringTypeHelper:
         withCString value f
     def typename: "String"
     def ctype: CString
-    def fromC val:
+    def fromC isNull val:
         val.toText
+    def nullable: False
 class Int32TypeHelper:
     def withValueAsC value f:
         f (CInt32.fromInt value)
     def typename: "Int32"
     def ctype: CInt32
-    def fromC val:
+    def fromC isNull val:
         val.toInt
+    def nullable: False
 class Int64TypeHelper:
     def withValueAsC value f:
         f (CInt64.fromInt value)
     def typename: "Int64"
     def ctype: CInt64
-    def fromC val:
+    def fromC isNull val:
         val.toInt
+    def nullable: False
+class MaybeInt64TypeHelper:
+    def withValueAsC value f:
+        f (CInt64.fromInt value)
+    def typename: "Int64"
+    def ctype: CInt64
+    def fromC isNull val:
+        case isNull of
+            True: Nothing
+            False: val.toInt
+    def nullable: True
