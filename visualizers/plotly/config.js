@@ -6,9 +6,7 @@ module.exports = function (type) {
         };
 
     if (cfgHelper.matchesType(type, plotlyPattern))
-        {
-            return [{name: "plotly", path: "plotly.html"}]
-        }
+        return [{name: "plotly", path: "plotly.html"}]
     else
         return [];
 };

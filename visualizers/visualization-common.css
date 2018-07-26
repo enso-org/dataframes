@@ -26,27 +26,27 @@ html:hover::-webkit-scrollbar-thumb {
     font-family: 'hasklig-extra-light';
     src: url('hasklig/extra-light.otf');
     }
-    @font-face {
+@font-face {
     font-family: 'hasklig-light';
     src: url('hasklig/light.otf');
     }
-    @font-face {
+@font-face {
     font-family: 'hasklig-regular';
     src: url('hasklig/regular.otf');
     }
-    @font-face {
+@font-face {
     font-family: 'hasklig-medium';
     src: url('hasklig/medium.otf');
     }
-    @font-face {
+@font-face {
     font-family: 'hasklig-semibold';
     src: url('hasklig/semibold.otf');
     }
-    @font-face {
+@font-face {
     font-family: 'hasklig-bold';
     src: url('hasklig/bold.otf');
     }
-    @font-face {
+@font-face {
     font-family: 'hasklig-black';
     src: url('hasklig/black.otf');
     }

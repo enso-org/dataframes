@@ -33,7 +33,6 @@
         dataz = dataSeries.map(function(p) { return p[z] !== " " ? p[z] : 0; });
         sizes = dataSeries.map(function(p) { return p[s]; });
         dataLabels = dataSeries.map(function(p) { return p[labels]; });
-        console.log(datay)
         var trace = {
           x: datax,
           y: datay,
