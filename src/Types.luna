@@ -28,7 +28,6 @@ class MaybeStringTypeHelper:
                 text = val.toText
                 Just text
     def nullable: True
-
 class Int32TypeHelper:
     def append bw value:
         self.withValueAsC value bw.append
@@ -39,6 +38,20 @@ class Int32TypeHelper:
     def fromC isNull val:
         val.toInt
     def nullable: False
+class MaybeInt32TypeHelper:
+    def append bw value:
+        case value of
+            Just justValue: self.withValueAsC justValue bw.append
+            Nothing: bw.appendNull
+    def withValueAsC value f:
+        f (CInt32.fromInt value)
+    def typename: "Int32"
+    def ctype: CInt32
+    def fromC isNull val:
+        case isNull of
+            True: Nothing
+            False: Just val.toInt
+    def nullable: True
 class Int64TypeHelper:
     def append bw value:
         self.withValueAsC value bw.append
@@ -62,4 +75,29 @@ class MaybeInt64TypeHelper:
         case isNull of
             True: Nothing
             False: Just val.toInt
+    def nullable: True
+
+class DoubleTypeHelper:
+    def append bw value:
+        self.withValueAsC value bw.append
+    def withValueAsC value f:
+        f (CDouble.fromReal value)
+    def typename: "Double"
+    def ctype: CDouble
+    def fromC isNull val:
+        val.toReal
+    def nullable: False
+class MaybeDoubleTypeHelper:
+    def append bw value:
+        case value of
+            Just justValue: self.withValueAsC justValue bw.append
+            Nothing: bw.appendNull
+    def withValueAsC value f:
+        f (CDouble.fromReal value)
+    def typename: "Double"
+    def ctype: CDouble
+    def fromC isNull val:
+        case isNull of
+            True: Nothing
+            False: Just val.toReal
     def nullable: True

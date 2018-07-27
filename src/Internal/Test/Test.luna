@@ -92,7 +92,23 @@ class TestArrayBuilder:
                 Just val: Just (val + "-suffix")
                 Nothing: Nothing)
 
+    def testRoundTrip msg typeTag list:
+        arr = listToArray typeTag list
+        assertEqual "array and list length same" arr.length list.length
+        assertEqual msg (arr . toList) list
+
+    def testListArrayRoundTrip:
+        self.testRoundTrip "Double64 round trip" DoubleTypeHelper [10.25, -5.825,  5000000000.0]
+        self.testRoundTrip "Maybe Double64 round trip" MaybeDoubleTypeHelper [Just 10.25, Just -5.825, Just 5000000000.0, Nothing]
+        self.testRoundTrip "Int32 round trip" Int32TypeHelper [10, -5,  1000000000]
+        self.testRoundTrip "Maybe Int32 round trip"MaybeInt32TypeHelper [Just 10, Just -5, Just 1000000000, Nothing]
+        self.testRoundTrip "Int64 round trip" Int64TypeHelper [10, -5,  5000000000]
+        self.testRoundTrip "Maybe Int64 round trip"MaybeInt64TypeHelper [Just 10, Just -5, Just 5000000000, Nothing]
+        self.testRoundTrip "Text round trip" StringTypeHelper ["ten", "-5", "legion"]
+        self.testRoundTrip "Maybe Text round trip" MaybeStringTypeHelper [Just "ten", Just "-5", Just "legion", Nothing]
+
     def run:
+        self.testListArrayRoundTrip
         self.testMaybeStringBuilder
         self.testInt64Builder
         self.testMaybeInt64Builder
