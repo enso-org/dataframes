@@ -1,4 +1,4 @@
-import Dataframes.Internal.ArrayWrapper
+import Dataframes.Internal.CWrappers
 import Dataframes.Internal.Utils
 
 # TODO: consider whether some trickery could be used to hide bitWidth method
