@@ -27,6 +27,8 @@ class Array a:
         0.upto (self.length - 1) . each (self.valueAt _)
     def toText:
         self.toList.toText
+    def toJSON:
+        self.toList.toJSON
     def nullAt index:
         self.ptr.nullAt index
     
@@ -49,8 +51,7 @@ class ArrayBuilder a:
     def append value:
         self.typeTag.append self.bw value
     def appendMany values:
-        values . each self.append    
-
+        values . each self.append
     def finish:
         ptr = self.bw.finish
         Array (self.typeTag) ptr
@@ -61,3 +62,8 @@ class ArrayBuilder a:
     def type:
         ptr = self.bw.type
         DataType ptr
+
+def listToArray typeTag list:
+    builder = createBuilder typeTag
+    builder.appendMany list
+    builder.finish
