@@ -1,4 +1,9 @@
 (function () {
+  var defPos = 0;
+  var defColR = 253;
+  var defColG = 106;
+  var defColB = 2;
+  var defColA = 1;
   var getColumn = function (array, column, defaultValue){
     var newArr = [];
     for (var j = 0; j<array.length; j++){
@@ -32,13 +37,12 @@
         colA = header.indexOf('color.a')
         s = header.indexOf('size')
         labels = header.indexOf('labels')
-        console.log(getColumn(dataSeries, posY, 0))
         color = dataSeries.map(function(p){
-            return p[colR] !== " " && p[colG] !== " " && p[colB] !== " " && p[colA] !== " " ? 'rgb(' + p[colR] + ',' + p[colG] + ',' + p[colB] + ',' + p[colA] + ')'  : 'rgb(' + 253 + ',' + 106 + ',' + 2 + ',' + 1 + ')' 
+            return p[colR] !== " " && p[colG] !== " " && p[colB] !== " " && p[colA] !== " " ? 'rgb(' + p[colR] + ',' + p[colG] + ',' + p[colB] + ',' + p[colA] + ')'  : 'rgb(' + defColR + ',' + defColG + ',' + defColB + ',' + defColA + ')' 
         });
-        datax = getColumn(dataSeries, posX, 0);
-        datay = getColumn(dataSeries, posY, 0);
-        dataz = getColumn(dataSeries, posZ, 0);
+        datax = getColumn(dataSeries, posX, defPos);
+        datay = getColumn(dataSeries, posY, defPos);
+        dataz = getColumn(dataSeries, posZ, defPos);
         sizes = getColumn(dataSeries, s);
         dataLabels = getColumn(dataSeries, labels);
         var trace = {
