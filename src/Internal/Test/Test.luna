@@ -9,20 +9,17 @@ def assert msg act:
         Left e: print ("[FAILURE] " + msg + ": " + e)
         Right v: print ("[SUCCESS] " + msg + ": " + v.toText)
     None
-
 def require pred msg:
     if pred then msg else throw msg
-
 def assertEqual msg a b:
     assert msg (require (a == b) (a.toText + " == " + b.toText))
 def assertGE msg a b:
     assert msg (require (a >= b) (a.toText + " >= " + b.toText))
-
-def expectThrow msg action:
+def assertThrow msg action:
     result = runError action
     print case result of
         Left e: "[SUCCESS] " + msg + ": threw " + e
-        Right v: "[FAILURE]" + msg + ": no throw: " + v.toText
+        Right v: "[FAILURE] " + msg + ": no throw: " + v.toText
 
 class TestArrayBuilder:
     def testInt64Builder:
@@ -39,7 +36,10 @@ class TestArrayBuilder:
         assertGE "builder.capacity" builder.capacity 6
         assertEqual "builder.length" builder.length 6
         builtArray = builder.finish
+        assertThrow ("invalid index -1 throws") (builtArray.valueAt -1)
+        assertThrow ("invalid index 6 throws") (builtArray.valueAt 6)
         assertEqual "built single elem array" builtArray.toList [7, 1, 2, 3, 4, 5]
+        assertEqual "built single elem array" (builtArray.map (+10) . toList) [17, 11, 12, 13, 14, 15]
     def testMaybeInt64Builder:
         print "=== Testing for (Maybe Int) ==="
         builder = createBuilder MaybeInt64TypeHelper
@@ -57,14 +57,11 @@ class TestArrayBuilder:
         builtArray = builder.finish
         assert "not null at 0" (builtArray.nullAt 0 . not)
         assert "null at 1" (builtArray.nullAt 1)
+        assertThrow "null at -1 throws" (builtArray.nullAt -1)
         assertEqual "value at 0" (builtArray.valueAt 0) (Just 7)
         assertEqual "value at 1" (builtArray.valueAt 1) Nothing
         assertEqual "built single elem array" builtArray.toList [Just 7, Nothing, Just 1, Just 2, Just 3]
-        print "================================="
-        print (builtArray.map elem:
-            case elem of 
-                Just val: Just (val + 10)
-                Nothing: Nothing)
+        assertEqual "built single elem array" (builtArray.map (_.map (+10)) . toList) [Just 17, Nothing, Just 11, Just 12, Just 13]
 
     # TODO: properly handle `assertEqual "type width" type.bitWidth 64`
     def testMaybeStringBuilder:
@@ -73,7 +70,7 @@ class TestArrayBuilder:
         type = builder.type
         assertEqual "initial capacity" builder.capacity 0
         assertEqual "initial length" builder.length 0
-        
+        assertThrow "type width throws (not fixed width type)" type.bitWidth
         assertEqual "type name" type.name "utf8"
         assertEqual "type as text" type.toText "string"
         builder.append (Just "first")
@@ -94,7 +91,6 @@ class TestArrayBuilder:
             case elem of 
                 Just val: Just (val + "-suffix")
                 Nothing: Nothing)
-
 
     def run:
         self.testMaybeStringBuilder

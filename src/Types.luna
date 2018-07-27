@@ -24,7 +24,9 @@ class MaybeStringTypeHelper:
     def fromC isNull val:
         case isNull of
             True: Nothing
-            False: Just val.toText
+            False: 
+                text = val.toText
+                Just text
     def nullable: True
 
 class Int32TypeHelper:

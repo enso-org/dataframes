@@ -35,8 +35,7 @@ class Array a:
     def map f:
         builder = createBuilder self.typeTag
         self.toList.each val:
-            s = f val
-            builder.append s
+            builder.append (f val)
         builder.finish
 
 def createBuilder typeTag:

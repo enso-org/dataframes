@@ -98,6 +98,16 @@ void checkStatus(const arrow::Status &status)
         throw std::runtime_error(status.ToString());
 }
 
+void validateIndex(arrow::Array *array, int64_t index)
+{
+    if(index < 0 || index >= array->length())
+    {
+        std::ostringstream out;
+        out << "wrong index " << index << " when array length is " << array->length();
+        throw std::out_of_range{ out.str() };
+    }
+}
+
 namespace
 {
     // NOTE: we need an object that will keep returned strings alive in memory
@@ -369,28 +379,23 @@ extern "C"
 
 #define NUMERIC_ARRAY_METHODS(TYPENAME)                                                                                                  \
     EXPORT  TypeDescription<TYPENAME>::CType array##TYPENAME##ValueAt(arrow::Array *array, int64_t index, const char **outError) noexcept\
-    {                                                                                                                                     \
+    {                                                                                                                                    \
         LOG("[{}]", index);                                                                                                              \
-        /* NOTE: needs release */                                                                                                         \
+        /* NOTE: needs release */                                                                                                        \
         return TRANSLATE_EXCEPTION(outError)                                                                                             \
-        {                                                                                                                                 \
-            if(index < 0 || index >= array->length())                                                                                    \
-            {                                                                                                                            \
-                std::ostringstream out;                                                                                                  \
-                out << "wrong index " << index << "; array length is " << array->length();                                               \
-                throw std::out_of_range{out.str()};                                                                                      \
-            }                                                                                                                            \
+        {                                                                                                                                \
+            validateIndex(array, index);                                                                                                 \
             return asSpecificArray<TYPENAME>(array)->Value(index);                                                                       \
-        };                                                                                                                                 \
+        };                                                                                                                               \
     }                                                                                                                                    \
     EXPORT const TypeDescription<TYPENAME>::CType *array##TYPENAME##RawValues(arrow::Array *array, const char **outError) noexcept       \
-    {                                                                                                                                     \
+    {                                                                                                                                    \
         LOG("@{}", (void*)array);                                                                                                        \
-        /* NOTE: needs release */                                                                                                         \
+        /* NOTE: needs release */                                                                                                        \
         return TRANSLATE_EXCEPTION(outError)                                                                                             \
-        {                                                                                                                                 \
+        {                                                                                                                                \
             return asSpecificArray<TYPENAME>(array)->raw_values();                                                                       \
-        };                                                                                                                                 \
+        };                                                                                                                               \
     }
 
     
@@ -413,15 +418,8 @@ extern "C"
         /* NOTE: needs release */                                                                             
         return TRANSLATE_EXCEPTION(outError)                                                                  
         {                                                                                                     
-            if(index < 0 || index >= array->length())                                                         
-            {                                                                                                 
-                std::ostringstream out;                                                                       
-                out << "wrong index " << index << "; array length is " << array->length();                    
-                throw std::out_of_range{out.str()};                                                           
-            }
-            static thread_local std::string buffer;
-            buffer = asSpecificArray<String>(array)->GetString(index);
-            return buffer.c_str();
+            validateIndex(array, index);
+            return returnString(asSpecificArray<String>(array)->GetString(index));
         };
     }
 
@@ -476,6 +474,7 @@ extern "C"
         LOG("@{}", (void*)array);
         return TRANSLATE_EXCEPTION(outError)
         {
+            validateIndex(array, index);
             return array->IsNull(index);
         };
     }
