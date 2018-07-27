@@ -2,7 +2,7 @@ import Std.Foreign.C.Value
 
 import Dataframes.Internal.Utils
 
-class StringTypeHelper:
+class StringType:
     def append bw value:
         self.withValueAsC value bw.append
     def withValueAsC value f:
@@ -12,7 +12,7 @@ class StringTypeHelper:
     def fromC isNull val:
         val.toText
     def nullable: False
-class MaybeStringTypeHelper:
+class MaybeStringType:
     def append bw value:
         case value of
             Just justValue: self.withValueAsC justValue bw.append
@@ -28,7 +28,7 @@ class MaybeStringTypeHelper:
                 text = val.toText
                 Just text
     def nullable: True
-class Int32TypeHelper:
+class Int32Type:
     def append bw value:
         self.withValueAsC value bw.append
     def withValueAsC value f:
@@ -38,7 +38,7 @@ class Int32TypeHelper:
     def fromC isNull val:
         val.toInt
     def nullable: False
-class MaybeInt32TypeHelper:
+class MaybeInt32Type:
     def append bw value:
         case value of
             Just justValue: self.withValueAsC justValue bw.append
@@ -52,7 +52,7 @@ class MaybeInt32TypeHelper:
             True: Nothing
             False: Just val.toInt
     def nullable: True
-class Int64TypeHelper:
+class Int64Type:
     def append bw value:
         self.withValueAsC value bw.append
     def withValueAsC value f:
@@ -62,7 +62,7 @@ class Int64TypeHelper:
     def fromC isNull val:
         val.toInt
     def nullable: False
-class MaybeInt64TypeHelper:
+class MaybeInt64Type:
     def append bw value:
         case value of
             Just justValue: self.withValueAsC justValue bw.append
@@ -77,7 +77,7 @@ class MaybeInt64TypeHelper:
             False: Just val.toInt
     def nullable: True
 
-class DoubleTypeHelper:
+class DoubleType:
     def append bw value:
         self.withValueAsC value bw.append
     def withValueAsC value f:
@@ -87,7 +87,7 @@ class DoubleTypeHelper:
     def fromC isNull val:
         val.toReal
     def nullable: False
-class MaybeDoubleTypeHelper:
+class MaybeDoubleType:
     def append bw value:
         case value of
             Just justValue: self.withValueAsC justValue bw.append

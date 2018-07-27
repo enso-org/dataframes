@@ -24,7 +24,7 @@ def assertThrow msg action:
 class TestArrayBuilder:
     def testDoubleBuilder:
         print "=== Testing for Double ==="
-        builder = createBuilder DoubleTypeHelper
+        builder = createBuilder DoubleType
         type = builder.type
         assertEqual "initial capacity" builder.capacity 0
         assertEqual "initial length" builder.length 0
@@ -41,7 +41,7 @@ class TestArrayBuilder:
         assertEqual "built single elem array" builtArray.toList [7.0, 1.0, 2.0, 3.0]
     def testInt64Builder:
         print "=== Testing for Int ==="
-        builder = createBuilder Int64TypeHelper
+        builder = createBuilder Int64Type
         type = builder.type
         assertEqual "initial capacity" builder.capacity 0
         assertEqual "initial length" builder.length 0
@@ -59,7 +59,7 @@ class TestArrayBuilder:
         assertEqual "built single elem array" (builtArray.map (+10) . toList) [17, 11, 12, 13, 14, 15]
     def testMaybeInt64Builder:
         print "=== Testing for (Maybe Int) ==="
-        builder = createBuilder MaybeInt64TypeHelper
+        builder = createBuilder MaybeInt64Type
         type = builder.type
         assertEqual "initial capacity" builder.capacity 0
         assertEqual "initial length" builder.length 0
@@ -83,7 +83,7 @@ class TestArrayBuilder:
     # TODO: properly handle `assertEqual "type width" type.bitWidth 64`
     def testMaybeStringBuilder:
         print "=== Testing for (Maybe Text) ==="
-        builder = createBuilder MaybeStringTypeHelper
+        builder = createBuilder MaybeStringType
         type = builder.type
         assertEqual "initial capacity" builder.capacity 0
         assertEqual "initial length" builder.length 0
@@ -115,14 +115,14 @@ class TestArrayBuilder:
         assertEqual msg (arr . toList) list
 
     def testListArrayRoundTrip:
-        self.testRoundTrip "Double64 round trip" DoubleTypeHelper [10.25, -5.825,  5000000000.0]
-        self.testRoundTrip "Maybe Double64 round trip" MaybeDoubleTypeHelper [Just 10.25, Just -5.825, Just 5000000000.0, Nothing]
-        self.testRoundTrip "Int32 round trip" Int32TypeHelper [10, -5,  1000000000]
-        self.testRoundTrip "Maybe Int32 round trip"MaybeInt32TypeHelper [Just 10, Just -5, Just 1000000000, Nothing]
-        self.testRoundTrip "Int64 round trip" Int64TypeHelper [10, -5,  5000000000]
-        self.testRoundTrip "Maybe Int64 round trip"MaybeInt64TypeHelper [Just 10, Just -5, Just 5000000000, Nothing]
-        self.testRoundTrip "Text round trip" StringTypeHelper ["ten", "-5", "legion"]
-        self.testRoundTrip "Maybe Text round trip" MaybeStringTypeHelper [Just "ten", Just "-5", Just "legion", Nothing]
+        self.testRoundTrip "Double64 round trip" DoubleType [10.25, -5.825,  5000000000.0]
+        self.testRoundTrip "Maybe Double64 round trip" MaybeDoubleType [Just 10.25, Just -5.825, Just 5000000000.0, Nothing]
+        self.testRoundTrip "Int32 round trip" Int32Type [10, -5,  1000000000]
+        self.testRoundTrip "Maybe Int32 round trip"MaybeInt32Type [Just 10, Just -5, Just 1000000000, Nothing]
+        self.testRoundTrip "Int64 round trip" Int64Type [10, -5,  5000000000]
+        self.testRoundTrip "Maybe Int64 round trip"MaybeInt64Type [Just 10, Just -5, Just 5000000000, Nothing]
+        self.testRoundTrip "Text round trip" StringType ["ten", "-5", "legion"]
+        self.testRoundTrip "Maybe Text round trip" MaybeStringType [Just "ten", Just "-5", Just "legion", Nothing]
 
     def run:
         self.testDoubleBuilder

@@ -11,19 +11,18 @@ import Dataframes.Internal.Test.Test
 def main:
     TestArrayBuilder.run
     setHelperVerbosity False
-    builderString = createBuilder StringTypeHelper
     builderString.append "foo"
     builderString.appendMany ["foo", "1", "bar"]
     arrayString = builderString.finish
     print arrayString
 
-    builder32 = createBuilder Int32TypeHelper
+    builder32 = createBuilder Int32Type
     builder32.append 7
     arr32 = builder32.finish
     print arr32
     print arr32.data.length
 
-    builder = createBuilder Int64TypeHelper
+    builder = createBuilder Int64Type
     builder.append 7
     benchmark "append x20" (builder.appendMany (1 . upto 20))
     arrw = builder.finish
