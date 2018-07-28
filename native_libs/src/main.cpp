@@ -258,7 +258,7 @@ extern "C"
             return builder->null_count();
         };
     }
-    EXPORT arrow::PoolBuffer *builderObtainNullBuffer(arrow::ArrayBuilder *builder) noexcept
+    EXPORT arrow::ResizableBuffer *builderObtainNullBuffer(arrow::ArrayBuilder *builder) noexcept
     {
         LOG("@{}", (void*)builder);
         return TRANSLATE_EXCEPTION(nullptr)
