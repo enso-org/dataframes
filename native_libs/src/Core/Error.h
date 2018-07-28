@@ -2,20 +2,30 @@
 #include <string>
 #include "Logger.h"
 
+// Abominable workaround - standard library on Mac does not have invoke_result
+#if !defined(_MSC_VER) && !defined(__cpp_lib_is_invocable)
+namespace std
+{
+    template<typename F, typename ...Args>
+    using invoke_result_t = std::result_of_t<F(Args...)>;
+}
+#endif
+
+
 void setError(const char **outError, const char *errorToSet, const char *functionName) noexcept;
 void clearError(const char **outError) noexcept;
-
-template<typename F>
-constexpr bool returnsVoid = std::is_same_v<void, std::invoke_result_t<F>>;
 
 template<typename Function>
 auto translateExceptionToError(const char *functionName, const char **outError, Function &&f)
 {
+    using ResultType = std::invoke_result_t<Function>;
+    constexpr auto returnVoid = std::is_same_v<void, ResultType>;
+
     try
     {
         clearError(outError);
 
-        if constexpr(!returnsVoid<Function>)
+        if constexpr(!returnVoid)
         {
 #ifdef VERBOSE
             auto ret = f();
@@ -40,8 +50,7 @@ auto translateExceptionToError(const char *functionName, const char **outError, 
         setError(outError, "unknown exception", functionName);
     }
 
-    using ResultType = decltype(f());
-    if constexpr(!std::is_same_v<void, ResultType>)
+    if constexpr(!returnVoid)
         return ResultType{};
     else
         return;
