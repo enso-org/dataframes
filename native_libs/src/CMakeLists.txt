@@ -64,8 +64,8 @@ file(GLOB_RECURSE SRC_FILES ${PROJECT_SOURCE_DIR}/*.cpp)
 # Define the compilation target
 add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SRC_FILES})
 
-# Add root src directory to the includes path
-target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR} ${ARROW_INCLUDE})
+# Includes path: project root, arrow, third-party any-lite
+target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR} ${ARROW_INCLUDE} ${PROJECT_SOURCE_DIR}/../third-party/any-lite)
 
 if(XLNT_LIBRARY AND XLNT_INCLUDE)
     target_include_directories(${PROJECT_NAME} PRIVATE ${XLNT_INCLUDE})

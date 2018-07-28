@@ -1,11 +1,18 @@
 #pragma once
 
-#include <any>
+// NOTE: this a third-party C++17 std::any implementation - providing nonstd::any. 
+// When C++17 is available, it will default to std::any, otherwise it will provide
+// its own header-only implementation with the same interface.
+//
+// To be removed and replaced with std::any when C++17 complaint library is available
+// on Mac platforms we want to be compiled upon.
+#include <nonstd/any.hpp>
+
 #include <memory>
 #include <mutex>
 #include <sstream>
 #include <unordered_map>
-// TODO could get rid of most headers by using pimpl
+// TODO? could get rid of most headers by using pimpl
 
 // Class is meant as a helper for managing std::shared_ptr lifetimes when they are shared
 // with a foreign language through C API.
@@ -18,8 +25,24 @@
 // if needed it can be adjusted to work with other kinds of types with similar semantics.
 class LifetimeManager
 {
-    std::mutex mx;
-    std::unordered_multimap<void *, std::any> storage; // address => shared_ptr<T>
+    mutable std::mutex mx;
+    std::unordered_multimap<void *, nonstd::any> storage; // address => shared_ptr<T>
+
+    // Looks up the pointer and calls the given function with storage iterator (while having the storage lock).
+    template<typename Function>
+    auto access(void *ptr, Function &&f) const
+    {
+        std::unique_lock<std::mutex> lock{ mx };
+        if(auto itr = storage.find(ptr); itr != storage.end())
+        {
+            return f(itr);
+        }
+
+        std::ostringstream out;
+        out << "Cannot find storage for pointer " << ptr << " -- was it previously registered?";
+        throw std::runtime_error(out.str());
+    }
+
 public:
     LifetimeManager();
     ~LifetimeManager();
@@ -34,35 +57,22 @@ public:
     }
     void releaseOwnership(void *ptr)
     {
-        // TODO should separate retrieving any from storage and deleting it
-        // deleting can take time and lock is not needed then
+        access(ptr, [this] (auto itr)
         {
-            std::unique_lock<std::mutex> lock{ mx };
-            if(auto itr = storage.find(ptr); itr != storage.end())
-            {
-                storage.erase(itr);
-                return;
-            }
-        }
-
-        std::ostringstream out;
-        out << "Cannot unregister ownership of pointer " << ptr << " -- was it previously registered?";
-        throw std::runtime_error(out.str());
+            // TODO should separate retrieving any from storage and deleting it
+            // deleting can take time and lock is not needed then
+            storage.erase(itr);
+        });
     }
 
     // NOTE: be careful, as this does not handle shared_ptr casting (type should exactly match)
     template<typename T>
-    std::shared_ptr<T> accessOwned(void *ptr)
+    std::shared_ptr<T> accessOwned(void *ptr) const
     {
-        std::unique_lock<std::mutex> lock{ mx };
-        if(auto itr = storage.find(ptr); itr != storage.end())
+        return access(ptr, [&] (auto itr)
         {
-            return std::any_cast<std::shared_ptr<T>>(itr->second);
-        }
-
-        std::ostringstream out;
-        out << "Cannot resolve pointer " << ptr << " -- was it previously registered?";
-        throw std::runtime_error(out.str());
+            return nonstd::any_cast<std::shared_ptr<T>>(itr->second);
+        });
     }
 
     // TODO reconsider at some stage more explicit global state

@@ -31,5 +31,5 @@ public:
         }                                                     \
     } while(0)
 #else
-    #define LOG(...) 
+    #define LOG(...) do {} while(0)
 #endif
