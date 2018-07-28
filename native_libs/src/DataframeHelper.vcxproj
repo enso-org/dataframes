@@ -80,9 +80,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="API\Array.cpp" />
-    <ClCompile Include="API\ArrayData.cpp" />
-    <ClCompile Include="API\Buffer.cpp" />
     <ClCompile Include="Core\Error.cpp" />
     <ClCompile Include="Core\Logger.cpp" />
     <ClCompile Include="Core\Utils.cpp" />
