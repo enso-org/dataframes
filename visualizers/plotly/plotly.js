@@ -12,6 +12,15 @@
     };
     return newArr;
   };
+  var getColor = function (array, r,g,b,a, defR, defG, defB, defA){
+    var newColorArr = [];
+    for (var j = 0; j<array.length; j++){
+      var x = array[j];
+      newColorArr.push (x[r] !== " " && x[g] !== " " && x[b] !== " " && x[a] !== " " ? 'rgb(' + x[r] + ',' + x[g] + ',' + x[b] + ',' + x[a] + ')'  : 'rgb(' + defR + ',' + defG + ',' + defB + ',' + defA + ')' );
+    }; 
+    return newColorArr;
+  }
+
   var chart = null;
   window.addEventListener("load", function () {
     chart = Plotly.plot("plotly_div");
@@ -37,9 +46,7 @@
         colA = header.indexOf('color.a')
         s = header.indexOf('size')
         labels = header.indexOf('labels')
-        color = dataSeries.map(function(p){
-            return p[colR] !== " " && p[colG] !== " " && p[colB] !== " " && p[colA] !== " " ? 'rgb(' + p[colR] + ',' + p[colG] + ',' + p[colB] + ',' + p[colA] + ')'  : 'rgb(' + defColR + ',' + defColG + ',' + defColB + ',' + defColA + ')' 
-        });
+        color = getColor(dataSeries,colR, colG, colB, colA, defColR, defColG, defColB, defColA)
         datax = getColumn(dataSeries, posX, defPos);
         datay = getColumn(dataSeries, posY, defPos);
         dataz = getColumn(dataSeries, posZ, defPos);
