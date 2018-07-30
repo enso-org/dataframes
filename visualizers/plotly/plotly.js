@@ -65,8 +65,44 @@
           mode: "markers",
           name: "scatter1"
         };
+        var layout = {
+          font: {
+              family: "Hasklig, monospace",
+              size: 12,
+              color: "#abb2bf"
+          },
+          margin: {
+              l: 50,
+              r: 50,
+              b: 50,
+              t: 50,
+              pad: 4
+          },
+          xaxis: {
+            autotick: true,
+            ticks: 'outside',
+            tick0: 0,
+            dtick: 0.05,
+            ticklen: 3,
+            tickwidth: 1,
+            tickcolor: '#abb2bf',
+            linecolor: '#abb2bf'
+          },
+          yaxis: {
+            autotick: true,
+            ticks: 'outside',
+            tick0: 0,
+            dtick: 0.05,
+            ticklen: 3,
+            tickwidth: 1,
+            tickcolor: '#abb2bf',
+            linecolor: '#abb2bf'
+          },
+          paper_bgcolor: "#181b1f",
+          plot_bgcolor: "#181b1f"
+        };
         // Here things to do with data
-        Plotly.newPlot("plotly_div", [trace]);
+        Plotly.newPlot("plotly_div", [trace], layout);
     };
     });
 
