@@ -33,8 +33,8 @@ class TestArrayBuilder:
         assertEqual "type as text" type.toText "double"
         builder.append 7.0
         builder.appendMany (1 . upto 3 . each .toReal)
-        assertGE "builder.capacity" builder.capacity 6
-        assertEqual "builder.length" builder.length 6
+        assertGE "builder.capacity" builder.capacity 4
+        assertEqual "builder.length" builder.length 4
         builtArray = builder.finish
         assertThrow ("invalid index -1 throws") (builtArray.valueAt -1)
         assertThrow ("invalid index 6 throws") (builtArray.valueAt 6)
@@ -124,7 +124,17 @@ class TestArrayBuilder:
         self.testRoundTrip "Text round trip" StringType ["ten", "-5", "legion"]
         self.testRoundTrip "Maybe Text round trip" MaybeStringType [Just "ten", Just "-5", Just "legion", Nothing]
 
+    def testSlicing:
+        arr = listToArray Int32Type [1, 2, 3, 4, 5]
+        arr2 = arr.slice 1 3
+        assertEqual "slice result" arr2.toList [2, 3, 4]
+        buf1Ptr = arr.data.bufferAt 1 . data
+        buf2Ptr = arr2.data.bufferAt 1 . data
+        assert "ptr equal" (buf1Ptr.ptr == buf2Ptr.ptr)
+        assertEqual "sliced data has proper offset" arr2.data.offset (arr.data.offset+1)
+
     def run:
+        self.testSlicing
         self.testDoubleBuilder
         self.testListArrayRoundTrip
         self.testMaybeStringBuilder

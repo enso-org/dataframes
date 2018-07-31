@@ -80,6 +80,10 @@ class ArrayWrapper:
         ret = callHandlingError "arrayIsNullAt" CInt8 [self.ptr.toCArg, CInt64.fromInt index . toCArg] . toInt
         ret == 1
 
+    def slice fromIndex length:
+        ptr = callHandlingError "arraySlice" (Pointer None) [self.ptr.toCArg, CInt64.fromInt fromIndex . toCArg, CInt64.fromInt length . toCArg]
+        (wrapReleasableResouce ArrayWrapper ptr) self.typename
+
 class BufferWrapper:
     ptr :: ManagedPointer None
 
@@ -97,13 +101,20 @@ class BufferWrapper:
 class ArrayDataWrapper:
     ptr :: ManagedPointer None
 
+    def nullCount:
+        callHelper "arrayDataNullCount" CInt64 [self.ptr.toCArg] . toInt
     def length:
         callHelper "arrayDataLength" CInt64 [self.ptr.toCArg] . toInt
+    def offset:
+        callHelper "arrayDataOffset" CInt64 [self.ptr.toCArg] . toInt
     def bufferCount:
         callHelper "arrayDataBufferCount" CInt64 [self.ptr.toCArg] . toInt
     def bufferAt index:
         ptr = callHandlingError "arrayDataBufferAt" (Pointer None) [self.ptr.toCArg, CInt64.fromInt index . toCArg]
         wrapReleasableResouce BufferWrapper ptr
+    def type:
+        ptr = callHandlingError "arrayDataType" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce DataTypeWrapper ptr
 
 def createBuilderWrapper type:
     ptr = callHandlingError ("builder" + type + "New") (Pointer None) []

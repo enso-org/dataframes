@@ -345,6 +345,32 @@ extern "C"
             return arrayData->length;
         };
     }
+    EXPORT int64_t arrayDataNullCount(arrow::ArrayData *arrayData) noexcept
+    {
+        LOG("@{}", (void*)arrayData);
+        return TRANSLATE_EXCEPTION(nullptr)
+        {
+            return arrayData->null_count;
+        };
+    }
+    EXPORT int64_t arrayDataOffset(arrow::ArrayData *arrayData) noexcept
+    {
+        LOG("@{}", (void*)arrayData);
+        return TRANSLATE_EXCEPTION(nullptr)
+        {
+            return arrayData->offset;
+        };
+    }
+
+    // NOTE: needs release
+    EXPORT arrow::DataType *arrayDataType(arrow::ArrayData *arrayData, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)arrayData);
+        return TRANSLATE_EXCEPTION(nullptr)
+        {
+            return LifetimeManager::instance().addOwnership(arrayData->type);
+        };
+    }
 
     EXPORT int64_t arrayDataBufferCount(arrow::ArrayData *arrayData) noexcept
     {

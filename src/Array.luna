@@ -39,6 +39,9 @@ class Array a:
         self.toList.each val:
             builder.append (f val)
         builder.finish
+    def slice fromIndex length:
+        ptr = self.ptr.slice fromIndex length
+        Array self.typeTag ptr
 
 def createBuilder typeTag:
     bw = createBuilderWrapper typeTag.typename
