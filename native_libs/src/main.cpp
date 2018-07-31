@@ -82,8 +82,13 @@ To throwingCast(From *from)
     if(auto ret = dynamic_cast<To>(from))
         return ret;
 
-    std::ostringstream out;
-    out << "Failed to cast " << from << " to " << typeid(To).name();
+    std::ostringstream out;    
+    out << "Failed to cast " << from;
+    if(from) // we can obtain RTTI typename for non-null pointers
+        out << " being " << typeid(*from).name();
+
+    out << " to " << typeid(std::remove_pointer_t<To>).name();
+
     throw std::runtime_error(out.str());
 }
 
