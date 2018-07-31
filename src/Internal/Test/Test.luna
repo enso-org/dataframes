@@ -178,7 +178,13 @@ class TestArrayBuilder:
         assertEqual "type.name" fieldMaybeString.type.name "utf8"
         assertEqual "nullable" fieldMaybeString.nullable True
 
+    def testColumn:
+        col = Column.fromList "good numbers" Int64Type [1,2,3]
+        assertEqual "length" col.length 3
+
     def run:
+        self.testColumn
+        throw "stop"
         self.testField
         self.testDatatype
         self.testChunkedArray

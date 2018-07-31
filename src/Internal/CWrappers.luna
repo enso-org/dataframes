@@ -171,4 +171,29 @@ def createFieldWrapper name datatypeWrapper nullable:
     withCString name nameC:
         ptr = callHandlingError "fieldNew" (Pointer None) [nameC.toCArg, datatypeWrapper.ptr.toCArg, CInt8.fromInt (if nullable then 1 else 0) . toCArg]
         wrapReleasableResouce FieldWrapper ptr
+
+class ColumnWrapper:
+    ptr :: ManagedPointer None
     
+    def nullCount:
+        callHelper "columnLength" CInt64 [self.ptr.toCArg] . toInt
+    def length:
+        callHelper "columnNullCount" CInt64 [self.ptr.toCArg] . toInt
+    def field:
+        ptr = callHandlingError "columnField" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce FieldWrapper ptr
+    def type:
+        ptr = callHandlingError "columnType" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce DataTypeWrapper ptr
+    def data:
+        ptr = callHandlingError "columnData" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce ChunkedArrayWrapper ptr
+    def name:
+        callHandlingError "columnName" CString [self.ptr.toCArg] . toText
+    def slice fromIndex length:
+        ptr = callHandlingError "columnSlice" (Pointer None) [self.ptr.toCArg, CInt64.fromInt fromIndex . toCArg, CInt64.fromInt length . toCArg]
+        wrapReleasableResouce ColumnWrapper ptr
+
+def createColumnWrapper field chunks:
+    ptr = callHandlingError "columnNew" (Pointer None) [field.ptr.toCArg, chunks.ptr.toCArg]
+    wrapReleasableResouce ColumnWrapper ptr

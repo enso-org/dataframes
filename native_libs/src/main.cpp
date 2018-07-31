@@ -685,6 +685,78 @@ extern "C"
     }
 }
 
+// COLUMN
+extern "C"
+{
+    EXPORT arrow::Column *columnNew(arrow::Field *field, arrow::ChunkedArray *array, const char **outError) noexcept
+    {
+        LOG("{} {}", (void*)field, (void*)array);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto fieldManaged = LifetimeManager::instance().accessOwned(field);
+            auto arrayManaged = LifetimeManager::instance().accessOwned(array);
+            auto ret = std::make_shared<arrow::Column>(fieldManaged, arrayManaged);
+            return LifetimeManager::instance().addOwnership(std::move(ret));
+        };
+    }
+    EXPORT int64_t columnLength(arrow::Column *column) noexcept
+    {
+        LOG("@{}", (void*)column);
+        return TRANSLATE_EXCEPTION(nullptr)
+        {
+            return column->length();
+        };
+    }
+    EXPORT int64_t columnNullCount(arrow::Column *column) noexcept
+    {
+        LOG("@{}", (void*)column);
+        return TRANSLATE_EXCEPTION(nullptr)
+        {
+            return column->null_count();
+        };
+    }
+    EXPORT arrow::Field *columnField(arrow::Column *column, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)column);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return LifetimeManager::instance().addOwnership(column->field());
+        };
+    }
+    EXPORT arrow::DataType *columnType(arrow::Column *column, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)column);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return LifetimeManager::instance().addOwnership(column->type());
+        };
+    }
+    EXPORT arrow::ChunkedArray *columnData(arrow::Column *column, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)column);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return LifetimeManager::instance().addOwnership(column->data());
+        };
+    }
+    EXPORT const char *columnName(arrow::Column *column, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)column);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return returnString(column->name());
+        };
+    }
+    EXPORT arrow::Column *columnSlice(arrow::Column *column, int64_t fromIndex, int64_t count, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)column);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return LifetimeManager::instance().addOwnership(column->Slice(fromIndex, count));
+        };
+    }
+}
+
 // RESOURCE MANAGEMENT
 extern "C"
 {

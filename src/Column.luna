@@ -56,11 +56,52 @@ def createChunkedArrayFromChunks arrayChunks:
     wrapper = createChunkedArrayWrapperChunks (arrayChunks.each (_.ptr))
     ChunkedArray tag wrapper
 
+class TypedColumn a:
+    typeTag :: a
+    ptr :: ColumnWrapper
+
+    def nullCount: self.ptr.nullCount
+    def length: self.ptr.length
+    def field:
+        ptr = self.ptr.field
+        Field ptr
+    def type:
+        ptr = self.ptr.type
+        DataType ptr
+    def data:
+        ptr = self.ptr.data
+        ChunkedArray self.typeTag ptr
+    def name: self.ptr.name
+    def slice fromIndex length:
+        ptr = self.ptr.slice fromIndex length
+        TypedColumn self.typeTag ptr
+
 class Column:
-    Column  
-    ColumnInt (ChunkedArray Int64Type)
-    ColumnMaybeInt (ChunkedArray MaybeInt64Type)
-    ColumnReal (ChunkedArray DoubleType)
-    ColumnMaybeReal (ChunkedArray MaybeDoubleType)
-    ColumnText (ChunkedArray StringTypeType)
-    ColumnMaybeText (ChunkedArray MaybeStringTypeType)
+    Column
+    ColumnInt (TypedColumn Int64Type)
+    ColumnMaybeInt (TypedColumn MaybeInt64Type)
+    ColumnReal (TypedColumn DoubleType)
+    ColumnMaybeReal (TypedColumn MaybeDoubleType)
+    ColumnText (TypedColumn StringType)
+    ColumnMaybeText (TypedColumn MaybeStringType)
+
+    def fromColumnWrapper typeTag columnWrapper:
+        ptr = TypedColumn typeTag columnWrapper
+        case typeTag.typename of
+            "Int64" : if typeTag.nullable then ColumnMaybeInt ptr else ColumnInt ptr
+            other: throw ("fromColumnWrapper: Not supported typename: " + other)
+
+    def fromList typeTag name list:
+        array = listToArray typeTag list
+        chunks = createChunkedArrayFromChunk array
+        field = createField name typeTag
+        ptr = createColumnWrapper field.ptr chunks.ptr
+        self.fromColumnWrapper typeTag ptr
+
+    def nullCount: 
+        ColumnInt tc: tc.nullCount
+        ColumnMaybeInt tc: tc.nullCount
+        ColumnReal tc: tc.nullCount
+        ColumnMaybeReal tc: tc.nullCount
+        ColumnText tc: tc.nullCount
+        ColumnMaybeText tc: tc.nullCount
