@@ -19,6 +19,15 @@ class DataTypeWrapper:
     def bitWidth:
         self.callSelf "FixedWidthTypeBitWidth" CInt32 [] . toInt
 
+def createDataTypeWrapper typename:
+    value = case typename of
+                "Int32": 7
+                "Int64": 9
+                "Double": 12
+                "String": 13
+    ptr = callHandlingError "dataTypeNew" (Pointer None) [CInt8.fromInt value . toCArg]
+    wrapReleasableResouce DataTypeWrapper ptr
+
 # type-erased class that wraps an array builder for some type (identified by string)
 class ArrayBuilderWrapper:
     ptr :: ManagedPtr None
@@ -144,3 +153,22 @@ def createChunkedArrayWrapperChunks arrayWrappers:
         ptr = callHandlingError "chunkedArrayNewChunks" (Pointer None) [arrayC.ptr.toCArg, CInt32.fromInt arrayC.size . toCArg]
         wrapReleasableResouce ChunkedArrayWrapper ptr
 
+
+class FieldWrapper:
+    ptr :: ManagedPointer None
+
+    def name:
+        callHandlingError "fieldName" CString [self.ptr.toCArg] . toText
+    def type:
+        ptr = callHandlingError "fieldType" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce DataTypeWrapper ptr
+    def nullable:
+        (callHelper "fieldNullable" CInt8 [self.ptr.toCArg] . toInt) == 1
+    def toText:
+        callHandlingError "fieldToString" CString [self.ptr.toCArg] . toText
+
+def createFieldWrapper name datatypeWrapper nullable:
+    withCString name nameC:
+        ptr = callHandlingError "fieldNew" (Pointer None) [nameC.toCArg, datatypeWrapper.ptr.toCArg, CInt8.fromInt (if nullable then 1 else 0) . toCArg]
+        wrapReleasableResouce FieldWrapper ptr
+    

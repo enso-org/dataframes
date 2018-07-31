@@ -26,11 +26,11 @@
 class LifetimeManager
 {
     mutable std::mutex mx;
-    std::unordered_multimap<void *, nonstd::any> storage; // address => shared_ptr<T>
+    std::unordered_multimap<const void *, nonstd::any> storage; // address => shared_ptr<T>
 
     // Looks up the pointer and calls the given function with storage iterator (while having the storage lock).
     template<typename Function>
-    auto access(void *ptr, Function &&f) const
+    auto access(const void *ptr, Function &&f) const
     {
         std::unique_lock<std::mutex> lock{ mx };
         if(auto itr = storage.find(ptr); itr != storage.end())
@@ -55,7 +55,7 @@ public:
         storage.emplace(ret, std::move(ptr));
         return ret;
     }
-    void releaseOwnership(void *ptr)
+    void releaseOwnership(const void *ptr)
     {
         access(ptr, [this] (auto itr)
         {
@@ -67,7 +67,7 @@ public:
 
     // NOTE: be careful, as this does not handle shared_ptr casting (type should exactly match)
     template<typename T>
-    std::shared_ptr<T> accessOwned(void *ptr) const
+    std::shared_ptr<T> accessOwned(const void *ptr) const
     {
         return access(ptr, [&] (auto itr)
         {
@@ -75,9 +75,9 @@ public:
         });
     }
     template<typename T>
-    std::shared_ptr<T> accessOwned(T *ptr) const
+    std::shared_ptr<T> accessOwned(const T *ptr) const
     {
-        return accessOwned<T>(static_cast<void*>(ptr));
+        return accessOwned<T>(static_cast<const void*>(ptr));
     }
 
     // TODO reconsider at some stage more explicit global state

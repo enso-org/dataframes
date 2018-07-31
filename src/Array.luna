@@ -10,6 +10,10 @@ class DataType:
     def typeId: self.ptr.typeId
     def bitWidth: self.ptr.bitWidth
 
+def createDatatype typeTag:
+    ptr = createDataTypeWrapper typeTag.typename
+    DataType ptr
+
 class Array a:
     typeTag :: a
     ptr :: ArrayWrapper

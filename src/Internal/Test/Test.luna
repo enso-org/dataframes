@@ -150,7 +150,37 @@ class TestArrayBuilder:
         assertEqual "second chunk" (charr2.chunkAt 1 . toList) [10, 20, 30]
         assertEqual "as list" charr2.toList [1, 2, 3, 4, 5, 10, 20, 30]
 
+    def testDatatype:
+        typeInt32 = createDatatype Int32Type
+        assertEqual "name" typeInt32.name "int32"
+        assertEqual "bitWidth" typeInt32.bitWidth 32
+
+        typeInt64 = createDatatype Int64Type
+        assertEqual "name" typeInt64.name "int64"
+        assertEqual "bitWidth" typeInt64.bitWidth 64
+        
+        typeDouble = createDatatype DoubleType
+        assertEqual "name" typeDouble.name "double"
+        assertEqual "bitWidth" typeDouble.bitWidth 64
+        
+        typeString = createDatatype StringType
+        assertEqual "name" typeString.name "utf8"
+        assertThrow "bitWidth" typeString.bitWidth
+
+    def testField:
+        fieldInt64 = createField "x" Int64Type
+        assertEqual "name" fieldInt64.name "x"
+        assertEqual "type.name" fieldInt64.type.name "int64"
+        assertEqual "nullable" fieldInt64.nullable False
+
+        fieldMaybeString = createField "handle_name" MaybeStringType
+        assertEqual "name" fieldMaybeString.name "handle_name"
+        assertEqual "type.name" fieldMaybeString.type.name "utf8"
+        assertEqual "nullable" fieldMaybeString.nullable True
+
     def run:
+        self.testField
+        self.testDatatype
         self.testChunkedArray
         self.testSlicing
         self.testDoubleBuilder

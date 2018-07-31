@@ -138,6 +138,35 @@ extern "C"
 // DATATYPE
 extern "C"
 {
+    // NOTE: needs release
+    EXPORT arrow::DataType *dataTypeNew(int8_t id)
+    {
+        LOG("{}", (int)id);
+        return TRANSLATE_EXCEPTION(nullptr)
+        {
+            auto ret = [&] () -> std::shared_ptr<arrow::DataType>
+            {
+                switch(id)
+                {
+                case arrow::Type::INT32:
+                    return std::make_shared<arrow::Int32Type>();
+                case arrow::Type::INT64:
+                    return std::make_shared<arrow::Int64Type>();
+                case arrow::Type::DOUBLE:
+                    return std::make_shared<arrow::DoubleType>();
+                case arrow::Type::STRING:
+                    return std::make_shared<arrow::StringType>();
+                default:
+                {
+                    std::ostringstream out;
+                    out << "Not yet supported datatype id: " << id;
+                    throw std::runtime_error(out.str());
+                }
+                }
+            }();
+            return LifetimeManager::instance().addOwnership(std::move(ret));
+        };
+    }
     EXPORT const char *dataTypeName(arrow::DataType *datatype, const char **outError) noexcept
     {
         return TRANSLATE_EXCEPTION(outError)
@@ -605,6 +634,53 @@ extern "C"
         return TRANSLATE_EXCEPTION(outError)
         {
             return LifetimeManager::instance().addOwnership(array->type());
+        };
+    }
+}
+
+// FIELD
+extern "C"
+{
+    EXPORT arrow::Field *fieldNew(const char *name, const arrow::DataType *type, bool nullable, const char **outError) noexcept
+    {
+        LOG("{} {} {}", name, type->ToString(), nullable);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto managedType = LifetimeManager::instance().accessOwned(type);
+            auto ret = std::make_shared<arrow::Field>(name, std::move(managedType), nullable);
+            return LifetimeManager::instance().addOwnership(std::move(ret));
+        };
+    }
+    EXPORT const char *fieldName(arrow::Field *field, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)field);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return returnString(field->name());
+        };
+    }
+    EXPORT arrow::DataType *fieldType(arrow::Field *field, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)field);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return LifetimeManager::instance().addOwnership(field->type());
+        };
+    }
+    EXPORT bool fieldNullable(arrow::Field *field) noexcept
+    {
+        LOG("@{}", (void*)field);
+        return TRANSLATE_EXCEPTION(nullptr)
+        {
+            return field->nullable();
+        };
+    }
+    EXPORT const char *fieldToString(arrow::Field *field, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)field);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return returnString(field->ToString());
         };
     }
 }

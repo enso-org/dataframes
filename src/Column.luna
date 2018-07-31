@@ -4,6 +4,23 @@ import Dataframes.Types
 import Dataframes.Internal.CWrappers
 import Dataframes.Internal.Utils
 
+class Field:
+    ptr :: FieldWrapper
+
+    def name:
+        self.ptr.name
+    def type:
+        self.ptr.type
+    def nullable:
+        self.ptr.nullable
+    def toText:
+        self.ptr.toText
+
+def createField name typeTag:
+    datatypeWrapper = createDataTypeWrapper typeTag.typename
+    ptr = createFieldWrapper name datatypeWrapper typeTag.nullable
+    Field ptr
+
 class ChunkedArray a:
     typeTag :: a
     ptr :: ChunkedArrayWrapper
