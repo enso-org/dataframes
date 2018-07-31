@@ -35,7 +35,10 @@ def setHelperVerbosity isVerbose:
     callHelper "setVerbosity" None [CInt8.fromInt (if isVerbose then 1 else 0) . toCArg]
     
 def withCString text f:
-    bracket (CString.fromText text) (_.free) f
+    bracket (CString.fromText text) .free f
+
+def withArray type list f:
+    bracket (Array type . fromList list) .free f
 
 def wrapReleasableResouce f ptr:
     managedPtr = ManagedPointer None . fromPointer releaseMethod ptr

@@ -56,7 +56,7 @@ class ArrayBuilderWrapper:
     # 
     def finish:
         ptr = self.typeCall "Finish" (Pointer None) []
-        (wrapReleasableResouce ArrayWrapper ptr) self.typename
+        wrapReleasableResouce ArrayWrapper ptr
 
     def type:
         ptr = self.selfCall "ObtainType" (Pointer None) []
@@ -64,13 +64,12 @@ class ArrayBuilderWrapper:
 
 class ArrayWrapper:
     ptr :: ManagedPointer None
-    typename :: Text
 
     def length:
         callHelper "arrayLength" CInt64 [self.ptr.toCArg] . toInt
 
-    def value index retType:
-        callHandlingError ("array" + self.typename + "ValueAt") retType [self.ptr.toCArg, CInt64.fromInt index . toCArg]
+    def value index retType typename:
+        callHandlingError ("array" + typename + "ValueAt") retType [self.ptr.toCArg, CInt64.fromInt index . toCArg]
 
     def data:
         ptr = callHandlingError ("arrayData") (Pointer None) [self.ptr.toCArg]
@@ -82,7 +81,7 @@ class ArrayWrapper:
 
     def slice fromIndex length:
         ptr = callHandlingError "arraySlice" (Pointer None) [self.ptr.toCArg, CInt64.fromInt fromIndex . toCArg, CInt64.fromInt length . toCArg]
-        (wrapReleasableResouce ArrayWrapper ptr) self.typename
+        wrapReleasableResouce ArrayWrapper ptr
 
 class BufferWrapper:
     ptr :: ManagedPointer None
@@ -119,3 +118,29 @@ class ArrayDataWrapper:
 def createBuilderWrapper type:
     ptr = callHandlingError ("builder" + type + "New") (Pointer None) []
     wrapReleasableResouce ArrayBuilderWrapper ptr type
+
+class ChunkedArrayWrapper:
+    ptr :: ManagedPointer None
+    
+    def nullCount:
+        callHelper "chunkedArrayNullCount" CInt64 [self.ptr.toCArg] . toInt
+    def length:
+        callHelper "chunkedArrayLength" CInt64 [self.ptr.toCArg] . toInt
+    def chunkCount:
+        callHelper "chunkedArrayChunkCount" CInt64 [self.ptr.toCArg] . toInt
+    def chunkAt index:
+        ptr = callHandlingError "chunkedArrayChunkAt" (Pointer None) [self.ptr.toCArg, CInt32.fromInt index . toCArg]
+        wrapReleasableResouce ArrayWrapper ptr
+    def type:
+        ptr = callHandlingError "chunkedArrayDataType" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce DataTypeWrapper ptr
+
+def createChunkedArrayWrapperSingleton arrayWrapper:
+    ptr = callHandlingError "chunkedArrayNewSingleton" (Pointer None) [arrayWrapper.ptr.toCArg]
+    wrapReleasableResouce ChunkedArrayWrapper ptr
+
+def createChunkedArrayWrapperChunks arrayWrappers:
+    withArray (Pointer None) (arrayWrappers.each .ptr.ptr) arrayC:
+        ptr = callHandlingError "chunkedArrayNewChunks" (Pointer None) [arrayC.ptr.toCArg, CInt32.fromInt arrayC.size . toCArg]
+        wrapReleasableResouce ChunkedArrayWrapper ptr
+

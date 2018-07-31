@@ -1,6 +1,7 @@
 import Std.Test
 
 import Dataframes.Array
+import Dataframes.Column
 import Dataframes.Types
 
 def assert msg act:
@@ -133,7 +134,24 @@ class TestArrayBuilder:
         assert "ptr equal" (buf1Ptr.ptr == buf2Ptr.ptr)
         assertEqual "sliced data has proper offset" arr2.data.offset (arr.data.offset+1)
 
+    def testChunkedArray:
+        arr = listToArray Int32Type [1, 2, 3, 4, 5]
+        charr = createChunkedArrayFromChunk arr
+        assertEqual "chunked array type" charr.type.name "int32"
+        assertEqual "single chunk" charr.chunkCount 1
+        assertEqual "length" charr.length 5
+
+        arr2 = listToArray Int32Type [10, 20, 30]
+        charr2 = createChunkedArrayFromChunks [arr, arr2]
+        assertEqual "chunked array type" charr2.type.name "int32"
+        assertEqual "single chunk" charr2.chunkCount 2
+        assertEqual "length" charr2.length 8
+        assertEqual "null count" charr2.nullCount 0
+        assertEqual "second chunk" (charr2.chunkAt 1 . toList) [10, 20, 30]
+        assertEqual "as list" charr2.toList [1, 2, 3, 4, 5, 10, 20, 30]
+
     def run:
+        self.testChunkedArray
         self.testSlicing
         self.testDoubleBuilder
         self.testListArrayRoundTrip

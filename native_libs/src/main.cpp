@@ -524,6 +524,91 @@ extern "C"
     }
 }
 
+// CHUNKED ARRAY
+extern "C"
+{
+    EXPORT arrow::ChunkedArray *chunkedArrayNewSingleton(arrow::Array *array, const char **outError)
+    {
+        LOG("{}", (void*)array);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto managedArray = LifetimeManager::instance().accessOwned(array);
+            auto ptr = std::make_shared<arrow::ChunkedArray>(arrow::ArrayVector{managedArray});
+            return LifetimeManager::instance().addOwnership(std::move(ptr));
+        };
+    }
+    EXPORT arrow::ChunkedArray *chunkedArrayNewChunks(arrow::Array **arrays, int32_t chunkCount, const char **outError)
+    {
+        LOG("{} {}", (void*)arrays, chunkCount);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            arrow::ArrayVector chunksCollected;
+            chunksCollected.reserve(chunkCount);
+            for(int32_t i = 0; i < chunkCount; i++)
+            {
+                auto managedArray = LifetimeManager::instance().accessOwned(arrays[i]);
+                chunksCollected.emplace_back(std::move(managedArray));
+
+                if(i != 0)
+                {
+                    if(!chunksCollected.front()->type()->Equals(chunksCollected.back()->type()))
+                    {
+                        std::ostringstream msg;
+                        auto writeTypeAt = [&] (int index) 
+                        {
+                            msg << "at " << index << " the chunk type is " << chunksCollected.at(index)->type()->ToString();
+                        };
+                        msg << "Type mismatch between given array chunks: ";
+                        writeTypeAt(0);
+                        msg << "; while ";
+                        writeTypeAt(i);
+                        throw std::runtime_error(msg.str());
+                    }
+                }
+            }
+
+            auto ptr = std::make_shared<arrow::ChunkedArray>(chunksCollected);
+            return LifetimeManager::instance().addOwnership(std::move(ptr));
+        };
+    }
+
+    EXPORT int64_t chunkedArrayLength(arrow::ChunkedArray *array)
+    {
+        LOG("@{}", (void*)array);
+        return array->length();
+    }
+    EXPORT int64_t chunkedArrayNullCount(arrow::ChunkedArray *array)
+    {
+        LOG("@{}", (void*)array);
+        return array->null_count();
+    }
+    EXPORT int64_t chunkedArrayChunkCount(arrow::ChunkedArray *array)
+    {
+        LOG("@{}", (void*)array);
+        return array->num_chunks();
+    }
+
+    // NOTE: needs release
+    EXPORT arrow::Array *chunkedArrayChunkAt(arrow::ChunkedArray *array, int32_t index, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)array);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return LifetimeManager::instance().addOwnership(array->chunk(index));
+        };
+    }
+
+    // NOTE: needs release
+    EXPORT arrow::DataType *chunkedArrayDataType(arrow::ChunkedArray *array, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)array);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return LifetimeManager::instance().addOwnership(array->type());
+        };
+    }
+}
+
 // RESOURCE MANAGEMENT
 extern "C"
 {

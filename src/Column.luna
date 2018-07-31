@@ -1,0 +1,49 @@
+import Dataframes.Array
+import Dataframes.Types
+
+import Dataframes.Internal.CWrappers
+import Dataframes.Internal.Utils
+
+class ChunkedArray a:
+    typeTag :: a
+    ptr :: ChunkedArrayWrapper
+
+    def length:
+        self.ptr.length
+    def nullCount:
+        self.ptr.nullCount
+    def type:
+        self.ptr.type
+    def chunkCount:
+        self.ptr.chunkCount
+    def chunkAt index:
+        wrapper = self.ptr.chunkAt index
+        Array self.typeTag wrapper
+
+    def toText:
+        self.toList.toText
+    def toJSON:
+        self.toList.toJSON
+    def toList:
+        chunks = 0.upto (self.chunkCount - 1) . each self.chunkAt
+        chunks.each .toList . concat
+
+def createChunkedArrayFromChunk arrayChunk:
+    wrapper = createChunkedArrayWrapperSingleton arrayChunk.ptr
+    ChunkedArray arrayChunk.typeTag wrapper
+
+def createChunkedArrayFromChunks arrayChunks:
+    tag = case arrayChunks.head of
+        Just h: h.typeTag
+        Nothing: throw "Cannot create ChunkedArray without any chunks"
+    wrapper = createChunkedArrayWrapperChunks (arrayChunks.each (_.ptr))
+    ChunkedArray tag wrapper
+
+class Column:
+    Column  
+    ColumnInt (ChunkedArray Int64Type)
+    ColumnMaybeInt (ChunkedArray MaybeInt64Type)
+    ColumnReal (ChunkedArray DoubleType)
+    ColumnMaybeReal (ChunkedArray MaybeDoubleType)
+    ColumnText (ChunkedArray StringTypeType)
+    ColumnMaybeText (ChunkedArray MaybeStringTypeType)

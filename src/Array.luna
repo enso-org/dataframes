@@ -21,7 +21,7 @@ class Array a:
         self.ptr.length
     def valueAt index:
         isNull = self.typeTag.nullable.and (self.nullAt index)
-        cval = self.ptr.value index self.typeTag.ctype
+        cval = self.ptr.value index self.typeTag.ctype self.typeTag.typename
         self.typeTag.fromC isNull cval
     def toList:
         0.upto (self.length - 1) . each (self.valueAt _)

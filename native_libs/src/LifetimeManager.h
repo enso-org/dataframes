@@ -74,6 +74,11 @@ public:
             return nonstd::any_cast<std::shared_ptr<T>>(itr->second);
         });
     }
+    template<typename T>
+    std::shared_ptr<T> accessOwned(T *ptr) const
+    {
+        return accessOwned<T>(static_cast<void*>(ptr));
+    }
 
     // TODO reconsider at some stage more explicit global state
     static auto &instance()
