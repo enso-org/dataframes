@@ -192,6 +192,8 @@ class TestArrayBuilder:
         intCol = case col of
             ColumnInt tc: tc
         assertEqual "intCol.toList" intCol.toList [1,20,333]
+        assertEqual "slice 1 1" (col.slice 1 1).toList [20]
+        assertEqual "slice 1 2" (col.slice 1 2).toList [20, 333]
 
         colMappedReal = col.map Int64Type DoubleType "reals" (num: num.toReal + 1.5)
         assertEqual "real name" colMappedReal.name "reals"

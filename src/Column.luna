@@ -117,6 +117,16 @@ class Column:
             ColumnMaybeReal tc: tc.toList
             ColumnText      tc: tc.toList
             ColumnMaybeText tc: tc.toList
+            
+    def slice fromIndex length:
+        case self of
+            ColumnInt       tc: ntc = ColumnInt       (tc.slice fromIndex length)
+            ColumnMaybeInt  tc: ntc = ColumnMaybeInt  (tc.slice fromIndex length)
+            ColumnReal      tc: ntc = ColumnReal      (tc.slice fromIndex length)
+            ColumnMaybeReal tc: ntc = ColumnMaybeReal (tc.slice fromIndex length)
+            ColumnText      tc: ntc = ColumnText      (tc.slice fromIndex length)
+            ColumnMaybeText tc: ntc = ColumnMaybeText (tc.slice fromIndex length)
+
     def toText: self.toList.toText
     def toJSON: self.toList.toJSON
 
