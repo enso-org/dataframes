@@ -33,6 +33,8 @@ auto translateExceptionToError(const char *functionName, const char **outError, 
                 LOG("returning: {}", (void*)ret);
             else
                 LOG("returning: {}", ret);
+			//if(outError)
+			//	std::cout << "Out error " << (void*)outError << " is set to " << (void*)*outError << std::endl;
             return ret;
 #else
             return f();

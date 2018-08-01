@@ -113,6 +113,16 @@ void validateIndex(arrow::Array *array, int64_t index)
         throw std::out_of_range{ out.str() };
     }
 }
+template<typename T>
+void validateIndex(const std::vector<T> &array, int64_t index)
+{
+    if(index < 0 || index >= (int64_t)array.size())
+    {
+        std::ostringstream out;
+        out << "wrong index " << index << " when array length is " << array.size();
+        throw std::out_of_range{ out.str() };
+    }
+}
 
 namespace
 {
@@ -139,10 +149,10 @@ extern "C"
 extern "C"
 {
     // NOTE: needs release
-    EXPORT arrow::DataType *dataTypeNew(int8_t id)
+    EXPORT arrow::DataType *dataTypeNew(int8_t id, const char **outError)
     {
         LOG("{}", (int)id);
-        return TRANSLATE_EXCEPTION(nullptr)
+        return TRANSLATE_EXCEPTION(outError)
         {
             auto ret = [&] () -> std::shared_ptr<arrow::DataType>
             {
@@ -623,6 +633,7 @@ extern "C"
         LOG("@{}", (void*)array);
         return TRANSLATE_EXCEPTION(outError)
         {
+			validateIndex(array->chunks(), index);
             return LifetimeManager::instance().addOwnership(array->chunk(index));
         };
     }

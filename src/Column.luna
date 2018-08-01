@@ -37,7 +37,7 @@ class ChunkedArray a:
         wrapper = self.ptr.chunkAt index
         Array self.typeTag wrapper
     def map typeTag f:
-        newChunks = 0.upto (self.length - 1) . each index:
+        newChunks = 0.upto (self.chunkCount - 1) . each index:
             chunk = self.chunkAt index
             chunk . map typeTag f
         createChunkedArrayFromChunks newChunks
@@ -87,7 +87,6 @@ class TypedColumn a:
         newChunkedArray = self.data.map typeTag f
         field = createField newName typeTag
         createTypedColumn typeTag field newChunkedArray
-        throw "ok!"
         
 def createTypedColumn typeTag field chunks:
     ptr = createColumnWrapper field.ptr chunks.ptr
@@ -95,11 +94,11 @@ def createTypedColumn typeTag field chunks:
 
 class Column:
     Column
-    ColumnInt (TypedColumn Int64Type)
-    ColumnMaybeInt (TypedColumn MaybeInt64Type)
-    ColumnReal (TypedColumn DoubleType)
+    ColumnInt       (TypedColumn Int64Type      )
+    ColumnMaybeInt  (TypedColumn MaybeInt64Type )
+    ColumnReal      (TypedColumn DoubleType     )
     ColumnMaybeReal (TypedColumn MaybeDoubleType)
-    ColumnText (TypedColumn StringType)
+    ColumnText      (TypedColumn StringType     )
     ColumnMaybeText (TypedColumn MaybeStringType)
 
     def ptr:
@@ -122,7 +121,8 @@ class Column:
     def toJSON: self.toList.toJSON
 
     def map fromTypeTag toTypeTag newName f:
-        fromTypeTag.useColumn tc: tc.map toTypeTag newName f
+        tc = fromTypeTag.useColumn self (_.map toTypeTag newName f)
+        toTypeTag.makeColumn tc
 
     def fromColumnWrapper typeTag columnWrapper:
         ColumnInt (TypedColumn typeTag columnWrapper)

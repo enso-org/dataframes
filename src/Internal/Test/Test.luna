@@ -193,7 +193,14 @@ class TestArrayBuilder:
             ColumnInt tc: tc
         assertEqual "intCol.toList" intCol.toList [1,2,3]
 
-        colMapped = col.map Int64Type Int64Type "good strings" (num: num)
+        colMappedReal = col.map Int64Type DoubleType "reals" (num: num.toReal + 1.5)
+        assertEqual "real name" colMappedReal.name "reals"
+        assertEqual "real contents" colMappedReal.toList [2.5, 30.5, 444.5]
+        colMappedText = colMappedReal.map DoubleType StringType "good strings" (num: "good " + num.toText)
+        assertEqual "text name" colMappedText.name "good strings"
+        assertEqual "text contents" colMappedText.toList ["good 2.5", "good 30.5", "good 444.5"]
+        colMappedMaybeText = colMappedText.map StringType MaybeStringType "maybe strings" Just
+        assertEqual "maybe text contents" colMappedText.toList [Just "good 20.5", Just "good 3.5", Just "good 444.5"]
 
 
     def run:

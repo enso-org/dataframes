@@ -14,6 +14,10 @@ class StringType:
         val.toText
     def nullable: False
     def makeColumn typedColumn: ColumnText typedColumn
+    def useColumn column f: 
+        case column of
+            ColumnText tc: f tc
+            _: throw ("wrong column type, expected " + self.typename)
 class MaybeStringType:
     def append bw value:
         case value of
@@ -30,6 +34,11 @@ class MaybeStringType:
                 text = val.toText
                 Just text
     def nullable: True
+    def makeColumn typedColumn: ColumnMaybeText typedColumn
+    def useColumn column f: 
+        case column of
+            ColumnMaybeText tc: f tc
+            _: throw ("wrong column type, expected Maybe " + self.typename)
 class Int32Type:
     def append bw value:
         self.withValueAsC value bw.append
@@ -84,6 +93,11 @@ class MaybeInt64Type:
             True: Nothing
             False: Just val.toInt
     def nullable: True
+    def makeColumn typedColumn: ColumnMaybeInt typedColumn
+    def useColumn column f: 
+        case column of
+            ColumnMaybeInt tc: f tc
+            _: throw ("wrong column type, expected Maybe " + self.typename)
 
 class DoubleType:
     def append bw value:
@@ -95,6 +109,11 @@ class DoubleType:
     def fromC isNull val:
         val.toReal
     def nullable: False
+    def makeColumn typedColumn: ColumnReal typedColumn
+    def useColumn column f: 
+        case column of
+            ColumnReal tc: f tc
+            _: throw ("wrong column type, expected " + self.typename)
 class MaybeDoubleType:
     def append bw value:
         case value of
