@@ -193,7 +193,7 @@ class TestArrayBuilder:
             ColumnInt tc: tc
         assertEqual "intCol.toList" intCol.toList [1,2,3]
 
-        colMapped = col.map StringType "good strings" (num: (num.toText + " hallo!"))
+        colMapped = col.map StringType "good strings" (num: (" hallo!"))
 
 
     def run:
