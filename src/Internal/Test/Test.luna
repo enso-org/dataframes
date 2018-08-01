@@ -182,7 +182,7 @@ class TestArrayBuilder:
         assertEqual "nullable" fieldMaybeString.nullable True
 
     def testColumn:
-        col = Column.fromList "good numbers" Int64Type [1,2,3]
+        col = Column.fromList "good numbers" Int64Type [1,20,333]
         assertEqual "length" col.length 3
         assertEqual "name" col.name "good numbers"
         isIntCol = case col of
@@ -191,16 +191,20 @@ class TestArrayBuilder:
         assert "matched ColumnInt" isIntCol
         intCol = case col of
             ColumnInt tc: tc
-        assertEqual "intCol.toList" intCol.toList [1,2,3]
+        assertEqual "intCol.toList" intCol.toList [1,20,333]
 
         colMappedReal = col.map Int64Type DoubleType "reals" (num: num.toReal + 1.5)
         assertEqual "real name" colMappedReal.name "reals"
-        assertEqual "real contents" colMappedReal.toList [2.5, 30.5, 444.5]
+        assertEqual "real contents" colMappedReal.toList [2.5, 21.5, 334.5]
         colMappedText = colMappedReal.map DoubleType StringType "good strings" (num: "good " + num.toText)
         assertEqual "text name" colMappedText.name "good strings"
-        assertEqual "text contents" colMappedText.toList ["good 2.5", "good 30.5", "good 444.5"]
+        assertEqual "text contents" colMappedText.toList ["good 2.5", "good 21.5", "good 334.5"]
         colMappedMaybeText = colMappedText.map StringType MaybeStringType "maybe strings" Just
-        assertEqual "maybe text contents" colMappedText.toList [Just "good 20.5", Just "good 3.5", Just "good 444.5"]
+        assertEqual "maybe text contents" colMappedMaybeText.toList [Just "good 2.5", Just "good 21.5", Just "good 334.5"]
+        colMappedMaybeInt = colMappedMaybeText.map MaybeStringType MaybeInt64Type "maybe strings" (maybeText: maybeText.map .length)
+        assertEqual "maybe int contents" colMappedMaybeInt.toList [Just 8, Just 9, Just 10]
+        colMappedMaybeReal = colMappedMaybeInt.map MaybeInt64Type MaybeDoubleType "maybe strings" (maybeNum: Just (maybeNum.get.toReal + 0.5))
+        assertEqual "maybe real contents" colMappedMaybeReal.toList [Just 8.5, Just 9.5, Just 10.5]
 
 
     def run:

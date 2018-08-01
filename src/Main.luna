@@ -7,7 +7,6 @@ import Dataframes.Types
 import Dataframes.Internal.Test.Test
 
 
-
 def main:
     setHelperVerbosity False
     TestArrayBuilder.run

@@ -128,3 +128,8 @@ class MaybeDoubleType:
             True: Nothing
             False: Just val.toReal
     def nullable: True
+    def makeColumn typedColumn: ColumnMaybeReal typedColumn
+    def useColumn column f: 
+        case column of
+            ColumnMaybeReal tc: f tc
+            _: throw ("wrong column type, expected " + self.typename)
