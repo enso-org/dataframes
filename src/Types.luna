@@ -65,6 +65,11 @@ class Int64Type:
         val.toInt
     def nullable: False
     def makeColumn typedColumn: ColumnInt typedColumn
+    def useColumn column f: 
+        case column of
+            ColumnInt tc: f tc
+            _: throw ("wrong column type, expected " + self.typename)
+
 class MaybeInt64Type:
     def append bw value:
         case value of
