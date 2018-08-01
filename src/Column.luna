@@ -83,6 +83,16 @@ class TypedColumn a:
     def toList:
         self.data.toList
 
+    def map typeTag newName f:
+        newChunkedArray = self.data.map typeTag f
+        field = createField newName typeTag
+        createTypedColumn typeTag field newChunkedArray
+        throw "ok!"
+        
+def createTypedColumn typeTag field chunks:
+    ptr = createColumnWrapper field.ptr chunks.ptr
+    TypedColumn typeTag ptr
+
 class Column:
     Column
     ColumnInt (TypedColumn Int64Type)
@@ -110,6 +120,15 @@ class Column:
             ColumnMaybeText tc: tc.toList
     def toText: self.toList.toText
     def toJSON: self.toList.toJSON
+
+    def map typeTag newName f:
+        case self of
+            ColumnInt       tc: ColumnInt       (tc.map typeTag newName f)
+            ColumnMaybeInt  tc: ColumnMaybeInt  (tc.map typeTag newName f)
+            ColumnReal      tc: ColumnReal      (tc.map typeTag newName f)
+            ColumnMaybeReal tc: ColumnMaybeReal (tc.map typeTag newName f)
+            ColumnText      tc: ColumnText      (tc.map typeTag newName f)
+            ColumnMaybeText tc: ColumnMaybeText (tc.map typeTag newName f)
 
     def fromColumnWrapper typeTag columnWrapper:
         ColumnInt (TypedColumn typeTag columnWrapper)

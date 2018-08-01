@@ -193,11 +193,12 @@ class TestArrayBuilder:
             ColumnInt tc: tc
         assertEqual "intCol.toList" intCol.toList [1,2,3]
 
+        colMapped = col.map StringType "good strings" (num: (num.toText + " hallo!"))
+
 
     def run:
-        self.testField
         self.testColumn
-        self.testInt64Builder
+        self.testField
         throw "stop"
         self.testDatatype
         self.testChunkedArray
