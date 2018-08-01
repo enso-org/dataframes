@@ -176,9 +176,9 @@ class ColumnWrapper:
     ptr :: ManagedPointer None
     
     def nullCount:
-        callHelper "columnLength" CInt64 [self.ptr.toCArg] . toInt
-    def length:
         callHelper "columnNullCount" CInt64 [self.ptr.toCArg] . toInt
+    def length:
+        callHelper "columnLength" CInt64 [self.ptr.toCArg] . toInt
     def field:
         ptr = callHandlingError "columnField" (Pointer None) [self.ptr.toCArg]
         wrapReleasableResouce FieldWrapper ptr

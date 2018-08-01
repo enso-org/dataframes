@@ -57,7 +57,10 @@ class TestArrayBuilder:
         assertThrow ("invalid index -1 throws") (builtArray.valueAt -1)
         assertThrow ("invalid index 6 throws") (builtArray.valueAt 6)
         assertEqual "built single elem array" builtArray.toList [7, 1, 2, 3, 4, 5]
-        assertEqual "built single elem array" (builtArray.map (+10) . toList) [17, 11, 12, 13, 14, 15]
+        assertEqual "map to the same type" (builtArray.mapSame (+10) . toList) [17, 11, 12, 13, 14, 15]
+        def someFunction num: if num > 3 then Nothing else Just ("foo " + num.toText)
+        assertEqual "map that changes type" (builtArray.map MaybeStringType someFunction . toList) [Nothing, Just "foo 1", Just "foo 2", Just "foo 3", Nothing, Nothing]
+
     def testMaybeInt64Builder:
         print "=== Testing for (Maybe Int) ==="
         builder = createBuilder MaybeInt64Type
@@ -79,7 +82,7 @@ class TestArrayBuilder:
         assertEqual "value at 0" (builtArray.valueAt 0) (Just 7)
         assertEqual "value at 1" (builtArray.valueAt 1) Nothing
         assertEqual "built single elem array" builtArray.toList [Just 7, Nothing, Just 1, Just 2, Just 3]
-        assertEqual "built single elem array" (builtArray.map (_.map (+10)) . toList) [Just 17, Nothing, Just 11, Just 12, Just 13]
+        assertEqual "map to the same type" (builtArray.mapSame (_.map (+10)) . toList) [Just 17, Nothing, Just 11, Just 12, Just 13]
 
     # TODO: properly handle `assertEqual "type width" type.bitWidth 64`
     def testMaybeStringBuilder:
@@ -105,7 +108,7 @@ class TestArrayBuilder:
         assertEqual "value at 1" (builtArray.valueAt 1) Nothing
         assertEqual "built single elem array" builtArray.toList [Just "first", Nothing, Just "1", Just "2", Just "3"]
         print "================================="
-        print (builtArray.map elem:
+        print (builtArray.mapSame elem:
             case elem of 
                 Just val: Just (val + "-suffix")
                 Nothing: Nothing)
@@ -181,11 +184,21 @@ class TestArrayBuilder:
     def testColumn:
         col = Column.fromList "good numbers" Int64Type [1,2,3]
         assertEqual "length" col.length 3
+        assertEqual "name" col.name "good numbers"
+        isIntCol = case col of
+            ColumnInt _: True
+            _: False
+        assert "matched ColumnInt" isIntCol
+        intCol = case col of
+            ColumnInt tc: tc
+        assertEqual "intCol.toList" intCol.toList [1,2,3]
+
 
     def run:
-        self.testColumn
-        throw "stop"
         self.testField
+        self.testColumn
+        self.testInt64Builder
+        throw "stop"
         self.testDatatype
         self.testChunkedArray
         self.testSlicing

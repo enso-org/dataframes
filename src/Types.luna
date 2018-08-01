@@ -1,6 +1,7 @@
 import Std.Foreign.C.Value
 
 import Dataframes.Internal.Utils
+import Dataframes.Column
 
 class StringType:
     def append bw value:
@@ -12,6 +13,7 @@ class StringType:
     def fromC isNull val:
         val.toText
     def nullable: False
+    def makeColumn typedColumn: ColumnText typedColumn
 class MaybeStringType:
     def append bw value:
         case value of
@@ -62,6 +64,7 @@ class Int64Type:
     def fromC isNull val:
         val.toInt
     def nullable: False
+    def makeColumn typedColumn: ColumnInt typedColumn
 class MaybeInt64Type:
     def append bw value:
         case value of

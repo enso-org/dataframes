@@ -36,6 +36,11 @@ class ChunkedArray a:
     def chunkAt index:
         wrapper = self.ptr.chunkAt index
         Array self.typeTag wrapper
+    def map typeTag f:
+        newChunks = 0.upto (self.length - 1) . each index:
+            chunk = self.chunkAt index
+            chunk . map typeTag f
+        createChunkedArrayFromChunks newChunks
 
     def toText:
         self.toList.toText
@@ -75,6 +80,8 @@ class TypedColumn a:
     def slice fromIndex length:
         ptr = self.ptr.slice fromIndex length
         TypedColumn self.typeTag ptr
+    def toList:
+        self.data.toList
 
 class Column:
     Column
@@ -85,23 +92,36 @@ class Column:
     ColumnText (TypedColumn StringType)
     ColumnMaybeText (TypedColumn MaybeStringType)
 
-    def fromColumnWrapper typeTag columnWrapper:
-        ptr = TypedColumn typeTag columnWrapper
-        case typeTag.typename of
-            "Int64" : if typeTag.nullable then ColumnMaybeInt ptr else ColumnInt ptr
-            other: throw ("fromColumnWrapper: Not supported typename: " + other)
+    def ptr:
+        case self of
+            ColumnInt       tc: tc.ptr
+            ColumnMaybeInt  tc: tc.ptr
+            ColumnReal      tc: tc.ptr
+            ColumnMaybeReal tc: tc.ptr
+            ColumnText      tc: tc.ptr
+            ColumnMaybeText tc: tc.ptr
+    def toList:
+        case self of
+            ColumnInt       tc: tc.toList
+            ColumnMaybeInt  tc: tc.toList
+            ColumnReal      tc: tc.toList
+            ColumnMaybeReal tc: tc.toList
+            ColumnText      tc: tc.toList
+            ColumnMaybeText tc: tc.toList
+    def toText: self.toList.toText
+    def toJSON: self.toList.toJSON
 
-    def fromList typeTag name list:
+    def fromColumnWrapper typeTag columnWrapper:
+        ColumnInt (TypedColumn typeTag columnWrapper)
+
+    def fromList name typeTag list:
         array = listToArray typeTag list
         chunks = createChunkedArrayFromChunk array
         field = createField name typeTag
         ptr = createColumnWrapper field.ptr chunks.ptr
-        self.fromColumnWrapper typeTag ptr
+        typedCol = TypedColumn typeTag ptr
+        typeTag.makeColumn typedCol
 
-    def nullCount: 
-        ColumnInt tc: tc.nullCount
-        ColumnMaybeInt tc: tc.nullCount
-        ColumnReal tc: tc.nullCount
-        ColumnMaybeReal tc: tc.nullCount
-        ColumnText tc: tc.nullCount
-        ColumnMaybeText tc: tc.nullCount
+    def nullCount: self.ptr.nullCount
+    def length: self.ptr.length
+    def name: self.ptr.name

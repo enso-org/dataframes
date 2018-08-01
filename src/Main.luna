@@ -9,8 +9,8 @@ import Dataframes.Internal.Test.Test
 
 
 def main:
-    TestArrayBuilder.run
     setHelperVerbosity False
+    TestArrayBuilder.run
 
     builder32 = createBuilder Int32Type
     builder32.append 7
@@ -41,6 +41,6 @@ def main:
     print ("Buffer's slice size: " + bufferSlice.size.toText)
 
     print arrw
-    arrwInc = arrw.map (_ + 1)
+    arrwInc = arrw.mapSame (_ + 1)
     print arrwInc
     print "Done"

@@ -37,9 +37,9 @@ class Array a:
         self.ptr.nullAt index
     
     # TODO: could be faster: deep copy buffer and overwrite with new values
-    # TODO: handle null presence
-    def map f:
-        builder = createBuilder self.typeTag
+    def mapSame f: self.map self.typeTag f
+    def map typeTag f:
+        builder = createBuilder typeTag
         self.toList.each val:
             builder.append (f val)
         builder.finish
