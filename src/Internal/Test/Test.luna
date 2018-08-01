@@ -58,7 +58,7 @@ class TestArrayBuilder:
         assertThrow ("invalid index 6 throws") (builtArray.valueAt 6)
         assertEqual "built single elem array" builtArray.toList [7, 1, 2, 3, 4, 5]
         assertEqual "map to the same type" (builtArray.mapSame (+10) . toList) [17, 11, 12, 13, 14, 15]
-        def someFunction num: if num > 3 then Nothing else Just ("foo " + num.toText)
+        def someFunction num = if num > 3 then Nothing else Just ("foo " + num.toText)
         assertEqual "map that changes type" (builtArray.map MaybeStringType someFunction . toList) [Nothing, Just "foo 1", Just "foo 2", Just "foo 3", Nothing, Nothing]
 
     def testMaybeInt64Builder:
