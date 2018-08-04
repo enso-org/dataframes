@@ -11,6 +11,7 @@
 #include <memory>
 #include <mutex>
 #include <sstream>
+#include <vector>
 #include <unordered_map>
 // TODO? could get rid of most headers by using pimpl
 
