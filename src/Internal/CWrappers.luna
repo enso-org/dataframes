@@ -236,3 +236,18 @@ def createSchemaWrapper fieldWrappers:
         ptr = callHandlingError "schemaNew" (Pointer None) [arrayC.ptr.toCArg, CInt32.fromInt arrayC.size . toCArg]
         wrapReleasableResouce SchemaWrapper ptr
 
+class TableWrapper:
+    ptr :: ManagedPointer None
+
+    def columnCount:
+        callHelper "tableColumnCount" CInt32 [self.ptr.toCArg] . toInt
+    def rowCount:
+        callHelper "tableRowCount" CInt64 [self.ptr.toCArg] . toInt
+    def schema:
+        ptr = callHandlingError "tableSchema" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce SchemaWrapper ptr
+
+def createTableWrapper schemaWrapper columnWrappers:
+    withArray (Pointer None) (columnWrappers.each .ptr.ptr) columnsCArray:
+        ptr = callHandlingError "tableNewFromSchamColumns" (Pointer None) [schemaWrapper.ptr.toCArg, columnsCArray.ptr.toCArg, CInt32.fromInt columnsCArray.size . toCArg]   
+        wrapReleasableResouce TableWrapper ptr

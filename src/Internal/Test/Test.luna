@@ -252,8 +252,25 @@ class TestArrayBuilder:
         assertThrow "remove field past index" (schema2.removeField -1)
         assertThrow "remove field past index" (schema2.removeField 5)
 
+    def testTable:
+        colX = Column.fromList "x" Int64Type [0, 10, -10, 500]
+        colY = Column.fromList "y" Int64Type [1, 2, 3, 600]
+        colName = Column.fromList "name" StringType ["start", "left", "right", "far away"]
+        t = Table.fromColumns [colX, colY, colName]
+
+        assertEqual "column count" t.columnCount 3
+        assertEqual "row count" t.rowCount 4
+
+        schema = t.schema
+        assertEqual "schema has 3 fields" schema.fieldCount 3
+        assertEqual "field 0" (schema.fieldAt 0) colX.field
+        assertEqual "field 1" (schema.fieldAt 1) colY.field
+        assertEqual "field 2" (schema.fieldAt 2) colName.field
+        
 
     def run:
+        self.testTable
+        throw "stop"
         self.testSchema
         self.testColumn
         self.testField

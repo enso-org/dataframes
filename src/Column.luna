@@ -179,4 +179,28 @@ class Column:
     def nullCount: self.ptr.nullCount
     def length: self.ptr.length
     def name: self.ptr.name
+    def field: 
+        wrapper = self.ptr.field
+        Field wrapper
 
+class Table:
+    Table
+    TableVal (TableWrapper)
+
+    def ptr: 
+        case self of 
+            TableVal ptr: ptr
+
+    def fromSchemaAndColumns schema columns:
+        wrapper = createTableWrapper schema.ptr (columns.each .ptr)
+        TableVal wrapper
+    def fromColumns columns:
+        schema = createSchema (columns.each .field)
+        wrapper = createTableWrapper schema.ptr (columns.each .ptr)
+        TableVal wrapper
+
+    def columnCount: self.ptr.columnCount
+    def rowCount: self.ptr.rowCount
+    def schema:
+        wrapper = self.ptr.schema
+        Schema wrapper
