@@ -302,19 +302,19 @@ extern "C"
             return builder->null_count();
         };
     }
-    EXPORT arrow::ResizableBuffer *builderObtainNullBuffer(arrow::ArrayBuilder *builder) noexcept
+    EXPORT arrow::ResizableBuffer *builderObtainNullBuffer(arrow::ArrayBuilder *builder, const char **outError) noexcept
     {
         LOG("@{}", (void*)builder);
-        return TRANSLATE_EXCEPTION(nullptr)
+        return TRANSLATE_EXCEPTION(outError)
         {
             return LifetimeManager::instance().addOwnership(builder->null_bitmap());
         };
     }
     // needs release
-    EXPORT arrow::DataType *builderObtainType(arrow::ArrayBuilder *builder) noexcept
+    EXPORT arrow::DataType *builderObtainType(arrow::ArrayBuilder *builder, const char **outError) noexcept
     {
         LOG("@{}", (void*)builder);
-        return TRANSLATE_EXCEPTION(nullptr)
+        return TRANSLATE_EXCEPTION(outError)
         {
             return LifetimeManager::instance().addOwnership(builder->type());
         };
@@ -576,18 +576,16 @@ extern "C"
             return LifetimeManager::instance().addOwnership(std::move(ptr));
         };
     }
-    EXPORT arrow::ChunkedArray *chunkedArrayNewChunks(arrow::Array **arrays, int32_t chunkCount, const char **outError)
+    EXPORT arrow::ChunkedArray *chunkedArrayNewChunks(const arrow::Array **arrays, int32_t chunkCount, const char **outError)
     {
         LOG("{} {}", (void*)arrays, chunkCount);
         return TRANSLATE_EXCEPTION(outError)
         {
-            arrow::ArrayVector chunksCollected;
-            chunksCollected.reserve(chunkCount);
-            for(int32_t i = 0; i < chunkCount; i++)
-            {
-                auto managedArray = LifetimeManager::instance().accessOwned(arrays[i]);
-                chunksCollected.emplace_back(std::move(managedArray));
+            arrow::ArrayVector chunksCollected = LifetimeManager::instance().accessOwnedArray(arrays, chunkCount);
 
+            // All arrays in chunk must be of the same type
+            for(int32_t i = 1; i < chunkCount; i++)
+            {
                 if(i != 0)
                 {
                     if(!chunksCollected.front()->type()->Equals(chunksCollected.back()->type()))
@@ -606,7 +604,7 @@ extern "C"
                 }
             }
 
-            auto ptr = std::make_shared<arrow::ChunkedArray>(chunksCollected);
+            auto ptr = std::make_shared<arrow::ChunkedArray>(std::move(chunksCollected));
             return LifetimeManager::instance().addOwnership(std::move(ptr));
         };
     }
@@ -694,6 +692,14 @@ extern "C"
             return returnString(field->ToString());
         };
     }
+    EXPORT bool fieldEquals(arrow::Field *lhs, arrow::Field *rhs, const char **outError) noexcept
+    {
+        LOG("@{} @{}", (void*)lhs, (void*)rhs);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return lhs->Equals(*rhs);
+        };
+    }
 }
 
 // COLUMN
@@ -764,6 +770,162 @@ extern "C"
         return TRANSLATE_EXCEPTION(outError)
         {
             return LifetimeManager::instance().addOwnership(column->Slice(fromIndex, count));
+        };
+    }
+}
+
+// SCHEMA
+extern "C"
+{
+    EXPORT arrow::Schema *schemaNew(const arrow::Field **fields, int32_t fieldCount, const char **outError) noexcept
+    {
+        LOG("{} {}", (void*)fields, fieldCount);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto fieldsManaged = LifetimeManager::instance().accessOwnedArray(fields, fieldCount);
+            auto ret = std::make_shared<arrow::Schema>(std::move(fieldsManaged));
+            return LifetimeManager::instance().addOwnership(std::move(ret));
+        };
+    }
+
+    EXPORT int32_t schemaFieldCount(arrow::Schema *schema) noexcept
+    {
+        LOG("@{}", (void*)schema);
+        return TRANSLATE_EXCEPTION(nullptr)
+        {
+            return schema->num_fields();
+        };
+    }
+
+    EXPORT arrow::Field *schemaFieldAt(arrow::Schema *schema, int32_t index, const char **outError) noexcept
+    {
+        LOG("@{}, {}", (void*)schema, index);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            validateIndex(schema->fields(), index);
+            return LifetimeManager::instance().addOwnership(schema->field(index));
+        };
+    }
+
+    EXPORT arrow::Field *schemaFieldByName(arrow::Schema *schema, const char *name, const char **outError) noexcept
+    {
+        LOG("@{}, {}", (void*)schema, name);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return LifetimeManager::instance().addOwnership(schema->GetFieldByName(name));
+        };
+    }
+
+    EXPORT int32_t schemaFieldIndexByName(arrow::Schema *schema, const char *name, const char **outError) noexcept
+    {
+        LOG("@{}, {}", (void*)schema, name);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return schema->GetFieldIndex(name);
+        };
+    }
+
+    EXPORT const char *schemaToString(arrow::Schema *schema, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)schema);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return returnString(schema->ToString());
+        };
+    }
+
+    EXPORT arrow::Schema *schemaAddField(arrow::Schema *schema, int32_t index, arrow::Field *field, const char **outError) noexcept
+    {
+        LOG("@{} {} {}", (void*)schema, index, (void*)field);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto fieldManaged = LifetimeManager::instance().accessOwned(field);
+
+            std::shared_ptr<arrow::Schema> ret;
+            checkStatus(schema->AddField(index, fieldManaged, &ret));
+            return LifetimeManager::instance().addOwnership(std::move(ret));
+        };
+    }
+    EXPORT arrow::Schema *schemaRemoveField(arrow::Schema *schema, int32_t index, const char **outError) noexcept
+    {
+        LOG("@{} {}", (void*)schema, index);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            std::shared_ptr<arrow::Schema> ret;
+            checkStatus(schema->RemoveField(index, &ret));
+            return LifetimeManager::instance().addOwnership(std::move(ret));
+        };
+    }
+}
+
+// TABLE
+extern "C"
+{
+    EXPORT arrow::Table *tableNewFromSchamColumns(arrow::Schema *schema, const arrow::Column **columns, int32_t columnCount, const char **outError) noexcept
+    {
+        LOG("{} {} {}", (void*)schema, (void*)columns, columnCount);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto managedSchema = LifetimeManager::instance().accessOwned(schema);
+            auto managedColumns = LifetimeManager::instance().accessOwnedArray(columns, columnCount);
+            auto ret = arrow::Table::Make(managedSchema, managedColumns);
+            return LifetimeManager::instance().addOwnership(std::move(ret));
+        };
+    }
+
+    EXPORT arrow::Schema *tableSchema(arrow::Table *table, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)table);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return LifetimeManager::instance().addOwnership(table->schema());
+        };
+    }
+
+    EXPORT std::int64_t tableRowCount(arrow::Table *table) noexcept
+    {
+        LOG("@{} {}", (void*)table);
+        return TRANSLATE_EXCEPTION(nullptr)
+        {
+            return table->num_rows();
+        };
+    }
+    EXPORT std::int32_t tableColumnCount(arrow::Table *table) noexcept
+    {
+        LOG("@{} {}", (void*)table);
+        return TRANSLATE_EXCEPTION(nullptr)
+        {
+            return table->num_columns();
+        };
+    }
+    EXPORT arrow::Column *tableColumnAt(arrow::Table *table, int32_t index, const char **outError) noexcept
+    {
+        LOG("@{} {}", (void*)table, index);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return LifetimeManager::instance().addOwnership(table->column(index));
+        };
+    }
+    EXPORT arrow::Table *tableAddColumn(arrow::Table *table, int32_t index, arrow::Column *column, const char **outError) noexcept
+    {
+        LOG("@{} {}", (void*)table, index);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto managedColumn = LifetimeManager::instance().accessOwned(column);
+
+            std::shared_ptr<arrow::Table> ret;
+            checkStatus(table->AddColumn(index, managedColumn, &ret));
+            return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
+    EXPORT arrow::Table *tableRemoveColumn(arrow::Table *table, int32_t index, const char **outError) noexcept
+    {
+        LOG("@{} {}", (void*)table, index);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            std::shared_ptr<arrow::Table> ret;
+            checkStatus(table->RemoveColumn(index, &ret));
+            return LifetimeManager::instance().addOwnership(ret);
         };
     }
 }

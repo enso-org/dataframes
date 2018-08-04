@@ -50,6 +50,10 @@ public:
     template<typename T>
     T *addOwnership(std::shared_ptr<T> ptr)
     {
+        // we don't bother tracking nullptr - there is no object with a lifetime to manage
+        if(!ptr)
+            return nullptr;
+
         auto ret = ptr.get();
         std::unique_lock<std::mutex> lock{ mx };
         storage.emplace(ret, std::move(ptr));
@@ -79,6 +83,21 @@ public:
     {
         return accessOwned<T>(static_cast<const void*>(ptr));
     }
+
+    template<typename T>
+    std::vector<std::shared_ptr<T>> accessOwnedArray(const T **ptr, int32_t itemCount) const
+    {
+        std::vector<std::shared_ptr<T>> ret;
+        ret.reserve(itemCount);
+        for(int32_t i = 0; i < itemCount; i++)
+        {
+            auto managedItem = accessOwned(ptr[i]);
+            ret.emplace_back(std::move(managedItem));
+        }
+
+        return ret;
+    }
+
 
     // TODO reconsider at some stage more explicit global state
     static auto &instance()

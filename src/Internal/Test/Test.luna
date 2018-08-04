@@ -4,18 +4,23 @@ import Dataframes.Array
 import Dataframes.Column
 import Dataframes.Types
 
-def assert msg act:
-    result = runError act
+def executeTest msg action:
+    result = runError action
     case result of
         Left e: print ("[FAILURE] " + msg + ": " + e)
         Right v: print ("[SUCCESS] " + msg + ": " + v.toText)
     None
+
 def require pred msg:
     if pred then msg else throw msg
+def assert msg act:
+    executeTest msg (require act "predicate")
 def assertEqual msg a b:
-    assert msg (require (a == b) (a.toText + " == " + b.toText))
+    executeTest msg (require (a == b) (a.toText + " == " + b.toText))
+def assertNE msg a b:
+    executeTest msg (require (a == b).not (a.toText + " != " + b.toText))
 def assertGE msg a b:
-    assert msg (require (a >= b) (a.toText + " >= " + b.toText))
+    executeTest msg (require (a >= b) (a.toText + " >= " + b.toText))
 def assertThrow msg action:
     result = runError action
     print case result of
@@ -208,11 +213,45 @@ class TestArrayBuilder:
         colMappedMaybeReal = colMappedMaybeInt.map MaybeInt64Type MaybeDoubleType "maybe strings" (maybeNum: Just (maybeNum.get.toReal + 0.5))
         assertEqual "maybe real contents" colMappedMaybeReal.toList [Just 8.5, Just 9.5, Just 10.5]
 
+    def testSchema:
+        x = createField "x" Int64Type
+        y = createField "y" Int64Type
+        z = createField "z" MaybeInt64Type
+        name = createField "name" StringType
+        value = createField "value" DoubleType
+        
+        schema = createSchema [x, y, z, name]
+        assertEqual "fieldCount" schema.fieldCount 4
+        assertThrow "field negative index" (schema.fieldAt -1)
+        assertEqual "field name" (schema.fieldAt 0 . name) "x"
+        assertEqual "field name" (schema.fieldAt 1 . name) "y"
+        assertEqual "field name" (schema.fieldAt 2 . name) "z"
+        assertEqual "field name" (schema.fieldAt 3 . name) "name"
+        assertThrow "field past size" (schema.fieldAt 4)
+        assert "field 0 is x" (schema.fieldAt 0 . ptr . ptr . ptr == x.ptr.ptr.ptr)
+        assert "field 0 is not y" (schema.fieldAt 0 . ptr . ptr . ptr == y.ptr.ptr.ptr).not
+        assertGE "produces non-empty text" schema.toText.length 0
+        assertEqual "find x" (schema.fieldByName "x" . get . name) "x"
+        assertEqual "find w" (schema.fieldByName "w") Nothing
+        assertEqual "find z index" (schema.fieldIndexByName "z") (Just 2)
+        assertEqual "find v index" (schema.fieldIndexByName "v") Nothing
+        assertEqual "schema fields list" schema.toList [x, y, z, name]
+        assertNE "schema fields list" schema.toList [x, z, y, name]
+
+        schema2 = schema.addField 3 value
+        assertEqual "schema2 fieldCount" schema2.fieldCount 5
+        assertEqual "schema2 fields list" schema2.toList [x, y, z, value, name]
+
+        schema3 = schema2.removeField 2
+        assertEqual "schema3 fieldCount" schema3.fieldCount 4
+        assertEqual "schema3 fields list" schema3.toList [x, y, value, name]
+
 
     def run:
+        self.testSchema
+        throw "stop"
         self.testColumn
         self.testField
-        throw "stop"
         self.testDatatype
         self.testChunkedArray
         self.testSlicing

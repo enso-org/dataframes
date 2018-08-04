@@ -166,6 +166,8 @@ class FieldWrapper:
         (callHelper "fieldNullable" CInt8 [self.ptr.toCArg] . toInt) == 1
     def toText:
         callHandlingError "fieldToString" CString [self.ptr.toCArg] . toText
+    def equals rhsFieldWrapper:
+        (callHandlingError "fieldEquals" CInt8 [self.ptr.toCArg, rhsFieldWrapper.ptr.toCArg] . toInt) == 1
 
 def createFieldWrapper name datatypeWrapper nullable:
     withCString name nameC:
@@ -197,3 +199,40 @@ class ColumnWrapper:
 def createColumnWrapper field chunks:
     ptr = callHandlingError "columnNew" (Pointer None) [field.ptr.toCArg, chunks.ptr.toCArg]
     wrapReleasableResouce ColumnWrapper ptr
+
+class SchemaWrapper:
+    ptr :: ManagedPointer None
+
+    def fieldCount:
+        callHelper "schemaFieldCount" CInt32 [self.ptr.toCArg] . toInt
+    def fieldAt index:
+        ptr = callHandlingError "schemaFieldAt" (Pointer None) [self.ptr.toCArg, CInt32.fromInt index . toCArg]
+        wrapReleasableResouce FieldWrapper ptr
+    def toText:
+        callHandlingError "schemaToString" CString [self.ptr.toCArg] . toText
+    def fieldByName name:
+        withCString name nameC:
+            ptr = callHandlingError "schemaFieldByName" (Pointer None) [self.ptr.toCArg, nameC.toCArg]
+            case ptr.isNull of
+                True: Nothing
+                False: Just (wrapReleasableResouce FieldWrapper ptr)
+    def fieldIndexByName name:
+        withCString name nameC:
+            index = callHandlingError "schemaFieldIndexByName" CInt32 [self.ptr.toCArg, nameC.toCArg] . toInt
+            case (index < 0) of
+                True: Nothing
+                False: Just index
+    def addField index fieldWrapper:
+        ptr = callHandlingError "schemaAddField" (Pointer None) [self.ptr.toCArg, CInt32.fromInt index . toCArg, fieldWrapper.ptr.ptr.toCArg]
+        wrapReleasableResouce SchemaWrapper ptr
+    def removeField index:
+        ptr = callHandlingError "schemaRemoveField" (Pointer None) [self.ptr.toCArg, CInt32.fromInt index . toCArg]
+        wrapReleasableResouce SchemaWrapper ptr
+    def toList:
+        0 . upto (self.fieldCount - 1) . each self.fieldAt
+
+def createSchemaWrapper fieldWrappers:
+    withArray (Pointer None) (fieldWrappers.each .ptr.ptr) arrayC:
+        ptr = callHandlingError "schemaNew" (Pointer None) [arrayC.ptr.toCArg, CInt32.fromInt arrayC.size . toCArg]
+        wrapReleasableResouce SchemaWrapper ptr
+
