@@ -1,4 +1,6 @@
 .vs/
 x64/
+build/
+.idea/
 
 *.vcxproj.user
