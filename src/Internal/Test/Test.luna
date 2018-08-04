@@ -241,15 +241,20 @@ class TestArrayBuilder:
         schema2 = schema.addField 3 value
         assertEqual "schema2 fieldCount" schema2.fieldCount 5
         assertEqual "schema2 fields list" schema2.toList [x, y, z, value, name]
+        assertThrow "add field past index" (schema.addField 5 value)
+        assertThrow "add field past index" (schema.addField -1 value)
+        assertEqual "schema2b fields list" (schema.addField 4 value . toList) [x, y, z, name, value]
+        assertEqual "schema2c fields list" (schema2.addField 4 value . toList) [x, y, z, value, value, name]
 
         schema3 = schema2.removeField 2
         assertEqual "schema3 fieldCount" schema3.fieldCount 4
         assertEqual "schema3 fields list" schema3.toList [x, y, value, name]
+        assertThrow "remove field past index" (schema2.removeField -1)
+        assertThrow "remove field past index" (schema2.removeField 5)
 
 
     def run:
         self.testSchema
-        throw "stop"
         self.testColumn
         self.testField
         self.testDatatype
