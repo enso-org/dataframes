@@ -884,7 +884,7 @@ extern "C"
 
     EXPORT std::int64_t tableRowCount(arrow::Table *table) noexcept
     {
-        LOG("@{} {}", (void*)table);
+        LOG("@{}", (void*)table);
         return TRANSLATE_EXCEPTION(nullptr)
         {
             return table->num_rows();
@@ -892,7 +892,7 @@ extern "C"
     }
     EXPORT std::int32_t tableColumnCount(arrow::Table *table) noexcept
     {
-        LOG("@{} {}", (void*)table);
+        LOG("@{}", (void*)table);
         return TRANSLATE_EXCEPTION(nullptr)
         {
             return table->num_columns();
@@ -926,6 +926,14 @@ extern "C"
             std::shared_ptr<arrow::Table> ret;
             checkStatus(table->RemoveColumn(index, &ret));
             return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
+    EXPORT bool tableEquals(arrow::Table *lhs, arrow::Table *rhs, const char **outError) noexcept
+    {
+        LOG("@{} @{}", (void*)lhs, (void*)rhs);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return lhs->Equals(*rhs);
         };
     }
 }

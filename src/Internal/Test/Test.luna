@@ -267,6 +267,28 @@ class TestArrayBuilder:
         assertEqual "field 1" (schema.fieldAt 1) colY.field
         assertEqual "field 2" (schema.fieldAt 2) colName.field
         
+        col0 = t.columnAt 0
+        assertEqual "column 0 contents" col0.toList [0, 10, -10, 500]
+        assertEqual "column 0 name" col0.name "x"
+
+        assertThrow "removing column by index -1" (t.removeColumn -1)
+        assertThrow "removing column by index 3" (t.removeColumn 3)
+        
+        t2 = t.removeColumn 2
+        assertEqual "columnCount" t2.columnCount 2
+        assertEqual "rowCount" t2.rowCount 4
+        assertEqual "names" t2.columnNames ["x", "y"]
+
+        assertThrow "adding column at -1" (t2.addColumn -1 colName)
+        assertThrow "adding column at 3" (t2.addColumn 3 colName)
+        
+        t3 = t2.addColumn 1 colName
+        assertEqual "names" t3.columnNames ["x", "name", "y"]
+        t3b = t2.addColumn 2 colName
+        assertEqual "names" t3b.columnNames ["x", "y", "name"]
+        assertEqual "add-remove equivalence" t t3b 
+        assertNE "order equivalence" t t3 
+
 
     def run:
         self.testTable

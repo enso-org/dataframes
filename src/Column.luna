@@ -165,8 +165,17 @@ class Column:
         tc = fromTypeTag.useColumn self (_.map toTypeTag newName f)
         toTypeTag.makeColumn tc
 
-    def fromColumnWrapper typeTag columnWrapper:
-        ColumnInt (TypedColumn typeTag columnWrapper)
+    def fromColumnWrapper columnWrapper:
+        fw = columnWrapper.field
+        case fw.nullable of
+            True: case fw.type.name of
+                "int64":  ColumnMaybeInt  (TypedColumn MaybeInt64Type  columnWrapper)
+                "double": ColumnMaybeReal (TypedColumn MaybeDoubleType columnWrapper)
+                "utf8":   ColumnMaybeText (TypedColumn MaybeStringType columnWrapper)
+            False: case fw.type.name of
+                "int64":  ColumnInt  (TypedColumn Int64Type  columnWrapper)
+                "double": ColumnReal (TypedColumn DoubleType columnWrapper)
+                "utf8":   ColumnText (TypedColumn StringType columnWrapper)
 
     def fromList name typeTag list:
         array = listToArray typeTag list
@@ -204,3 +213,20 @@ class Table:
     def schema:
         wrapper = self.ptr.schema
         Schema wrapper
+    def columnAt index: 
+        columnWrapper = self.ptr.columnAt index
+        Column.fromColumnWrapper columnWrapper
+    def addColumn index column:
+        wrapper = self.ptr.addColumn index column.ptr
+        TableVal wrapper
+    def removeColumn index:
+        wrapper = self.ptr.removeColumn index
+        TableVal wrapper
+    def toList:
+        self.ptr.toList.each Column.fromColumnWrapper
+    def toText:
+        self.toList.toText
+    def columnNames:
+        self.toList.each .name
+    def == that:
+        self.ptr.equals that.ptr

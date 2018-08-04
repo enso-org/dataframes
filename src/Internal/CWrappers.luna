@@ -246,6 +246,20 @@ class TableWrapper:
     def schema:
         ptr = callHandlingError "tableSchema" (Pointer None) [self.ptr.toCArg]
         wrapReleasableResouce SchemaWrapper ptr
+    def columnAt index:
+        ptr = callHandlingError "tableColumnAt" (Pointer None) [self.ptr.toCArg, CInt32.fromInt index . toCArg]
+        wrapReleasableResouce ColumnWrapper ptr
+    def addColumn index columnWrapper:
+        ptr = callHandlingError "tableAddColumn" (Pointer None) [self.ptr.toCArg, CInt32.fromInt index . toCArg, columnWrapper.ptr.ptr.toCArg]
+        wrapReleasableResouce TableWrapper ptr
+    def removeColumn index:
+        ptr = callHandlingError "tableRemoveColumn" (Pointer None) [self.ptr.toCArg, CInt32.fromInt index . toCArg]
+        wrapReleasableResouce TableWrapper ptr
+    def equals that:
+        callHandlingError "tableEquals" CInt8 [self.ptr.toCArg, that.ptr.toCArg] . toInt == 1
+    def toList:
+        0 . upto (self.columnCount - 1) . each self.columnAt
+
 
 def createTableWrapper schemaWrapper columnWrappers:
     withArray (Pointer None) (columnWrappers.each .ptr.ptr) columnsCArray:

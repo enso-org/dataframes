@@ -9,37 +9,4 @@ import Dataframes.Internal.Test.Test
 
 def main:
     setHelperVerbosity False
-    TestArrayBuilder.run
-
-    builder32 = createBuilder Int32Type
-    builder32.append 7
-    arr32 = builder32.finish
-    print arr32
-    print arr32.data.length
-
-    builder = createBuilder Int64Type
-    builder.append 7
-    benchmark "append x20" (builder.appendMany (1 . upto 20))
-    arrw = builder.finish
-    print "after finish"
-    print arrw.length
-    print (arrw.valueAt 10)
-
-    def valuePtr:
-        ptr = arrw.data.bufferAt 1 . data
-        v = PointerVal CInt64 ptr.ptr.cast
-        l = arrw.length
-        car = ArrayVal l v
-        car.toList
-        
-    benchmark "as C array" valuePtr
-    buffer = arrw.data.bufferAt 1
-    bufferCopy = buffer . copyNFrom 0 buffer.size
-    print ("Buffer's copy size: " + bufferCopy.size.toText)
-    bufferSlice = buffer . slice 2 (buffer.size - 2)
-    print ("Buffer's slice size: " + bufferSlice.size.toText)
-
-    print arrw
-    arrwInc = arrw.mapSame (_ + 1)
-    print arrwInc
-    print "Done"
+    benchmark "running tests" TestArrayBuilder.run
