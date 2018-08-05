@@ -21,6 +21,11 @@ def assertNE msg a b:
     executeTest msg (require (a == b).not (a.toText + " != " + b.toText))
 def assertGE msg a b:
     executeTest msg (require (a >= b) (a.toText + " >= " + b.toText))
+def assertNoThrow msg action:
+    result = runError action
+    print case result of
+        Left e: "[FAILUJE] " + msg + ": threw " + e
+        Right v: "[SUCCESS] " + msg + ": didn't throw: " + v.toText
 def assertThrow msg action:
     result = runError action
     print case result of
@@ -289,7 +294,19 @@ class TestArrayBuilder:
         assertEqual "add-remove equivalence" t t3b 
         assertNE "order equivalence" t t3 
 
+    # broken and unfinished tests, will need == on JSON
+    def testJSON:
+        col0JSON = t.columnAt 0 . toJSON
+        print $ "COLUMN 0 JSON: " + col0JSON.toText
+        assertNoThrow "column json is map" col0JSON.asObject
+        assertEqual "object size" (col0JSON.safeAsObject.map .size) (Just 2)
+        assertEqual "header" (col0JSON.lookupList "header") (Just ["x"].toJSON)
+        assertEqual "data" (col0JSON.lookupList "data") (Just [[0], [10], [-10], [500]].toJSON)
 
+        tableJson = t.toJSON
+        assertEqual "header" (tableJson.lookupList "header") (Just ["x", "y", "name"])
+        assertEqual "data" (tableJson.lookupList "data") (Just [[0, 10, -10, 500], [1, 2, 3, 600], ["start", "left", "right", "far away"]])
+ 
     def run:
         self.testTable
         throw "stop"

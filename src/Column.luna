@@ -159,7 +159,9 @@ class Column:
             ColumnMaybeText tc: ntc = ColumnMaybeText (tc.slice fromIndex length)
 
     def toText: self.toList.toText
-    def toJSON: self.toList.toJSON
+
+    def toJSON:
+        JSON.empty . insert "header" [self.name] . insert "data" (self.toList . each (Prepend _ Empty))
 
     def map fromTypeTag toTypeTag newName f:
         tc = fromTypeTag.useColumn self (_.map toTypeTag newName f)
@@ -230,3 +232,9 @@ class Table:
         self.toList.each .name
     def == that:
         self.ptr.equals that.ptr
+    def toJSON:
+        columnValueLists = self.toList.each .toList
+        rowIndices = 0.upto (self.rowCount - 1)
+        rows = rowIndices.each rowIndex:
+            columnValueLists.each (_.getAt rowIndex)
+        JSON.empty . insert "header" self.columnNames . insert "data" rows
