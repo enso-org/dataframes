@@ -206,6 +206,7 @@ class TestArrayBuilder:
         assertEqual "slice 1 2" (col.slice 1 2).toList [20, 333]
 
         colMappedReal = col.map Int64Type DoubleType "reals" (num: num.toReal + 1.5)
+        print "========================================"
         assertEqual "real name" colMappedReal.name "reals"
         assertEqual "real contents" colMappedReal.toList [2.5, 21.5, 334.5]
         colMappedText = colMappedReal.map DoubleType StringType "good strings" (num: "good " + num.toText)
@@ -294,22 +295,19 @@ class TestArrayBuilder:
         assertEqual "add-remove equivalence" t t3b 
         assertNE "order equivalence" t t3 
 
-    # broken and unfinished tests, will need == on JSON
-    def testJSON:
         col0JSON = t.columnAt 0 . toJSON
         print $ "COLUMN 0 JSON: " + col0JSON.toText
         assertNoThrow "column json is map" col0JSON.asObject
         assertEqual "object size" (col0JSON.safeAsObject.map .size) (Just 2)
-        assertEqual "header" (col0JSON.lookupList "header") (Just ["x"].toJSON)
-        assertEqual "data" (col0JSON.lookupList "data") (Just [[0], [10], [-10], [500]].toJSON)
+        assertEqual "header" (col0JSON.lookup "header") (Just ["x"].toJSON)
+        assertEqual "data" (col0JSON.lookup "data") (Just [[0], [10], [-10], [500]].toJSON)
 
         tableJson = t.toJSON
-        assertEqual "header" (tableJson.lookupList "header") (Just ["x", "y", "name"])
-        assertEqual "data" (tableJson.lookupList "data") (Just [[0, 10, -10, 500], [1, 2, 3, 600], ["start", "left", "right", "far away"]])
+        assertEqual "header" (tableJson.lookup "header") (Just ["x", "y", "name"].toJSON)
  
     def run:
+
         self.testTable
-        throw "stop"
         self.testSchema
         self.testColumn
         self.testField

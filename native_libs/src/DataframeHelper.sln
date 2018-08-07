@@ -10,6 +10,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DataframeHelperTests", "..\test\DataframeHelperTests.vcxproj", "{EAD3EB9B-8C2F-40E8-80A1-4B5ED9AD6842}"
+	ProjectSection(ProjectDependencies) = postProject
+		{899B5CE2-B02C-4841-AAE8-6F33B5F1460E} = {899B5CE2-B02C-4841-AAE8-6F33B5F1460E}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -20,6 +25,10 @@ Global
 		{899B5CE2-B02C-4841-AAE8-6F33B5F1460E}.Debug|x64.Build.0 = Debug|x64
 		{899B5CE2-B02C-4841-AAE8-6F33B5F1460E}.Release|x64.ActiveCfg = Release|x64
 		{899B5CE2-B02C-4841-AAE8-6F33B5F1460E}.Release|x64.Build.0 = Release|x64
+		{EAD3EB9B-8C2F-40E8-80A1-4B5ED9AD6842}.Debug|x64.ActiveCfg = Debug|x64
+		{EAD3EB9B-8C2F-40E8-80A1-4B5ED9AD6842}.Debug|x64.Build.0 = Debug|x64
+		{EAD3EB9B-8C2F-40E8-80A1-4B5ED9AD6842}.Release|x64.ActiveCfg = Release|x64
+		{EAD3EB9B-8C2F-40E8-80A1-4B5ED9AD6842}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

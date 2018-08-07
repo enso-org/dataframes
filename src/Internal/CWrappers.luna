@@ -149,7 +149,7 @@ def createChunkedArrayWrapperSingleton arrayWrapper:
     wrapReleasableResouce ChunkedArrayWrapper ptr
 
 def createChunkedArrayWrapperChunks arrayWrappers:
-    withArray (Pointer None) (arrayWrappers.each .ptr.ptr) arrayC:
+    Array (Pointer None) . with (arrayWrappers.each .ptr.ptr) arrayC:
         ptr = callHandlingError "chunkedArrayNewChunks" (Pointer None) [arrayC.ptr.toCArg, CInt32.fromInt arrayC.size . toCArg]
         wrapReleasableResouce ChunkedArrayWrapper ptr
 
@@ -170,7 +170,7 @@ class FieldWrapper:
         (callHandlingError "fieldEquals" CInt8 [self.ptr.toCArg, rhsFieldWrapper.ptr.toCArg] . toInt) == 1
 
 def createFieldWrapper name datatypeWrapper nullable:
-    withCString name nameC:
+    CString.with name nameC:
         ptr = callHandlingError "fieldNew" (Pointer None) [nameC.toCArg, datatypeWrapper.ptr.toCArg, CInt8.fromInt (if nullable then 1 else 0) . toCArg]
         wrapReleasableResouce FieldWrapper ptr
 
@@ -211,13 +211,13 @@ class SchemaWrapper:
     def toText:
         callHandlingError "schemaToString" CString [self.ptr.toCArg] . toText
     def fieldByName name:
-        withCString name nameC:
+        CString.with name nameC:
             ptr = callHandlingError "schemaFieldByName" (Pointer None) [self.ptr.toCArg, nameC.toCArg]
             case ptr.isNull of
                 True: Nothing
                 False: Just (wrapReleasableResouce FieldWrapper ptr)
     def fieldIndexByName name:
-        withCString name nameC:
+        CString.with name nameC:
             index = callHandlingError "schemaFieldIndexByName" CInt32 [self.ptr.toCArg, nameC.toCArg] . toInt
             case (index < 0) of
                 True: Nothing
@@ -232,7 +232,7 @@ class SchemaWrapper:
         0 . upto (self.fieldCount - 1) . each self.fieldAt
 
 def createSchemaWrapper fieldWrappers:
-    withArray (Pointer None) (fieldWrappers.each .ptr.ptr) arrayC:
+    Array (Pointer None) . with (fieldWrappers.each .ptr.ptr) arrayC:
         ptr = callHandlingError "schemaNew" (Pointer None) [arrayC.ptr.toCArg, CInt32.fromInt arrayC.size . toCArg]
         wrapReleasableResouce SchemaWrapper ptr
 
@@ -262,6 +262,11 @@ class TableWrapper:
 
 
 def createTableWrapper schemaWrapper columnWrappers:
-    withArray (Pointer None) (columnWrappers.each .ptr.ptr) columnsCArray:
+    Array (Pointer None) . with (columnWrappers.each .ptr.ptr) columnsCArray:
         ptr = callHandlingError "tableNewFromSchamColumns" (Pointer None) [schemaWrapper.ptr.toCArg, columnsCArray.ptr.toCArg, CInt32.fromInt columnsCArray.size . toCArg]   
+        wrapReleasableResouce TableWrapper ptr
+
+def readTableFromFile path:
+    CString.with path pathC:
+        ptr = callHandlingError "readTableFromFile" (Pointer None) [pathC.toCArg]
         wrapReleasableResouce TableWrapper ptr

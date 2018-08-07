@@ -7,7 +7,7 @@ class StringType:
     def append bw value:
         self.withValueAsC value bw.append
     def withValueAsC value f:
-        withCString value f
+        CString.with value f
     def typename: "String"
     def ctype: CString
     def fromC isNull val:
@@ -24,7 +24,7 @@ class MaybeStringType:
             Just justValue: self.withValueAsC justValue bw.append
             Nothing: bw.appendNull
     def withValueAsC value f:
-        withCString value f
+        CString.with value f
     def typename: "String"
     def ctype: CString
     def fromC isNull val:

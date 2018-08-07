@@ -209,6 +209,9 @@ class Table:
         schema = createSchema (columns.each .field)
         wrapper = createTableWrapper schema.ptr (columns.each .ptr)
         TableVal wrapper
+    def fromFile path:
+        wrapper = readTableFromFile path
+        TableVal wrapper
 
     def columnCount: self.ptr.columnCount
     def rowCount: self.ptr.rowCount

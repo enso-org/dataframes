@@ -10,21 +10,24 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="TestCSV.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
-    <ProjectGuid>{899B5CE2-B02C-4841-AAE8-6F33B5F1460E}</ProjectGuid>
-    <RootNamespace>DataframeHelper</RootNamespace>
+    <ProjectGuid>{EAD3EB9B-8C2F-40E8-80A1-4B5ED9AD6842}</ProjectGuid>
+    <RootNamespace>DataframeHelperTest</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -43,11 +46,11 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LibraryPath>$(QtDir)\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(OutDir);$(LibraryPath)</LibraryPath>
     <IncludePath>$(SolutionDir)\..\third-party\any-lite;$(SolutionDir);$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LibraryPath>$(QtDir)\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(OutDir);$(LibraryPath)</LibraryPath>
     <IncludePath>$(SolutionDir)\..\third-party\any-lite;$(SolutionDir);$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -73,28 +76,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
-    <Link>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Qt5Quick.lib;Qt5Qml.lib;Qt5Widgets.lib;Qt5Network.lib;Qt5Gui.lib;Qt5Core.lib;Qt5Svg.lib;Qt5Test.lib;Qt5PrintSupport.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="Core\Error.cpp" />
-    <ClCompile Include="Core\Logger.cpp" />
-    <ClCompile Include="Core\Utils.cpp" />
-    <ClCompile Include="csv.cpp" />
-    <ClCompile Include="IO.cpp" />
-    <ClCompile Include="LifetimeManager.cpp" />
-    <ClCompile Include="main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Core\Common.h" />
-    <ClInclude Include="Core\Error.h" />
-    <ClInclude Include="Core\Logger.h" />
-    <ClInclude Include="IO.h" />
-    <ClInclude Include="LifetimeManager.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

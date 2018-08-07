@@ -8,6 +8,7 @@
 #include "Core/Error.h"
 #include "Core/Logger.h"
 #include "LifetimeManager.h"
+#include "csv.h"
 
 #include <arrow/array.h>
 #include <arrow/buffer.h>
@@ -934,6 +935,23 @@ extern "C"
         return TRANSLATE_EXCEPTION(outError)
         {
             return lhs->Equals(*rhs);
+        };
+    }
+}
+
+// IO
+extern "C"
+{
+    EXPORT arrow::Table *readTableFromFile(const char *filename, const char **outError)
+    {
+        LOG("@{}", filename);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            // assume csv
+            // TODO deduce separators
+            auto csv = parseCsvFile(filename); 
+            auto table = csvToArrowTable(csv);
+            return LifetimeManager::instance().addOwnership(table);
         };
     }
 }
