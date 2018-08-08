@@ -3,7 +3,10 @@
 #include <cstddef>
 #include <memory>
 #include <ostream>
+#include <variant>
 #include <vector>
+
+#include <arrow/type.h>
 
 #include "Core/Common.h"
 
@@ -19,6 +22,8 @@ struct EXPORT NaiveStringView
     NaiveStringView(char *text,  std::ptrdiff_t length)
         : text(text), length(length)
     {}
+
+    NaiveStringView(NaiveStringView &&) = default;
 
     friend auto &operator<<(std::ostream &out, const NaiveStringView &nsv)
     {
@@ -53,8 +58,22 @@ struct ParsedCsv
     ParsedCsv(ParsedCsv &&) = default;
 };
 
+struct TakeFirstRowAsHeaders {};
+struct GenerateColumnNames {};
+using HeaderPolicy = std::variant<TakeFirstRowAsHeaders, GenerateColumnNames, std::vector<std::string>>;
+
+struct ColumnType
+{
+    std::shared_ptr<arrow::DataType> type;
+    bool nullable;
+
+    ColumnType(std::shared_ptr<arrow::DataType> type, bool nullable)
+        : type(type), nullable(nullable)
+    {}
+};
+
 EXPORT NaiveStringView parseField(char *&bufferIterator, char *bufferEnd, char fieldSeparator, char recordSeparator, char quote);
 EXPORT std::vector<NaiveStringView> parseRecord(char *&bufferIterator, char *bufferEnd, char fieldSeparator, char recordSeparator, char quote);
 EXPORT std::vector<std::vector<NaiveStringView>> parseCsvTable(char *&bufferIterator, char *bufferEnd, char fieldSeparator, char recordSeparator, char quote);
 EXPORT ParsedCsv parseCsvFile(const char *filepath, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');
-EXPORT std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv);
+EXPORT std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy header, std::vector<ColumnType> columnTypes);

@@ -1,7 +1,9 @@
 #define BOOST_TEST_MODULE CsvTests
 #include <boost/test/included/unit_test.hpp>
+#include <chrono>
 
 #include "csv.h"
+#include "IO.h"
 
 #pragma comment(lib, "DataframeHelper.lib")
 
@@ -83,5 +85,53 @@ BOOST_AUTO_TEST_CASE(ParseFile)
 {
 	auto path = R"(F:\dev\Dataframes\data\simple_empty.csv)";
 	auto csv = parseCsvFile(path);
-	auto table = csvToArrowTable(csv);
+	auto table = csvToArrowTable(csv, TakeFirstRowAsHeaders{}, {});
+}
+
+template<typename F, typename ...Args>
+static auto duration(F&& func, Args&&... args)
+{
+	const auto start = std::chrono::steady_clock::now();
+	std::invoke(std::forward<F>(func), std::forward<Args>(args)...);
+	return std::chrono::steady_clock::now() - start;
+}
+
+template<typename F, typename ...Args>
+static auto measure(std::string text, F&& func, Args&&... args)
+{
+	const auto t = duration(std::forward<F>(func), std::forward<Args>(args)...);
+	std::cout << text << " took " << std::chrono::duration_cast<std::chrono::milliseconds>(t).count() << " ms" << std::endl;
+	return t;
+}
+
+std::string get_file_contents(const char *filename)
+{
+	std::ifstream in(filename, std::ios::in);
+	if (in)
+	{
+		std::string contents;
+		in.seekg(0, std::ios::end);
+		contents.resize(in.tellg());
+		in.seekg(0, std::ios::beg);
+		in.read(&contents[0], contents.size());
+		in.close();
+		return(contents);
+	}
+	throw(errno);
+}
+
+BOOST_AUTO_TEST_CASE(ParseBigFile)
+{
+ 	const auto path = R"(E:/hmda_lar-florida.csv)";
+// 	for(int i  = 0; i < 20; i++)
+// 	{
+// 		measure("load big file contents1", getFileContents, path);
+// 		measure("load big file contents2", get_file_contents, path);
+// 	}
+
+	measure("big file", [&]
+	{
+		auto csv = parseCsvFile(path);
+		auto table = csvToArrowTable(csv, TakeFirstRowAsHeaders{}, {});
+	});
 }

@@ -125,6 +125,27 @@ void validateIndex(const std::vector<T> &array, int64_t index)
     }
 }
 
+std::shared_ptr<arrow::DataType> idToDataType(arrow::Type::type id)
+{
+    switch(id)
+    {
+    case arrow::Type::INT32:
+        return std::make_shared<arrow::Int32Type>();
+    case arrow::Type::INT64:
+        return std::make_shared<arrow::Int64Type>();
+    case arrow::Type::DOUBLE:
+        return std::make_shared<arrow::DoubleType>();
+    case arrow::Type::STRING:
+        return std::make_shared<arrow::StringType>();
+    default:
+    {
+        std::ostringstream out;
+        out << "Not yet supported datatype id: " << id;
+        throw std::runtime_error(out.str());
+    }
+    }
+}
+
 namespace
 {
     // NOTE: we need an object that will keep returned strings alive in memory
@@ -155,26 +176,7 @@ extern "C"
         LOG("{}", (int)id);
         return TRANSLATE_EXCEPTION(outError)
         {
-            auto ret = [&] () -> std::shared_ptr<arrow::DataType>
-            {
-                switch(id)
-                {
-                case arrow::Type::INT32:
-                    return std::make_shared<arrow::Int32Type>();
-                case arrow::Type::INT64:
-                    return std::make_shared<arrow::Int64Type>();
-                case arrow::Type::DOUBLE:
-                    return std::make_shared<arrow::DoubleType>();
-                case arrow::Type::STRING:
-                    return std::make_shared<arrow::StringType>();
-                default:
-                {
-                    std::ostringstream out;
-                    out << "Not yet supported datatype id: " << id;
-                    throw std::runtime_error(out.str());
-                }
-                }
-            }();
+            auto ret = idToDataType((arrow::Type::type)id);
             return LifetimeManager::instance().addOwnership(std::move(ret));
         };
     }
@@ -950,8 +952,51 @@ extern "C"
             // assume csv
             // TODO deduce separators
             auto csv = parseCsvFile(filename); 
-            auto table = csvToArrowTable(csv);
+            auto table = csvToArrowTable(csv, TakeFirstRowAsHeaders{}, {});
             return LifetimeManager::instance().addOwnership(table);
+        };
+    }
+
+    EXPORT arrow::Table *readTableFromFile2(const char *filename, const char **columnNames, int32_t columnNamesPolicy, int8_t *columnTypes, int8_t *columnIsNullableTypes, int32_t columnTypeInfoCount, const char **outError)
+    {
+        LOG("@{} names={}, namesPolicyCode={}, typeInfoCount={}", filename, (void*)columnNames, columnNamesPolicy, columnTypeInfoCount);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            const auto headerPolicy = [&] () -> HeaderPolicy
+            {
+                if(columnNamesPolicy < 0)
+                {
+                    std::vector<std::string> names;
+                    for(int i = 0; i < -columnNamesPolicy; i++)
+                        names.push_back(columnNames[i]);
+                    return names;
+                }
+                else if(columnNamesPolicy == 0)
+                {
+                    static_assert(std::is_same_v<TakeFirstRowAsHeaders, std::variant_alternative_t<0, HeaderPolicy>>);
+                    return TakeFirstRowAsHeaders{};
+                }
+                else if(columnNamesPolicy == 1)
+                {
+                    static_assert(std::is_same_v<GenerateColumnNames, std::variant_alternative_t<1, HeaderPolicy>>);
+                    return GenerateColumnNames{};
+                }
+                else
+                    throw std::runtime_error("Invalid column name policy code " + std::to_string(columnNamesPolicy));
+            }();
+
+            std::vector<ColumnType> types;
+            for(int i = 0; i < columnTypeInfoCount; i++)
+            {
+                auto typeId = (arrow::Type::type) columnTypes[i];
+                bool nullable = columnIsNullableTypes[i];
+                auto type = idToDataType(typeId);
+                types.emplace_back(type, nullable);
+            }
+
+            auto csv = parseCsvFile(filename); 
+            auto table = csvToArrowTable(csv, headerPolicy, types);
+            return nullptr;
         };
     }
 }

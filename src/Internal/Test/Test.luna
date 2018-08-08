@@ -3,6 +3,7 @@ import Std.Test
 import Dataframes.Array
 import Dataframes.Column
 import Dataframes.Types
+import Dataframes.IO
 
 def executeTest msg action:
     result = runError action
@@ -306,7 +307,9 @@ class TestArrayBuilder:
         assertEqual "header" (tableJson.lookup "header") (Just ["x", "y", "name"].toJSON)
  
     def run:
-
+        print $ CSVParser . useNames ["x", "y"] . read "F:/dev/Dataframes/data/simple_empty.csv" . toJSON
+        print $ Table.fromFile "F:/dev/Dataframes/data/simple_empty.csv" . toJSON
+        throw "stop"
         self.testTable
         self.testSchema
         self.testColumn

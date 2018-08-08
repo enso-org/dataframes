@@ -12,9 +12,13 @@ std::string getFileContents(const char *filepath)
         if(!input)
             throw std::runtime_error("Failed to open the file");
 
-        std::stringstream buffer;
-        buffer << input.rdbuf();
-        return std::move(buffer.str());
+        std::string contents;
+        input.seekg(0, std::ios::end);
+        contents.resize(input.tellg());
+        input.seekg(0, std::ios::beg);
+        input.read(&contents[0], contents.size());
+        input.close();
+        return(contents);
     }
     catch(std::exception &e)
     {

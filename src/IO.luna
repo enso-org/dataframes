@@ -1,0 +1,72 @@
+import Dataframes.Internal.CWrappers
+import Dataframes.Internal.Utils
+import Dataframes.Column
+
+import Std.Foreign
+import Std.Foreign.C.Value
+
+class ColumnNamePolicy:
+    TakeFromFirstRow
+    Generate
+    CustomNames [Text]
+
+class ElementType:
+    IntElement
+    TextElement
+    RealElement
+    MaybeIntElement
+    MaybeTextElement
+    MaybeRealElement
+
+    def toArrowId: case self of
+        IntElement: 9
+        TextElement: 12
+        RealElement: 13
+        MaybeIntElement: 9
+        MaybeTextElement: 12
+        MaybeRealElement: 13
+
+    def dummy: None
+
+
+def listToMap list:
+    def insert (k,v) m: m.insert k v
+    list.foldLeft Map.empty insert
+
+class CSVParser:
+    CSVParser
+    CustomizedParser ColumnNamePolicy (Map Text ElementType)
+
+    def namePolicy: case self of
+        CSVParser: TakeFromFirstRow
+        CustomizedParser n _: n
+
+    def typePolicy: case self of
+        CSVParser: Map.empty
+        CustomizedParser _ m: m
+
+    def useNames names:
+        CustomizedParser (CustomNames names) self.typePolicy
+
+    def setType columnName columnTypePolicy:
+        CustomizedParser self.namePolicy (self.typePolicy.insert columnName columnPolicy)
+
+    def customNames: case self.namePolicy of
+        CustomNames l: l
+        _: []
+
+    def read filepath:
+        names = self.customNames
+        bracket (names.each CString.fromText) (_.each .free) namesCStringList:
+            Array CString . with namesCStringList namesCStringCArray:
+                namesMode = case self.namePolicy of
+                    TakeFromFirstRow: 0
+                    Generate: 1
+                    CustomNames l: l.length.negate
+                nullptr = Pointer None . null . toCArg
+                ptr = CString.with filepath filepathC:
+                    callHandlingError "readTableFromFile2" (Pointer None) [filepathC.toCArg, namesCStringCArray.ptr.toCArg, CInt32.fromInt namesMode . toCArg, nullptr, nullptr, CInt32.fromInt 0 . toCArg]
+                print "foo"
+                wrapper = wrapReleasableResouce TableWrapper ptr
+                TableVal wrapper
+

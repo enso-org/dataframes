@@ -8,5 +8,5 @@ import Dataframes.Internal.Test.Test
 
 
 def main:
-    setHelperVerbosity False
+    setHelperVerbosity True
     benchmark "running tests" TestArrayBuilder.run
