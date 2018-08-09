@@ -150,43 +150,50 @@ struct ColumnBuilder
 
     void addFromString(const NaiveStringView &field)
     {
-        const auto fieldEnd = field.text + field.length;
-        *fieldEnd = '\0';
-        char *next = nullptr;
-        if constexpr(type == arrow::Type::INT64)
-        {
-            auto v = std::strtoll(field.text, &next, 10);
-            if(next == fieldEnd)
-            {
-                builder.Append(v);
-            }
-            else
-            {
-                addMissing();
-            }
-        }
-        else if constexpr(type == arrow::Type::DOUBLE)
-        {
-            auto v = std::strtod(field.text, &next);
-            if(next == fieldEnd)
-            {
-                builder.Append(v);
-            }
-            else
-            {
-                addMissing();
-            }
-        }
-        else if constexpr(type == arrow::Type::STRING)
+        if constexpr(type == arrow::Type::STRING)
         {
             builder.Append(field.text, field.length);
         }
         else
-            throw std::runtime_error("wrong type");
+        {
+            const auto fieldEnd = field.text + field.length;
+            *fieldEnd = '\0';
+            char *next = nullptr;
+            if constexpr(type == arrow::Type::INT64)
+            {
+                auto v = std::strtoll(field.text, &next, 10);
+                if(next == fieldEnd)
+                {
+                    builder.Append(v);
+                }
+                else
+                {
+                    addMissing();
+                }
+            }
+            else if constexpr(type == arrow::Type::DOUBLE)
+            {
+                auto v = std::strtod(field.text, &next);
+                if(next == fieldEnd)
+                {
+                    builder.Append(v);
+                }
+                else
+                {
+                    addMissing();
+                }
+            }
+            else
+                throw std::runtime_error("wrong type");
+        }
     }
     void addMissing()
     {
         builder.AppendNull();
+    }
+    void reserve(int64_t count)
+    {
+        builder.Reserve(count);
     }
 };
 
@@ -224,17 +231,18 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
     {
         auto processColumn = [&] (auto &&builder)
         {
+            builder.reserve(csv.recordCount);
             for(int row = startRow; row < csv.recordCount; row++)
             {
                 const auto &record = csv.records[row];
-                if(column >= record.size())
-                {
-                    builder.addMissing();
-                }
-                else
+                if(column < record.size())
                 {
                     const auto &field = csv.records[row][column];
                     builder.addFromString(field);
+                }
+                else
+                {
+                    builder.addMissing();
                 }
             }
             arrays.push_back(finish(builder.builder));
@@ -253,7 +261,6 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
             break;
         }
     }
-
 
     const auto names = [&]
     {
