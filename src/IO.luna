@@ -57,6 +57,9 @@ class CSVParser:
     def useNames names:
         CustomizedParser (CustomNames names) self.typePolicy
 
+    def useGeneratedNames:
+        CustomizedParser Generate self.typePolicy
+
     def setTypes columnTypes:
         CustomizedParser self.namePolicy columnTypes
 
@@ -77,7 +80,6 @@ class CSVParser:
                     nullptr = Pointer None . null . toCArg
                     ptr = CString.with filepath filepathC:
                         callHandlingError "readTableFromCSVFile" (Pointer None) [filepathC.toCArg, namesCStringCArray.ptr.toCArg, CInt32.fromInt namesMode . toCArg, typeIdsC.ptr.toCArg, nullablesC.ptr.toCArg, CInt32.fromInt typeInfos.length . toCArg]
-                    print "foo"
                     wrapper = wrapReleasableResouce TableWrapper ptr
                     TableVal wrapper
 
@@ -95,6 +97,44 @@ class CSVParser:
                     nullptr = Pointer None . null . toCArg
                     ptr = CString.with text textC:
                         callHandlingError "readTableFromCSVFileContents" (Pointer None) [textC.toCArg, namesCStringCArray.ptr.toCArg, CInt32.fromInt namesMode . toCArg, typeIdsC.ptr.toCArg, nullablesC.ptr.toCArg, CInt32.fromInt typeInfos.length . toCArg]
-                    print "foo"
                     wrapper = wrapReleasableResouce TableWrapper ptr
                     TableVal wrapper
+
+class CSVGeneratorHeaderPolicy:
+    WriteHeaderLine
+    SkipHeaderLine
+
+    def toCArg:
+        CInt8.fromInt (case self of
+            WriteHeaderLine: 0
+            SkipHeaderLine: 1) . toCArg
+
+class CSVGeneratorQuotingPolicy:
+    QuoteWhenNeeded
+    QuoteAllFields
+
+    def toCArg:
+        CInt8.fromInt (case self of
+            QuoteWhenNeeded: 0
+            QuoteAllFields: 1) . toCArg
+
+class CSVGenerator:
+    CSVGenerator
+    CSVGeneratorCustomized CSVGeneratorHeaderPolicy CSVGeneratorQuotingPolicy
+
+    def headerPolicy: case self of
+        CSVGenerator: WriteHeaderLine
+        CSVGeneratorCustomized hp _: hp
+    def quotingPolicy: case self of
+        CSVGenerator: QuoteWhenNeeded
+        CSVGeneratorCustomized _ qp: qp
+    def setHeaderPolicy hp:
+        CSVGeneratorCustomized hp self.quotingPolicy
+    def setQuotingPolicy qp:
+        CSVGeneratorCustomized self.headerPolicy qp
+
+    def generateText table:
+        callHandlingError "writeTableToCsvString" CString [table.ptr.ptr.toCArg, self.headerPolicy.toCArg, self.quotingPolicy.toCArg] . toText
+    def generateFile path table:
+        CString.with path pathC:
+            callHandlingError "writeTableToCsvFile" CString [pathC.toCArg, table.ptr.ptr.toCArg, self.headerPolicy.toCArg, self.quotingPolicy.toCArg] . toText

@@ -4,7 +4,11 @@
 
 
 #include <algorithm>
+#include <cinttypes>
+#include <cstdio>
+#include <iomanip>
 #include <iostream>
+#include <map>
 #include <sstream>
 
 #include <arrow/table.h>
@@ -298,20 +302,6 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
     return table;
 }
 
-bool needsEscaping(const std::string &record, char seperator)
-{
-    if(record.empty())
-        return false;
-
-    if(record.front() == ' ' || record.back() == ' ')
-        return true;
-
-    if(record.find(seperator) != std::string::npos)
-        return true;
-
-    return false;
-}
-
 ParsedCsv::ParsedCsv(std::unique_ptr<std::string> buffer, Table records_)
     : buffer(std::move(buffer))
     , records(std::move(records_))
@@ -324,4 +314,171 @@ ParsedCsv::ParsedCsv(std::unique_ptr<std::string> buffer, Table records_)
     
     if(biggestRecord != records.end())
         fieldCount = biggestRecord->size();
+}
+
+struct CsvGenerator
+{
+    std::ostream &out;
+    GeneratorQuotingPolicy quotingPolicy;
+    char fieldSeparator = ',';
+    char recordSeparator = '\n';
+    char quote = '"';
+
+    explicit CsvGenerator(std::ostream &out, GeneratorQuotingPolicy quotingPolicy, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"') 
+        : out(out)
+        , quotingPolicy(quotingPolicy)
+        , fieldSeparator(fieldSeparator)
+        , recordSeparator(recordSeparator)
+        , quote(quote)
+    {}
+
+    bool needsEscaping(const char *data, int32_t length) const
+    {
+        if(length == 0)
+            return false;
+
+        if(data[0] == ' ' || data[length-1] == ' ')
+            return true;
+
+        for(int i = 0; i < length; i++)
+        {
+            char c = data[i];
+            if(c == fieldSeparator || c == recordSeparator || c == quote)
+                return true;
+        }
+
+        return false;
+    };
+
+    void writeField(const char *data, int32_t length)
+    {
+        if(quotingPolicy == GeneratorQuotingPolicy::QueteAllFields || needsEscaping(data, length))
+        {
+            // TODO workaround for mac
+            std::string_view sv(data, length);
+            out << std::quoted(sv, quote, quote);
+        }
+        else
+            out.write(data, length);
+    };
+};
+
+struct ColumnWriter
+{
+    char buffer[256];
+
+    std::vector<std::shared_ptr<arrow::Array>> chunks;
+
+    int currentChunk = 0;
+    int usedFromChunk = 0;
+
+    int32_t helper;
+
+    ColumnWriter(const std::shared_ptr<arrow::ChunkedArray> &chunkedArray)
+        : chunks(chunkedArray->chunks())
+    {}
+
+    virtual void consumeFromChunk(const arrow::Array &chunk, CsvGenerator &generator) = 0;
+
+    void consumeField(CsvGenerator &generator)
+    {
+        const auto &chunk = chunks[currentChunk];
+        if(!chunk->IsNull(usedFromChunk))
+        {
+            consumeFromChunk(*chunk, generator);
+        }
+        
+        if(++usedFromChunk >= chunk->length())
+            currentChunk++;
+    }
+};
+
+struct StringColumnWriter : ColumnWriter
+{
+    using ColumnWriter::ColumnWriter;
+    virtual void consumeFromChunk(const arrow::Array &chunk, CsvGenerator &generator)
+    {
+        auto ptr = static_cast<const arrow::StringArray&>(chunk).GetValue(usedFromChunk, &helper);
+        generator.writeField(reinterpret_cast<const char*>(ptr), helper);
+
+    }
+};
+
+struct Int64ColumnWriter : ColumnWriter
+{
+    using ColumnWriter::ColumnWriter;
+    virtual void consumeFromChunk(const arrow::Array &chunk, CsvGenerator &generator)
+    {
+        auto value = static_cast<const arrow::Int64Array&>(chunk).Value(usedFromChunk);
+        auto n = std::snprintf(buffer, std::size(buffer), "%" PRId64, value);
+        generator.writeField(buffer, n);
+
+    }
+};
+
+struct DoubleColumnWriter : ColumnWriter
+{
+    using ColumnWriter::ColumnWriter;
+    virtual void consumeFromChunk(const arrow::Array &chunk, CsvGenerator &generator)
+    {
+        auto value = static_cast<const arrow::DoubleArray&>(chunk).Value(usedFromChunk);
+        auto n = std::snprintf(buffer, std::size(buffer), "%lf", value);
+        generator.writeField(buffer, n);
+
+    }
+};
+
+void generateCsv(std::ostream &out, const arrow::Table &table, GeneratorHeaderPolicy headerPolicy, GeneratorQuotingPolicy quotingPolicy, char fieldSeparator /*= ','*/, char recordSeparator /*= '\n'*/, char quote /*= '"'*/)
+{
+    CsvGenerator generator{out, quotingPolicy, fieldSeparator, recordSeparator, quote};
+
+    std::vector<std::unique_ptr<ColumnWriter>> writers;
+    writers.reserve(table.num_columns());
+
+    if(headerPolicy == GeneratorHeaderPolicy::GenerateHeaderLine)
+    {
+        for(int column = 0; column < table.num_columns(); column++)
+        {
+            if(column)
+                out << fieldSeparator;
+
+            const auto c = table.column(column);
+            const auto &name = c->name();
+            generator.writeField(name.data(), name.size());
+        }
+
+        out << recordSeparator;
+    }
+
+    for(int column = 0; column < table.num_columns(); column++)
+    {
+        const auto c = table.column(column);
+        switch(c->field()->type()->id())
+        {
+        case arrow::Type::INT64:
+            writers.push_back(std::make_unique<Int64ColumnWriter>(c->data()));
+            break;
+        case arrow::Type::DOUBLE:
+            writers.push_back(std::make_unique<DoubleColumnWriter>(c->data()));
+            break;
+        case arrow::Type::STRING:
+            writers.push_back(std::make_unique<StringColumnWriter>(c->data()));
+            break;
+        }
+    }
+
+    // write records
+    for(int row = 0; row < table.num_rows(); row++)
+    {
+        if(row)
+            out << recordSeparator;
+
+        for(int column = 0; column < table.num_columns(); column++)
+        {
+            if(column)
+                out << fieldSeparator;
+
+            writers[column]->consumeField(generator);
+        }
+    }
 }

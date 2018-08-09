@@ -72,9 +72,24 @@ struct ColumnType
     {}
 };
 
+enum class GeneratorHeaderPolicy : int8_t
+{
+    GenerateHeaderLine,
+    SkipHeaderLine
+
+};
+
+enum class GeneratorQuotingPolicy : int8_t
+{
+    QuoteWhenNeeded,
+    QueteAllFields
+};
+
 EXPORT NaiveStringView parseField(char *&bufferIterator, char *bufferEnd, char fieldSeparator, char recordSeparator, char quote);
 EXPORT std::vector<NaiveStringView> parseRecord(char *&bufferIterator, char *bufferEnd, char fieldSeparator, char recordSeparator, char quote);
 EXPORT std::vector<std::vector<NaiveStringView>> parseCsvTable(char *&bufferIterator, char *bufferEnd, char fieldSeparator, char recordSeparator, char quote);
 EXPORT ParsedCsv parseCsvFile(const char *filepath, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');
 EXPORT ParsedCsv parseCsvData(std::string data, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');
 EXPORT std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy header, std::vector<ColumnType> columnTypes);
+
+EXPORT void generateCsv(std::ostream &out, const arrow::Table &table, GeneratorHeaderPolicy headerPolicy, GeneratorQuotingPolicy quotingPolicy, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <fstream>
 #include <sstream>
 
 #include "Core/Common.h"
@@ -1028,6 +1029,30 @@ extern "C"
         {
             auto buffer = getFileContents(filename);
             return readTableFromCSVFileContentsHelper(std::move(buffer ), columnNames, columnNamesPolicy, columnTypes, columnIsNullableTypes, columnTypeInfoCount);
+        };
+    }
+
+    EXPORT const char *writeTableToCsvString(arrow::Table *table, GeneratorHeaderPolicy headerPolicy, GeneratorQuotingPolicy quotingPolicy, const char **outError)
+    {
+        LOG("table={}", (void*)table);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            std::ostringstream out;
+            generateCsv(out, *table, headerPolicy, quotingPolicy);
+            return returnString(out.str());
+        };
+    }
+
+    EXPORT void writeTableToCsvFile(const char *filename, arrow::Table *table, GeneratorHeaderPolicy headerPolicy, GeneratorQuotingPolicy quotingPolicy, const char **outError)
+    {
+        LOG("table={}, filepath={}", (void*)table, filename);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            std::ofstream out{filename};
+            if(!out)
+                throw std::runtime_error("Cannot write to file "s + filename);
+
+            generateCsv(out, *table, headerPolicy, quotingPolicy);
         };
     }
 }

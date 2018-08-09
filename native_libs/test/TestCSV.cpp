@@ -129,9 +129,34 @@ BOOST_AUTO_TEST_CASE(ParseBigFile)
 // 		measure("load big file contents2", get_file_contents, path);
 // 	}
 
-	measure("big file", [&]
+// 	for(int i = 0; i < 10; i++)
+// 	{
+// 		measure("parse big file", [&]
+// 		{
+// 			auto csv = parseCsvFile(path);
+// 			auto table = csvToArrowTable(csv, TakeFirstRowAsHeaders{}, {});
+// 		});
+// 	}
+}
+
+
+BOOST_AUTO_TEST_CASE(WriteBigFile)
+{
+	const auto path = R"(E:/hmda_lar-florida.csv)";
+	auto csv = parseCsvFile(path);
+	auto table = csvToArrowTable(csv, TakeFirstRowAsHeaders{}, {});
+	// 	for(int i  = 0; i < 20; i++)
+	// 	{
+	// 		measure("load big file contents1", getFileContents, path);
+	// 		measure("load big file contents2", get_file_contents, path);
+	// 	}
+
+	for(int i = 0; i < 10; i++)
 	{
-		auto csv = parseCsvFile(path);
-		auto table = csvToArrowTable(csv, TakeFirstRowAsHeaders{}, {});
-	});
+		measure("write big file", [&]
+		{
+			std::ofstream out{"ffffff.csv"};
+			generateCsv(out, *table, GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy::QueteAllFields);
+		});
+	}
 }
