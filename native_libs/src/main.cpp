@@ -9,6 +9,8 @@
 #include "Core/Logger.h"
 #include "LifetimeManager.h"
 #include "csv.h"
+#include "IO.h"
+
 
 #include <arrow/array.h>
 #include <arrow/buffer.h>
@@ -21,7 +23,6 @@
 #include <arrow/builder.h>
 #include <arrow/io/file.h>
 #include <arrow/ipc/writer.h>
-
 #ifdef _DEBUG
 #pragma comment(lib, "arrowd.lib")
 #else
@@ -114,6 +115,7 @@ void validateIndex(arrow::Array *array, int64_t index)
         throw std::out_of_range{ out.str() };
     }
 }
+
 template<typename T>
 void validateIndex(const std::vector<T> &array, int64_t index)
 {
@@ -121,6 +123,16 @@ void validateIndex(const std::vector<T> &array, int64_t index)
     {
         std::ostringstream out;
         out << "wrong index " << index << " when array length is " << array.size();
+        throw std::out_of_range{ out.str() };
+    }
+}
+
+void validateIndex(const size_t size, int64_t index)
+{
+    if(index < 0 || index >= (int64_t)size)
+    {
+        std::ostringstream out;
+        out << "wrong index " << index << " when array length is " << size;
         throw std::out_of_range{ out.str() };
     }
 }
@@ -906,6 +918,7 @@ extern "C"
         LOG("@{} {}", (void*)table, index);
         return TRANSLATE_EXCEPTION(outError)
         {
+            validateIndex(table->num_columns(), index);
             return LifetimeManager::instance().addOwnership(table->column(index));
         };
     }
@@ -941,6 +954,47 @@ extern "C"
     }
 }
 
+arrow::Table *readTableFromCSVFileContentsHelper(std::string data, const char **columnNames, int32_t columnNamesPolicy, int8_t *columnTypes, int8_t *columnIsNullableTypes, int32_t columnTypeInfoCount)
+{
+    const auto headerPolicy = [&] () -> HeaderPolicy
+    {
+        if(columnNamesPolicy < 0)
+        {
+            std::vector<std::string> names;
+            for(int i = 0; i < -columnNamesPolicy; i++)
+                names.push_back(columnNames[i]);
+            return names;
+        }
+        else if(columnNamesPolicy == 0)
+        {
+            static_assert(std::is_same_v<TakeFirstRowAsHeaders, std::variant_alternative_t<0, HeaderPolicy>>);
+            return TakeFirstRowAsHeaders{};
+        }
+        else if(columnNamesPolicy == 1)
+        {
+            static_assert(std::is_same_v<GenerateColumnNames, std::variant_alternative_t<1, HeaderPolicy>>);
+            return GenerateColumnNames{};
+        }
+        else
+            throw std::runtime_error("Invalid column name policy code " + std::to_string(columnNamesPolicy));
+    }();
+
+    std::vector<ColumnType> types;
+    for(int i = 0; i < columnTypeInfoCount; i++)
+    {
+        auto typeId = (arrow::Type::type) columnTypes[i];
+        bool nullable = columnIsNullableTypes[i];
+        auto type = idToDataType(typeId);
+        types.emplace_back(type, nullable);
+    }
+
+    auto csv = parseCsvData(std::move(data)); 
+    auto table = csvToArrowTable(csv, headerPolicy, types);
+    LOG("table has size {}x{}", table->num_columns(), table->num_rows());
+    return LifetimeManager::instance().addOwnership(table);
+}
+
+
 // IO
 extern "C"
 {
@@ -957,46 +1011,23 @@ extern "C"
         };
     }
 
-    EXPORT arrow::Table *readTableFromFile2(const char *filename, const char **columnNames, int32_t columnNamesPolicy, int8_t *columnTypes, int8_t *columnIsNullableTypes, int32_t columnTypeInfoCount, const char **outError)
+    EXPORT arrow::Table *readTableFromCSVFileContents(const char *data, const char **columnNames, int32_t columnNamesPolicy, int8_t *columnTypes, int8_t *columnIsNullableTypes, int32_t columnTypeInfoCount, const char **outError)
+    {
+        LOG("size={} names={}, namesPolicyCode={}, typeInfoCount={}", std::strlen(data), (void*)columnNames, columnNamesPolicy, columnTypeInfoCount);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            std::string buffer{ data };
+            return readTableFromCSVFileContentsHelper(std::move(data), columnNames, columnNamesPolicy, columnTypes, columnIsNullableTypes, columnTypeInfoCount);
+        };
+    }
+
+    EXPORT arrow::Table *readTableFromCSVFile(const char *filename, const char **columnNames, int32_t columnNamesPolicy, int8_t *columnTypes, int8_t *columnIsNullableTypes, int32_t columnTypeInfoCount, const char **outError)
     {
         LOG("@{} names={}, namesPolicyCode={}, typeInfoCount={}", filename, (void*)columnNames, columnNamesPolicy, columnTypeInfoCount);
         return TRANSLATE_EXCEPTION(outError)
         {
-            const auto headerPolicy = [&] () -> HeaderPolicy
-            {
-                if(columnNamesPolicy < 0)
-                {
-                    std::vector<std::string> names;
-                    for(int i = 0; i < -columnNamesPolicy; i++)
-                        names.push_back(columnNames[i]);
-                    return names;
-                }
-                else if(columnNamesPolicy == 0)
-                {
-                    static_assert(std::is_same_v<TakeFirstRowAsHeaders, std::variant_alternative_t<0, HeaderPolicy>>);
-                    return TakeFirstRowAsHeaders{};
-                }
-                else if(columnNamesPolicy == 1)
-                {
-                    static_assert(std::is_same_v<GenerateColumnNames, std::variant_alternative_t<1, HeaderPolicy>>);
-                    return GenerateColumnNames{};
-                }
-                else
-                    throw std::runtime_error("Invalid column name policy code " + std::to_string(columnNamesPolicy));
-            }();
-
-            std::vector<ColumnType> types;
-            for(int i = 0; i < columnTypeInfoCount; i++)
-            {
-                auto typeId = (arrow::Type::type) columnTypes[i];
-                bool nullable = columnIsNullableTypes[i];
-                auto type = idToDataType(typeId);
-                types.emplace_back(type, nullable);
-            }
-
-            auto csv = parseCsvFile(filename); 
-            auto table = csvToArrowTable(csv, headerPolicy, types);
-            return nullptr;
+            auto buffer = getFileContents(filename);
+            return readTableFromCSVFileContentsHelper(std::move(buffer ), columnNames, columnNamesPolicy, columnTypes, columnIsNullableTypes, columnTypeInfoCount);
         };
     }
 }

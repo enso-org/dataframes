@@ -274,6 +274,9 @@ class TestArrayBuilder:
         assertEqual "field 1" (schema.fieldAt 1) colY.field
         assertEqual "field 2" (schema.fieldAt 2) colName.field
         
+        assertThrow "access column -1" (t.columnAt -1 . toText)
+        assertThrow "access column 50" (t.columnAt 50 . toText)
+
         col0 = t.columnAt 0
         assertEqual "column 0 contents" col0.toList [0, 10, -10, 500]
         assertEqual "column 0 name" col0.name "x"
@@ -306,11 +309,28 @@ class TestArrayBuilder:
         tableJson = t.toJSON
         assertEqual "header" (tableJson.lookup "header") (Just ["x", "y", "name"].toJSON)
  
+    def testCsvParser:
+        print "CSV parsing case 1"
+        t1 = CSVParser . useNames ["x", "y", "z"] . setTypes [IntElement, MaybeIntElement] . readText "1,2,3"
+        assertEqual "names" t1.columnNames ["x", "y", "z"]
+        assertEqual "col 0 typename" (t1.columnAt 0 . field.type.name) "int64"
+        assertEqual "col 0 nullable" (t1.columnAt 0 . field.nullable) False
+        assertEqual "col 0 toList" (t1.columnAt 0 . toList) [1]
+        assertEqual "col 1 typename" (t1.columnAt 1 . field.type.name) "int64"
+        assertEqual "col 1 nullable" (t1.columnAt 1 . field.nullable) True
+        assertEqual "col 1 toList" (t1.columnAt 1 . toList) [Just 2]
+        assertEqual "col 2 typename" (t1.columnAt 2 . field.type.name) "utf8"
+        assertEqual "col 2 nullable" (t1.columnAt 2 . field.nullable) False
+        assertEqual "col 2 toList" (t1.columnAt 2 . toList) ["3"]
+
+        print "CSV parsing case 2"
+        t2 = CSVParser . useNames ["x", "y"] . setTypes [] . readText '"1,2,3"'
+        assertEqual "names" t2.columnNames ["x"]
+        assertEqual "col 0 toList" (t2.columnAt 0 . toList) ['1,2,3']
+
     def run:
-        print $ CSVParser . useNames ["x", "y"] . read "F:/dev/Dataframes/data/simple_empty.csv" . toJSON
-        print $ Table.fromFile "F:/dev/Dataframes/data/simple_empty.csv" . toJSON
+        self.testCsvParser
         throw "stop"
-        self.testTable
         self.testSchema
         self.testColumn
         self.testField

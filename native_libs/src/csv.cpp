@@ -1,5 +1,7 @@
 #include "csv.h"
 #include "IO.h"
+#include "Core/Logger.h"
+
 
 #include <algorithm>
 #include <iostream>
@@ -98,9 +100,15 @@ std::vector<std::vector<NaiveStringView>> parseCsvTable(char *&bufferIterator, c
 ParsedCsv parseCsvFile(const char *filepath, char fieldSeparator, char recordSeparator, char quote)
 {
     auto buffer = getFileContents(filepath);
-    auto itr = buffer.data();
-    auto table = parseCsvTable(itr, itr + buffer.size(), fieldSeparator, recordSeparator, quote);
-    return { std::move(buffer), std::move(table) };
+    return parseCsvData(std::move(buffer), fieldSeparator, recordSeparator, quote);
+}
+
+ParsedCsv parseCsvData(std::string data, char fieldSeparator /*= ','*/, char recordSeparator /*= '\n'*/, char quote /*= '"'*/)
+{
+    auto bufferPtr = std::make_unique<std::string>(std::move(data));
+    auto itr = bufferPtr->data();
+    auto table = parseCsvTable(itr, itr + bufferPtr->size(), fieldSeparator, recordSeparator, quote);
+    return { std::move(bufferPtr), std::move(table) };
 }
 
 enum class MissingField
@@ -191,8 +199,12 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
         return arrow::Table::Make(schema, std::vector<std::shared_ptr<arrow::Array>>{});
     }
 
+    // If there is no type info for column, default to non-nullable Text (it always works)
     if(columnTypes.size() < csv.fieldCount)
-        columnTypes.resize(csv.fieldCount, ColumnType{std::make_shared<arrow::StringType>(), false});
+    {
+        const ColumnType nonNullableText{ std::make_shared<arrow::StringType>(), false };
+        columnTypes.resize(csv.fieldCount, nonNullableText);
+    }
 
     std::vector<std::shared_ptr<arrow::Array>> arrays;
     arrays.reserve(csv.fieldCount);
@@ -269,8 +281,8 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
     for(int column = 0; column < csv.fieldCount; column++)
     {
         const auto array = arrays.at(column);
-        std::cout << column << " : " << array->null_count() << " " << array->length() << std::endl;
-        const auto nullable = arrays.at(column)->null_count();
+        //std::cout << column << " : " << array->null_count() << " " << array->length() << std::endl;
+        const auto nullable = array->null_count() > 0 || columnTypes[column].nullable;
         fields.push_back(std::make_shared<arrow::Field>(names[column], columnTypes[column].type, nullable));
     }
 
@@ -293,8 +305,9 @@ bool needsEscaping(const std::string &record, char seperator)
     return false;
 }
 
-ParsedCsv::ParsedCsv(std::string buffer, Table records_)
-    : buffer(std::move(buffer)), records(std::move(records_))
+ParsedCsv::ParsedCsv(std::unique_ptr<std::string> buffer, Table records_)
+    : buffer(std::move(buffer))
+    , records(std::move(records_))
 {
     recordCount = records.size();
 
