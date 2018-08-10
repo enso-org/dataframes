@@ -1,127 +1,50 @@
 import Dataframes.Array
+import Dataframes.ChunkedArray
+import Dataframes.Field
+import Dataframes.Schema
 import Dataframes.Types
 
 import Dataframes.Internal.CWrappers
 import Dataframes.Internal.Utils
 
-class Field:
-    ptr :: FieldWrapper
-
-    def name:
-        self.ptr.name
-    def type:
-        self.ptr.type
-    def nullable:
-        self.ptr.nullable
-    def toText:
-        self.ptr.toText
-    def == that: 
-        self.ptr.equals that.ptr
-
-def createField name typeTag:
-    datatypeWrapper = createDataTypeWrapper typeTag.typename
-    ptr = createFieldWrapper name datatypeWrapper typeTag.nullable
-    Field ptr
-
-class Schema:
-    ptr :: SchemaWrapper
-
-    def fieldCount: 
-        self.ptr.fieldCount
-    def fieldAt index:
-        wrapper = self.ptr.fieldAt index
-        Field wrapper
-    def toText:
-        self.ptr.toText
-    def fieldByName name:
-        maybeWrapper = self.ptr.fieldByName name
-        maybeWrapper.map Field
-    def fieldIndexByName name:
-        self.ptr.fieldIndexByName name
-    def addField index field:
-        wrapper = self.ptr.addField index field.ptr
-        Schema wrapper
-    def removeField index:
-        wrapper = self.ptr.removeField index
-        Schema wrapper
-    def toList:
-        wrappers = self.ptr.toList
-        wrappers . each Field
-
-def createSchema fields:
-    wrapper = createSchemaWrapper (fields.each .ptr)
-    Schema wrapper
-
-class ChunkedArray a:
-    typeTag :: a
-    ptr :: ChunkedArrayWrapper
-
-    def length:
-        self.ptr.length
-    def nullCount:
-        self.ptr.nullCount
-    def type:
-        self.ptr.type
-    def chunkCount:
-        self.ptr.chunkCount
-    def chunkAt index:
-        wrapper = self.ptr.chunkAt index
-        Array self.typeTag wrapper
-    def map typeTag f:
-        newChunks = 0.upto (self.chunkCount - 1) . each index:
-            chunk = self.chunkAt index
-            chunk . map typeTag f
-        createChunkedArrayFromChunks newChunks
-
-    def toText:
-        self.toList.toText
-    def toJSON:
-        self.toList.toJSON
-    def toList:
-        chunks = 0.upto (self.chunkCount - 1) . each self.chunkAt
-        chunks.each .toList . concat
-
-def createChunkedArrayFromChunk arrayChunk:
-    wrapper = createChunkedArrayWrapperSingleton arrayChunk.ptr
-    ChunkedArray arrayChunk.typeTag wrapper
-
-def createChunkedArrayFromChunks arrayChunks:
-    tag = case arrayChunks.head of
-        Just h: h.typeTag
-        Nothing: throw "Cannot create ChunkedArray without any chunks"
-    wrapper = createChunkedArrayWrapperChunks (arrayChunks.each (_.ptr))
-    ChunkedArray tag wrapper
-
 class TypedColumn a:
-    typeTag :: a
-    ptr :: ColumnWrapper
+    TypedColumn a
+    TypedColumnVal a ColumnWrapper
+
+    def typeTag: case self of
+        TypedColumn t: t
+        TypedColumnVal t _: t
+        
+    def ptr: case self of
+        TypedColumnVal _ ptr: ptr
+
+    def fromWrapper wrapper:
+        wrapper' = wrapper
+        TypedColumnVal self.typeTag wrapper'
+
+    def fromChunks field chunks:
+        self.fromWrapper $ createColumnWrapper field.ptr chunks.ptr
 
     def nullCount: self.ptr.nullCount
     def length: self.ptr.length
     def field:
-        ptr = self.ptr.field
-        Field ptr
+        Field.fromWrapper $ self.ptr.field
     def type:
         ptr = self.ptr.type
-        DataType ptr
+        DataTypeVal ptr
     def data:
         ptr = self.ptr.data
-        ChunkedArray self.typeTag ptr
+        ChunkedArrayVal self.typeTag ptr
     def name: self.ptr.name
     def slice fromIndex length:
-        ptr = self.ptr.slice fromIndex length
-        TypedColumn self.typeTag ptr
+        self.fromWrapper $ self.ptr.slice fromIndex length
     def toList:
         self.data.toList
 
     def map typeTag newName f:
         newChunkedArray = self.data.map typeTag f
-        field = createField newName typeTag
-        createTypedColumn typeTag field newChunkedArray
-        
-def createTypedColumn typeTag field chunks:
-    ptr = createColumnWrapper field.ptr chunks.ptr
-    TypedColumn typeTag ptr
+        field = Field.fromTypeTag newName typeTag
+        TypedColumn typeTag . fromChunks field newChunkedArray
 
 class Column:
     Column
@@ -171,73 +94,23 @@ class Column:
         fw = columnWrapper.field
         case fw.nullable of
             True: case fw.type.name of
-                "int64":  ColumnMaybeInt  (TypedColumn MaybeInt64Type  columnWrapper)
-                "double": ColumnMaybeReal (TypedColumn MaybeDoubleType columnWrapper)
-                "utf8":   ColumnMaybeText (TypedColumn MaybeStringType columnWrapper)
+                "int64":  ColumnMaybeInt  (TypedColumn MaybeInt64Type  . fromWrapper columnWrapper)
+                "double": ColumnMaybeReal (TypedColumn MaybeDoubleType . fromWrapper columnWrapper)
+                "utf8":   ColumnMaybeText (TypedColumn MaybeStringType . fromWrapper columnWrapper)
             False: case fw.type.name of
-                "int64":  ColumnInt  (TypedColumn Int64Type  columnWrapper)
-                "double": ColumnReal (TypedColumn DoubleType columnWrapper)
-                "utf8":   ColumnText (TypedColumn StringType columnWrapper)
+                "int64":  ColumnInt  (TypedColumn Int64Type  . fromWrapper columnWrapper)
+                "double": ColumnReal (TypedColumn DoubleType . fromWrapper columnWrapper)
+                "utf8":   ColumnText (TypedColumn StringType . fromWrapper columnWrapper)
 
     def fromList name typeTag list:
-        array = listToArray typeTag list
-        chunks = createChunkedArrayFromChunk array
-        field = createField name typeTag
-        ptr = createColumnWrapper field.ptr chunks.ptr
-        typedCol = TypedColumn typeTag ptr
+        array = Array typeTag . fromList list
+        chunks = ChunkedArray.fromChunk array
+        field = Field.fromTypeTag name typeTag
+        typedCol = TypedColumn typeTag . fromChunks field.ptr chunks.ptr
         typeTag.makeColumn typedCol
 
     def nullCount: self.ptr.nullCount
     def length: self.ptr.length
     def name: self.ptr.name
     def field: 
-        wrapper = self.ptr.field
-        Field wrapper
-
-class Table:
-    Table
-    TableVal (TableWrapper)
-
-    def ptr: 
-        case self of 
-            TableVal ptr: ptr
-
-    def fromSchemaAndColumns schema columns:
-        wrapper = createTableWrapper schema.ptr (columns.each .ptr)
-        TableVal wrapper
-    def fromColumns columns:
-        schema = createSchema (columns.each .field)
-        wrapper = createTableWrapper schema.ptr (columns.each .ptr)
-        TableVal wrapper
-    def fromFile path:
-        wrapper = readTableFromFile path
-        TableVal wrapper
-
-    def columnCount: self.ptr.columnCount
-    def rowCount: self.ptr.rowCount
-    def schema:
-        wrapper = self.ptr.schema
-        Schema wrapper
-    def columnAt index: 
-        columnWrapper = self.ptr.columnAt index
-        Column.fromColumnWrapper columnWrapper
-    def addColumn index column:
-        wrapper = self.ptr.addColumn index column.ptr
-        TableVal wrapper
-    def removeColumn index:
-        wrapper = self.ptr.removeColumn index
-        TableVal wrapper
-    def toList:
-        self.ptr.toList.each Column.fromColumnWrapper
-    def toText:
-        self.toList.toText
-    def columnNames:
-        self.toList.each .name
-    def == that:
-        self.ptr.equals that.ptr
-    def toJSON:
-        columnValueLists = self.toList.each .toList
-        rowIndices = 0.upto (self.rowCount - 1)
-        rows = rowIndices.each rowIndex:
-            columnValueLists.each (_.getAt rowIndex)
-        JSON.empty . insert "header" self.columnNames . insert "data" rows
+        Field.fromWrapper $ self.ptr.field

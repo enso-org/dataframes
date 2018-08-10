@@ -1,6 +1,6 @@
 import Dataframes.Internal.CWrappers
 import Dataframes.Internal.Utils
-import Dataframes.Column
+import Dataframes.Table
 
 import Std.Foreign
 import Std.Foreign.C.Value

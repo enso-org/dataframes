@@ -1,0 +1,28 @@
+import Dataframes.Internal.CWrappers
+
+class Field:
+    Field
+    FieldVal FieldWrapper
+
+    def ptr: case self of
+        FieldVal ptr: ptr
+
+    def fromWrapper wrapper:
+        wrapper' = wrapper
+        FieldVal wrapper'
+
+    def fromTypeTag name typeTag:
+        datatypeWrapper = createDataTypeWrapper typeTag.typename
+        ptr = createFieldWrapper name datatypeWrapper typeTag.nullable
+        FieldVal ptr
+
+    def name:
+        self.ptr.name
+    def type:
+        self.ptr.type
+    def nullable:
+        self.ptr.nullable
+    def toText:
+        self.ptr.toText
+    def == that: 
+        self.ptr.equals that.ptr

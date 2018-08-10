@@ -1,0 +1,51 @@
+import Dataframes.Internal.CWrappers
+import Dataframes.Array
+
+class ChunkedArray a:
+    ChunkedArray
+    ChunkedArrayVal a ChunkedArrayWrapper
+
+    def typeTag: case self of
+        ChunkedArrayVal t _: t
+        
+    def ptr: case self of
+        ChunkedArrayVal _ ptr: ptr
+
+    def fromWrapper wrapper:
+        wrapper' = wrapper
+        ChunkedArrayVal self.typeTag wrapper'
+
+    def fromChunk arrayChunk:
+        self.fromWrapper $ createChunkedArrayWrapperSingleton arrayChunk.ptr
+
+    def fromChunks arrayChunks:
+        tag = case arrayChunks.head of
+            Just h: h.typeTag
+            Nothing: throw "Cannot create ChunkedArray without any chunks"
+        wrapper = createChunkedArrayWrapperChunks (arrayChunks.each (_.ptr))
+        ChunkedArrayVal tag wrapper
+
+    def length:
+        self.ptr.length
+    def nullCount:
+        self.ptr.nullCount
+    def type:
+        self.ptr.type
+    def chunkCount:
+        self.ptr.chunkCount
+    def chunkAt index:
+        wrapper = self.ptr.chunkAt index
+        ArrayVal self.typeTag wrapper
+    def map typeTag f:
+        newChunks = 0.upto (self.chunkCount - 1) . each index:
+            chunk = self.chunkAt index
+            chunk . map typeTag f
+        ChunkedArray.fromChunks newChunks
+
+    def toText:
+        self.toList.toText
+    def toJSON:
+        self.toList.toJSON
+    def toList:
+        chunks = 0.upto (self.chunkCount - 1) . each self.chunkAt
+        chunks.each .toList . concat

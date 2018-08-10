@@ -1,0 +1,18 @@
+import Dataframes.Internal.CWrappers
+
+# TODO: consider whether some trickery could be used to hide bitWidth method
+class DataType:
+    DataType
+    DataTypeVal DataTypeWrapper
+
+    def ptr: case self of
+        DataTypeVal ptr: ptr
+
+    def fromTypeTag typeTag:
+        ptr = createDataTypeWrapper typeTag.typename
+        DataTypeVal ptr
+
+    def name: self.ptr.name
+    def toText: self.ptr.toText
+    def typeId: self.ptr.typeId
+    def bitWidth: self.ptr.bitWidth

@@ -1,7 +1,12 @@
 import Std.Test
 
+import Dataframes.Internal.ArrayBuilder
 import Dataframes.Array
+import Dataframes.ChunkedArray
 import Dataframes.Column
+import Dataframes.DataType
+import Dataframes.Field
+import Dataframes.Schema
 import Dataframes.Types
 import Dataframes.IO
 
@@ -36,7 +41,7 @@ def assertThrow msg action:
 class TestArrayBuilder:
     def testDoubleBuilder:
         print "=== Testing for Double ==="
-        builder = createBuilder DoubleType
+        builder = ArrayBuilder DoubleType . create
         type = builder.type
         assertEqual "initial capacity" builder.capacity 0
         assertEqual "initial length" builder.length 0
@@ -47,13 +52,14 @@ class TestArrayBuilder:
         builder.appendMany (1 . upto 3 . each .toReal)
         assertGE "builder.capacity" builder.capacity 4
         assertEqual "builder.length" builder.length 4
-        builtArray = builder.finish
+        builtArrayWrapper = builder.finish
+        builtArray = ArrayVal builder.typeTag builtArrayWrapper
         assertThrow ("invalid index -1 throws") (builtArray.valueAt -1)
         assertThrow ("invalid index 6 throws") (builtArray.valueAt 6)
         assertEqual "built single elem array" builtArray.toList [7.0, 1.0, 2.0, 3.0]
     def testInt64Builder:
         print "=== Testing for Int ==="
-        builder = createBuilder Int64Type
+        builder = ArrayBuilder Int64Type . create
         type = builder.type
         assertEqual "initial capacity" builder.capacity 0
         assertEqual "initial length" builder.length 0
@@ -64,7 +70,8 @@ class TestArrayBuilder:
         builder.appendMany (1 . upto 5)
         assertGE "builder.capacity" builder.capacity 6
         assertEqual "builder.length" builder.length 6
-        builtArray = builder.finish
+        builtArrayWrapper = builder.finish
+        builtArray = ArrayVal builder.typeTag builtArrayWrapper
         assertThrow ("invalid index -1 throws") (builtArray.valueAt -1)
         assertThrow ("invalid index 6 throws") (builtArray.valueAt 6)
         assertEqual "built single elem array" builtArray.toList [7, 1, 2, 3, 4, 5]
@@ -74,7 +81,7 @@ class TestArrayBuilder:
 
     def testMaybeInt64Builder:
         print "=== Testing for (Maybe Int) ==="
-        builder = createBuilder MaybeInt64Type
+        builder = ArrayBuilder MaybeInt64Type . create
         type = builder.type
         assertEqual "initial capacity" builder.capacity 0
         assertEqual "initial length" builder.length 0
@@ -86,7 +93,8 @@ class TestArrayBuilder:
         builder.appendMany (1 . upto 3 . each (Just))
         assertGE "builder.capacity" builder.capacity 5
         assertEqual "builder.length" builder.length 5
-        builtArray = builder.finish
+        builtArrayWrapper = builder.finish
+        builtArray = ArrayVal builder.typeTag builtArrayWrapper
         assert "not null at 0" (builtArray.nullAt 0 . not)
         assert "null at 1" (builtArray.nullAt 1)
         assertThrow "null at -1 throws" (builtArray.nullAt -1)
@@ -98,7 +106,7 @@ class TestArrayBuilder:
     # TODO: properly handle `assertEqual "type width" type.bitWidth 64`
     def testMaybeStringBuilder:
         print "=== Testing for (Maybe Text) ==="
-        builder = createBuilder MaybeStringType
+        builder = ArrayBuilder MaybeStringType . create
         type = builder.type
         assertEqual "initial capacity" builder.capacity 0
         assertEqual "initial length" builder.length 0
@@ -112,7 +120,8 @@ class TestArrayBuilder:
         builder.appendMany (nums)
         assertGE "builder.capacity" builder.capacity 5
         assertEqual "builder.length" builder.length 5
-        builtArray = builder.finish
+        builtArrayWrapper = builder.finish
+        builtArray = ArrayVal builder.typeTag builtArrayWrapper
         assert "not null at 0" (builtArray.nullAt 0 . not)
         assert "null at 1" (builtArray.nullAt 1)
         assertEqual "value at 0" (builtArray.valueAt 0) (Just "first")
@@ -125,7 +134,7 @@ class TestArrayBuilder:
                 Nothing: Nothing)
 
     def testRoundTrip msg typeTag list:
-        arr = listToArray typeTag list
+        arr = Array typeTag . fromList list
         assertEqual "array and list length same" arr.length list.length
         assertEqual msg (arr . toList) list
 
@@ -140,7 +149,7 @@ class TestArrayBuilder:
         self.testRoundTrip "Maybe Text round trip" MaybeStringType [Just "ten", Just "-5", Just "legion", Nothing]
 
     def testSlicing:
-        arr = listToArray Int32Type [1, 2, 3, 4, 5]
+        arr = Array Int32Type . fromList [1, 2, 3, 4, 5]
         arr2 = arr.slice 1 3
         assertEqual "slice result" arr2.toList [2, 3, 4]
         buf1Ptr = arr.data.bufferAt 1 . data
@@ -149,14 +158,14 @@ class TestArrayBuilder:
         assertEqual "sliced data has proper offset" arr2.data.offset (arr.data.offset+1)
 
     def testChunkedArray:
-        arr = listToArray Int32Type [1, 2, 3, 4, 5]
-        charr = createChunkedArrayFromChunk arr
+        arr = Array Int32Type . fromList [1, 2, 3, 4, 5]
+        charr = ChunkedArray.fromChunk arr
         assertEqual "chunked array type" charr.type.name "int32"
         assertEqual "single chunk" charr.chunkCount 1
         assertEqual "length" charr.length 5
 
-        arr2 = listToArray Int32Type [10, 20, 30]
-        charr2 = createChunkedArrayFromChunks [arr, arr2]
+        arr2 = Array Int32Type . fromList [10, 20, 30]
+        charr2 = ChunkedArray.fromChunks [arr, arr2]
         assertEqual "chunked array type" charr2.type.name "int32"
         assertEqual "single chunk" charr2.chunkCount 2
         assertEqual "length" charr2.length 8
@@ -165,29 +174,29 @@ class TestArrayBuilder:
         assertEqual "as list" charr2.toList [1, 2, 3, 4, 5, 10, 20, 30]
 
     def testDatatype:
-        typeInt32 = createDatatype Int32Type
+        typeInt32 = DataType.fromTypeTag Int32Type
         assertEqual "name" typeInt32.name "int32"
         assertEqual "bitWidth" typeInt32.bitWidth 32
 
-        typeInt64 = createDatatype Int64Type
+        typeInt64 = DataType.fromTypeTag Int64Type
         assertEqual "name" typeInt64.name "int64"
         assertEqual "bitWidth" typeInt64.bitWidth 64
         
-        typeDouble = createDatatype DoubleType
+        typeDouble = DataType.fromTypeTag DoubleType
         assertEqual "name" typeDouble.name "double"
         assertEqual "bitWidth" typeDouble.bitWidth 64
         
-        typeString = createDatatype StringType
+        typeString = DataType.fromTypeTag StringType
         assertEqual "name" typeString.name "utf8"
         assertThrow "bitWidth" typeString.bitWidth
 
     def testField:
-        fieldInt64 = createField "x" Int64Type
+        fieldInt64 = Field.fromTypeTag "x" Int64Type
         assertEqual "name" fieldInt64.name "x"
         assertEqual "type.name" fieldInt64.type.name "int64"
         assertEqual "nullable" fieldInt64.nullable False
 
-        fieldMaybeString = createField "handle_name" MaybeStringType
+        fieldMaybeString = Field.fromTypeTag "handle_name" MaybeStringType
         assertEqual "name" fieldMaybeString.name "handle_name"
         assertEqual "type.name" fieldMaybeString.type.name "utf8"
         assertEqual "nullable" fieldMaybeString.nullable True
@@ -221,13 +230,13 @@ class TestArrayBuilder:
         assertEqual "maybe real contents" colMappedMaybeReal.toList [Just 8.5, Just 9.5, Just 10.5]
 
     def testSchema:
-        x = createField "x" Int64Type
-        y = createField "y" Int64Type
-        z = createField "z" MaybeInt64Type
-        name = createField "name" StringType
-        value = createField "value" DoubleType
+        x = Field.fromTypeTag "x" Int64Type
+        y = Field.fromTypeTag "y" Int64Type
+        z = Field.fromTypeTag "z" MaybeInt64Type
+        name = Field.fromTypeTag "name" StringType
+        value = Field.fromTypeTag "value" DoubleType
         
-        schema = createSchema [x, y, z, name]
+        schema = Schema.fromFields [x, y, z, name]
         assertEqual "fieldCount" schema.fieldCount 4
         assertThrow "field negative index" (schema.fieldAt -1)
         assertEqual "field name" (schema.fieldAt 0 . name) "x"

@@ -1,0 +1,34 @@
+import Dataframes.Internal.CWrappers
+import Dataframes.DataType
+
+class ArrayBuilder a:
+    ArrayBuilder a
+    ArrayBuilderVal a ArrayBuilderWrapper
+
+    def typeTag: case self of
+        ArrayBuilder t: t
+        ArrayBuilderVal t _: t
+        
+    def ptr: case self of
+        ArrayBuilderVal _ ptr: ptr
+
+    def create:
+        wrapper = createBuilderWrapper self.typeTag.typename
+        ArrayBuilderVal self.typeTag wrapper
+
+    def append value:
+        self.typeTag.append self.ptr value
+    def appendMany values:
+        values . each self.append
+    
+    # NOTE: returns ArrayWrapper, to not introduce dependency on Array
+    # presumed to be used from Array's fromList
+    def finish:
+        self.ptr.finish
+    def capacity:
+        self.ptr.capacity
+    def length:
+        self.ptr.length
+    def type:
+        ptr = self.ptr.type
+        DataTypeVal ptr

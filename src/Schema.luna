@@ -1,0 +1,35 @@
+import Dataframes.Internal.CWrappers
+import Dataframes.Field
+
+class Schema:
+    Schema
+    SchemaVal SchemaWrapper
+
+    def ptr: case self of
+        SchemaVal ptr: ptr
+
+    def fromWrapper wrapper:
+        wrapper' = wrapper
+        SchemaVal wrapper'
+
+    def fromFields fields:
+        self.fromWrapper $ createSchemaWrapper (fields.each .ptr)
+
+    def fieldCount: 
+        self.ptr.fieldCount
+    def fieldAt index:
+        Field.fromWrapper $ self.ptr.fieldAt index
+    def toText:
+        self.ptr.toText
+    def fieldByName name:
+        maybeWrapper = self.ptr.fieldByName name
+        maybeWrapper.map Field.fromWrapper
+    def fieldIndexByName name:
+        self.ptr.fieldIndexByName name
+    def addField index field:
+        self.fromWrapper $ self.ptr.addField index field.ptr
+    def removeField index:
+        self.fromWrapper $ self.ptr.removeField index
+    def toList:
+        wrappers = self.ptr.toList
+        wrappers . each Field.fromWrapper

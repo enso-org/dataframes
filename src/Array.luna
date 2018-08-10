@@ -1,22 +1,25 @@
 import Dataframes.Internal.CWrappers
-import Dataframes.Internal.Utils
-
-# TODO: consider whether some trickery could be used to hide bitWidth method
-class DataType:
-    ptr :: DataTypeWrapper
-
-    def name: self.ptr.name
-    def toText: self.ptr.toText
-    def typeId: self.ptr.typeId
-    def bitWidth: self.ptr.bitWidth
-
-def createDatatype typeTag:
-    ptr = createDataTypeWrapper typeTag.typename
-    DataType ptr
+import Dataframes.Internal.ArrayBuilder
 
 class Array a:
-    typeTag :: a
-    ptr :: ArrayWrapper
+    Array a
+    ArrayVal a ArrayWrapper
+
+    def typeTag: case self of
+        Array t: t
+        ArrayVal t _: t
+        
+    def ptr: case self of
+        ArrayVal _ ptr: ptr
+
+    def fromWrapper wrapper:
+        wrapper' = wrapper
+        ArrayVal self.typeTag wrapper'
+
+    def fromList list:
+        builder = ArrayBuilder self.typeTag . create
+        builder.appendMany list
+        self.fromWrapper builder.finish
 
     def data:
         self.ptr.data
@@ -36,41 +39,13 @@ class Array a:
     def nullAt index:
         self.ptr.nullAt index
     
-    # TODO: could be faster: deep copy buffer and overwrite with new values
+    # NOTE: method is provisional and low-performance
     def mapSame f: self.map self.typeTag f
+    
+    # NOTE: method is provisional and low-performance
     def map typeTag f:
-        builder = createBuilder typeTag
-        self.toList.each val:
-            builder.append (f val)
-        builder.finish
+        Array typeTag . fromList $ self.toList.each f
+
     def slice fromIndex length:
         ptr = self.ptr.slice fromIndex length
-        Array self.typeTag ptr
-
-def createBuilder typeTag:
-    bw = createBuilderWrapper typeTag.typename
-    ArrayBuilder typeTag bw
-
-class ArrayBuilder a:
-    typeTag :: a
-    bw :: ArrayBuilderWrapper
-
-    def append value:
-        self.typeTag.append self.bw value
-    def appendMany values:
-        values . each self.append
-    def finish:
-        ptr = self.bw.finish
-        Array (self.typeTag) ptr
-    def capacity:
-        self.bw.capacity
-    def length:
-        self.bw.length
-    def type:
-        ptr = self.bw.type
-        DataType ptr
-
-def listToArray typeTag list:
-    builder = createBuilder typeTag
-    builder.appendMany list
-    builder.finish
+        ArrayVal self.typeTag ptr
