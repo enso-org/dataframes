@@ -355,8 +355,11 @@ struct CsvGenerator
         if(quotingPolicy == GeneratorQuotingPolicy::QueteAllFields || needsEscaping(data, length))
         {
             // TODO workaround for mac
-            std::string_view sv(data, length);
-            out << std::quoted(sv, quote, quote);
+        #ifdef _MSC_VER
+            out << std::quoted(std::string_view{data, length}, quote, quote);            
+        #else
+            out << std::quoted(std::string{data, data + length}, quote, quote);
+        #endif
         }
         else
             out.write(data, length);
