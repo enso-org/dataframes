@@ -1,0 +1,28 @@
+import Std.Foreign.C.Value
+
+class ColumnNamePolicy:
+    TakeFromFirstRow
+    Generate
+    CustomNames [Text]
+
+    def names: case self of
+        CustomNames ns: ns
+        _: []
+
+class GeneratorHeaderPolicy:
+    WriteHeaderLine
+    SkipHeaderLine
+
+    def toCArg:
+        CInt8.fromInt (case self of
+            WriteHeaderLine: 0
+            SkipHeaderLine: 1) . toCArg
+
+class CSVGeneratorQuotingPolicy:
+    QuoteWhenNeeded
+    QuoteAllFields
+
+    def toCArg:
+        CInt8.fromInt (case self of
+            QuoteWhenNeeded: 0
+            QuoteAllFields: 1) . toCArg

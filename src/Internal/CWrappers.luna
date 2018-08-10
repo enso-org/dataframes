@@ -2,6 +2,7 @@ import Std.Foreign
 import Std.Foreign.C.Value
 
 import Dataframes.Internal.Utils
+import Dataframes.IO.Options
 
 class DataTypeWrapper:
     ptr :: ManagedPointer None
@@ -270,3 +271,25 @@ def readTableFromFile path:
     CString.with path pathC:
         ptr = callHandlingError "readTableFromFile" (Pointer None) [pathC.toCArg]
         wrapReleasableResouce TableWrapper ptr
+
+class CsvParserMode:
+    ParseCSVFile Text
+    ParseCSVContents Text
+
+    def dummy: None
+
+def callCsvParser mode namePolicy typePolicy:
+    (fname, data) = case mode of
+        ParseCSVFile path: ("readTableFromCSVFile", path)
+        ParseCSVContents contents: ("readTableFromCSVFileContents", contents)
+    withCStringArray namePolicy.names namesCStringCArray:
+        Array CInt8 . with (typePolicy.each v: CInt8.fromInt v.toArrowId) typeIdsC:
+            Array CInt8 . with (typePolicy.each v: CInt8.fromInt (if v.nullable then 1 else 0)) nullablesC:
+                namesMode = case namePolicy of
+                    TakeFromFirstRow: 0
+                    Generate: 1
+                    CustomNames l: l.length.negate
+                nullptr = Pointer None . null . toCArg
+                ptr = CString.with data dataC:
+                    callHandlingError fname (Pointer None) [dataC.toCArg, namesCStringCArray.ptr.toCArg, CInt32.fromInt namesMode . toCArg, typeIdsC.ptr.toCArg, nullablesC.ptr.toCArg, CInt32.fromInt typePolicy.length . toCArg]
+                wrapReleasableResouce TableWrapper ptr

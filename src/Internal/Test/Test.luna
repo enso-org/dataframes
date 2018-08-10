@@ -8,6 +8,7 @@ import Dataframes.DataType
 import Dataframes.Field
 import Dataframes.Schema
 import Dataframes.Types
+import Dataframes.IO.Options
 import Dataframes.IO
 
 def executeTest msg action:
@@ -320,7 +321,7 @@ class TestArrayBuilder:
  
     def testCsvIO:
         print "CSV parsing case 1"
-        t1 = CSVParser . useNames ["x", "y", "z"] . setTypes [IntElement, MaybeIntElement] . readText "1,2,3"
+        t1 = CSVParser . useCustomNames ["x", "y", "z"] . setTypes [IntElement, MaybeIntElement] . readText "1,2,3"
         assertEqual "names" t1.columnNames ["x", "y", "z"]
         assertEqual "column count" t1.columnCount 3
         assertEqual "row count" t1.rowCount 1
@@ -335,12 +336,12 @@ class TestArrayBuilder:
         assertEqual "col 2 toList" (t1.columnAt 2 . toList) ["3"]
 
         print "CSV parsing case 2"
-        t2 = CSVParser . useNames ["x", "y"] . setTypes [] . readText '"1,""2,3"'
+        t2 = CSVParser . useCustomNames ["x", "y"] . setTypes [] . readText '"1,""2,3"'
         assertEqual "names" t2.columnNames ["x"]
         assertEqual "col 0 toList" (t2.columnAt 0 . toList) ['1,"2,3']
 
         print "CSV parsing case 3"
-        t3 = CSVParser . useGeneratedNames . setTypes [MaybeRealElement, TextElement, TextElement] . readText '1,f\n2.5,1\nk\n5'
+        t3 = CSVParser . useGenerateColumnNames . setTypes [MaybeRealElement, TextElement, TextElement] . readText '1,f\n2.5,1\nk\n5'
         assertEqual "column count" t3.columnCount 2
         assertEqual "row count" t3.rowCount 4
         assertEqual "col 0 toList" (t3.columnAt 0 . toList) [Just 1.0, Just 2.5, Nothing, Just 5.0]

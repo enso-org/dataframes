@@ -9,16 +9,16 @@ class Table:
         case self of 
             TableVal ptr: ptr
 
+    def fromWrapper wrapper:
+        wrapper' = wrapper
+        TableVal wrapper'
     def fromSchemaAndColumns schema columns:
-        wrapper = createTableWrapper schema.ptr (columns.each .ptr)
-        TableVal wrapper
+        self.fromWrapper $ createTableWrapper schema.ptr (columns.each .ptr)
     def fromColumns columns:
         schema = Schema.fromFields (columns.each .field)
-        wrapper = createTableWrapper schema.ptr (columns.each .ptr)
-        TableVal wrapper
+        self.fromWrapper $ createTableWrapper schema.ptr (columns.each .ptr)
     def fromFile path:
-        wrapper = readTableFromFile path
-        TableVal wrapper
+        self.fromWrapper $ readTableFromFile path
 
     def columnCount: self.ptr.columnCount
     def rowCount: self.ptr.rowCount
@@ -29,11 +29,9 @@ class Table:
         columnWrapper = self.ptr.columnAt index
         Column.fromColumnWrapper columnWrapper
     def addColumn index column:
-        wrapper = self.ptr.addColumn index column.ptr
-        TableVal wrapper
+        self.fromWrapper $ self.ptr.addColumn index column.ptr
     def removeColumn index:
-        wrapper = self.ptr.removeColumn index
-        TableVal wrapper
+        self.fromWrapper $ self.ptr.removeColumn index
     def toList:
         self.ptr.toList.each Column.fromColumnWrapper
     def toText:

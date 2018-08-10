@@ -29,6 +29,10 @@ def callHandlingError fname ret args:
                 errorMsg = err.read.toText
                 throw errorMsg
 
+def withCStringArray texts f:
+    bracket (texts.each CString.fromText) (_.each .free) textsCStringList:
+        Array CString . with textsCStringList f
+        
 def setHelperVerbosity isVerbose:
     callHelper "setVerbosity" None [CInt8.fromInt (if isVerbose then 1 else 0) . toCArg]
 

@@ -1,14 +1,10 @@
 import Dataframes.Internal.CWrappers
 import Dataframes.Internal.Utils
 import Dataframes.Table
+import Dataframes.IO.Options
 
 import Std.Foreign
 import Std.Foreign.C.Value
-
-class ColumnNamePolicy:
-    TakeFromFirstRow
-    Generate
-    CustomNames [Text]
 
 class ElementType:
     IntElement
@@ -38,10 +34,6 @@ def listToMap list:
     def insert (k,v) m: m.insert k v
     list.foldLeft Map.empty insert
 
-def withCStringArray texts f:
-    bracket (texts.each CString.fromText) (_.each .free) textsCStringList:
-        Array CString . with textsCStringList f
-
 class CSVParser:
     CSVParser
     CustomizedParser ColumnNamePolicy [ElementType]
@@ -54,10 +46,13 @@ class CSVParser:
         CSVParser: []
         CustomizedParser _ m: m
 
-    def useNames names:
+    def useCustomNames names:
         CustomizedParser (CustomNames names) self.typePolicy
 
-    def useGeneratedNames:
+    def useReadColumnNames:
+        CustomizedParser TakeFromFirstRow self.typePolicy
+
+    def useGenerateColumnNames:
         CustomizedParser Generate self.typePolicy
 
     def setTypes columnTypes:
@@ -68,59 +63,14 @@ class CSVParser:
         _: []
 
     def readFile filepath:
-        names = self.customNames
-        withCStringArray names namesCStringCArray:
-            typeInfos = self.typePolicy
-            Array CInt8 . with (typeInfos.each v: CInt8.fromInt v.toArrowId) typeIdsC:
-                Array CInt8 . with (typeInfos.each v: CInt8.fromInt (if v.nullable then 1 else 0)) nullablesC:
-                    namesMode = case self.namePolicy of
-                        TakeFromFirstRow: 0
-                        Generate: 1
-                        CustomNames l: l.length.negate
-                    nullptr = Pointer None . null . toCArg
-                    ptr = CString.with filepath filepathC:
-                        callHandlingError "readTableFromCSVFile" (Pointer None) [filepathC.toCArg, namesCStringCArray.ptr.toCArg, CInt32.fromInt namesMode . toCArg, typeIdsC.ptr.toCArg, nullablesC.ptr.toCArg, CInt32.fromInt typeInfos.length . toCArg]
-                    wrapper = wrapReleasableResouce TableWrapper ptr
-                    TableVal wrapper
+        Table.fromWrapper $ callCsvParser (ParseCSVFile text) self.namePolicy self.typePolicy
 
-    # TODO: deduplicate
     def readText text:
-        names = self.customNames
-        withCStringArray names namesCStringCArray:
-            typeInfos = self.typePolicy
-            Array CInt8 . with (typeInfos.each v: CInt8.fromInt v.toArrowId) typeIdsC:
-                Array CInt8 . with (typeInfos.each v: CInt8.fromInt (if v.nullable then 1 else 0)) nullablesC:
-                    namesMode = case self.namePolicy of
-                        TakeFromFirstRow: 0
-                        Generate: 1
-                        CustomNames l: l.length.negate
-                    nullptr = Pointer None . null . toCArg
-                    ptr = CString.with text textC:
-                        callHandlingError "readTableFromCSVFileContents" (Pointer None) [textC.toCArg, namesCStringCArray.ptr.toCArg, CInt32.fromInt namesMode . toCArg, typeIdsC.ptr.toCArg, nullablesC.ptr.toCArg, CInt32.fromInt typeInfos.length . toCArg]
-                    wrapper = wrapReleasableResouce TableWrapper ptr
-                    TableVal wrapper
-
-class CSVGeneratorHeaderPolicy:
-    WriteHeaderLine
-    SkipHeaderLine
-
-    def toCArg:
-        CInt8.fromInt (case self of
-            WriteHeaderLine: 0
-            SkipHeaderLine: 1) . toCArg
-
-class CSVGeneratorQuotingPolicy:
-    QuoteWhenNeeded
-    QuoteAllFields
-
-    def toCArg:
-        CInt8.fromInt (case self of
-            QuoteWhenNeeded: 0
-            QuoteAllFields: 1) . toCArg
+        Table.fromWrapper $ callCsvParser (ParseCSVContents text) self.namePolicy self.typePolicy
 
 class CSVGenerator:
     CSVGenerator
-    CSVGeneratorCustomized CSVGeneratorHeaderPolicy CSVGeneratorQuotingPolicy
+    CSVGeneratorCustomized GeneratorHeaderPolicy CSVGeneratorQuotingPolicy
 
     def headerPolicy: case self of
         CSVGenerator: WriteHeaderLine
