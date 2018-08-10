@@ -220,10 +220,10 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
     std::vector<std::shared_ptr<arrow::Array>> arrays;
     arrays.reserve(csv.fieldCount);
 
-    const bool takeFirstRowAsNames = std::holds_alternative<TakeFirstRowAsHeaders>(header);
+    const bool takeFirstRowAsNames = nonstd::holds_alternative<TakeFirstRowAsHeaders>(header);
     const auto suppliedNames = [&] () -> std::vector<std::string>
     {
-        if(auto names = std::get_if<std::vector<std::string>>(&header))
+        if(auto names = nonstd::get_if<std::vector<std::string>>(&header))
             return *names;
         return {};
     }();

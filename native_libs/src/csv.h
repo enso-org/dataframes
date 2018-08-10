@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <memory>
 #include <ostream>
-#include <variant>
+#include <nonstd/variant.hpp>
 #include <vector>
 
 #include <arrow/type.h>
@@ -60,7 +60,7 @@ struct ParsedCsv
 
 struct TakeFirstRowAsHeaders {};
 struct GenerateColumnNames {};
-using HeaderPolicy = std::variant<TakeFirstRowAsHeaders, GenerateColumnNames, std::vector<std::string>>;
+using HeaderPolicy = nonstd::variant<TakeFirstRowAsHeaders, GenerateColumnNames, std::vector<std::string>>;
 
 struct ColumnType
 {
