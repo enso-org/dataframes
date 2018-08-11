@@ -346,6 +346,14 @@ class TestArrayBuilder:
         assertEqual "row count" t3.rowCount 4
         assertEqual "col 0 toList" (t3.columnAt 0 . toList) [Just 1.0, Just 2.5, Nothing, Just 5.0]
 
+        print "CSV parsing case 4 - file"
+        t4 = CSVParser . setTypes [IntElement, MaybeIntElement] . readFile "data/simple_empty.csv"
+        assertEqual "names" t4.columnNames ["a", "b", "c"]
+        assertEqual "row count" t4.rowCount 4
+        assertEqual "column 0" (t4.columnAt 0 . toList) [1,4,7,10]
+        assertEqual "column 1" (t4.columnAt 1 . toList) [Just 2, Nothing, Just 8, Just 11]
+        assertEqual "column 2" (t4.columnAt 2 . toList) ["3", "6", "9", "12"]
+
         print "Generate case 1"
         assertEqual "generated" (CSVGenerator.generateText t1) 'x,y,z\n1,2,3'
         assertEqual "generated" (CSVGenerator.setHeaderPolicy WriteHeaderLine . setQuotingPolicy QuoteWhenNeeded . generateText t1) 'x,y,z\n1,2,3'
@@ -355,9 +363,14 @@ class TestArrayBuilder:
 
         print "Generate case 2"
         assertEqual "generated" (CSVGenerator.setHeaderPolicy SkipHeaderLine . generateText t2) '"1,""2,3"'
+
+        print "Parse excel 1"
+        print $ CSVParser . readExcelFile "data/sample_xlsx.xlsx"
         
     def run:
         self.testCsvIO
+        throw "stop"
+
         self.testSchema
         self.testColumn
         self.testField

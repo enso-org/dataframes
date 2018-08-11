@@ -3,12 +3,12 @@
 #include <cstddef>
 #include <memory>
 #include <ostream>
-#include <nonstd/variant.hpp>
 #include <vector>
 
 #include <arrow/type.h>
 
 #include "Core/Common.h"
+#include "IO.h"
 
 namespace arrow
 {
@@ -56,33 +56,6 @@ struct ParsedCsv
     ParsedCsv(std::unique_ptr<std::string> buffer, Table records);
     ParsedCsv(const ParsedCsv &) = delete;
     ParsedCsv(ParsedCsv &&) = default;
-};
-
-struct TakeFirstRowAsHeaders {};
-struct GenerateColumnNames {};
-using HeaderPolicy = nonstd::variant<TakeFirstRowAsHeaders, GenerateColumnNames, std::vector<std::string>>;
-
-struct ColumnType
-{
-    std::shared_ptr<arrow::DataType> type;
-    bool nullable;
-
-    ColumnType(std::shared_ptr<arrow::DataType> type, bool nullable)
-        : type(type), nullable(nullable)
-    {}
-};
-
-enum class GeneratorHeaderPolicy : int8_t
-{
-    GenerateHeaderLine,
-    SkipHeaderLine
-
-};
-
-enum class GeneratorQuotingPolicy : int8_t
-{
-    QuoteWhenNeeded,
-    QueteAllFields
 };
 
 EXPORT NaiveStringView parseField(char *&bufferIterator, char *bufferEnd, char fieldSeparator, char recordSeparator, char quote);

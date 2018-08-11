@@ -274,6 +274,7 @@ def readTableFromFile path:
 
 class CsvParserMode:
     ParseCSVFile Text
+    ParseXLSXFile Text
     ParseCSVContents Text
 
     def dummy: None
@@ -281,6 +282,7 @@ class CsvParserMode:
 def callCsvParser mode namePolicy typePolicy:
     (fname, data) = case mode of
         ParseCSVFile path: ("readTableFromCSVFile", path)
+        ParseXLSXFile path: ("readTableFromXLSXFile", path)
         ParseCSVContents contents: ("readTableFromCSVFileContents", contents)
     withCStringArray namePolicy.names namesCStringCArray:
         Array CInt8 . with (typePolicy.each v: CInt8.fromInt v.toArrowId) typeIdsC:

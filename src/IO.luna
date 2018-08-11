@@ -63,7 +63,10 @@ class CSVParser:
         _: []
 
     def readFile filepath:
-        Table.fromWrapper $ callCsvParser (ParseCSVFile text) self.namePolicy self.typePolicy
+        Table.fromWrapper $ callCsvParser (ParseCSVFile filepath) self.namePolicy self.typePolicy
+
+    def readExcelFile filepath:
+        Table.fromWrapper $ callCsvParser (ParseXLSXFile filepath) self.namePolicy self.typePolicy
 
     def readText text:
         Table.fromWrapper $ callCsvParser (ParseCSVContents text) self.namePolicy self.typePolicy

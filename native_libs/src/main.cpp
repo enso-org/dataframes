@@ -11,6 +11,7 @@
 #include "LifetimeManager.h"
 #include "csv.h"
 #include "IO.h"
+#include "xlsx.h"
 
 
 #include <arrow/array.h>
@@ -170,6 +171,41 @@ namespace
         returnedStringBuffer = std::move(s);
         return returnedStringBuffer.c_str();
     }
+
+    HeaderPolicy headerPolicyFromC(int columnNamesPolicy, const char **columnNames)
+    {
+        if(columnNamesPolicy < 0)
+        {
+            std::vector<std::string> names;
+            for(int i = 0; i < -columnNamesPolicy; i++)
+                names.push_back(columnNames[i]);
+            return names;
+        }
+        else if(columnNamesPolicy == 0)
+        {
+            static_assert(std::is_same_v<TakeFirstRowAsHeaders, nonstd::variant_alternative_t<0, HeaderPolicy>>);
+            return TakeFirstRowAsHeaders{};
+        }
+        else if(columnNamesPolicy == 1)
+        {
+            static_assert(std::is_same_v<GenerateColumnNames, nonstd::variant_alternative_t<1, HeaderPolicy>>);
+            return GenerateColumnNames{};
+        }
+        else
+            throw std::runtime_error("Invalid column name policy code " + std::to_string(columnNamesPolicy));
+    };
+    std::vector<ColumnType> columnTypesFromC(int columnTypeInfoCount, const int8_t *columnTypes, const int8_t *columnIsNullableTypes)
+    {
+         std::vector<ColumnType> types;
+         for(int i = 0; i < columnTypeInfoCount; i++)
+         {
+             auto typeId = (arrow::Type::type) columnTypes[i];
+             bool nullable = columnIsNullableTypes[i];
+             auto type = idToDataType(typeId);
+             types.emplace_back(type, nullable);
+         }
+         return types;
+    };
 }
 
 extern "C"
@@ -957,37 +993,8 @@ extern "C"
 
 arrow::Table *readTableFromCSVFileContentsHelper(std::string data, const char **columnNames, int32_t columnNamesPolicy, int8_t *columnTypes, int8_t *columnIsNullableTypes, int32_t columnTypeInfoCount)
 {
-    const auto headerPolicy = [&] () -> HeaderPolicy
-    {
-        if(columnNamesPolicy < 0)
-        {
-            std::vector<std::string> names;
-            for(int i = 0; i < -columnNamesPolicy; i++)
-                names.push_back(columnNames[i]);
-            return names;
-        }
-        else if(columnNamesPolicy == 0)
-        {
-            static_assert(std::is_same_v<TakeFirstRowAsHeaders, nonstd::variant_alternative_t<0, HeaderPolicy>>);
-            return TakeFirstRowAsHeaders{};
-        }
-        else if(columnNamesPolicy == 1)
-        {
-            static_assert(std::is_same_v<GenerateColumnNames, nonstd::variant_alternative_t<1, HeaderPolicy>>);
-            return GenerateColumnNames{};
-        }
-        else
-            throw std::runtime_error("Invalid column name policy code " + std::to_string(columnNamesPolicy));
-    }();
-
-    std::vector<ColumnType> types;
-    for(int i = 0; i < columnTypeInfoCount; i++)
-    {
-        auto typeId = (arrow::Type::type) columnTypes[i];
-        bool nullable = columnIsNullableTypes[i];
-        auto type = idToDataType(typeId);
-        types.emplace_back(type, nullable);
-    }
+    const auto headerPolicy = headerPolicyFromC(columnNamesPolicy, columnNames);
+    const auto types = columnTypesFromC(columnTypeInfoCount, columnTypes, columnIsNullableTypes);
 
     auto csv = parseCsvData(std::move(data)); 
     auto table = csvToArrowTable(csv, headerPolicy, types);
@@ -1053,6 +1060,18 @@ extern "C"
                 throw std::runtime_error("Cannot write to file "s + filename);
 
             generateCsv(out, *table, headerPolicy, quotingPolicy);
+        };
+    }
+
+    EXPORT arrow::Table *readTableFromXLSXFile(const char *filename, const char **columnNames, int32_t columnNamesPolicy, int8_t *columnTypes, int8_t *columnIsNullableTypes, int32_t columnTypeInfoCount, const char **outError)
+    {
+        LOG("@{} names={}, namesPolicyCode={}, typeInfoCount={}", filename, (void*)columnNames, columnNamesPolicy, columnTypeInfoCount);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            const auto headerPolicy = headerPolicyFromC(columnNamesPolicy, columnNames);
+            const auto columnTypesPolicy = columnTypesFromC(columnTypeInfoCount, columnTypes, columnIsNullableTypes);
+            auto table = readXlsxFile(filename, headerPolicy, columnTypesPolicy);
+            return LifetimeManager::instance().addOwnership(std::move(table));
         };
     }
 }

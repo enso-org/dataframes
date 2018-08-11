@@ -14,7 +14,9 @@
 #include <arrow/table.h>
 #include <arrow/builder.h>
 
-    // returns field, sets buffer Iterator to the next separator
+using namespace std::literals;
+
+// returns field, sets buffer Iterator to the next separator
 NaiveStringView parseField(char *&bufferIterator, char *bufferEnd, char fieldSeparator, char recordSeparator, char quote)
 {
     if(bufferIterator == bufferEnd)
@@ -126,24 +128,6 @@ struct ColumnPolicy
     MissingField missing;
 };
 
-template<arrow::Type::type type> struct BuilderFor_                      {};
-template<>                       struct BuilderFor_<arrow::Type::INT64>  { using Builder = arrow::Int64Builder;  };
-template<>                       struct BuilderFor_<arrow::Type::DOUBLE> { using Builder = arrow::DoubleBuilder; };
-template<>                       struct BuilderFor_<arrow::Type::STRING> { using Builder = arrow::StringBuilder; };
-template<arrow::Type::type type> using  BuilderFor = typename BuilderFor_<type>::Builder;
-
-
-template<typename Builder>
-std::shared_ptr<arrow::Array> finish(Builder &builder)
-{
-    std::shared_ptr<arrow::Array> ret;
-    auto status = builder.Finish(&ret);
-    if(!status.ok())
-        throw std::runtime_error(status.ToString());
-
-    return ret;
-}
-
 template<arrow::Type::type type>
 struct ColumnBuilder
 {
@@ -160,40 +144,50 @@ struct ColumnBuilder
         }
         else
         {
-            const auto fieldEnd = field.text + field.length;
-            *fieldEnd = '\0';
-            char *next = nullptr;
-            if constexpr(type == arrow::Type::INT64)
+            if(!field.length)
             {
-                auto v = std::strtoll(field.text, &next, 10);
-                if(next == fieldEnd)
-                {
-                    builder.Append(v);
-                }
-                else
-                {
-                    addMissing();
-                }
-            }
-            else if constexpr(type == arrow::Type::DOUBLE)
-            {
-                auto v = std::strtod(field.text, &next);
-                if(next == fieldEnd)
-                {
-                    builder.Append(v);
-                }
-                else
-                {
-                    addMissing();
-                }
+                addMissing();
             }
             else
-                throw std::runtime_error("wrong type");
+            {
+                const auto fieldEnd = field.text + field.length;
+                *fieldEnd = '\0';
+                char *next = nullptr;
+                if constexpr(type == arrow::Type::INT64)
+                {
+                    auto v = std::strtoll(field.text, &next, 10);
+                    if(next == fieldEnd)
+                    {
+                        builder.Append(v);
+                    }
+                    else
+                    {
+                        addMissing();
+                    }
+                }
+                else if constexpr(type == arrow::Type::DOUBLE)
+                {
+                    auto v = std::strtod(field.text, &next);
+                    if(next == fieldEnd)
+                    {
+                        builder.Append(v);
+                    }
+                    else
+                    {
+                        addMissing();
+                    }
+                }
+                else
+                    throw std::runtime_error("wrong type");
+            }
         }
     }
     void addMissing()
     {
-        builder.AppendNull();
+        if(missingField == MissingField::AsNull)
+            builder.AppendNull();
+        else
+            builder.Append(defaultValue<type>());
     }
     void reserve(int64_t count)
     {
@@ -221,18 +215,14 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
     arrays.reserve(csv.fieldCount);
 
     const bool takeFirstRowAsNames = nonstd::holds_alternative<TakeFirstRowAsHeaders>(header);
-    const auto suppliedNames = [&] () -> std::vector<std::string>
-    {
-        if(auto names = nonstd::get_if<std::vector<std::string>>(&header))
-            return *names;
-        return {};
-    }();
+
 
     const int startRow = takeFirstRowAsNames ? 1 : 0;
-    const auto missingFieldsPolicy = MissingField::AsNull;
 
     for(int column = 0; column < csv.fieldCount; column++)
     {
+        const auto typeInfo = columnTypes.at(column);
+        const auto missingFieldsPolicy = typeInfo.nullable ? MissingField::AsNull : MissingField::AsZeroValue;
         auto processColumn = [&] (auto &&builder)
         {
             builder.reserve(csv.recordCount);
@@ -252,7 +242,7 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
             arrays.push_back(finish(builder.builder));
         };
 
-        switch(columnTypes.at(column).type->id())
+        switch(typeInfo.type->id())
         {
         case arrow::Type::INT64:
             processColumn(ColumnBuilder<arrow::Type::INT64>{missingFieldsPolicy});
@@ -266,40 +256,16 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
         }
     }
 
-    const auto names = [&]
+    const auto names = decideColumnNames(csv.fieldCount, header, [&] (int column)
     {
-        std::vector<std::string> ret;
-        for(int column = 0; column < csv.fieldCount; column++)
-        {
-            if(takeFirstRowAsNames)
-            {
-                const auto &headerRow = csv.records[0];
-                if(column < headerRow.size())
-                    ret.push_back(headerRow[column].str());
-                else
-                    ret.push_back("MISSING_" + std::to_string(column));
-            }
-            else if(column >= suppliedNames.size())
-                ret.push_back("col" + std::to_string(column));
-            else
-                ret.push_back(suppliedNames.at(column));
-        }
-        return ret;
-    }();
-
-
-    std::vector<std::shared_ptr<arrow::Field>> fields;
-    for(int column = 0; column < csv.fieldCount; column++)
-    {
-        const auto array = arrays.at(column);
-        //std::cout << column << " : " << array->null_count() << " " << array->length() << std::endl;
-        const auto nullable = array->null_count() > 0 || columnTypes[column].nullable;
-        fields.push_back(std::make_shared<arrow::Field>(names[column], columnTypes[column].type, nullable));
-    }
-
-    auto schema = std::make_shared<arrow::Schema>(fields);
-    auto table = arrow::Table::Make(schema, arrays);
-    return table;
+        const auto &headerRow = csv.records[0];
+        if(column < headerRow.size())
+            return headerRow[column].str();
+        else
+            return ""s;
+    });
+    
+    return buildTable(names, arrays, columnTypes);
 }
 
 ParsedCsv::ParsedCsv(std::unique_ptr<std::string> buffer, Table records_)
@@ -356,7 +322,7 @@ struct CsvGenerator
         {
             // TODO workaround for mac
         #ifdef _MSC_VER
-            out << std::quoted(std::string_view{data, length}, quote, quote);            
+            out << std::quoted(std::string_view(data, length), quote, quote);            
         #else
             out << std::quoted(std::string{data, data + length}, quote, quote);
         #endif
