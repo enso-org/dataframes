@@ -36,27 +36,27 @@ def listToMap list:
 
 class CSVParser:
     CSVParser
-    CustomizedParser ColumnNamePolicy [ElementType]
+    CustomizedCSVParser ColumnNamePolicy [ElementType]
 
     def namePolicy: case self of
         CSVParser: TakeFromFirstRow
-        CustomizedParser n _: n
+        CustomizedCSVParser n _: n
 
     def typePolicy: case self of
         CSVParser: []
-        CustomizedParser _ m: m
+        CustomizedCSVParser _ m: m
 
     def useCustomNames names:
-        CustomizedParser (CustomNames names) self.typePolicy
+        CustomizedCSVParser (CustomNames names) self.typePolicy
 
     def useReadColumnNames:
-        CustomizedParser TakeFromFirstRow self.typePolicy
+        CustomizedCSVParser TakeFromFirstRow self.typePolicy
 
     def useGenerateColumnNames:
-        CustomizedParser Generate self.typePolicy
+        CustomizedCSVParser Generate self.typePolicy
 
     def setTypes columnTypes:
-        CustomizedParser self.namePolicy columnTypes
+        CustomizedCSVParser self.namePolicy columnTypes
 
     def customNames: case self.namePolicy of
         CustomNames l: l
@@ -65,11 +65,39 @@ class CSVParser:
     def readFile filepath:
         Table.fromWrapper $ callCsvParser (ParseCSVFile filepath) self.namePolicy self.typePolicy
 
-    def readExcelFile filepath:
-        Table.fromWrapper $ callCsvParser (ParseXLSXFile filepath) self.namePolicy self.typePolicy
-
     def readText text:
         Table.fromWrapper $ callCsvParser (ParseCSVContents text) self.namePolicy self.typePolicy
+
+class XLSXParser:
+    XLSXParser
+    CustomizedXLSXParser ColumnNamePolicy [ElementType]
+
+    def namePolicy: case self of
+        XLSXParser: TakeFromFirstRow
+        CustomizedXLSXParser n _: n
+
+    def typePolicy: case self of
+        XLSXParser: []
+        CustomizedXLSXParser _ m: m
+
+    def useCustomNames names:
+        CustomizedXLSXParser (CustomNames names) self.typePolicy
+
+    def useReadColumnNames:
+        CustomizedXLSXParser TakeFromFirstRow self.typePolicy
+
+    def useGenerateColumnNames:
+        CustomizedXLSXParser Generate self.typePolicy
+
+    def setTypes columnTypes:
+        CustomizedXLSXParser self.namePolicy columnTypes
+
+    def customNames: case self.namePolicy of
+        CustomNames l: l
+        _: []
+
+    def readFile filepath:
+        Table.fromWrapper $ callCsvParser (ParseXLSXFile filepath) self.namePolicy self.typePolicy
 
 class CSVGenerator:
     CSVGenerator
@@ -91,3 +119,17 @@ class CSVGenerator:
     def generateFile path table:
         CString.with path pathC:
             callHandlingError "writeTableToCsvFile" CString [pathC.toCArg, table.ptr.ptr.toCArg, self.headerPolicy.toCArg, self.quotingPolicy.toCArg] . toText
+
+
+class XLSXGenerator:
+    XLSXGenerator
+    XLSXGeneratorCustomized GeneratorHeaderPolicy
+
+    def headerPolicy: case self of
+        XLSXGenerator: WriteHeaderLine
+        XLSXGeneratorCustomized hp: hp
+    def setHeaderPolicy hp:
+        XLSXGeneratorCustomized hp
+    def generateFile path table:
+        CString.with path pathC:
+            callHandlingError "writeTableToCsvFile" CString [pathC.toCArg, table.ptr.ptr.toCArg, self.headerPolicy.toCArg] . toText

@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 
+#include "Core/ArrowUtilities.h"
 #include "Core/Common.h"
 #include "Core/Error.h"
 #include "Core/Logger.h"
@@ -37,48 +38,20 @@ template<typename ...Ts> struct TypeList {};
 
 using Types = TypeList<int32_t, int64_t, float, double>; 
 
-template<typename T>
-struct TypeDescription {};
+struct UInt8  { static constexpr arrow::Type::type id = arrow::Type::UINT8 ; };
+struct UInt16 { static constexpr arrow::Type::type id = arrow::Type::UINT16; };
+struct UInt32 { static constexpr arrow::Type::type id = arrow::Type::UINT32; };
+struct UInt64 { static constexpr arrow::Type::type id = arrow::Type::UINT64; };
+struct Int8   { static constexpr arrow::Type::type id = arrow::Type::INT8 ;  };
+struct Int16  { static constexpr arrow::Type::type id = arrow::Type::INT16;  };
+struct Int32  { static constexpr arrow::Type::type id = arrow::Type::INT32;  };
+struct Int64  { static constexpr arrow::Type::type id = arrow::Type::INT64;  };
+struct Float  { static constexpr arrow::Type::type id = arrow::Type::FLOAT;  };
+struct Double { static constexpr arrow::Type::type id = arrow::Type::DOUBLE; };
+struct String { static constexpr arrow::Type::type id = arrow::Type::STRING; };
 
-struct UInt8  {};
-struct UInt16 {};
-struct UInt32 {};
-struct UInt64 {};
-struct Int8   {};
-struct Int16  {};
-struct Int32  {};
-struct Int64  {};
-struct Float  {};
-struct Double {};
-struct String {};
-
-template<typename T>
-struct NumericTypeDescription
-{
-    using BuilderType = arrow::NumericBuilder<T>;
-    //using ValueType = typename BuilderType::value_type;
-    using CType = typename BuilderType::value_type;
-    using Array = arrow::NumericArray<T>;
-};
-
-template<> struct TypeDescription<UInt8>  : NumericTypeDescription<arrow::UInt8Type>  {};
-template<> struct TypeDescription<UInt16> : NumericTypeDescription<arrow::UInt16Type> {};
-template<> struct TypeDescription<UInt32> : NumericTypeDescription<arrow::UInt32Type> {};
-template<> struct TypeDescription<UInt64> : NumericTypeDescription<arrow::UInt64Type> {};
-template<> struct TypeDescription<Int8>   : NumericTypeDescription<arrow::Int8Type>   {};
-template<> struct TypeDescription<Int16>  : NumericTypeDescription<arrow::Int16Type>  {};
-template<> struct TypeDescription<Int32>  : NumericTypeDescription<arrow::Int32Type>  {};
-template<> struct TypeDescription<Int64>  : NumericTypeDescription<arrow::Int64Type>  {};
-template<> struct TypeDescription<Float>  : NumericTypeDescription<arrow::FloatType>  {};
-template<> struct TypeDescription<Double> : NumericTypeDescription<arrow::DoubleType> {};
-
-template<> struct TypeDescription<String>
-{
-    using BuilderType = arrow::StringBuilder;
-    //using ValueType = typename BuilderType::value_type;
-    using CType = const char *;
-    using Array = arrow::StringArray;
-};
+template<typename Tag>
+using TypeDescriptionForTag = TypeDescription<Tag::id>;
 
 template<typename To, typename From>
 To throwingCast(From *from)
@@ -99,7 +72,7 @@ To throwingCast(From *from)
 template<typename TypeTag>
 auto asSpecificArray(arrow::Array *array)
 {
-    return throwingCast<typename TypeDescription<TypeTag>::Array*>(array);
+    return throwingCast<typename TypeDescriptionForTag<TypeTag>::Array*>(array);
 }
 
 void checkStatus(const arrow::Status &status)
@@ -263,16 +236,16 @@ extern "C"
 extern "C"
 {
 #define COMMON_BUILDER(TYPENAME) \
-    EXPORT TypeDescription<TYPENAME>::BuilderType *builder##TYPENAME##New(const char **outError) noexcept                                                               \
+    EXPORT TypeDescriptionForTag<TYPENAME>::BuilderType *builder##TYPENAME##New(const char **outError) noexcept                                                               \
     {                                                                                                                                                       \
         LOG(""); \
         /* NOTE: needs release */                                                                                                                           \
         return TRANSLATE_EXCEPTION(outError)                                                                                                               \
         {                                                                                                                                                   \
-            return LifetimeManager::instance().addOwnership(std::make_shared<TypeDescription<TYPENAME>::BuilderType>());                                       \
+            return LifetimeManager::instance().addOwnership(std::make_shared<TypeDescriptionForTag<TYPENAME>::BuilderType>());                                       \
         };                                                                                                                                                   \
     }                                                                                                                                                       \
-    EXPORT void builder##TYPENAME##Reserve(TypeDescription<TYPENAME>::BuilderType *builder, int64_t count, const char **outError) noexcept                           \
+    EXPORT void builder##TYPENAME##Reserve(TypeDescriptionForTag<TYPENAME>::BuilderType *builder, int64_t count, const char **outError) noexcept                           \
     {                                                                                                                                                       \
         LOG("@{}: {}", (void*)builder, count); \
         TRANSLATE_EXCEPTION(outError)                                                                                                                       \
@@ -280,7 +253,7 @@ extern "C"
             checkStatus(builder->Reserve(count));                                                                                                           \
         };                                                                                                                                                   \
     }                                                                                                                                                       \
-    EXPORT void builder##TYPENAME##Resize(TypeDescription<TYPENAME>::BuilderType *builder, int64_t count, const char **outError) noexcept                               \
+    EXPORT void builder##TYPENAME##Resize(TypeDescriptionForTag<TYPENAME>::BuilderType *builder, int64_t count, const char **outError) noexcept                               \
     {                                                                                                                                                       \
         LOG("@{}: {}", (void*)builder, count); \
         return TRANSLATE_EXCEPTION(outError)                                                                                                               \
@@ -288,7 +261,7 @@ extern "C"
             checkStatus(builder->Resize(count));                                                                                                           \
         };                                                                                                                                                   \
     }                                                                                                                                                       \
-    EXPORT void builder##TYPENAME##AppendValue(TypeDescription<TYPENAME>::BuilderType *builder, TypeDescription<TYPENAME>::CType value, const char **outError) noexcept \
+    EXPORT void builder##TYPENAME##AppendValue(TypeDescriptionForTag<TYPENAME>::BuilderType *builder, TypeDescriptionForTag<TYPENAME>::CType value, const char **outError) noexcept \
     {                                                                                                                                                       \
         LOG("@{}: {} :: {}", (void*)builder, value, #TYPENAME); \
         return TRANSLATE_EXCEPTION(outError)                                                                                                               \
@@ -296,7 +269,7 @@ extern "C"
             checkStatus(builder->Append(value));                                                                                                           \
         };                                                                                                                                                   \
     }                                                                                                                                                       \
-    EXPORT void builder##TYPENAME##AppendNull(TypeDescription<TYPENAME>::BuilderType *builder, const char **outError) noexcept                                       \
+    EXPORT void builder##TYPENAME##AppendNull(TypeDescriptionForTag<TYPENAME>::BuilderType *builder, const char **outError) noexcept                                       \
     {                                                                                                                                                       \
         LOG("@{}", (void*)builder); \
         return TRANSLATE_EXCEPTION(outError)                                                                                                               \
@@ -304,7 +277,7 @@ extern "C"
             checkStatus(builder->AppendNull());                                                                                                               \
         };                                                                                                                                                   \
     }                                                                                                                                                       \
-    EXPORT arrow::Array *builder##TYPENAME##Finish(TypeDescription<TYPENAME>::BuilderType *builder, const char **outError) noexcept                                   \
+    EXPORT arrow::Array *builder##TYPENAME##Finish(TypeDescriptionForTag<TYPENAME>::BuilderType *builder, const char **outError) noexcept                                   \
     {                                                                                                                                                       \
         LOG("@{}", (void*)builder); \
         return TRANSLATE_EXCEPTION(outError)                                                                                                               \
@@ -501,7 +474,7 @@ extern "C"
     }
 
 #define NUMERIC_ARRAY_METHODS(TYPENAME)                                                                                                  \
-    EXPORT  TypeDescription<TYPENAME>::CType array##TYPENAME##ValueAt(arrow::Array *array, int64_t index, const char **outError) noexcept\
+    EXPORT  TypeDescriptionForTag<TYPENAME>::CType array##TYPENAME##ValueAt(arrow::Array *array, int64_t index, const char **outError) noexcept\
     {                                                                                                                                    \
         LOG("[{}]", index);                                                                                                              \
         /* NOTE: needs release */                                                                                                        \
@@ -511,7 +484,7 @@ extern "C"
             return asSpecificArray<TYPENAME>(array)->Value(index);                                                                       \
         };                                                                                                                               \
     }                                                                                                                                    \
-    EXPORT const TypeDescription<TYPENAME>::CType *array##TYPENAME##RawValues(arrow::Array *array, const char **outError) noexcept       \
+    EXPORT const TypeDescriptionForTag<TYPENAME>::CType *array##TYPENAME##RawValues(arrow::Array *array, const char **outError) noexcept       \
     {                                                                                                                                    \
         LOG("@{}", (void*)array);                                                                                                        \
         /* NOTE: needs release */                                                                                                        \
@@ -873,7 +846,7 @@ extern "C"
         LOG("@{}, {}", (void*)schema, name);
         return TRANSLATE_EXCEPTION(outError)
         {
-            return schema->GetFieldIndex(name);
+            return (int32_t)schema->GetFieldIndex(name);
         };
     }
 
@@ -1087,70 +1060,4 @@ extern "C"
             LifetimeManager::instance().releaseOwnership(handle);
         };
     }
-}
-
-int main()
-{
-
-    {
-        const char **err = nullptr;
-        auto builder = builderInt64New(err);
-        builderInt64AppendValue(builder, 60, err);
-        builderInt64AppendValue(builder, 500, err);
-        
-        auto array = builderInt64Finish(builder, err);
-        builderInt64Finish(builder, err);
-
-//         auto data = arrayData(array);
-// 
-//         int size = arrayCount(array);
-//         arrayRelease(array);
-    }
-
-    arrow::StringBuilder sb;
-    auto s1 = sb.AppendNull();
-    sb.AppendValues({"a", "bbb", "cc"});
-
-    std::shared_ptr<arrow::Array> stringArray = nullptr;
-    sb.Finish(&stringArray);
-    auto strar = std::dynamic_pointer_cast<arrow::StringArray>(stringArray);
-
-    auto stringType = sb.type();
-
-    arrow::Int64Builder builder;
-    builder.Append(1);
-    builder.Append(2);
-    builder.Append(3);
-    builder.AppendNull();
-    builder.Append(5);
-    builder.Append(6);
-    builder.Append(7);
-    builder.Append(8);
-    builder.Append(9);
-
-    std::shared_ptr<arrow::Array> array;
-    builder.Finish(&array);
-    
-    auto int64Length = array->length();
-    auto numar = std::dynamic_pointer_cast<arrow::Int64Array>(array);
-    
-    auto nullBuffer = array->null_bitmap();
-    auto nullCap = nullBuffer->capacity();
-    auto nullSize = nullBuffer->size();
-
-    auto sliced = array->Slice(2,4);
-
-    bool nullable = true;
-    auto field = std::make_shared<arrow::Field>("name", arrow::int64(), nullable, nullptr);
-
-    auto column = std::make_shared<arrow::Column>("kino", sliced);
-
-    std::shared_ptr<arrow::io::FileOutputStream> outFile = nullptr;
-    arrow::io::FileOutputStream::Open("foo.dat", &outFile);
-
-
-    //arrow::Schema schema{fields, nullptr};
-
-    std::shared_ptr<arrow::ipc::RecordBatchFileWriter> writer{};
-    //rw.Open(outFile.get(), schema, &writer);
 }

@@ -9,4 +9,4 @@ namespace arrow
 
 EXPORT std::shared_ptr<arrow::Table> readXlsxFile(const char *filepath, HeaderPolicy header, std::vector<ColumnType> columnTypes);
 
-void writeXlsxFile(const char *filepath, const arrow::Table &table);
+void writeXlsx(std::ostream &out, const arrow::Table &table);

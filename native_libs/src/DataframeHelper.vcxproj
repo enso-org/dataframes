@@ -83,6 +83,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Core\ArrowUtilities.cpp" />
     <ClCompile Include="Core\Error.cpp" />
     <ClCompile Include="Core\Logger.cpp" />
     <ClCompile Include="Core\Utils.cpp" />
@@ -93,6 +94,7 @@
     <ClCompile Include="XLSX.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Core\ArrowUtilities.h" />
     <ClInclude Include="Core\Common.h" />
     <ClInclude Include="Core\Error.h" />
     <ClInclude Include="Core\Logger.h" />

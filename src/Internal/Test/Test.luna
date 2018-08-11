@@ -365,7 +365,7 @@ class TestArrayBuilder:
         assertEqual "generated" (CSVGenerator.setHeaderPolicy SkipHeaderLine . generateText t2) '"1,""2,3"'
 
         print "Parse excel 1"
-        print $ CSVParser . readExcelFile "data/sample_xlsx.xlsx"
+        print $ XLSXParser . useGenerateColumnNames  . readFile "data/sample_xlsx.xlsx"
         
     def run:
         self.testCsvIO

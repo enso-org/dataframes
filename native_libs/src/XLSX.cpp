@@ -1,6 +1,7 @@
 #define _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING
-#include "xlsx.h"
+#include "XLSX.h"
 
+#include "Core/ArrowUtilities.h"
 #include "Core/Common.h"
 #include "Core/Error.h"
 
@@ -67,28 +68,30 @@ namespace
         }
     };
 
+    void writeXlsx(std::ostream &out, const arrow::Table &table)
+    {
+        xlnt::workbook wb;
+        auto sheet = wb.active_sheet();
+        sheet.title("Table");
 
-//     void xlsxPrintToFile(const Matrix2d &matrix, const char *filename)
-//     {
-//         xlnt::workbook wb;
-//         auto sheet = wb.active_sheet();
-//         sheet.title("Written from Luna");
-// 
-//         for(auto row = 0ull; row < matrix.rowCount; row++)
-//         {
-//             for(auto column = 0ull; column < matrix.columnCount; column++)
-//             {
-//                 // translate indices to from-1-indexed xlnt types
-//                 const auto xlsRow = static_cast<xlnt::row_t>(row + 1);
-//                 const auto xlsColumn = static_cast<xlnt::column_t::index_t>(column + 1);
-// 
-//                 const auto cellContents = matrix.load(row, column);
-//                 sheet.cell(xlsColumn, xlsRow).value(cellContents);
-//             }
-//         }
-// 
-//         wb.save(filename);
-//     }
+        for(int column = 0; column < table.num_columns(); column++)
+        {
+            int32_t row = 0;
+            const auto writeValue = [&] (auto &&field)
+            {
+                sheet.cell(column+1, row+1).value(field);
+                ++row;
+            };
+            const auto writeNull = [&]
+            {
+                ++row;
+            };
+
+            iterateOverGeneric(*table.column(column), writeValue, writeNull);
+        }
+
+        wb.save(out);
+    }
 }
 
 std::shared_ptr<arrow::Table> readXlsxFile(const char *filepath, HeaderPolicy header, std::vector<ColumnType> columnTypes)
@@ -101,11 +104,11 @@ std::shared_ptr<arrow::Table> readXlsxFile(const char *filepath, HeaderPolicy he
 
         // We keep the object under unique_ptr, so there will be
         // no leak if exception is thrown before the end of function
-        const auto rowCount = sheet.highest_row();
-        const auto columnCount = sheet.highest_column().index;
+        const auto rowCount    = (int64_t)sheet.highest_row();
+        const auto columnCount = (int32_t)sheet.highest_column().index;
 
         // If there is no type info for column, default to non-nullable Text (it always works)
-        if(columnTypes.size() < columnCount)
+        if((int)columnTypes.size() < columnCount)
         {
             const ColumnType nonNullableText{ std::make_shared<arrow::StringType>(), false };
             columnTypes.resize(columnCount, nonNullableText);
@@ -130,8 +133,9 @@ std::shared_ptr<arrow::Table> readXlsxFile(const char *filepath, HeaderPolicy he
                     return std::make_unique<ColumnBuilder<arrow::Type::DOUBLE>>(columnType.nullable);
                 case arrow::Type::STRING:
                     return std::make_unique<ColumnBuilder<arrow::Type::STRING>>(columnType.nullable);
+                default:
+                    throw std::runtime_error(__FUNCTION__ ": wrong array type " + columnType.type->ToString());
                 }
-
             }();
             ptr->reserve(rowCount);
             columnBuilders.push_back(std::move(ptr));
