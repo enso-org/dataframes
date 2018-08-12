@@ -1,6 +1,7 @@
 #include "csv.h"
 #include "IO.h"
 #include "Core/Logger.h"
+#include "Core/ArrowUtilities.h"
 
 
 #include <algorithm>
@@ -140,7 +141,7 @@ struct ColumnBuilder
     {
         if constexpr(type == arrow::Type::STRING)
         {
-            builder.Append(field.text, field.length);
+            checkStatus(builder.Append(field.text, field.length));
         }
         else
         {
@@ -158,7 +159,7 @@ struct ColumnBuilder
                     auto v = std::strtoll(field.text, &next, 10);
                     if(next == fieldEnd)
                     {
-                        builder.Append(v);
+                        checkStatus(builder.Append(v));
                     }
                     else
                     {
@@ -170,7 +171,7 @@ struct ColumnBuilder
                     auto v = std::strtod(field.text, &next);
                     if(next == fieldEnd)
                     {
-                        builder.Append(v);
+                        checkStatus(builder.Append(v));
                     }
                     else
                     {
@@ -185,13 +186,13 @@ struct ColumnBuilder
     void addMissing()
     {
         if(missingField == MissingField::AsNull)
-            builder.AppendNull();
+            checkStatus(builder.AppendNull());
         else
-            builder.Append(defaultValue<type>());
+            checkStatus(builder.Append(defaultValue<type>()));
     }
     void reserve(int64_t count)
     {
-        builder.Reserve(count);
+        checkStatus(builder.Reserve(count));
     }
 };
 
@@ -253,6 +254,8 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
         case arrow::Type::STRING:
             processColumn(ColumnBuilder<arrow::Type::STRING>{missingFieldsPolicy});
             break;
+        default:
+            throw std::runtime_error("type not supported " + typeInfo.type->ToString());
         }
     }
 
@@ -433,6 +436,8 @@ void generateCsv(std::ostream &out, const arrow::Table &table, GeneratorHeaderPo
         case arrow::Type::STRING:
             writers.push_back(std::make_unique<StringColumnWriter>(c->data()));
             break;
+        default:
+            throw std::runtime_error("type not supported " + c->field()->type()->ToString());
         }
     }
 
