@@ -2,10 +2,12 @@
 
 #include <functional>
 #include <string>
-#include <nonstd/variant.hpp>
+#include <stdexcept>
 #include <vector>
 
 #include <arrow/type.h>
+
+#include <nonstd/variant.hpp>
 
 #include "Core/Common.h"
 
@@ -66,7 +68,7 @@ inline constexpr auto defaultValue()
         return 0.0;
     }
     else
-        throw std::runtime_error(__FUNCTION__ " : type not supported " + std::to_integer(type));
+        throw std::runtime_error(__FUNCTION__ + std::string(" : type not supported ") + std::to_string(type));
 }
 
 std::vector<std::string> decideColumnNames(int count, const HeaderPolicy &policy, std::function<std::string(int)> readHeaderCell);

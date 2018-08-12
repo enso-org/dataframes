@@ -1,6 +1,10 @@
 #pragma once
+
+#include <stdexcept>
+
 #include <arrow/array.h>
 #include <arrow/builder.h>
+#include <arrow/table.h>
 #include <arrow/type.h>
 
 template<arrow::Type::type type>
@@ -79,6 +83,6 @@ void iterateOverGeneric(const arrow::Column &column, ElementF &&handleElem, Null
     case arrow::Type::INT64 : return iterateOver<arrow::Type::INT64 >(*column.data(), handleElem, handleNull);
     case arrow::Type::DOUBLE: return iterateOver<arrow::Type::DOUBLE>(*column.data(), handleElem, handleNull);
     case arrow::Type::STRING: return iterateOver<arrow::Type::STRING>(*column.data(), handleElem, handleNull);
-    default                 : throw std::runtime_error(__FUNCTION__ ": wrong array type " + t->ToString());
+    default                 : throw  std::runtime_error(__FUNCTION__ + std::string(": wrong array type ") + t->ToString());
     }
 }

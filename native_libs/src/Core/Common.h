@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 #ifdef _MSC_VER
 #define EXPORT _declspec(dllexport)
 #else

@@ -12,7 +12,7 @@
 #include "LifetimeManager.h"
 #include "csv.h"
 #include "IO.h"
-#include "xlsx.h"
+#include "XLSX.h"
 
 
 #include <arrow/array.h>
