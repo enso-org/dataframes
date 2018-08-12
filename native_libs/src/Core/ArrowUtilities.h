@@ -86,3 +86,9 @@ void iterateOverGeneric(const arrow::Column &column, ElementF &&handleElem, Null
     default                 : throw  std::runtime_error(__FUNCTION__ + std::string(": wrong array type ") + t->ToString());
     }
 }
+
+inline void checkStatus(const arrow::Status &status)
+{
+    if(!status.ok())
+        throw std::runtime_error(status.ToString());
+}

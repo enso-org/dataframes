@@ -52,11 +52,11 @@ namespace
             if(field.has_value())
             {
                 if constexpr(type == arrow::Type::STRING)
-                    builder.Append(field.to_string());
+                    checkStatus(builder.Append(field.to_string()));
                 else if constexpr(type == arrow::Type::INT64)
-                    builder.Append(field.value<int64_t>());
+                    checkStatus(builder.Append(field.value<int64_t>()));
                 else if constexpr(type == arrow::Type::DOUBLE)
-                    builder.Append(field.value<double>());
+                    checkStatus(builder.Append(field.value<double>()));
                 else
                     throw std::runtime_error("wrong type");
             }
@@ -66,13 +66,13 @@ namespace
         virtual void addMissing() override
         {
             if(nullable)
-                builder.AppendNull();
+                checkStatus(builder.AppendNull());
             else
-                builder.Append(defaultValue<type>());
+                checkStatus(builder.Append(defaultValue<type>()));
         }
         virtual void reserve(int64_t count) override
         {
-            builder.Reserve(count);
+            checkStatus(builder.Reserve(count));
         }
 
         virtual std::shared_ptr<arrow::Array> finish() override
@@ -122,7 +122,7 @@ std::shared_ptr<arrow::Table> readXlsxFile(const char *filepath, HeaderPolicy he
                 case arrow::Type::STRING:
                     return std::make_unique<ColumnBuilder<arrow::Type::STRING>>(columnType.nullable);
                 default:
-                    throw std::runtime_error(__FUNCTION__ ": wrong array type " + columnType.type->ToString());
+                    throw std::runtime_error(__FUNCTION__  + ": wrong array type "s + columnType.type->ToString());
                 }
             }();
             ptr->reserve(rowCount);

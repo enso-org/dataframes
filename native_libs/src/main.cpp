@@ -75,12 +75,6 @@ auto asSpecificArray(arrow::Array *array)
     return throwingCast<typename TypeDescriptionForTag<TypeTag>::Array*>(array);
 }
 
-void checkStatus(const arrow::Status &status)
-{
-    if(!status.ok())
-        throw std::runtime_error(status.ToString());
-}
-
 void validateIndex(arrow::Array *array, int64_t index)
 {
     if(index < 0 || index >= array->length())
