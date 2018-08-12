@@ -10,6 +10,19 @@
 
 #ifdef DISABLE_XLSX
 
+#pragma message("Note: DataframeHelper is being compiled without XLSX support.")  
+
+
+std::shared_ptr<arrow::Table> readXlsxFile(const char *filepath, HeaderPolicy header, std::vector<ColumnType> columnTypes)
+{
+    throw std::runtime_error("The library was compiled without XLSX support!");
+}
+void writeXlsx(std::ostream &out, const arrow::Table &table, GeneratorHeaderPolicy headerPolicy)
+{
+    throw std::runtime_error("The library was compiled without XLSX support!");
+}
+
+
 #else // DISABLE_XLSX
 
 #include <xlnt/xlnt.hpp>
@@ -67,31 +80,6 @@ namespace
             return ::finish(builder);
         }
     };
-
-    void writeXlsx(std::ostream &out, const arrow::Table &table)
-    {
-        xlnt::workbook wb;
-        auto sheet = wb.active_sheet();
-        sheet.title("Table");
-
-        for(int column = 0; column < table.num_columns(); column++)
-        {
-            int32_t row = 0;
-            const auto writeValue = [&] (auto &&field)
-            {
-                sheet.cell(column+1, row+1).value(field);
-                ++row;
-            };
-            const auto writeNull = [&]
-            {
-                ++row;
-            };
-
-            iterateOverGeneric(*table.column(column), writeValue, writeNull);
-        }
-
-        wb.save(out);
-    }
 }
 
 std::shared_ptr<arrow::Table> readXlsxFile(const char *filepath, HeaderPolicy header, std::vector<ColumnType> columnTypes)
@@ -167,6 +155,35 @@ std::shared_ptr<arrow::Table> readXlsxFile(const char *filepath, HeaderPolicy he
     {
         throw std::runtime_error("Failed to parse file `"s + filepath + "` : " + e.what());
     }
+}
+
+void writeXlsx(std::ostream &out, const arrow::Table &table, GeneratorHeaderPolicy headerPolicy)
+{
+    xlnt::workbook wb;
+    auto sheet = wb.active_sheet();
+    sheet.title("Table");
+ 
+    if(headerPolicy == GeneratorHeaderPolicy::GenerateHeaderLine)
+        for(int column = 0; column < table.num_columns(); column++)
+            sheet.cell(column + 1, 1).value(table.column(column)->name());
+ 
+    for(int column = 0; column < table.num_columns(); column++)
+    {
+        int32_t row = headerPolicy == GeneratorHeaderPolicy::GenerateHeaderLine;
+        const auto writeValue = [&] (auto &&field)
+        {
+            sheet.cell(column+1, row+1).value(field);
+            ++row;
+        };
+        const auto writeNull = [&]
+        {
+            ++row;
+        };
+  
+        iterateOverGeneric(*table.column(column), writeValue, writeNull);
+    }
+
+    wb.save(out);
 }
 
 #endif // DISABLE_XLSX

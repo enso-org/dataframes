@@ -319,7 +319,7 @@ class TestArrayBuilder:
         tableJson = t.toJSON
         assertEqual "header" (tableJson.lookup "header") (Just ["x", "y", "name"].toJSON)
  
-    def testCsvIO:
+    def testIO:
         print "CSV parsing case 1"
         t1 = CSVParser . useCustomNames ["x", "y", "z"] . setTypes [IntElement, MaybeIntElement] . readText "1,2,3"
         assertEqual "names" t1.columnNames ["x", "y", "z"]
@@ -341,7 +341,7 @@ class TestArrayBuilder:
         assertEqual "col 0 toList" (t2.columnAt 0 . toList) ['1,"2,3']
 
         print "CSV parsing case 3"
-        t3 = CSVParser . useGenerateColumnNames . setTypes [MaybeRealElement, TextElement, TextElement] . readText '1,f\n2.5,1\nk\n5'
+        t3 = CSVParser . useGeneratedColumnNames . setTypes [MaybeRealElement, TextElement, TextElement] . readText '1,f\n2.5,1\nk\n5'
         assertEqual "column count" t3.columnCount 2
         assertEqual "row count" t3.rowCount 4
         assertEqual "col 0 toList" (t3.columnAt 0 . toList) [Just 1.0, Just 2.5, Nothing, Just 5.0]
@@ -365,12 +365,13 @@ class TestArrayBuilder:
         assertEqual "generated" (CSVGenerator.setHeaderPolicy SkipHeaderLine . generateText t2) '"1,""2,3"'
 
         print "Parse excel 1"
-        print $ XLSXParser . useGenerateColumnNames  . readFile "data/sample_xlsx.xlsx"
+        te1 = XLSXParser . useGeneratedColumnNames  . readFile "data/sample_xlsx.xlsx"
+        assertEqual "column 0" (te1.columnAt 0 . toList) ["1", "4", "7", "10"]
+        assertEqual "column 1" (te1.columnAt 1 . toList) ["2", "", "8", "11"]
+        assertEqual "column 2" (te1.columnAt 2 . toList) ["3", "6", "9", "12"]
         
     def run:
-        self.testCsvIO
-        throw "stop"
-
+        self.testIO
         self.testSchema
         self.testColumn
         self.testField

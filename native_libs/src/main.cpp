@@ -1047,6 +1047,20 @@ extern "C"
             return LifetimeManager::instance().addOwnership(std::move(table));
         };
     }
+
+    EXPORT void writeTableToXLSXFile(const char *filename, arrow::Table *table, GeneratorHeaderPolicy headerPolicy, const char **outError)
+    {
+        LOG("table={}, filepath={}", (void*)table, filename);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            // NOTE: this will silently fail if the target directory does not exist
+            std::ofstream out{filename, std::ios::binary};
+            if(!out)
+                throw std::runtime_error("Cannot write to file "s + filename);
+
+            writeXlsx(out, *table, headerPolicy);
+        };
+    }
 }
 
 // RESOURCE MANAGEMENT

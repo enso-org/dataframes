@@ -259,7 +259,7 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
     const auto names = decideColumnNames(csv.fieldCount, header, [&] (int column)
     {
         const auto &headerRow = csv.records[0];
-        if(column < headerRow.size())
+        if(column < (int)headerRow.size())
             return headerRow[column].str();
         else
             return ""s;
@@ -413,7 +413,7 @@ void generateCsv(std::ostream &out, const arrow::Table &table, GeneratorHeaderPo
 
             const auto c = table.column(column);
             const auto &name = c->name();
-            generator.writeField(name.data(), name.size());
+            generator.writeField(name.data(), (int)name.size());
         }
 
         out << recordSeparator;

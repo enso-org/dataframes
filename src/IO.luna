@@ -52,7 +52,7 @@ class CSVParser:
     def useReadColumnNames:
         CustomizedCSVParser TakeFromFirstRow self.typePolicy
 
-    def useGenerateColumnNames:
+    def useGeneratedColumnNames:
         CustomizedCSVParser Generate self.typePolicy
 
     def setTypes columnTypes:
@@ -86,7 +86,7 @@ class XLSXParser:
     def useReadColumnNames:
         CustomizedXLSXParser TakeFromFirstRow self.typePolicy
 
-    def useGenerateColumnNames:
+    def useGeneratedColumnNames:
         CustomizedXLSXParser Generate self.typePolicy
 
     def setTypes columnTypes:
@@ -116,7 +116,7 @@ class CSVGenerator:
 
     def generateText table:
         callHandlingError "writeTableToCsvString" CString [table.ptr.ptr.toCArg, self.headerPolicy.toCArg, self.quotingPolicy.toCArg] . toText
-    def generateFile path table:
+    def writeFile path table:
         CString.with path pathC:
             callHandlingError "writeTableToCsvFile" CString [pathC.toCArg, table.ptr.ptr.toCArg, self.headerPolicy.toCArg, self.quotingPolicy.toCArg] . toText
 
@@ -130,6 +130,6 @@ class XLSXGenerator:
         XLSXGeneratorCustomized hp: hp
     def setHeaderPolicy hp:
         XLSXGeneratorCustomized hp
-    def generateFile path table:
+    def writeFile path table:
         CString.with path pathC:
-            callHandlingError "writeTableToCsvFile" CString [pathC.toCArg, table.ptr.ptr.toCArg, self.headerPolicy.toCArg] . toText
+            callHandlingError "writeTableToXLSXFile" CString [pathC.toCArg, table.ptr.ptr.toCArg, self.headerPolicy.toCArg] . toText
