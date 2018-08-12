@@ -54,7 +54,7 @@ namespace
                 if constexpr(type == arrow::Type::STRING)
                     checkStatus(builder.Append(field.to_string()));
                 else if constexpr(type == arrow::Type::INT64)
-                    checkStatus(builder.Append(field.value<int64_t>()));
+                    checkStatus(builder.Append(field.value<long long int>())); // NOTE: cannot be int64_t -- no such overload, fails on GCC
                 else if constexpr(type == arrow::Type::DOUBLE)
                     checkStatus(builder.Append(field.value<double>()));
                 else
@@ -172,7 +172,13 @@ void writeXlsx(std::ostream &out, const arrow::Table &table, GeneratorHeaderPoli
         int32_t row = headerPolicy == GeneratorHeaderPolicy::GenerateHeaderLine;
         const auto writeValue = [&] (auto &&field)
         {
-            sheet.cell(column+1, row+1).value(field);
+            auto cell = sheet.cell(column+1, row+1);
+            // NOTE: workaround for GCC: otherwise call to xlnt::cell::value would be ambiguous
+            // as int64_t is long int and there is no such overload (just ints and long long ints)
+            if constexpr(std::is_same_v<int64_t, std::decay_t<decltype(field)>>)
+                cell.value((long long)field);
+            else
+                cell.value(field);
             ++row;
         };
         const auto writeNull = [&]
