@@ -17,93 +17,6 @@
 
 using namespace std::literals;
 
-// returns field, sets buffer Iterator to the next separator
-NaiveStringView parseField(char *&bufferIterator, char *bufferEnd, char fieldSeparator, char recordSeparator, char quote)
-{
-    if(bufferIterator == bufferEnd)
-        NaiveStringView{bufferIterator, 0};
-
-    char firstChar = *bufferIterator;
-    bool quoted = firstChar == quote;
-
-    // Fast path for unquoted fields
-    // Just consume text until separator is encountered
-    if(!quoted)
-    {
-        const auto start = bufferIterator;
-        for(; bufferIterator != bufferEnd; ++bufferIterator)
-        {
-            char c = *bufferIterator;
-            if(c == fieldSeparator || c == recordSeparator)
-                break;
-        }
-        return { start, std::distance(start, bufferIterator) };
-    }
-
-    // Quoted fields
-    ++bufferIterator; // consume initial quote - won't be needed
-    const auto start = bufferIterator;
-
-    int rewriteOffset = 0;
-
-    for(; bufferIterator != bufferEnd; ++bufferIterator)
-    {
-        char c = *bufferIterator;
-
-        if(c == quote)
-        {
-            // Either field terminator or nested double quote
-            const auto nextIterator = bufferIterator+1;
-            const auto nextIsAlsoQuote = nextIterator!=bufferEnd && *nextIterator == quote;
-            if(nextIsAlsoQuote)
-            {
-                ++rewriteOffset;
-                ++bufferIterator;
-            }
-            else
-            {
-                auto length = std::distance(start, bufferIterator++);
-                return { start, length - rewriteOffset };
-            }
-        }
-
-        if(rewriteOffset)
-            *(bufferIterator - rewriteOffset) = c;
-    }
-
-    throw std::runtime_error("reached the end of the file with an unmatched quote character");
-}
-
-std::vector<NaiveStringView> parseRecord(char *&bufferIterator, char *bufferEnd, char fieldSeparator, char recordSeparator, char quote)
-{
-    std::vector<NaiveStringView> ret;
-
-    while(true)
-    {
-        char initialCharacter = *bufferIterator;
-
-        ret.push_back(parseField(bufferIterator, bufferEnd, fieldSeparator, recordSeparator, quote));
-
-        if(bufferIterator >= bufferEnd)
-            return ret;
-
-        if(*bufferIterator++ == recordSeparator)
-            return ret;
-    }
-}
-
-std::vector<std::vector<NaiveStringView>> parseCsvTable(char *&bufferIterator, char *bufferEnd, char fieldSeparator, char recordSeparator, char quote)
-{
-    std::vector<std::vector<NaiveStringView>> ret;
-
-    for( ; bufferIterator < bufferEnd; )
-    {
-        ret.push_back(parseRecord(bufferIterator, bufferEnd, fieldSeparator, recordSeparator, quote));
-    }
-
-    return ret;
-}
-
 ParsedCsv parseCsvFile(const char *filepath, char fieldSeparator, char recordSeparator, char quote)
 {
     auto buffer = getFileContents(filepath);
@@ -113,8 +26,8 @@ ParsedCsv parseCsvFile(const char *filepath, char fieldSeparator, char recordSep
 ParsedCsv parseCsvData(std::string data, char fieldSeparator /*= ','*/, char recordSeparator /*= '\n'*/, char quote /*= '"'*/)
 {
     auto bufferPtr = std::make_unique<std::string>(std::move(data));
-    auto itr = bufferPtr->data();
-    auto table = parseCsvTable(itr, itr + bufferPtr->size(), fieldSeparator, recordSeparator, quote);
+    CsvParser parser{bufferPtr->data(), bufferPtr->data() + bufferPtr->size(), fieldSeparator, recordSeparator, quote};
+    auto table = parser.parseCsvTable();
     return { std::move(bufferPtr), std::move(table) };
 }
 
@@ -455,4 +368,92 @@ void generateCsv(std::ostream &out, const arrow::Table &table, GeneratorHeaderPo
             writers[column]->consumeField(generator);
         }
     }
+}
+
+NaiveStringView CsvParser::parseField()
+{
+    if(bufferIterator == bufferEnd)
+        NaiveStringView{bufferIterator, 0};
+
+    char firstChar = *bufferIterator;
+    bool quoted = firstChar == quote;
+
+    // Fast path for unquoted fields
+    // Just consume text until separator is encountered
+    if(!quoted)
+    {
+        const auto start = bufferIterator;
+        for(; bufferIterator != bufferEnd; ++bufferIterator)
+        {
+            char c = *bufferIterator;
+            if(c == fieldSeparator || c == recordSeparator)
+                break;
+        }
+        return { start, std::distance(start, bufferIterator) };
+    }
+
+    // Quoted fields
+    ++bufferIterator; // consume initial quote - won't be needed
+    const auto start = bufferIterator;
+
+    int rewriteOffset = 0;
+
+    for(; bufferIterator != bufferEnd; ++bufferIterator)
+    {
+        char c = *bufferIterator;
+
+        if(c == quote)
+        {
+            // Either field terminator or nested double quote
+            const auto nextIterator = bufferIterator+1;
+            const auto nextIsAlsoQuote = nextIterator!=bufferEnd && *nextIterator == quote;
+            if(nextIsAlsoQuote)
+            {
+                ++rewriteOffset;
+                ++bufferIterator;
+            }
+            else
+            {
+                auto length = std::distance(start, bufferIterator++);
+                return { start, length - rewriteOffset };
+            }
+        }
+
+        if(rewriteOffset)
+            *(bufferIterator - rewriteOffset) = c;
+    }
+
+    throw std::runtime_error("reached the end of the file with an unmatched quote character");
+}
+
+std::vector<NaiveStringView> CsvParser::parseRecord()
+{
+    std::vector<NaiveStringView> ret;
+    ret.reserve(lastColumnCount);
+    while(true)
+    {
+        char initialCharacter = *bufferIterator;
+
+        ret.push_back(parseField());
+
+        if(bufferIterator >= bufferEnd)
+            return ret;
+
+        if(*bufferIterator++ == recordSeparator)
+            return ret;
+    }
+}
+
+std::vector<std::vector<NaiveStringView>> CsvParser::parseCsvTable()
+{
+    std::vector<std::vector<NaiveStringView>> ret;
+
+    for( ; bufferIterator < bufferEnd; )
+    {
+        auto parsedRecord = parseRecord();
+        lastColumnCount = parsedRecord.size();
+        ret.push_back(std::move(parsedRecord));
+    }
+
+    return ret;
 }

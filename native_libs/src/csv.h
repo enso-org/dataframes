@@ -58,9 +58,34 @@ struct ParsedCsv
     ParsedCsv(ParsedCsv &&) = default;
 };
 
-EXPORT NaiveStringView parseField(char *&bufferIterator, char *bufferEnd, char fieldSeparator, char recordSeparator, char quote);
-EXPORT std::vector<NaiveStringView> parseRecord(char *&bufferIterator, char *bufferEnd, char fieldSeparator, char recordSeparator, char quote);
-EXPORT std::vector<std::vector<NaiveStringView>> parseCsvTable(char *&bufferIterator, char *bufferEnd, char fieldSeparator, char recordSeparator, char quote);
+struct EXPORT CsvParser
+{
+    char *bufferStart{};
+    char *bufferIterator{};
+    char *bufferEnd{};
+
+    size_t lastColumnCount = 0;
+
+    char fieldSeparator{};
+    char recordSeparator{};
+    char quote{};
+
+    CsvParser(char *bufferStart, char *bufferEnd, char fieldSeparator, char recordSeparator, char quote)
+        : bufferStart(bufferStart), bufferIterator(bufferStart)
+        , bufferEnd(bufferEnd), fieldSeparator(fieldSeparator)
+        , recordSeparator(recordSeparator), quote(quote)
+    {}
+
+    explicit CsvParser(std::string &s)
+        : CsvParser(s.data(), s.data() + s.length(), ',', '\n', '"')
+    {}
+
+
+    NaiveStringView parseField(); // sets buffer Iterator to the next separator
+    std::vector<NaiveStringView> parseRecord();
+    std::vector<std::vector<NaiveStringView>> parseCsvTable();
+};
+
 EXPORT ParsedCsv parseCsvFile(const char *filepath, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');
 EXPORT ParsedCsv parseCsvData(std::string data, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');
 EXPORT std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy header, std::vector<ColumnType> columnTypes);

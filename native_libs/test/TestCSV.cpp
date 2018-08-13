@@ -6,16 +6,21 @@
 #include "IO.h"
 
 #pragma comment(lib, "DataframeHelper.lib")
+#ifdef _DEBUG
+#pragma comment(lib, "arrowd.lib")
+#else
+#pragma comment(lib, "arrow.lib")
+#endif
 
 void testFieldParser(std::string input, std::string expectedContent, int expectedPosition)
 {
-	auto itr = input.data();
-	auto nsv = parseField(itr, itr + input.length(), ',', '\n', '"');
+	CsvParser parser{input};
+	auto nsv = parser.parseField();
 
 	BOOST_TEST_CONTEXT("Parsing `" << input << "`")
 	{
 		BOOST_CHECK_EQUAL(nsv.str(), expectedContent);
-		BOOST_CHECK_EQUAL(std::distance(input.data(), itr), expectedPosition);
+		BOOST_CHECK_EQUAL(std::distance(parser.bufferStart, parser.bufferIterator), expectedPosition);
 	}
 }
 
@@ -32,8 +37,8 @@ BOOST_AUTO_TEST_CASE(ParseField)
 
 void testRecordParser(std::string input, std::vector<std::string> expectedContents)
 {
-	auto itr = input.data();
-	auto fields = parseRecord(itr, itr + input.length(), ',', '\n', '"');
+	CsvParser parser{input};
+	auto fields = parser.parseRecord();
 
 	BOOST_TEST_CONTEXT("Parsing `" << input << "`")
 	{
@@ -56,8 +61,8 @@ BOOST_AUTO_TEST_CASE(ParseRecord)
 
 void testCsvParser(std::string input, std::vector<std::vector<std::string>> expectedContents)
 {
-	auto itr = input.data();
-	auto rows = parseCsvTable(itr, itr + input.length(), ',', '\n', '"');
+	CsvParser parser{input};
+	auto rows = parser.parseCsvTable();
 
 	BOOST_TEST_CONTEXT("Parsing `" << input << "`")
 	{
@@ -122,12 +127,34 @@ std::string get_file_contents(const char *filename)
 
 BOOST_AUTO_TEST_CASE(ParseBigFile)
 {
- 	const auto path = R"(E:/hmda_lar-florida.csv)";
-// 	for(int i  = 0; i < 20; i++)
-// 	{
-// 		measure("load big file contents1", getFileContents, path);
-// 		measure("load big file contents2", get_file_contents, path);
-// 	}
+
+	auto integerType = std::make_shared<arrow::Int64Type>();
+	auto doubleType = std::make_shared<arrow::DoubleType>();
+
+	std::vector<ColumnType> types
+	{
+		ColumnType{ integerType, false },
+		ColumnType{ integerType, false },
+		ColumnType{ doubleType, false },
+		ColumnType{ integerType, false },
+		ColumnType{ doubleType, false },
+		ColumnType{ doubleType, false },
+		ColumnType{ doubleType, false },
+		ColumnType{ doubleType, false },
+	};
+
+
+
+ 	//const auto path = R"(E:/hmda_lar-florida.csv)";
+	
+ 	for(int i  = 0; i < 20; i++)
+ 	{
+		measure("write big file", [&]
+		{
+			auto csv = parseCsvFile("F:/dev/csv/installments_payments.csv");
+			auto table = csvToArrowTable(std::move(csv), TakeFirstRowAsHeaders{}, types);
+		});
+ 	}
 
 // 	for(int i = 0; i < 10; i++)
 // 	{
