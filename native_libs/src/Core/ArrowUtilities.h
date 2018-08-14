@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cassert>
+#include <sstream>
 #include <stdexcept>
 
 #include <arrow/array.h>
@@ -68,6 +70,7 @@ void iterateOver(const arrow::Array &array, ElementF &&handleElem, NullF &&handl
 template <arrow::Type::type type, typename ElementF, typename NullF>
 void iterateOver(const arrow::ChunkedArray &arrays, ElementF &&handleElem, NullF &&handleNull)
 {
+    assert(type == arrays.type()->id());
     for(auto &chunk : arrays.chunks())
     {
         iterateOver<type>(*chunk, handleElem, handleNull);
@@ -114,4 +117,14 @@ template<arrow::Type::type type>
 auto throwingDowncastArray(arrow::Array *array)
 {
     return throwingCast<typename TypeDescription<type>::Array *>(array);
+}
+
+inline std::shared_ptr<arrow::Array> finish(arrow::ArrayBuilder &builder)
+{
+    std::shared_ptr<arrow::Array> ret;
+    auto status = builder.Finish(&ret);
+    if(!status.ok())
+        throw std::runtime_error(status.ToString());
+
+    return ret;
 }

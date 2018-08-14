@@ -59,16 +59,6 @@ std::shared_ptr<arrow::Table> buildTable(std::vector<std::string> names, std::ve
     return table;
 }
 
-std::shared_ptr<arrow::Array> finish(arrow::ArrayBuilder &builder)
-{
-    std::shared_ptr<arrow::Array> ret;
-    auto status = builder.Finish(&ret);
-    if(!status.ok())
-        throw std::runtime_error(status.ToString());
-
-    return ret;
-}
-
 std::string getFileContents(const char *filepath)
 {
     try

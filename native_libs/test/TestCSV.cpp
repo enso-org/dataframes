@@ -169,9 +169,9 @@ BOOST_AUTO_TEST_CASE(ParseBigFile)
 		measure("parse big file", [&]
 		{
 			auto csv = parseCsvFile("C:/installments_payments.csv");
-			auto table = csvToArrowTable(std::move(csv), TakeFirstRowAsHeaders{}, {});
+			auto table = csvToArrowTable(std::move(csv), TakeFirstRowAsHeaders{}, types);
 
-			//store("C:/temp/installments_payments.feather", table);
+			//saveTableToFeatherFile("C:/installments_payments.feather", *table);
 		});
  	}
 
