@@ -53,26 +53,10 @@ struct String { static constexpr arrow::Type::type id = arrow::Type::STRING; };
 template<typename Tag>
 using TypeDescriptionForTag = TypeDescription<Tag::id>;
 
-template<typename To, typename From>
-To throwingCast(From *from)
-{
-    if(auto ret = dynamic_cast<To>(from))
-        return ret;
-
-    std::ostringstream out;    
-    out << "Failed to cast " << from;
-    if(from) // we can obtain RTTI typename for non-null pointers
-        out << " being " << typeid(*from).name();
-
-    out << " to " << typeid(std::remove_pointer_t<To>).name();
-
-    throw std::runtime_error(out.str());
-}
-
 template<typename TypeTag>
 auto asSpecificArray(arrow::Array *array)
 {
-    return throwingCast<typename TypeDescriptionForTag<TypeTag>::Array*>(array);
+    return throwingDowncastArray<TypeTag::id>(array);
 }
 
 void validateIndex(arrow::Array *array, int64_t index)
@@ -467,6 +451,11 @@ extern "C"
         };
     }
 
+    // arrow::Array subclasses are needed to obtain specific elements or access
+    // raw values buffer. We use macro to generate method for each supported type.
+    // 
+    // This is likely the best we can do when building C language API.
+
 #define NUMERIC_ARRAY_METHODS(TYPENAME)                                                                                                  \
     EXPORT  TypeDescriptionForTag<TYPENAME>::CType array##TYPENAME##ValueAt(arrow::Array *array, int64_t index, const char **outError) noexcept\
     {                                                                                                                                    \
@@ -488,7 +477,6 @@ extern "C"
         };                                                                                                                               \
     }
 
-    
     NUMERIC_ARRAY_METHODS(UInt8);
     NUMERIC_ARRAY_METHODS(UInt16);
     NUMERIC_ARRAY_METHODS(UInt32);

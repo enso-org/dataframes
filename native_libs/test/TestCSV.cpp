@@ -130,17 +130,18 @@ BOOST_AUTO_TEST_CASE(ParseBigFile)
 
 	auto integerType = std::make_shared<arrow::Int64Type>();
 	auto doubleType = std::make_shared<arrow::DoubleType>();
+	auto textType = std::make_shared<arrow::StringType>();
 
 	std::vector<ColumnType> types
 	{
 		ColumnType{ integerType, false },
 		ColumnType{ integerType, false },
-		ColumnType{ doubleType, false },
+		ColumnType{ doubleType , false },
 		ColumnType{ integerType, false },
-		ColumnType{ doubleType, false },
-		ColumnType{ doubleType, false },
-		ColumnType{ doubleType, false },
-		ColumnType{ doubleType, false },
+		ColumnType{ doubleType , false },
+		ColumnType{ doubleType , false },
+		ColumnType{ doubleType , false },
+		ColumnType{ doubleType , false },
 	};
 
 
@@ -152,7 +153,7 @@ BOOST_AUTO_TEST_CASE(ParseBigFile)
 		measure("write big file", [&]
 		{
 			auto csv = parseCsvFile("F:/dev/csv/installments_payments.csv");
-			auto table = csvToArrowTable(std::move(csv), TakeFirstRowAsHeaders{}, types);
+			auto table = csvToArrowTable(std::move(csv), TakeFirstRowAsHeaders{}, {});
 		});
  	}
 
