@@ -10,9 +10,9 @@
 #include "Core/Error.h"
 #include "Core/Logger.h"
 #include "LifetimeManager.h"
-#include "csv.h"
-#include "IO.h"
-#include "XLSX.h"
+#include "IO/csv.h"
+#include "IO/IO.h"
+#include "IO/XLSX.h"
 
 
 #include <arrow/array.h>

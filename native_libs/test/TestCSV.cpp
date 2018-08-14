@@ -1,9 +1,13 @@
 #define BOOST_TEST_MODULE CsvTests
+#define NOMINMAX
 #include <boost/test/included/unit_test.hpp>
 #include <chrono>
 
-#include "csv.h"
-#include "IO.h"
+#include "IO/csv.h"
+#include "IO/IO.h"
+#include "IO/Feather.h"
+#include "Core/ArrowUtilities.h"
+#include "Processing.h"
 
 #pragma comment(lib, "DataframeHelper.lib")
 #ifdef _DEBUG
@@ -125,6 +129,18 @@ std::string get_file_contents(const char *filename)
 	throw(errno);
 }
 
+BOOST_AUTO_TEST_CASE(FilterBigFile)
+{
+	auto table = loadTableFromFeatherFile("C:/installments_payments.feather");
+	for(int i  = 0; i < 20; i++)
+	{
+		measure("filter installments_payments", [&]
+		{
+			filter(table);
+		});
+	}
+}
+
 BOOST_AUTO_TEST_CASE(ParseBigFile)
 {
 
@@ -143,17 +159,19 @@ BOOST_AUTO_TEST_CASE(ParseBigFile)
 		ColumnType{ doubleType , false },
 		ColumnType{ doubleType , false },
 	};
-
-
+// 
+// 
 
  	//const auto path = R"(E:/hmda_lar-florida.csv)";
 	
  	for(int i  = 0; i < 20; i++)
  	{
-		measure("write big file", [&]
+		measure("parse big file", [&]
 		{
-			auto csv = parseCsvFile("F:/dev/csv/installments_payments.csv");
+			auto csv = parseCsvFile("C:/installments_payments.csv");
 			auto table = csvToArrowTable(std::move(csv), TakeFirstRowAsHeaders{}, {});
+
+			//store("C:/temp/installments_payments.feather", table);
 		});
  	}
 

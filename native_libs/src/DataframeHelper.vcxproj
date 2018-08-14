@@ -87,20 +87,25 @@
     <ClCompile Include="Core\Error.cpp" />
     <ClCompile Include="Core\Logger.cpp" />
     <ClCompile Include="Core\Utils.cpp" />
-    <ClCompile Include="csv.cpp" />
-    <ClCompile Include="IO.cpp" />
+    <ClCompile Include="IO\csv.cpp" />
+    <ClCompile Include="IO\Feather.cpp" />
+    <ClCompile Include="IO\IO.cpp" />
+    <ClCompile Include="IO\XLSX.cpp" />
     <ClCompile Include="LifetimeManager.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="XLSX.cpp" />
+    <ClCompile Include="Processing.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\ArrowUtilities.h" />
     <ClInclude Include="Core\Common.h" />
     <ClInclude Include="Core\Error.h" />
     <ClInclude Include="Core\Logger.h" />
-    <ClInclude Include="IO.h" />
+    <ClInclude Include="IO\csv.h" />
+    <ClInclude Include="IO\Feather.h" />
+    <ClInclude Include="IO\IO.h" />
+    <ClInclude Include="IO\XLSX.h" />
     <ClInclude Include="LifetimeManager.h" />
-    <ClInclude Include="XLSX.h" />
+    <ClInclude Include="Processing.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

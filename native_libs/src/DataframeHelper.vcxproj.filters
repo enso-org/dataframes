@@ -30,16 +30,22 @@
     <ClCompile Include="Core\Logger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="csv.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="IO.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="XLSX.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Core\ArrowUtilities.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Processing.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="IO\IO.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="IO\XLSX.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="IO\csv.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="IO\Feather.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -56,13 +62,22 @@
     <ClInclude Include="Core\Logger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="IO.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="XLSX.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Core\ArrowUtilities.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Processing.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IO\csv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IO\IO.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IO\XLSX.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IO\Feather.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
