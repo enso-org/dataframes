@@ -59,35 +59,14 @@ using namespace std::literals;
         return exec(lhs, lhs);                                                                                           \
     }
 
-    struct GreaterThan
-    {
-        BINARY_OPERATOR(>);
-    };
-    struct LessThan
-    {
-        BINARY_OPERATOR(<);
-    };
-    struct EqualTo
-    {
-        BINARY_OPERATOR(==);
-    };
+    struct GreaterThan { BINARY_OPERATOR(>); };
+    struct LessThan    { BINARY_OPERATOR(<); };
+    struct EqualTo     { BINARY_OPERATOR(==);};
 
-    struct Plus
-    {
-        BINARY_OPERATOR(+);
-    };
-    struct Minus
-    {
-        BINARY_OPERATOR(-);
-    };
-    struct Times
-    {
-        BINARY_OPERATOR(*);
-    };
-    struct Divide
-    {
-        BINARY_OPERATOR(/);
-    };
+    struct Plus        { BINARY_OPERATOR(+); };
+    struct Minus       { BINARY_OPERATOR(-); };
+    struct Times       { BINARY_OPERATOR(*); };
+    struct Divide      { BINARY_OPERATOR(/); };
     struct Negate
     {
         template<typename Lhs>
@@ -95,8 +74,8 @@ using namespace std::literals;
         {
             if constexpr(std::is_arithmetic_v<Lhs>)
                 return -lhs;
-
-            throw std::runtime_error("negate does not support operand of type: "s + typeid(lhs).name());
+            else
+                throw std::runtime_error("negate does not support operand of type: "s + typeid(lhs).name());
         }
     };
 
@@ -107,16 +86,21 @@ using namespace std::literals;
         using OperationResult = decltype(Operation::exec(getValue(lhs, 0), getValue(rhs, 0)));
         using OperandValue = std::conditional_t<std::is_same_v<bool, OperationResult>, unsigned char, OperationResult>;
 
-        ArrayOperand<OperandValue> ret{(size_t)count};
-        // TODO: optimization opportunity: fill with constant if lhs/rhs are index-independent
-        static_assert(sizeof(OperandValue) >= sizeof(OperationResult));
-
-        for(int64_t i = 0; i < count; i++)
+        // TODO: optimization opportunity: boolean constant support (remove the last part of if below and fix the build)
+        if constexpr(std::is_arithmetic_v<Lhs> && std::is_arithmetic_v<Rhs> && !std::is_same_v<unsigned char, OperandValue>)
         {
-            ret[i] = Operation::exec(getValue(lhs, i), getValue(rhs, i));
+            return Operation::exec(lhs, rhs);
         }
-
-        return ret;
+        else
+        {
+            ArrayOperand<OperandValue> ret{ (size_t)count };
+            static_assert(sizeof(OperandValue) >= sizeof(OperationResult));
+            for(int64_t i = 0; i < count; i++)
+            {
+                ret[i] = Operation::exec(getValue(lhs, i), getValue(rhs, i));
+            }
+            return ret;
+        }
     }
 
 struct Interpreter
