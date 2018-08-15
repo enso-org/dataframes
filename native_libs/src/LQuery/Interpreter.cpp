@@ -1,5 +1,6 @@
 #include "Interpreter.h"
 
+#include <arrow/buffer.h>
 #include <arrow/table.h>
 
 #include "Core/ArrowUtilities.h"
