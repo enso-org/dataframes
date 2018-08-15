@@ -6,6 +6,7 @@ This project is a library with dataframes implementation. Dataframes are structu
 ## Third-party dependencies
 Required dependencies:
 * [Apache Arrow](https://arrow.apache.org/) — from it [C++ library](https://github.com/apache/arrow/tree/master/cpp) component must be installed
+* [RapidJSON](https://github.com/Tencent/rapidjson) — needed for LQuery processing
 * C++ build tools:
     * [CMake](https://cmake.org/) — cross-platform build tool for C++ used by the C++ helper and all its dependencies.
     * A mostly C++17-compliant compiler. The tested ones are Visual Studio 2017.7 on Windows and GCC 7.3.0 on Ubuntu. Anything newer is expected to work as well.
