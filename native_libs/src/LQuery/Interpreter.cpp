@@ -86,7 +86,7 @@ struct Interpreter
     const arrow::Table &table;
     std::vector<std::shared_ptr<arrow::Column>> columns;
 
-    using Field = std::variant<int64_t, double, ArrayOperand<int64_t>, ArrayOperand<double>, ArrayOperand<std::string>>;
+    using Field = nonstd::variant<int64_t, double, ArrayOperand<int64_t>, ArrayOperand<double>, ArrayOperand<std::string>>;
 
     Field fieldFromColumn(const arrow::Column &column)
     {
@@ -116,7 +116,7 @@ struct Interpreter
 
     Field evaluateValue(const ast::Value &value)
     {
-        return std::visit(overloaded{
+        return nonstd::visit(overloaded{
             [&] (const ast::ColumnReference &col)    -> Field { return fieldFromColumn(*columns[col.columnRefId]); },
             [&] (const ast::ValueOperation &op)      -> Field 
         {
@@ -137,7 +137,7 @@ struct Interpreter
 
     ArrayOperand<unsigned char> evaluate(const ast::Predicate &p)
     {
-        return std::visit(overloaded{
+        return nonstd::visit(overloaded{
             [&] (const ast::PredicateFromValueOperation &elem) -> ArrayOperand<unsigned char>
         { 
             //d::array<ast::Value, ast::MaxOperatorArity> oo = elem.operands;
@@ -145,7 +145,7 @@ struct Interpreter
             switch(elem.what)
             {
             case ast::PredicateFromValueOperator::Greater:
-                return std::visit(
+                return nonstd::visit(
                     [&] (auto &&lhs, auto &&rhs) { return exec<GreaterThan>(lhs, rhs, table.num_rows());},
                     operands[0], operands[1]);
             default:

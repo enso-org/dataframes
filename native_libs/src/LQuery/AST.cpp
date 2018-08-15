@@ -15,7 +15,7 @@
 
 #include "Core/ArrowUtilities.h"
 
-#include <variant>
+#include <nonstd/variant.hpp>
 
 using namespace std::literals;
 
