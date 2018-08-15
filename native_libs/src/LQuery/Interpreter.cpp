@@ -34,6 +34,10 @@ using namespace std::literals;
         const T &operator[](size_t index) const { return data()[index]; }
     };
 
+//     template<>
+//     struct ArrayOperand<std::string>
+//     {
+//     };
 
     template<typename T>
     auto getValue(const ArrayOperand<T> &src, int64_t index)
@@ -48,29 +52,34 @@ using namespace std::literals;
 
 #define BINARY_OPERATOR(op)                                                                                              \
     template<typename Lhs>                                                                                               \
-    static constexpr auto exec(const Lhs &lhs, const Lhs &rhs)                                                           \
+    static auto exec(const Lhs &lhs, const Lhs &rhs)                                                           \
     {                                                                                                                    \
         return lhs op rhs;                                                                                               \
     }                                                                                                                    \
     template<typename Lhs, typename Rhs>                                                                                 \
-    static constexpr auto exec(const Lhs &lhs, const Rhs &rhs)                                                           \
+    static auto exec(const Lhs &lhs, const Rhs &rhs)                                                           \
     {                                                                                                                    \
         throw std::runtime_error("not supported operand types: "s + typeid(lhs).name() + " and "s + typeid(rhs).name()); \
         return exec(lhs, lhs);                                                                                           \
     }
 
-    struct GreaterThan { BINARY_OPERATOR(>); };
-    struct LessThan    { BINARY_OPERATOR(<); };
-    struct EqualTo     { BINARY_OPERATOR(==);};
+#define FAIL_ON_STRING(ret)                                                                                              \
+    static ret exec(const std::string &lhs, const std::string &rhs)                                            \
+    {                                                                                                                    \
+        throw std::runtime_error("not supported operand types: "s + typeid(lhs).name() + " and "s + typeid(rhs).name()); \
+    }
 
+    struct GreaterThan { BINARY_OPERATOR(>); FAIL_ON_STRING(bool); };
+    struct LessThan    { BINARY_OPERATOR(<); FAIL_ON_STRING(bool); };
+    struct EqualTo     { BINARY_OPERATOR(==);};
     struct Plus        { BINARY_OPERATOR(+); };
-    struct Minus       { BINARY_OPERATOR(-); };
-    struct Times       { BINARY_OPERATOR(*); };
-    struct Divide      { BINARY_OPERATOR(/); };
+    struct Minus       { BINARY_OPERATOR(-); FAIL_ON_STRING(std::string); };
+    struct Times       { BINARY_OPERATOR(*); FAIL_ON_STRING(std::string); };
+    struct Divide      { BINARY_OPERATOR(/); FAIL_ON_STRING(std::string); };
     struct Negate
     {
         template<typename Lhs>
-        static constexpr auto exec(const Lhs &lhs)
+        static constexpr Lhs exec(const Lhs &lhs)
         {
             if constexpr(std::is_arithmetic_v<Lhs>)
                 return -lhs;
@@ -79,6 +88,29 @@ using namespace std::literals;
         }
     };
 
+
+    template<typename Operation, typename Lhs>
+    auto exec(const Lhs &lhs, int64_t count)
+    {
+        using OperationResult = decltype(Operation::exec(getValue(lhs, 0)));
+        using OperandValue = std::conditional_t<std::is_same_v<bool, OperationResult>, unsigned char, OperationResult>;
+
+        // TODO: optimization opportunity: boolean constant support (remove the last part of if below and fix the build)
+        if constexpr(std::is_arithmetic_v<Lhs> && !std::is_same_v<unsigned char, OperandValue>)
+        {
+            return Operation::exec(lhs);
+        }
+        else
+        {
+            ArrayOperand<OperandValue> ret{ (size_t)count };
+            static_assert(sizeof(OperandValue) >= sizeof(OperationResult));
+            for(int64_t i = 0; i < count; i++)
+            {
+                ret[i] = Operation::exec(getValue(lhs, i));
+            }
+            return ret;
+        }
+    }
 
     template<typename Operation, typename Lhs, typename Rhs>
     auto exec(const Lhs &lhs, const Rhs &rhs, int64_t count)
@@ -149,13 +181,27 @@ struct Interpreter
             [&] (const ast::ColumnReference &col)    -> Field { return fieldFromColumn(*columns[col.columnRefId]); },
             [&] (const ast::ValueOperation &op)      -> Field 
             {
+#define VALUE_UNARY_OP(opname)                                              \
+            case ast::ValueOperator::opname:                                 \
+                return nonstd::visit(                                        \
+                    [&] (auto &&lhs) -> Field                    \
+                        { return exec<opname>(lhs, table.num_rows());}, \
+                    operands[0]);
+#define VALUE_BINARY_OP(opname)                                              \
+            case ast::ValueOperator::opname:                                 \
+                return nonstd::visit(                                        \
+                    [&] (auto &&lhs, auto &&rhs) -> Field                    \
+                        { return exec<opname>(lhs, rhs, table.num_rows());}, \
+                    operands[0], operands[1]);
+
                 const auto operands = evaluateOperands(op.operands);
                 switch(op.what)
                 {
-                case ast::ValueOperator::Plus:
-                    return nonstd::visit(
-                        [&] (auto &&lhs, auto &&rhs) -> Field { return exec<Plus>(lhs, rhs, table.num_rows());},
-                        operands[0], operands[1]);
+                    VALUE_BINARY_OP(Plus);
+                    VALUE_BINARY_OP(Minus);
+                    VALUE_BINARY_OP(Times);
+                    VALUE_BINARY_OP(Divide);
+                    VALUE_UNARY_OP(Negate);
                 default:
                     throw std::runtime_error("not implemented: value operator " + std::to_string((int)op.what));
                 }
