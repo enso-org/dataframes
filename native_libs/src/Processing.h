@@ -9,4 +9,4 @@ namespace arrow
 
 #include <memory>
 
-EXPORT std::shared_ptr<arrow::Table> filter(std::shared_ptr<arrow::Table> table);
+EXPORT std::shared_ptr<arrow::Table> filter(std::shared_ptr<arrow::Table> table, const char *dslJsonText);

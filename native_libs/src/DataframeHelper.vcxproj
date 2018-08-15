@@ -44,11 +44,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LibraryPath>$(QtDir)\lib;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)\..\third-party\variant-lite;$(SolutionDir)\..\third-party\any-lite;$(SolutionDir);$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir);$(SolutionDir)\..\third-party\variant-lite;$(SolutionDir)\..\third-party\any-lite;$(SolutionDir);$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LibraryPath>$(QtDir)\lib;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)\..\third-party\variant-lite;$(SolutionDir)\..\third-party\any-lite;$(SolutionDir);$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir);$(SolutionDir)\..\third-party\variant-lite;$(SolutionDir)\..\third-party\any-lite;$(SolutionDir);$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -92,6 +92,8 @@
     <ClCompile Include="IO\IO.cpp" />
     <ClCompile Include="IO\XLSX.cpp" />
     <ClCompile Include="LifetimeManager.cpp" />
+    <ClCompile Include="LQuery\AST.cpp" />
+    <ClCompile Include="LQuery\Interpreter.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Processing.cpp" />
   </ItemGroup>
@@ -105,6 +107,8 @@
     <ClInclude Include="IO\IO.h" />
     <ClInclude Include="IO\XLSX.h" />
     <ClInclude Include="LifetimeManager.h" />
+    <ClInclude Include="LQuery\AST.h" />
+    <ClInclude Include="LQuery\Interpreter.h" />
     <ClInclude Include="Processing.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

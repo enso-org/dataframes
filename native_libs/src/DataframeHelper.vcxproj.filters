@@ -48,6 +48,12 @@
     <ClCompile Include="IO\Feather.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="LQuery\AST.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LQuery\Interpreter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Common.h">
@@ -78,6 +84,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="IO\Feather.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LQuery\AST.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LQuery\Interpreter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

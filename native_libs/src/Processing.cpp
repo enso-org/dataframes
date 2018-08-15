@@ -7,10 +7,22 @@
 #include <arrow/table.h>
 #include <arrow/type_traits.h>
 
+#define RAPIDJSON_NOMEMBERITERATORCLASS 
+#include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
+#include <rapidjson/writer.h>
+#include <rapidjson/stringbuffer.h>
+
 #include "Core/ArrowUtilities.h"
+#include "LQuery/AST.h"
+#include "LQuery/Interpreter.h"
+
+using namespace std::literals;
+
 
 namespace
 {
+
     template<typename ArrowValueType, typename BooleanSequence>
     std::shared_ptr<arrow::Column> filteredColumn(const arrow::Column &column, const BooleanSequence &mask, int filteredCount)
     {
@@ -27,14 +39,25 @@ namespace
             const int chunkLength = chunk->length();
             auto chunkT = throwingCast<typename arrow::TypeTraits<ArrowValueType>::ArrayType*>(chunk.get());
 
-            for(int i = 0; i < chunkLength; ++i)
+            if constexpr(std::is_same_v<arrow::StringType, ArrowValueType>)
             {
-                if(mask[row++])
+                for(int i = 0; i < chunkLength; ++i)
                 {
-                    if constexpr(std::is_same_v<arrow::StringType, ArrowValueType>)
+                    if(mask[row++])
                         builder.Append(chunkT->GetString(i));
-                    else
-                        builder.Append(chunkT->Value(i));
+                }
+
+            }
+            else
+            {
+                const auto sourceValues = chunkT->raw_values();
+                for(int i = 0; i < chunkLength; ++i)
+                {
+                    if(mask[row++])
+                    {
+                        const auto value = sourceValues[i];
+                        builder.Append(value);
+                    }
                 }
             }
 
@@ -67,34 +90,62 @@ namespace
             newColumns.push_back(filteredColumn(*table.column(columnIndex), mask, filteredCount));
         }
 
-        return arrow::Table::Make(table.schema(), newColumns);
     }
 }
 
-std::shared_ptr<arrow::Table> filter(std::shared_ptr<arrow::Table> table)
+std::shared_ptr<arrow::Table> filter(std::shared_ptr<arrow::Table> table, const char *dslJsonText)
 {
-    std::vector<char> mask;
-    mask.resize(table->num_rows());
+    auto [mapping, predicate] = ast::parsePredicate(*table, dslJsonText);
+    auto mask = execute(*table, predicate, mapping);
 
-    constexpr auto N = 50;
-    int row = 0;
+    const auto oldRowCount = table->num_rows();
+    int64_t newRowCount = 0;
+    for(int i = 0; i < table->num_rows(); i++)
+        newRowCount += mask->mutable_data()[i];
+    
+    std::vector<std::shared_ptr<arrow::Array>> newColumns;
 
-//     std::cout << table->schema()->ToString() << std::endl;
-//     for(int columnIndex = 0; columnIndex < table->num_columns(); columnIndex++)
-//     {
-//         std::cout << table->column(columnIndex)->field()->ToString() << std::endl;
-//     }
-//     for(int columnIndex = 0; columnIndex < table->num_columns(); columnIndex++)
-//     {
-//         std::cout << table->column(columnIndex)->name() << "  -> " << table->column(columnIndex)->data()->type()->ToString() << std::endl;
-//     }
-// 
-    int filteredCount = 0;
-    auto c = table->column(3);
-    iterateOver<arrow::Type::INT64>(*c->data()
-        , [&](int64_t i) { mask[row++] = (i > N); filteredCount++; }
-        , [&]() { row++; });
+    for(int columnIndex = 0; columnIndex < table->num_columns(); columnIndex++)
+    {
+        const auto column = table->column(columnIndex);
 
-    return filter(*table, mask, filteredCount);
+        // TODO handle zero chunks?
+        // TODO handle more chunks
+        const auto chunk = column->data()->chunk(0);
+
+
+        visitArray(chunk.get(), [&](auto *array) 
+        {
+            // TODO string
+            using TD = ArrayTypeDescription<std::remove_pointer_t<decltype(array)>>;
+            using T = typename TD::ValueType;
+            if constexpr(std::is_scalar_v<T>)
+            {
+                auto valueBuffer = std::make_shared<arrow::PoolBuffer>();
+                valueBuffer->TypedResize<T>(newRowCount);
+
+
+                const unsigned char *maskBuffer = mask->data();
+                const T *sourceBuffer = array->raw_values();
+                T *outputBuffer = reinterpret_cast<T*>(valueBuffer->mutable_data());
+
+                int filteredItr = 0;
+                for(int64_t sourceItr = 0; sourceItr < oldRowCount; sourceItr++)
+                {
+                    if(maskBuffer[sourceItr])
+                        outputBuffer[filteredItr++] = sourceBuffer[sourceItr];
+                }
+
+
+                newColumns.push_back(std::make_shared<typename TD::Array>(newRowCount, valueBuffer));
+            }
+            else
+                throw std::runtime_error("not implemented: filtering strings");// TODO string
+        });
+
+
+    }
+
+    return arrow::Table::Make(table->schema(), newColumns);
 }
 

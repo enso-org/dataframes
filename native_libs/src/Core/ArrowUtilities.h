@@ -119,6 +119,26 @@ auto throwingDowncastArray(arrow::Array *array)
     return throwingCast<typename TypeDescription<type>::Array *>(array);
 }
 
+// downcasts array to the relevant type, throwing if type mismatch
+template<arrow::Type::type type>
+auto staticDowncastArray(const arrow::Array *array)
+{
+    return static_cast<const typename TypeDescription<type>::Array *>(array);
+}
+
+template<typename Function>
+auto visitArray(const arrow::Array *array, Function &&f)
+{
+    assert(array);
+    switch(array->type_id())
+    {
+    case arrow::Type::INT64 : return f(staticDowncastArray<arrow::Type::INT64 >(array));
+    case arrow::Type::DOUBLE: return f(staticDowncastArray<arrow::Type::DOUBLE>(array));
+    case arrow::Type::STRING: return f(staticDowncastArray<arrow::Type::STRING>(array));
+    default: throw std::runtime_error("array type not supported to downcast: " + array->type()->ToString());
+    }
+}
+
 inline std::shared_ptr<arrow::Array> finish(arrow::ArrayBuilder &builder)
 {
     std::shared_ptr<arrow::Array> ret;
@@ -128,3 +148,6 @@ inline std::shared_ptr<arrow::Array> finish(arrow::ArrayBuilder &builder)
 
     return ret;
 }
+
+template<typename Array>
+using ArrayTypeDescription = TypeDescription<Array::TypeClass::type_id>;
