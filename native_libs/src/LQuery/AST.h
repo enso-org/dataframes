@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <utility>
 
-#include <nonstd/variant.hpp>
+#include "variant.h"
 
 namespace arrow
 {
@@ -58,7 +58,7 @@ namespace ast
     };
 
     using ValueOperation = OperationNode<ValueOperator, Value>;
-    using ValueBase = nonstd::variant<Literal<int64_t>, Literal<double>, Literal<std::string>, ColumnReference, ValueOperation>;
+    using ValueBase = std::variant<Literal<int64_t>, Literal<double>, Literal<std::string>, ColumnReference, ValueOperation>;
 
     struct Value : ValueBase
     {
@@ -81,7 +81,7 @@ namespace ast
 
     using PredicateFromValueOperation = OperationNode<PredicateFromValueOperator, Value>;
     
-    using PredicateBase = nonstd::variant<PredicateOperation, PredicateFromValueOperation>;
+    using PredicateBase = std::variant<PredicateOperation, PredicateFromValueOperation>;
     struct Predicate : PredicateBase
     {
         using PredicateBase::variant;

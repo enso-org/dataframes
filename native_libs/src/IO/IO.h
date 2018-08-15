@@ -7,7 +7,7 @@
 
 #include <arrow/type.h>
 
-#include <nonstd/variant.hpp>
+#include "variant.h"
 
 #include "Core/Common.h"
 
@@ -21,7 +21,7 @@ namespace arrow
 struct TakeFirstRowAsHeaders {};
 struct GenerateColumnNames {};
 
-using HeaderPolicy = nonstd::variant<TakeFirstRowAsHeaders, GenerateColumnNames, std::vector<std::string>>;
+using HeaderPolicy = std::variant<TakeFirstRowAsHeaders, GenerateColumnNames, std::vector<std::string>>;
 
 struct ColumnType
 {

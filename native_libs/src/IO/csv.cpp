@@ -128,7 +128,7 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
     std::vector<std::shared_ptr<arrow::Array>> arrays;
     arrays.reserve(csv.fieldCount);
 
-    const bool takeFirstRowAsNames = nonstd::holds_alternative<TakeFirstRowAsHeaders>(header);
+    const bool takeFirstRowAsNames = std::holds_alternative<TakeFirstRowAsHeaders>(header);
 
 
     const int startRow = takeFirstRowAsNames ? 1 : 0;

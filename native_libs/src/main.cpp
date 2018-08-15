@@ -134,12 +134,12 @@ namespace
         }
         else if(columnNamesPolicy == 0)
         {
-            static_assert(std::is_same_v<TakeFirstRowAsHeaders, nonstd::variant_alternative_t<0, HeaderPolicy>>);
+            static_assert(std::is_same_v<TakeFirstRowAsHeaders, std::variant_alternative_t<0, HeaderPolicy>>);
             return TakeFirstRowAsHeaders{};
         }
         else if(columnNamesPolicy == 1)
         {
-            static_assert(std::is_same_v<GenerateColumnNames, nonstd::variant_alternative_t<1, HeaderPolicy>>);
+            static_assert(std::is_same_v<GenerateColumnNames, std::variant_alternative_t<1, HeaderPolicy>>);
             return GenerateColumnNames{};
         }
         else
