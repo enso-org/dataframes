@@ -3,7 +3,7 @@
 #include <arrow/table.h>
 
 #include "Core/ArrowUtilities.h"
-#include "Ast.h"
+#include "AST.h"
 
 using namespace std::literals;
 

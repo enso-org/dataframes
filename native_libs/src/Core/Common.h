@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <cstddef>
+#include <functional>
 #include <iostream>
 #include <string>
 
@@ -20,6 +21,18 @@ constexpr size_t operator"" _z (unsigned long long n)
 // helpers for variant visitation with lambda set
 template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+
+
+// Abominable workaround - standard library on Mac does not have invoke_result
+// And we don't just use std::result_of_t, as conforming compilers hate it
+// (it has been deperecated in C++17 and removed in C++20)
+#if !defined(_MSC_VER) && !defined(__cpp_lib_is_invocable)
+namespace std
+{
+    template<typename F, typename ...Args>
+    using invoke_result_t = std::result_of_t<F(Args...)>;
+}
+#endif
 
 template<typename F, typename ...Args>
 static auto duration(F&& func, Args&&... args)

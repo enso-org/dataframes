@@ -1,4 +1,4 @@
-#include "Ast.h"
+#include "AST.h"
 
 #include <cassert>
 #include <iostream>

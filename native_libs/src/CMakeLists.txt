@@ -26,6 +26,11 @@ endif()
 
 project(DataframeHelper)
 
+find_path(RAPIDJSON_INCLUDE rapidjson/document.h)
+if(NOT RAPIDJSON_INCLUDE)
+    message(WARNING "Cannot find rapidjson include dir with rapidjson/document.h. If it is present, consider setting CMAKE_PREFIX_PATH or CMAKE_INCLUDE_PATH.")
+endif()
+
 find_path(XLNT_INCLUDE xlnt/xlnt.hpp)
 if(NOT XLNT_INCLUDE)
     message(WARNING "Cannot find xlnt include dir with xlnt/xlnt.hpp. If it is present, consider setting CMAKE_PREFIX_PATH or CMAKE_INCLUDE_PATH.")
@@ -65,7 +70,7 @@ file(GLOB_RECURSE SRC_FILES ${PROJECT_SOURCE_DIR}/*.cpp)
 add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SRC_FILES})
 
 # Includes path: project root, arrow, third-party any-lite
-target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR} ${ARROW_INCLUDE} ${PROJECT_SOURCE_DIR}/../third-party/any-lite ${PROJECT_SOURCE_DIR}/../third-party/variant-lite)
+target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR} ${ARROW_INCLUDE} ${PROJECT_SOURCE_DIR}/../third-party/any-lite ${PROJECT_SOURCE_DIR}/../third-party/variant-lite ${RAPIDJSON_INCLUDE})
 
 if(XLNT_LIBRARY AND XLNT_INCLUDE)
     target_include_directories(${PROJECT_NAME} PRIVATE ${XLNT_INCLUDE})

@@ -1,16 +1,8 @@
 #pragma once
 #include <string>
+
+#include "Common.h"
 #include "Logger.h"
-
-// Abominable workaround - standard library on Mac does not have invoke_result
-#if !defined(_MSC_VER) && !defined(__cpp_lib_is_invocable)
-namespace std
-{
-    template<typename F, typename ...Args>
-    using invoke_result_t = std::result_of_t<F(Args...)>;
-}
-#endif
-
 
 void setError(const char **outError, const char *errorToSet, const char *functionName) noexcept;
 void clearError(const char **outError) noexcept;
