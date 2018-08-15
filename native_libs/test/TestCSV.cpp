@@ -97,22 +97,7 @@ BOOST_AUTO_TEST_CASE(ParseFile)
 	auto table = csvToArrowTable(csv, TakeFirstRowAsHeaders{}, {});
 }
 
-template<typename F, typename ...Args>
-static auto duration(F&& func, Args&&... args)
-{
-	const auto start = std::chrono::steady_clock::now();
-	std::invoke(std::forward<F>(func), std::forward<Args>(args)...);
-	return std::chrono::steady_clock::now() - start;
-}
-
-template<typename F, typename ...Args>
-static auto measure(std::string text, F&& func, Args&&... args)
-{
-	const auto t = duration(std::forward<F>(func), std::forward<Args>(args)...);
-	std::cout << text << " took " << std::chrono::duration_cast<std::chrono::milliseconds>(t).count() << " ms" << std::endl;
-	return t;
-}
-
+ 
 std::string get_file_contents(const char *filename)
 {
 	std::ifstream in(filename, std::ios::in);
@@ -131,14 +116,18 @@ std::string get_file_contents(const char *filename)
 
 BOOST_AUTO_TEST_CASE(FilterBigFile)
 {
+	const auto jsonQuery = R"({"predicate": "gt", "arguments": [ {"column": "NUM_INSTALMENT_NUMBER"}, 50 ] } )";
 	auto table = loadTableFromFeatherFile("C:/installments_payments.feather");
-	for(int i  = 0; i < 20; i++)
+	for(int i  = 0; i < 2000; i++)
 	{
 		measure("filter installments_payments", [&]
 		{
-			filter(table);
+			auto table2 = filter(table, jsonQuery);
+// 			std::ofstream out{"tescik.csv"};
+// 			generateCsv(out, *table2, GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy::QuoteWhenNeeded);
 		});
 	}
+	std::cout<<"";
 }
 
 BOOST_AUTO_TEST_CASE(ParseBigFile)
