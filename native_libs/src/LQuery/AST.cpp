@@ -83,7 +83,7 @@ struct DslParser
                 }
             }
             else if(obj.HasMember("operation") && obj["operation"].IsString() 
-                && obj.HasMember("arguments") && obj["arguments"].IsString())
+                && obj.HasMember("arguments") && obj["arguments"].IsArray())
             {
                 const auto operationName = obj["operation"].GetString();
                 const auto operationCode = ast::valueOperatorFromName(operationName);

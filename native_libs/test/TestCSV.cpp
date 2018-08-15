@@ -114,7 +114,7 @@ std::string get_file_contents(const char *filename)
 	throw(errno);
 }
 
-BOOST_AUTO_TEST_CASE(FilterBigFile)
+BOOST_AUTO_TEST_CASE(FilterBigFile0)
 {
 	const auto jsonQuery = R"({"predicate": "gt", "arguments": [ {"column": "NUM_INSTALMENT_NUMBER"}, 50 ] } )";
 	auto table = loadTableFromFeatherFile("C:/installments_payments.feather");
@@ -123,8 +123,24 @@ BOOST_AUTO_TEST_CASE(FilterBigFile)
 		measure("filter installments_payments", [&]
 		{
 			auto table2 = filter(table, jsonQuery);
-// 			std::ofstream out{"tescik.csv"};
-// 			generateCsv(out, *table2, GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy::QuoteWhenNeeded);
+			// 			std::ofstream out{"tescik.csv"};
+			// 			generateCsv(out, *table2, GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy::QuoteWhenNeeded);
+		});
+	}
+	std::cout<<"";
+}
+
+BOOST_AUTO_TEST_CASE(FilterBigFile)
+{
+	const auto jsonQuery = R"({"predicate": "gt", "arguments": [ {"column": "NUM_INSTALMENT_NUMBER"}, {"operation": "plus", "arguments": [50, 1]} ] } )";
+	auto table = loadTableFromFeatherFile("C:/installments_payments.feather");
+	for(int i  = 0; i < 2000; i++)
+	{
+		measure("filter installments_payments", [&]
+		{
+			auto table2 = filter(table, jsonQuery);
+//  			std::ofstream out{"tescik100.csv"};
+//  			generateCsv(out, *table2, GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy::QuoteWhenNeeded);
 		});
 	}
 	std::cout<<"";

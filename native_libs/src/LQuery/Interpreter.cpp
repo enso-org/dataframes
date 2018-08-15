@@ -8,8 +8,8 @@
 
 using namespace std::literals;
 
-namespace
-{
+//namespace
+//{
 
     // type-aware wrapper for buffer that is either owned or belongs to an external Column
     template<typename T>
@@ -36,36 +36,80 @@ namespace
 
 
     template<typename T>
-    auto getValue(const ArrayOperand<T> &src, int index)
+    auto getValue(const ArrayOperand<T> &src, int64_t index)
     {
         return src[index];
     }
     template<typename T>
-    auto getValue(const T &src, int index)
+    auto getValue(const T &src, int64_t index)
     {
         return src;
     }
 
+#define BINARY_OPERATOR(op)                                                                                              \
+    template<typename Lhs>                                                                                               \
+    static constexpr auto exec(const Lhs &lhs, const Lhs &rhs)                                                           \
+    {                                                                                                                    \
+        return lhs op rhs;                                                                                               \
+    }                                                                                                                    \
+    template<typename Lhs, typename Rhs>                                                                                 \
+    static constexpr auto exec(const Lhs &lhs, const Rhs &rhs)                                                           \
+    {                                                                                                                    \
+        throw std::runtime_error("not supported operand types: "s + typeid(lhs).name() + " and "s + typeid(rhs).name()); \
+        return exec(lhs, lhs);                                                                                           \
+    }
+
     struct GreaterThan
     {
+        BINARY_OPERATOR(>);
+    };
+    struct LessThan
+    {
+        BINARY_OPERATOR(<);
+    };
+    struct EqualTo
+    {
+        BINARY_OPERATOR(==);
+    };
+
+    struct Plus
+    {
+        BINARY_OPERATOR(+);
+    };
+    struct Minus
+    {
+        BINARY_OPERATOR(-);
+    };
+    struct Times
+    {
+        BINARY_OPERATOR(*);
+    };
+    struct Divide
+    {
+        BINARY_OPERATOR(/);
+    };
+    struct Negate
+    {
         template<typename Lhs>
-        static constexpr bool exec(const Lhs &lhs, const Lhs &rhs)
+        static constexpr auto exec(const Lhs &lhs)
         {
-            return lhs > rhs;
-        }
-        
-        template<typename Lhs, typename Rhs>
-        static constexpr bool exec(const Lhs &lhs, const Rhs &rhs)
-        {
-            throw std::runtime_error("not allowed mixed-type compare");
+            if constexpr(std::is_arithmetic_v<Lhs>)
+                return -lhs;
+
+            throw std::runtime_error("negate does not support operand of type: "s + typeid(lhs).name());
         }
     };
 
+
     template<typename Operation, typename Lhs, typename Rhs>
-    ArrayOperand<unsigned char> exec(const Lhs &lhs, const Rhs &rhs, int64_t count)
+    auto exec(const Lhs &lhs, const Rhs &rhs, int64_t count)
     {
-        ArrayOperand<unsigned char> ret{(size_t)count};
+        using OperationResult = decltype(Operation::exec(getValue(lhs, 0), getValue(rhs, 0)));
+        using OperandValue = std::conditional_t<std::is_same_v<bool, OperationResult>, unsigned char, OperationResult>;
+
+        ArrayOperand<OperandValue> ret{(size_t)count};
         // TODO: optimization opportunity: fill with constant if lhs/rhs are index-independent
+        static_assert(sizeof(OperandValue) >= sizeof(OperationResult));
 
         for(int64_t i = 0; i < count; i++)
         {
@@ -120,14 +164,18 @@ struct Interpreter
         return nonstd::visit(overloaded{
             [&] (const ast::ColumnReference &col)    -> Field { return fieldFromColumn(*columns[col.columnRefId]); },
             [&] (const ast::ValueOperation &op)      -> Field 
-        {
-            throw std::runtime_error("not implemented: ValueOperation");
-            switch(op.what)
             {
-                //         Plus, Minus, Times, Divide, Negate
-                // TODO
-            }
-        },
+                const auto operands = evaluateOperands(op.operands);
+                switch(op.what)
+                {
+                case ast::ValueOperator::Plus:
+                    return nonstd::visit(
+                        [&] (auto &&lhs, auto &&rhs) -> Field { return exec<Plus>(lhs, rhs, table.num_rows());},
+                        operands[0], operands[1]);
+                default:
+                    throw std::runtime_error("not implemented: value operator " + std::to_string((int)op.what));
+                }
+            },
             [&] (const ast::Literal<int64_t> &l)     -> Field { return l.literal; },
             [&] (const ast::Literal<double> &l)      -> Field { return l.literal; },
             //[&] (const ast::Literal<std::string> &l) -> Field { return l.literal; },
@@ -140,14 +188,21 @@ struct Interpreter
     {
         return nonstd::visit(overloaded{
             [&] (const ast::PredicateFromValueOperation &elem) -> ArrayOperand<unsigned char>
-        { 
-            //d::array<ast::Value, ast::MaxOperatorArity> oo = elem.operands;
+        {
             const auto operands = evaluateOperands(elem.operands);
             switch(elem.what)
             {
             case ast::PredicateFromValueOperator::Greater:
                 return nonstd::visit(
                     [&] (auto &&lhs, auto &&rhs) { return exec<GreaterThan>(lhs, rhs, table.num_rows());},
+                    operands[0], operands[1]);
+            case ast::PredicateFromValueOperator::Lesser:
+                return nonstd::visit(
+                    [&] (auto &&lhs, auto &&rhs) { return exec<LessThan>(lhs, rhs, table.num_rows());},
+                    operands[0], operands[1]);
+            case ast::PredicateFromValueOperator::Equal:
+                return nonstd::visit(
+                    [&] (auto &&lhs, auto &&rhs) { return exec<EqualTo>(lhs, rhs, table.num_rows());},
                     operands[0], operands[1]);
             default:
                 throw std::runtime_error("not implemented: predicate operator " + std::to_string((int)elem.what));
@@ -158,7 +213,7 @@ struct Interpreter
     }
 };
 
-}
+//}
 
 std::shared_ptr<arrow::Buffer> execute(const arrow::Table &table, const ast::Predicate &predicate, ColumnMapping mapping)
 {
