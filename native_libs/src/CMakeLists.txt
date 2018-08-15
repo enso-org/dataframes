@@ -70,7 +70,7 @@ file(GLOB_RECURSE SRC_FILES ${PROJECT_SOURCE_DIR}/*.cpp)
 add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SRC_FILES})
 
 # Includes path: project root, arrow, third-party any-lite
-target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR} ${ARROW_INCLUDE} ${PROJECT_SOURCE_DIR}/../third-party/any-lite ${PROJECT_SOURCE_DIR}/../third-party/variant-lite ${RAPIDJSON_INCLUDE})
+target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR} ${ARROW_INCLUDE} ${PROJECT_SOURCE_DIR}/../third-party/any-lite ${PROJECT_SOURCE_DIR}/../third-party/variant ${RAPIDJSON_INCLUDE})
 
 if(XLNT_LIBRARY AND XLNT_INCLUDE)
     target_include_directories(${PROJECT_NAME} PRIVATE ${XLNT_INCLUDE})
