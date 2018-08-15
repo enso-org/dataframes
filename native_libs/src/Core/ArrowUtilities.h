@@ -149,5 +149,13 @@ inline std::shared_ptr<arrow::Array> finish(arrow::ArrayBuilder &builder)
     return ret;
 }
 
+template<typename T>
+std::shared_ptr<arrow::Buffer> allocateBuffer(size_t length)
+{
+    std::shared_ptr<arrow::Buffer> ret{};
+    checkStatus(arrow::AllocateBuffer(length * sizeof(T), &ret));
+    return ret;
+}
+
 template<typename Array>
 using ArrayTypeDescription = TypeDescription<Array::TypeClass::type_id>;

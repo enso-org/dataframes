@@ -305,14 +305,14 @@ extern "C"
             return builder->null_count();
         };
     }
-    EXPORT arrow::ResizableBuffer *builderObtainNullBuffer(arrow::ArrayBuilder *builder, const char **outError) noexcept
-    {
-        LOG("@{}", (void*)builder);
-        return TRANSLATE_EXCEPTION(outError)
-        {
-            return LifetimeManager::instance().addOwnership(builder->null_bitmap());
-        };
-    }
+//     EXPORT arrow::ResizableBuffer *builderObtainNullBuffer(arrow::ArrayBuilder *builder, const char **outError) noexcept
+//     {
+//         LOG("@{}", (void*)builder);
+//         return TRANSLATE_EXCEPTION(outError)
+//         {
+//             return LifetimeManager::instance().addOwnership(builder->null_bitmap());
+//         };
+//     }
     // needs release
     EXPORT arrow::DataType *builderObtainType(arrow::ArrayBuilder *builder, const char **outError) noexcept
     {

@@ -25,9 +25,7 @@ using namespace std::literals;
         {}
         explicit ArrayOperand(size_t length)
         {
-            auto mb = std::make_shared<arrow::PoolBuffer>();
-            mb->TypedResize<T>(length);
-            buffer = mb;
+            buffer = allocateBuffer<T>(length);
         }
 
         T &operator[](size_t index) { return mutable_data()[index]; }
@@ -52,19 +50,19 @@ using namespace std::literals;
 
 #define BINARY_OPERATOR(op)                                                                                              \
     template<typename Lhs>                                                                                               \
-    static auto exec(const Lhs &lhs, const Lhs &rhs)                                                           \
+    static auto exec(const Lhs &lhs, const Lhs &rhs)                                                                     \
     {                                                                                                                    \
         return lhs op rhs;                                                                                               \
     }                                                                                                                    \
     template<typename Lhs, typename Rhs>                                                                                 \
-    static auto exec(const Lhs &lhs, const Rhs &rhs)                                                           \
+    static auto exec(const Lhs &lhs, const Rhs &rhs)                                                                     \
     {                                                                                                                    \
         throw std::runtime_error("not supported operand types: "s + typeid(lhs).name() + " and "s + typeid(rhs).name()); \
         return exec(lhs, lhs);                                                                                           \
     }
 
 #define FAIL_ON_STRING(ret)                                                                                              \
-    static ret exec(const std::string &lhs, const std::string &rhs)                                            \
+    static ret exec(const std::string &lhs, const std::string &rhs)                                                      \
     {                                                                                                                    \
         throw std::runtime_error("not supported operand types: "s + typeid(lhs).name() + " and "s + typeid(rhs).name()); \
     }
@@ -181,11 +179,11 @@ struct Interpreter
             [&] (const ast::ColumnReference &col)    -> Field { return fieldFromColumn(*columns[col.columnRefId]); },
             [&] (const ast::ValueOperation &op)      -> Field 
             {
-#define VALUE_UNARY_OP(opname)                                              \
+#define VALUE_UNARY_OP(opname)                                               \
             case ast::ValueOperator::opname:                                 \
                 return nonstd::visit(                                        \
-                    [&] (auto &&lhs) -> Field                    \
-                        { return exec<opname>(lhs, table.num_rows());}, \
+                    [&] (auto &&lhs) -> Field                                \
+                        { return exec<opname>(lhs, table.num_rows());},      \
                     operands[0]);
 #define VALUE_BINARY_OP(opname)                                              \
             case ast::ValueOperator::opname:                                 \

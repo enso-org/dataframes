@@ -48,9 +48,7 @@ std::shared_ptr<arrow::Table> filter(std::shared_ptr<arrow::Table> table, const 
             using T = typename TD::ValueType;
             if constexpr(std::is_scalar_v<T>)
             {
-                auto valueBuffer = std::make_shared<arrow::PoolBuffer>();
-                valueBuffer->TypedResize<T>(newRowCount);
-
+                auto valueBuffer = allocateBuffer<T>(newRowCount);
 
                 const unsigned char *maskBuffer = mask->data();
                 const T *sourceBuffer = array->raw_values();
