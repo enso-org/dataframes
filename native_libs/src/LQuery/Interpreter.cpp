@@ -433,12 +433,12 @@ auto arrayWith(const arrow::Table &table, const ArrayOperand<T> &arrayProto)
     else
     {
         arrow::StringBuilder builder;
-        builder.Reserve(N);
+        checkStatus(builder.Reserve(N));
 
         for(int i = 0; i < N; i++)
         {
             const auto sv = arrayProto[i];
-            builder.Append(sv.data(), (int)sv.size());
+            checkStatus(builder.Append(sv.data(), (int)sv.size()));
         }
 
         return finish(builder);
@@ -460,11 +460,11 @@ auto arrayWith(const arrow::Table &table, const T &constant)
     else
     {
         arrow::StringBuilder builder;
-        builder.Reserve(N);
+        checkStatus(builder.Reserve(N));
 
         const auto length = (int32_t)constant.size();
         for(int i = 0; i < N; i++)
-            builder.Append(constant.data(), length);
+            checkStatus(builder.Append(constant.data(), length));
 
         return finish(builder);
     }
