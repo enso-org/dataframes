@@ -172,7 +172,7 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
         }
     }
 
-    const auto names = decideColumnNames(csv.fieldCount, header, [&] (int column)
+    const auto names = decideColumnNames((int)csv.fieldCount, header, [&] (int column)
     {
         const auto &headerRow = csv.records[0];
         if(column < (int)headerRow.size())

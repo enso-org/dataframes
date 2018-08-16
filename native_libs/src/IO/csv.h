@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <cstddef>
 #include <memory>
 #include <ostream>
@@ -18,10 +19,13 @@ namespace arrow
 struct EXPORT NaiveStringView
 {
     char *text{};
-    std::ptrdiff_t length{};
+    std::int32_t length{}; // note: arrow limits string length
+
     NaiveStringView(char *text,  std::ptrdiff_t length)
-        : text(text), length(length)
-    {}
+        : text(text), length((int32_t)length)
+    {
+        assert(length == this->length); // we didn't suffer any losses during conversion
+    }
 
     NaiveStringView(NaiveStringView &&) = default;
 

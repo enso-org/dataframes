@@ -97,6 +97,31 @@ BOOST_AUTO_TEST_CASE(ParseFile)
 	auto table = csvToArrowTable(csv, TakeFirstRowAsHeaders{}, {});
 }
 
+BOOST_AUTO_TEST_CASE(HelperConversionFunctions)
+{
+	std::vector<int64_t> numbers;
+	std::vector<double> numbersD;
+	std::vector<std::string> numbersS;
+
+	for(int i = 0; i < 50; i++) 
+	{
+		numbers.push_back(i);
+		numbersD.push_back(i);
+	}
+
+	for(int i = 0; i < 40; i++) 
+		numbersS.push_back(std::to_string(i));
+
+	auto numbersArray = toArray(numbers);
+	auto numbersDArray = toArray(numbersD);
+	auto numbersSArray = toArray(numbersS);
+
+	auto table = tableFromArrays({numbersArray, numbersDArray, numbersSArray});
+	auto [retI, retD, retS] = toVectors<int64_t, double, std::string>(*table);
+	BOOST_CHECK(retI == numbers);
+	BOOST_CHECK(retD == numbersD);
+	BOOST_CHECK(retS == numbersS);
+}
  
 std::string get_file_contents(const char *filename)
 {

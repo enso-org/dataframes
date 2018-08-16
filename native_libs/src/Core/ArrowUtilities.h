@@ -3,11 +3,26 @@
 #include <cassert>
 #include <sstream>
 #include <stdexcept>
+#include <tuple>
 
 #include <arrow/array.h>
 #include <arrow/builder.h>
 #include <arrow/table.h>
 #include <arrow/type.h>
+#include "Common.h"
+
+template<typename T>
+constexpr auto ValueTypeToId()
+{
+    if constexpr(std::is_same_v<T, int64_t>)
+        return arrow::Type::INT64;
+    else if constexpr(std::is_same_v<T, double>)
+        return arrow::Type::DOUBLE;
+    else if constexpr(std::is_same_v<T, std::string>)
+        return arrow::Type::STRING;
+    else
+        static_assert(always_false_v<T>);
+}
 
 template<arrow::Type::type type>
 struct TypeDescription
@@ -16,6 +31,7 @@ struct TypeDescription
 template<typename T>
 struct NumericTypeDescription
 {
+    using ArrowType = T;
     using BuilderType = arrow::NumericBuilder<T>;
     using ValueType = typename BuilderType::value_type;
     using CType = typename BuilderType::value_type;
@@ -35,6 +51,7 @@ template<> struct TypeDescription<arrow::Type::DOUBLE> : NumericTypeDescription<
 
 template<> struct TypeDescription<arrow::Type::STRING>
 {
+    using ArrowType = arrow::StringType;
     using BuilderType = arrow::StringBuilder;
     using ValueType = std::string;
     using CType = const char *;
@@ -74,6 +91,19 @@ void iterateOver(const arrow::ChunkedArray &arrays, ElementF &&handleElem, NullF
     for(auto &chunk : arrays.chunks())
     {
         iterateOver<type>(*chunk, handleElem, handleNull);
+    }
+}
+
+template <typename ElementF, typename NullF>
+void iterateOverGeneric(const arrow::Array &array, ElementF &&handleElem, NullF &&handleNull)
+{
+    const auto t = array.type();
+    switch(t->id())
+    {
+    case arrow::Type::INT64 : return iterateOver<arrow::Type::INT64 >(array, handleElem, handleNull);
+    case arrow::Type::DOUBLE: return iterateOver<arrow::Type::DOUBLE>(array, handleElem, handleNull);
+    case arrow::Type::STRING: return iterateOver<arrow::Type::STRING>(array, handleElem, handleNull);
+    default                 : throw  std::runtime_error(__FUNCTION__ + std::string(": not supported array type ") + t->ToString());
     }
 }
 
@@ -158,4 +188,82 @@ std::shared_ptr<arrow::Buffer> allocateBuffer(size_t length)
 }
 
 template<typename Array>
-using ArrayTypeDescription = TypeDescription<Array::TypeClass::type_id>;
+using ArrayTypeDescription = TypeDescription<std::remove_pointer_t<Array>::TypeClass::type_id>;
+
+template<typename T>
+void toVector(std::vector<T> &out, const arrow::Array &array)
+{
+    iterateOverGeneric
+    (
+        array, 
+        [&] (auto &&elem)
+        {
+            if constexpr(std::is_convertible_v<decltype(elem), T>)
+                out.push_back(std::forward<decltype(elem)>(elem));
+            else
+                throw std::runtime_error(std::string("Type mismatch: expected ") + typeid(T).name() + " got " + typeid(elem).name());
+        },
+        [&] { out.push_back({}); }
+    );
+}
+
+template<typename T>
+std::vector<T> toVector(const arrow::Array &array)
+{
+    std::vector<T> ret;
+    toVector(ret, array);
+    return ret;
+}
+
+template<typename T>
+std::vector<T> toVector(const arrow::ChunkedArray &array)
+{
+    std::vector<T> ret;
+    for(auto &&chunk : array.chunks())
+        toVector(ret, *chunk);
+    return ret;
+}
+
+template<typename T>
+std::vector<T> toVector(const arrow::Column &array)
+{
+    return toVector<T>(*array.data());
+}
+
+template<typename T>
+auto toArray(const std::vector<T> &elems)
+{
+    using BuilderT = typename TypeDescription<ValueTypeToId<T>()>::BuilderType;
+    BuilderT builder;
+    for(auto &&elem : elems)
+        builder.Append(elem);
+
+    return finish(builder);
+}
+
+namespace detail
+{
+    template<typename T, std::size_t N>
+    auto nthColumnToVector(const arrow::Table &table)
+    {
+        return toVector<T>(*table.column(N));
+    }
+
+    template<typename ...Ts, std::size_t... N>
+    auto toVectorsHlp(const arrow::Table &table, std::index_sequence<N...>)
+    {
+        using Ret = std::tuple<Ts...>;
+        return std::make_tuple(detail::nthColumnToVector<std::tuple_element_t<N, Ret>, N>(table)...);
+    }
+}
+
+template<typename ...Ts>
+std::tuple<std::vector<Ts>...> toVectors(const arrow::Table &table)
+{
+    if(sizeof...(Ts) > table.num_columns())
+        throw std::runtime_error("Table does not contain required column count!");
+
+    return detail::toVectorsHlp<Ts...>(table, std::index_sequence_for<Ts...>{});
+}
+
+EXPORT std::shared_ptr<arrow::Table> tableFromArrays(std::vector<std::shared_ptr<arrow::Array>> arrays, std::vector<std::string> names = {}, std::vector<bool> nullables = {});

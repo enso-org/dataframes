@@ -22,6 +22,9 @@ constexpr size_t operator"" _z (unsigned long long n)
 template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
+// to allow conditional static_asserts 
+template<class T> struct always_false : std::false_type {};
+template<class T> constexpr bool always_false_v = always_false<T>::value;
 
 // Abominable workaround - standard library on Mac does not have invoke_result
 // And we don't just use std::result_of_t, as conforming compilers hate it
