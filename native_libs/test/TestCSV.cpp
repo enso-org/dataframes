@@ -214,6 +214,22 @@ BOOST_AUTO_TEST_CASE(FilterSimpleCase)
 		BOOST_CHECK(bOk);
 		BOOST_CHECK(cOk);
 	}
+
+	{
+		// c == 8
+		// error: cannot compare string column against number literal
+		const auto jsonQuery = R"(
+			{
+				"predicate": "eq", 
+				"arguments": 
+					[ 
+						{"column": "c"},
+						8
+					] 
+			})";
+
+		BOOST_CHECK_THROW(filter(table, jsonQuery), std::exception);
+	}
 }
 
 
