@@ -157,7 +157,7 @@ struct Interpreter
     const arrow::Table &table;
     std::vector<std::shared_ptr<arrow::Column>> columns;
 
-    using Field = std::variant<int64_t, double, ArrayOperand<int64_t>, ArrayOperand<double>, ArrayOperand<std::string>>;
+    using Field = std::variant<int64_t, double, std::string, ArrayOperand<int64_t>, ArrayOperand<double>, ArrayOperand<std::string>>;
 
     Field fieldFromColumn(const arrow::Column &column)
     {
@@ -218,6 +218,7 @@ struct Interpreter
             },
             [&] (const ast::Literal<int64_t> &l)     -> Field { return l.literal; },
             [&] (const ast::Literal<double> &l)      -> Field { return l.literal; },
+            [&] (const ast::Literal<std::string> &l) -> Field { return l.literal; },
             //[&] (const ast::Literal<std::string> &l) -> Field { return l.literal; },
             [&] (auto &&t) -> Field { throw std::runtime_error("not implemented: value node of type "s + typeid(decltype(t)).name()); }
             }, (const ast::ValueBase &) value);
