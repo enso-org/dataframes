@@ -95,3 +95,18 @@ if(WIN32)
 else()
     target_link_libraries(${PROJECT_NAME} ${ARROW_LIBRARY})
 endif()
+
+###################
+
+file(GLOB_RECURSE PLOTTER_HEADER_FILES ${PROJECT_SOURCE_DIR}/../plotter/*.h)
+file(GLOB_RECURSE PLOTTER_SRC_FILES    ${PROJECT_SOURCE_DIR}/../plotter/*.cpp)
+
+add_executable(DataframePlotter ${PLOTTER_HEADER_FILES} ${PLOTTER_SRC_FILES})
+
+find_package(PythonLibs 2.7)
+target_include_directories(DataframePlotter PRIVATE ${PYTHON_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/../third-party/matplotlib-cpp)
+
+message(WARNING "PYTHON lib" ${PYTHON_LIBRARIES})
+
+target_link_libraries(DataframePlotter ${PROJECT_NAME} ${PYTHON_LIBRARIES})
+target_compile_definitions(DataframePlotter PRIVATE WITHOUT_NUMPY)
