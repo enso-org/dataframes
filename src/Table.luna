@@ -6,8 +6,8 @@ class Table:
     Table
     TableVal (TableWrapper)
 
-    def ptr: 
-        case self of 
+    def ptr:
+        case self of
             TableVal ptr: ptr
 
     def fromWrapper wrapper:
@@ -25,12 +25,19 @@ class Table:
     def rowCount: self.ptr.rowCount
     def schema:
         wrapper = self.ptr.schema
-        Schema wrapper
-    def columnAt index: 
+        SchemaVal wrapper
+    def columnAt index:
         columnWrapper = self.ptr.columnAt index
         Column.fromColumnWrapper columnWrapper
     def addColumn index column:
         self.fromWrapper $ self.ptr.addColumn index column.ptr
+    def at name:
+        self.columns [name]
+    def columns names:
+        schema = self.schema
+        ixes = names.each schema.getFieldIndexByName
+        columns = ixes.each self.columnAt
+        self.fromColumns columns
     def removeColumn index:
         self.fromWrapper $ self.ptr.removeColumn index
     def toList:
@@ -42,8 +49,9 @@ class Table:
     def == that:
         self.ptr.equals that.ptr
     def toJSON:
-        columnValueLists = self.toList.each .toList
-        rowIndices = 0.upto (self.rowCount - 1)
+        rowCount = 10
+        columnValueLists = self.toList.each (_ . slice 0 rowCount . toList)
+        rowIndices = 0.upto (rowCount - 1)
         rows = rowIndices.each rowIndex:
             columnValueLists.each (_.getAt rowIndex)
         JSON.empty . insert "header" self.columnNames . insert "data" rows
@@ -63,4 +71,5 @@ class Table:
     def fillNaAt columnName valueToFillWith:
         self.fromWrapper $ self.ptr.fillNaAt columnName valueToFillWith
 
-        
+    def shortRep:
+        "Table<" + self.columnCount.toText + "×" + self.rowCount.toText + ">"

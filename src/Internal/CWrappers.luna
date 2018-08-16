@@ -6,7 +6,7 @@ import Dataframes.IO.Options
 
 class DataTypeWrapper:
     ptr :: ManagedPointer None
-    
+
     def callSelf nameSuffix ret args:
         callHandlingError ("dataType" + nameSuffix) ret ([self.ptr.toCArg] + args)
     def name:
@@ -16,7 +16,7 @@ class DataTypeWrapper:
     def typeId:
         self.callSelf "Id" CInt8 [] . toInt
     # warning: only fixed-width types support this operation
-    # TODO: somehow enforce this on the type level 
+    # TODO: somehow enforce this on the type level
     def bitWidth:
         self.callSelf "FixedWidthTypeBitWidth" CInt32 [] . toInt
 
@@ -34,7 +34,7 @@ class ArrayBuilderWrapper:
     ptr :: ManagedPtr None
     typename :: Text
 
-    def toCArg: 
+    def toCArg:
         self.ptr.toCArg
     def selfCall fullNameSuffix ret args:
         callHandlingError ("builder" + fullNameSuffix) ret ([self.ptr.toCArg] + args)
@@ -45,7 +45,7 @@ class ArrayBuilderWrapper:
     def append value:
         self.typeCall "AppendValue" None [value.toCArg]
 
-    # NOTE: should not be called if builded array is expected to be null free 
+    # NOTE: should not be called if builded array is expected to be null free
     # (rule should be enforced by owning code)
     # TODO: in future enforce by type system
     def appendNull:
@@ -63,7 +63,7 @@ class ArrayBuilderWrapper:
     def length:
         callHelper "builderLength" CInt64 [self.toCArg] . toInt
 
-    # 
+    #
     def finish:
         ptr = self.typeCall "Finish" (Pointer None) []
         wrapReleasableResouce ArrayWrapper ptr
@@ -131,7 +131,7 @@ def createBuilderWrapper type:
 
 class ChunkedArrayWrapper:
     ptr :: ManagedPointer None
-    
+
     def nullCount:
         callHelper "chunkedArrayNullCount" CInt64 [self.ptr.toCArg] . toInt
     def length:
@@ -177,7 +177,7 @@ def createFieldWrapper name datatypeWrapper nullable:
 
 class ColumnWrapper:
     ptr :: ManagedPointer None
-    
+
     def nullCount:
         callHelper "columnNullCount" CInt64 [self.ptr.toCArg] . toInt
     def length:
@@ -297,7 +297,7 @@ class TableWrapper:
 
 def createTableWrapper schemaWrapper columnWrappers:
     Array (Pointer None) . with (columnWrappers.each .ptr.ptr) columnsCArray:
-        ptr = callHandlingError "tableNewFromSchamColumns" (Pointer None) [schemaWrapper.ptr.toCArg, columnsCArray.ptr.toCArg, CInt32.fromInt columnsCArray.size . toCArg]   
+        ptr = callHandlingError "tableNewFromSchamColumns" (Pointer None) [schemaWrapper.ptr.toCArg, columnsCArray.ptr.toCArg, CInt32.fromInt columnsCArray.size . toCArg]
         wrapReleasableResouce TableWrapper ptr
 
 def readTableFromFile path:
