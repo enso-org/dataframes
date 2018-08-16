@@ -48,32 +48,44 @@ using namespace std::literals;
         return src;
     }
 
-#define BINARY_OPERATOR(op)                                                                                              \
-    template<typename Lhs>                                                                                               \
-    static auto exec(const Lhs &lhs, const Lhs &rhs)                                                                     \
-    {                                                                                                                    \
-        return lhs op rhs;                                                                                               \
-    }                                                                                                                    \
-    template<typename Lhs, typename Rhs>                                                                                 \
-    static auto exec(const Lhs &lhs, const Rhs &rhs)                                                                     \
-    {                                                                                                                    \
-        throw std::runtime_error("not supported operand types: "s + typeid(lhs).name() + " and "s + typeid(rhs).name()); \
-        return exec(lhs, lhs);                                                                                           \
+#define BINARY_REL_OPERATOR(op)                                                                                     \
+    template<typename Lhs, typename Rhs>                                                                                     \
+    static bool exec(const Lhs &lhs, const Rhs &rhs)                                                                         \
+    {                                                                                                                        \
+        if constexpr(std::is_same_v<Lhs, Rhs> || std::is_arithmetic_v<Lhs> && std::is_arithmetic_v<Rhs>)                     \
+            return lhs op rhs;                                                                                               \
+        else                                                                                                                 \
+        {                                                                                                                    \
+            throw std::runtime_error("not supported operand types: "s + typeid(lhs).name() + " and "s + typeid(rhs).name()); \
+            return {}; /* just for type inference  */                                                                       \
+        }                                                                                                                    \
     }
 
+#define BINARY_ARIT_OPERATOR(op)                                                                                     \
+    template<typename Lhs, typename Rhs>                                                                                     \
+    static auto exec(const Lhs &lhs, const Rhs &rhs)                                                                         \
+    {                                                                                                                        \
+        if constexpr(std::is_same_v<Lhs, Rhs> || std::is_arithmetic_v<Lhs> && std::is_arithmetic_v<Rhs>)                     \
+            return lhs op rhs;                                                                                               \
+        else                                                                                                                 \
+        {                                                                                                                    \
+            throw std::runtime_error("not supported operand types: "s + typeid(lhs).name() + " and "s + typeid(rhs).name()); \
+            return lhs; /* just for type inference  */                                                                       \
+        }                                                                                                                    \
+    }
 #define FAIL_ON_STRING(ret)                                                                                              \
     static ret exec(const std::string &lhs, const std::string &rhs)                                                      \
     {                                                                                                                    \
         throw std::runtime_error("not supported operand types: "s + typeid(lhs).name() + " and "s + typeid(rhs).name()); \
     }
 
-    struct GreaterThan { BINARY_OPERATOR(>); FAIL_ON_STRING(bool); };
-    struct LessThan    { BINARY_OPERATOR(<); FAIL_ON_STRING(bool); };
-    struct EqualTo     { BINARY_OPERATOR(==);};
-    struct Plus        { BINARY_OPERATOR(+); };
-    struct Minus       { BINARY_OPERATOR(-); FAIL_ON_STRING(std::string); };
-    struct Times       { BINARY_OPERATOR(*); FAIL_ON_STRING(std::string); };
-    struct Divide      { BINARY_OPERATOR(/); FAIL_ON_STRING(std::string); };
+    struct GreaterThan { BINARY_REL_OPERATOR(>); FAIL_ON_STRING(bool); };
+    struct LessThan    { BINARY_REL_OPERATOR(<); FAIL_ON_STRING(bool); };
+    struct EqualTo     { BINARY_REL_OPERATOR(==);};
+    struct Plus        { BINARY_ARIT_OPERATOR(+); };
+    struct Minus       { BINARY_ARIT_OPERATOR(-); FAIL_ON_STRING(std::string); };
+    struct Times       { BINARY_ARIT_OPERATOR(*); FAIL_ON_STRING(std::string); };
+    struct Divide      { BINARY_ARIT_OPERATOR(/); FAIL_ON_STRING(std::string); };
     struct Negate
     {
         template<typename Lhs>

@@ -148,26 +148,50 @@ BOOST_AUTO_TEST_CASE(FilterSimpleCase)
 
 	auto table = tableFromArrays({toArray(a), toArray(b), toArray(c)}, {"a", "b", "c"});
 	
-	const auto jsonQuery = R"(
-		{
-			"predicate": "gt", 
-			"arguments": 
-				[ 
-					{"column": "a"}, 
-					0 
-				] 
-		})";
+	{
+		// a > 0
+		const auto jsonQuery = R"(
+			{
+				"predicate": "gt", 
+				"arguments": 
+					[ 
+						{"column": "a"}, 
+						0 
+					] 
+			})";
 
-	const auto filteredTable = filter(table, jsonQuery);
-	auto [a2, b2, c2] = toVectors<int64_t, double, std::string>(*filteredTable);
+		const auto filteredTable = filter(table, jsonQuery);
+		auto[a2, b2, c2] = toVectors<int64_t, double, std::string>(*filteredTable);
+		auto aOk = a2 == std::vector<int64_t>{2, 3, 5};
+		auto bOk = b2 == std::vector<double>{10, 0, -5};
+		auto cOk = c2 == std::vector<std::string>{"bar", "baz", "1"};
+		BOOST_CHECK(aOk);
+		BOOST_CHECK(bOk);
+		BOOST_CHECK(cOk);
+	}
 
-	auto aOk = a2 == std::vector<int64_t>{2, 3, 5};
-	auto bOk = b2 == std::vector<double>{10, 0, -5};
-	auto cOk = c2 == std::vector<std::string>{"bar", "baz", "1"};
-	BOOST_CHECK(aOk);
-	BOOST_CHECK(bOk);
-	BOOST_CHECK(cOk);
+	{
+		// a > b
+		// tests not only using two columns but also mixed-type comparison
+		const auto jsonQuery = R"(
+			{
+				"predicate": "gt", 
+				"arguments": 
+					[ 
+						{"column": "a"},
+						{"column": "b"}
+					] 
+			})";
 
+		const auto filteredTable = filter(table, jsonQuery);
+		auto[a2, b2, c2] = toVectors<int64_t, double, std::string>(*filteredTable);
+		auto aOk = a2 == std::vector<int64_t>{3, -4, 5};
+		auto bOk = b2 == std::vector<double>{0, -10, -5};
+		auto cOk = c2 == std::vector<std::string>{"baz", "", "1"};
+		BOOST_CHECK(aOk);
+		BOOST_CHECK(bOk);
+		BOOST_CHECK(cOk);
+	}
 }
 
 
