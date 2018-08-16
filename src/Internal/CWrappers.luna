@@ -260,7 +260,11 @@ class TableWrapper:
         callHandlingError "tableEquals" CInt8 [self.ptr.toCArg, that.ptr.toCArg] . toInt == 1
     def toList:
         0 . upto (self.columnCount - 1) . each self.columnAt
-
+    def filter predicate:
+        predicateJsonText = predicate.toJSON.toText
+        ptr = CString.with predicateJsonText predicateC:
+            callHandlingError "tableFilter" (Pointer None) [self.ptr.toCArg, predicateC.toCArg]
+        wrapReleasableResouce TableWrapper ptr
 
 def createTableWrapper schemaWrapper columnWrappers:
     Array (Pointer None) . with (columnWrappers.each .ptr.ptr) columnsCArray:

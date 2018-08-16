@@ -9,6 +9,7 @@
 #include "Core/Common.h"
 #include "Core/Error.h"
 #include "Core/Logger.h"
+#include "Processing.h"
 #include "LifetimeManager.h"
 #include "IO/csv.h"
 #include "IO/IO.h"
@@ -942,6 +943,16 @@ extern "C"
         return TRANSLATE_EXCEPTION(outError)
         {
             return lhs->Equals(*rhs);
+        };
+    }
+    EXPORT arrow::Table *tableFilter(arrow::Table *table, const char *lqueryJSON, const char **outError) noexcept
+    {
+        LOG("@{} @{}", (void*)table, (void*)lqueryJSON);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto managedTable = LifetimeManager::instance().accessOwned(table);
+            auto ret = filter(managedTable, lqueryJSON);
+            return LifetimeManager::instance().addOwnership(ret);
         };
     }
 }
