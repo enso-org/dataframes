@@ -21,8 +21,8 @@ struct EXPORT NaiveStringView
     char *text{};
     std::int32_t length{}; // note: arrow limits string length
 
-    NaiveStringView(char *text,  std::ptrdiff_t length)
-        : text(text), length((int32_t)length)
+    NaiveStringView(char *text,  std::int32_t length)
+        : text(text), length(length)
     {
         assert(length == this->length); // we didn't suffer any losses during conversion
     }
@@ -41,7 +41,7 @@ struct EXPORT NaiveStringView
     }
     friend bool operator==(const NaiveStringView &lhs, const NaiveStringView &rhs)
     {
-        return lhs.str() == rhs.str();
+        return lhs.length == rhs.length  &&  std::memcmp(lhs.text, rhs.text, lhs.length) == 0;
     }
 };
 

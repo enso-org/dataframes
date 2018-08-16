@@ -197,7 +197,7 @@ BOOST_AUTO_TEST_CASE(FilterSimpleCase)
 		// tests not only using two columns but also mixed-type comparison
 		const auto jsonQuery = R"(
 			{
-				"predicate": "gt", 
+				"predicate": "eq", 
 				"arguments": 
 					[ 
 						{"column": "c"},

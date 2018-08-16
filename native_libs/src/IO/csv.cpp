@@ -389,7 +389,7 @@ NaiveStringView CsvParser::parseField()
             if(c == fieldSeparator || c == recordSeparator)
                 break;
         }
-        return { start, std::distance(start, bufferIterator) };
+        return { start, (int32_t)std::distance(start, bufferIterator) };
     }
 
     // Quoted fields
@@ -415,7 +415,7 @@ NaiveStringView CsvParser::parseField()
             else
             {
                 auto length = std::distance(start, bufferIterator++);
-                return { start, length - rewriteOffset };
+                return { start, (int32_t)(length - rewriteOffset) };
             }
         }
 

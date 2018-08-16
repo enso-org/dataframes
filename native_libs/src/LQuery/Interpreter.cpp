@@ -1,5 +1,6 @@
 #include "Interpreter.h"
 
+#include <string_view>
 #include <arrow/buffer.h>
 #include <arrow/table.h>
 
@@ -20,8 +21,8 @@ using namespace std::literals;
         auto mutable_data() { return reinterpret_cast<T *>(buffer->mutable_data()); }
         auto data() const { return reinterpret_cast<const T*>(buffer->data()); }
         
-        explicit ArrayOperand(std::shared_ptr<arrow::Buffer> buffer)
-            : buffer(std::move(buffer))
+        explicit ArrayOperand(const arrow::Array *array)
+            : buffer(array->data()->buffers.at(1))
         {}
         explicit ArrayOperand(size_t length)
         {
@@ -32,10 +33,40 @@ using namespace std::literals;
         const T &operator[](size_t index) const { return data()[index]; }
     };
 
-//     template<>
-//     struct ArrayOperand<std::string>
-//     {
-//     };
+    template<>
+    struct ArrayOperand<std::string>
+    {
+        const arrow::StringArray *array;
+//         std::shared_ptr<arrow::Buffer> bufferOffsets;
+//         std::shared_ptr<arrow::Buffer> bufferData;
+     
+        explicit ArrayOperand(const arrow::Array *array)
+            : array(static_cast<const arrow::StringArray *>(array))
+//             , bufferOffsets(array->value_offsets())
+//             , bufferData(array->value_data())
+        {
+//             const auto &arrayS = static_cast<const arrow::StringArray&>(array);
+//             bufferOffsets = arrayS.value_offsets();
+//             bufferData = arrayS.value_data();
+        }
+        explicit ArrayOperand(size_t length)
+        {
+            throw std::runtime_error("not implemented: building string column in interpreter");
+//             bufferOffsets = allocateBuffer<int32_t>(length);
+//             bufferData = allocateBuffer<uint8_t>(0);
+        }
+
+        std::string &operator[](size_t index) 
+        {
+            throw std::runtime_error("not implemented: accessing mutable string in column view");
+        }
+        std::string_view operator[](size_t index) const 
+        {
+            int32_t length;
+            auto ptr = array->GetValue(index, &length);
+            return std::string_view(reinterpret_cast<const char*>(ptr), length);
+        }
+    };
 
     template<typename T>
     auto getValue(const ArrayOperand<T> &src, int64_t index)
@@ -45,47 +76,68 @@ using namespace std::literals;
     template<typename T>
     auto getValue(const T &src, int64_t index)
     {
-        return src;
+        // so our functions get only string_view
+        if constexpr(std::is_same_v<T, std::string>)
+            return std::string_view(src);
+        else
+            return src;
     }
 
-#define BINARY_REL_OPERATOR(op)                                                                                     \
-    template<typename Lhs, typename Rhs>                                                                                     \
-    static bool exec(const Lhs &lhs, const Rhs &rhs)                                                                         \
-    {                                                                                                                        \
-        if constexpr(std::is_same_v<Lhs, Rhs> || std::is_arithmetic_v<Lhs> && std::is_arithmetic_v<Rhs>)                     \
-            return lhs op rhs;                                                                                               \
-        else                                                                                                                 \
-        {                                                                                                                    \
-            throw std::runtime_error("not supported operand types: "s + typeid(lhs).name() + " and "s + typeid(rhs).name()); \
-            return {}; /* just for type inference  */                                                                       \
-        }                                                                                                                    \
+#define COMPLAIN_ABOUT_OPERAND_TYPES \
+        throw std::runtime_error(__FUNCTION__ + ": not supported operand types: "s + typeid(lhs).name() + " and "s + typeid(rhs).name()); \
+
+#define BINARY_REL_OPERATOR(op)                                                                          \
+    template<typename Lhs, typename Rhs>                                                                 \
+    static bool exec(const Lhs &lhs, const Rhs &rhs)                                                     \
+    { /* below we protect against mixed types like int/string (eg. for ==)  */                           \
+        if constexpr(std::is_same_v<Lhs, Rhs> || std::is_arithmetic_v<Lhs> && std::is_arithmetic_v<Rhs>) \
+            return lhs op rhs;                                                                           \
+        else                                                                                             \
+        {                                                                                                \
+            COMPLAIN_ABOUT_OPERAND_TYPES;                                                                \
+            return {}; /* just for type inference  */                                                    \
+        }                                                                                                \
     }
 
-#define BINARY_ARIT_OPERATOR(op)                                                                                     \
-    template<typename Lhs, typename Rhs>                                                                                     \
-    static auto exec(const Lhs &lhs, const Rhs &rhs)                                                                         \
-    {                                                                                                                        \
-        if constexpr(std::is_same_v<Lhs, Rhs> || std::is_arithmetic_v<Lhs> && std::is_arithmetic_v<Rhs>)                     \
-            return lhs op rhs;                                                                                               \
-        else                                                                                                                 \
-        {                                                                                                                    \
-            throw std::runtime_error("not supported operand types: "s + typeid(lhs).name() + " and "s + typeid(rhs).name()); \
-            return lhs; /* just for type inference  */                                                                       \
-        }                                                                                                                    \
+#define BINARY_ARIT_OPERATOR(op)                                                                         \
+    template<typename Lhs, typename Rhs>                                                                 \
+    static auto exec(const Lhs &lhs, const Rhs &rhs)                                                     \
+    {                                                                                                    \
+        if constexpr(std::is_same_v<Lhs, Rhs> || std::is_arithmetic_v<Lhs> && std::is_arithmetic_v<Rhs>) \
+            return lhs op rhs;                                                                           \
+        else                                                                                             \
+        {                                                                                                \
+    COMPLAIN_ABOUT_OPERAND_TYPES;                                                                        \
+        return lhs; /* just for type inference  */                                                       \
+        }                                                                                                \
     }
-#define FAIL_ON_STRING(ret)                                                                                              \
-    static ret exec(const std::string &lhs, const std::string &rhs)                                                      \
-    {                                                                                                                    \
-        throw std::runtime_error("not supported operand types: "s + typeid(lhs).name() + " and "s + typeid(rhs).name()); \
-    }
+#define FAIL_ON_STRING(ret)                                                                              \
+    static ret exec(const std::string &lhs, const std::string &rhs)                                      \
+    {                                                                                                    \
+            COMPLAIN_ABOUT_OPERAND_TYPES;                                                                \
+    }                                                                                                    \
+    static ret exec(const std::string_view &lhs, const std::string_view &rhs)                            \
+    {                                                                                                    \
+            COMPLAIN_ABOUT_OPERAND_TYPES;                                                                \
+    }                                                                                                    \
+    template<typename Rhs>                                                                               \
+    static ret exec(const std::string_view &lhs, const Rhs &rhs)                                         \
+    {                                                                                                    \
+            COMPLAIN_ABOUT_OPERAND_TYPES;                                                                \
+    }                                                                                                    \
+    template<typename Lhs>                                                                               \
+    static ret exec(const Lhs &lhs, const std::string_view &rhs)                                         \
+    {                                                                                                    \
+            COMPLAIN_ABOUT_OPERAND_TYPES;                                                                \
+    } 
 
     struct GreaterThan { BINARY_REL_OPERATOR(>); FAIL_ON_STRING(bool); };
     struct LessThan    { BINARY_REL_OPERATOR(<); FAIL_ON_STRING(bool); };
     struct EqualTo     { BINARY_REL_OPERATOR(==);};
-    struct Plus        { BINARY_ARIT_OPERATOR(+); };
-    struct Minus       { BINARY_ARIT_OPERATOR(-); FAIL_ON_STRING(std::string); };
-    struct Times       { BINARY_ARIT_OPERATOR(*); FAIL_ON_STRING(std::string); };
-    struct Divide      { BINARY_ARIT_OPERATOR(/); FAIL_ON_STRING(std::string); };
+    struct Plus        { BINARY_ARIT_OPERATOR(+); FAIL_ON_STRING(int64_t); };
+    struct Minus       { BINARY_ARIT_OPERATOR(-); FAIL_ON_STRING(int64_t); };
+    struct Times       { BINARY_ARIT_OPERATOR(*); FAIL_ON_STRING(int64_t); };
+    struct Divide      { BINARY_ARIT_OPERATOR(/); FAIL_ON_STRING(int64_t); };
     struct Negate
     {
         template<typename Lhs>
@@ -95,6 +147,11 @@ using namespace std::literals;
                 return -lhs;
             else
                 throw std::runtime_error("negate does not support operand of type: "s + typeid(lhs).name());
+        }
+
+        static int64_t exec(const std::string_view &lhs)
+        {
+            throw std::runtime_error("negate does not support operand of type: "s + typeid(lhs).name());
         }
     };
 
@@ -170,7 +227,7 @@ struct Interpreter
         {
             using ArrowType = typename std::remove_pointer_t<decltype(array)>::TypeClass;
             using T = typename TypeDescription<ArrowType::type_id>::ValueType;
-            return ArrayOperand<T>(array->data()->buffers.at(1)); // NOTE: this works only for primitive arrays
+            return ArrayOperand<T>(array);
         });
     }
     
