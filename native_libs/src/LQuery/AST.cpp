@@ -99,6 +99,10 @@ struct DslParser
         {
             return ast::Literal<int64_t>{v.GetInt64()};
         }
+        else if(v.IsString())
+        {
+            return ast::Literal<std::string>{v.GetString()};
+        }
         throw std::runtime_error("Failed to parse LQuery value from: " + toJsonString(v));
     }
 

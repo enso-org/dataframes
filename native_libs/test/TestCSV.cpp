@@ -192,6 +192,28 @@ BOOST_AUTO_TEST_CASE(FilterSimpleCase)
 		BOOST_CHECK(bOk);
 		BOOST_CHECK(cOk);
 	}
+	{
+		// c == "baz"
+		// tests not only using two columns but also mixed-type comparison
+		const auto jsonQuery = R"(
+			{
+				"predicate": "gt", 
+				"arguments": 
+					[ 
+						{"column": "c"},
+						"baz"
+					] 
+			})";
+
+		const auto filteredTable = filter(table, jsonQuery);
+		auto[a2, b2, c2] = toVectors<int64_t, double, std::string>(*filteredTable);
+		auto aOk = a2 == std::vector<int64_t>{3};
+		auto bOk = b2 == std::vector<double>{0};
+		auto cOk = c2 == std::vector<std::string>{"baz"};
+		BOOST_CHECK(aOk);
+		BOOST_CHECK(bOk);
+		BOOST_CHECK(cOk);
+	}
 }
 
 
