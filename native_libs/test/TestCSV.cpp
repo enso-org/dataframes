@@ -139,14 +139,38 @@ std::string get_file_contents(const char *filename)
 	throw(errno);
 }
 
-
-BOOST_AUTO_TEST_CASE(FilterSimpleCase)
+struct FilteringFixture
 {
 	std::vector<int64_t> a = {-1, 2, 3, -4, 5};
 	std::vector<double> b = {5, 10, 0, -10, -5};
 	std::vector<std::string> c = {"foo", "bar", "baz", "", "1"};
 
-	auto table = tableFromArrays({toArray(a), toArray(b), toArray(c)}, {"a", "b", "c"});
+	std::shared_ptr<arrow::Table> table = tableFromArrays({toArray(a), toArray(b), toArray(c)}, {"a", "b", "c"});
+
+	void testQuery(const char *jsonQuery, std::vector<int> expectedIndices)
+	{
+		auto expected = [&](auto &&v)
+		{
+			std::decay_t<decltype(v)> ret;
+			for(auto index : expectedIndices)
+				ret.push_back(v.at(index));
+			return ret;
+		};
+
+		auto expectedA = expected(a);
+		auto expectedB = expected(b);
+		auto expectedC = expected(c);
+
+		const auto filteredTable = filter(table, jsonQuery);
+		auto[a2, b2, c2] = toVectors<int64_t, double, std::string>(*filteredTable);
+		BOOST_CHECK(a2 == expectedA);
+		BOOST_CHECK(b2 == expectedB);
+		BOOST_CHECK(c2 == expectedC);
+	}
+};
+
+BOOST_FIXTURE_TEST_CASE(FilterSimpleCase, FilteringFixture)
+{
 	
 	{
 		// a > 0
@@ -159,15 +183,7 @@ BOOST_AUTO_TEST_CASE(FilterSimpleCase)
 						0 
 					] 
 			})";
-
-		const auto filteredTable = filter(table, jsonQuery);
-		auto[a2, b2, c2] = toVectors<int64_t, double, std::string>(*filteredTable);
-		auto aOk = a2 == std::vector<int64_t>{2, 3, 5};
-		auto bOk = b2 == std::vector<double>{10, 0, -5};
-		auto cOk = c2 == std::vector<std::string>{"bar", "baz", "1"};
-		BOOST_CHECK(aOk);
-		BOOST_CHECK(bOk);
-		BOOST_CHECK(cOk);
+		testQuery(jsonQuery, {1, 2, 4});
 	}
 
 	{
@@ -183,14 +199,7 @@ BOOST_AUTO_TEST_CASE(FilterSimpleCase)
 					] 
 			})";
 
-		const auto filteredTable = filter(table, jsonQuery);
-		auto[a2, b2, c2] = toVectors<int64_t, double, std::string>(*filteredTable);
-		auto aOk = a2 == std::vector<int64_t>{3, -4, 5};
-		auto bOk = b2 == std::vector<double>{0, -10, -5};
-		auto cOk = c2 == std::vector<std::string>{"baz", "", "1"};
-		BOOST_CHECK(aOk);
-		BOOST_CHECK(bOk);
-		BOOST_CHECK(cOk);
+		testQuery(jsonQuery, {2, 3, 4});
 	}
 	{
 		// c == "baz"
@@ -205,14 +214,7 @@ BOOST_AUTO_TEST_CASE(FilterSimpleCase)
 					] 
 			})";
 
-		const auto filteredTable = filter(table, jsonQuery);
-		auto[a2, b2, c2] = toVectors<int64_t, double, std::string>(*filteredTable);
-		auto aOk = a2 == std::vector<int64_t>{3};
-		auto bOk = b2 == std::vector<double>{0};
-		auto cOk = c2 == std::vector<std::string>{"baz"};
-		BOOST_CHECK(aOk);
-		BOOST_CHECK(bOk);
-		BOOST_CHECK(cOk);
+		testQuery(jsonQuery, {2});
 	}
 
 	{
