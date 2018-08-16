@@ -288,6 +288,34 @@ BOOST_FIXTURE_TEST_CASE(FilterSimpleCase, FilteringFixture)
 
 		testQuery(jsonQuery, {1, 2});
 	}
+	{
+		// a > 0 || b < 0
+		const auto jsonQuery = R"(
+			{
+				"boolean": "or",
+				"arguments":
+				[
+					{
+						"predicate": "gt", 
+						"arguments": 
+						[ 
+							{"column": "a"},
+							0
+						] 
+					},
+					{
+						"predicate": "lt", 
+						"arguments": 
+						[ 
+							{"column": "b"},
+							0
+						] 
+					}
+				]
+			})";
+
+		testQuery(jsonQuery, {1, 2, 3, 4});
+	}
 }
 
 

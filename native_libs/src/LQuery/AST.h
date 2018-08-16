@@ -69,6 +69,7 @@ namespace ast
     {
         And, Or, Not
     };
+    PredicateOperator predicateBooleanOperatorFromName(const std::string &name);
     using PredicateOperation = OperationNode<PredicateOperator, Predicate>;
 
     enum class PredicateFromValueOperator

@@ -72,7 +72,10 @@ using namespace std::literals;
     template<typename T>
     auto getValue(const ArrayOperand<T> &src, int64_t index)
     {
-        return src[index];
+        if constexpr(std::is_same_v<T, unsigned char>)
+            return bool(src[index]);
+        else
+            return src[index];
     }
     template<typename T>
     auto getValue(const T &src, int64_t index)
@@ -80,6 +83,8 @@ using namespace std::literals;
         // so our functions get only string_view
         if constexpr(std::is_same_v<T, std::string>)
             return std::string_view(src);
+        else if constexpr(std::is_same_v<T, unsigned char>)
+            return bool(src);
         else
             return src;
     }
@@ -183,6 +188,45 @@ using namespace std::literals;
             throw std::runtime_error("negate does not support operand of type: "s + typeid(lhs).name());
         }
     };
+    struct And
+    {
+        static bool exec(const bool &lhs, const bool &rhs)
+        {
+            return lhs && rhs;
+        }
+
+        template<typename Lhs, typename Rhs>
+        static bool exec(const Lhs &lhs, const Rhs &rhs)
+        {
+            COMPLAIN_ABOUT_OPERAND_TYPES;
+        }
+    };
+    struct Or
+    {
+        static bool exec(const bool &lhs, const bool &rhs)
+        {
+            return lhs || rhs;
+        }
+
+        template<typename Lhs, typename Rhs>
+        static bool exec(const Lhs &lhs, const Rhs &rhs)
+        {
+            COMPLAIN_ABOUT_OPERAND_TYPES;
+        }
+    };
+    struct Not
+    {
+        static bool exec(const bool &lhs)
+        {
+            return !lhs;
+        }
+
+        template<typename Lhs>
+        static bool exec(const Lhs &lhs)
+        {
+            throw std::runtime_error("Not: wrong operand type "s + typeid(Lhs).name());
+        }
+    };
 
 
     template<typename Operation, typename Lhs>
@@ -270,6 +314,15 @@ struct Interpreter
             evaluateValue(*operands[1])
         }};
     }
+    std::array<ArrayOperand<unsigned char>, ast::MaxOperatorArity> evaluatePredicates(const std::array<std::unique_ptr<ast::Predicate>, ast::MaxOperatorArity> &operands)
+    {
+        static_assert(ast::MaxOperatorArity == 2); // if changed, adjust entries below :(
+        return 
+        {{
+            evaluate(*operands[0]),
+            evaluate(*operands[1])
+        }};
+    }
 
     Field evaluateValue(const ast::Value &value)
     {
@@ -343,7 +396,21 @@ struct Interpreter
                 throw std::runtime_error("not implemented: predicate operator " + std::to_string((int)elem.what));
             }
         },
-            [&] (const ast::PredicateOperation &) -> ArrayOperand<unsigned char> { throw std::runtime_error("not implemented: PredicateOperation"); }
+            [&] (const ast::PredicateOperation &op) -> ArrayOperand<unsigned char> 
+        {
+            const auto operands = evaluatePredicates(op.operands);
+            switch(op.what)
+            {
+            case ast::PredicateOperator::And:
+                return exec<And>(operands[0], operands[1], table.num_rows());
+            case ast::PredicateOperator::Or:
+                return exec<Or>(operands[0], operands[1], table.num_rows());
+            case ast::PredicateOperator::Not:
+                return exec<Not>(operands[0], table.num_rows());
+            default:
+                throw std::runtime_error("not implemented: predicate operator " + std::to_string((int)op.what));
+            }
+        }
             }, (const ast::PredicateBase &) p);
     }
 };

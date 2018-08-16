@@ -59,6 +59,18 @@ struct DslParser
 
         return operands;
     }
+    auto parsePredicates(const rapidjson::Value &v)
+    {
+        if(!v.IsArray())
+            throw std::runtime_error("cannot parse operands from non-list json element: " + toJsonString(v));
+
+        const auto arguments = v.GetArray();
+        std::array<std::unique_ptr<ast::Predicate>, ast::MaxOperatorArity> operands;
+        for(int i = 0; i < (int)arguments.Size(); i++)
+            operands.at(i) = std::make_unique<ast::Predicate>(parsePredicate(arguments[i]));
+
+        return operands;
+    }
 
     ast::Value parseValue(const rapidjson::Value &v)
     {
@@ -106,6 +118,41 @@ struct DslParser
         throw std::runtime_error("Failed to parse LQuery value from: " + toJsonString(v));
     }
 
+
+    ast::Predicate parsePredicate(const rapidjson::Value &v)
+    {
+        using namespace ast;
+        using namespace rapidjson;
+
+        if(!v.IsObject())
+            throw std::runtime_error("Cannot parse predicate: must be a JSON object");
+
+        if(const auto pred = v.FindMember("predicate"); 
+            pred != v.MemberEnd() && pred->value.IsString())
+        {
+            if(const auto args = v.FindMember("arguments"); 
+                args != v.MemberEnd() && args->value.IsArray())
+            {
+                const auto predFromValueOperator = predicateOperatorFromName(pred->value.GetString());
+                auto operands = parseOperands(args->value);
+                return PredicateFromValueOperation{predFromValueOperator, std::move(operands)};
+            }
+        }
+        else if(const auto pred = v.FindMember("boolean"); 
+            pred != v.MemberEnd() && pred->value.IsString())
+        {
+            if(const auto args = v.FindMember("arguments"); 
+                args != v.MemberEnd() && args->value.IsArray())
+            {
+                const auto predFromValueOperator = predicateBooleanOperatorFromName(pred->value.GetString());
+                auto operands = parsePredicates(args->value);
+                return PredicateOperation{predFromValueOperator, std::move(operands)};
+            }
+        }
+
+        throw std::runtime_error("Failed to parse LQuery predicate from: " + toJsonString(v));
+    }
+
     ast::Predicate parsePredicate(const char *dslInJsonText)
     {
         using namespace ast;
@@ -117,22 +164,7 @@ struct DslParser
         if(doc.HasParseError())
             throw std::runtime_error("Failed to parse JSON: "s + GetParseError_En(doc.GetParseError()));
 
-        if(!doc.IsObject())
-            throw std::runtime_error("Cannot parse predicate: must be a JSON object");
-
-        if(const auto pred = doc.FindMember("predicate"); 
-            pred != doc.MemberEnd() && pred->value.IsString())
-        {
-            if(const auto args = doc.FindMember("arguments"); 
-                args != doc.MemberEnd() && args->value.IsArray())
-            {
-                const auto predFromValueOperator = predicateOperatorFromName(pred->value.GetString());
-                auto operands = parseOperands(args->value);
-                return PredicateFromValueOperation{predFromValueOperator, std::move(operands)};
-            }
-        }
-
-        throw std::runtime_error("Failed to parse as predicate: "s + dslInJsonText);
+        return parsePredicate(doc);
     }
 };
 
@@ -150,6 +182,21 @@ namespace ast
             {"times" , ValueOperator::Times },
             {"divide", ValueOperator::Divide},
             {"negate", ValueOperator::Negate},
+        };
+
+        if(auto itr = map.find(name); itr != map.end())
+            return itr->second;
+
+        throw std::runtime_error("unknown value operation: `" + name + "`");
+    }
+
+    ast::PredicateOperator predicateBooleanOperatorFromName(const std::string &name)
+    {
+        static const std::unordered_map<std::string, PredicateOperator> map
+        {
+            {"or"  , PredicateOperator::Or  },
+            {"and" , PredicateOperator::And },
+            {"not" , PredicateOperator::Not },
         };
 
         if(auto itr = map.find(name); itr != map.end())
