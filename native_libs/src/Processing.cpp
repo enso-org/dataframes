@@ -23,12 +23,13 @@ using namespace std::literals;
 std::shared_ptr<arrow::Table> filter(std::shared_ptr<arrow::Table> table, const char *dslJsonText)
 {
     auto [mapping, predicate] = ast::parsePredicate(*table, dslJsonText);
-    auto mask = execute(*table, predicate, mapping);
+    const auto mask = execute(*table, predicate, mapping);
+    const unsigned char * const maskBuffer = mask->data();
 
     const auto oldRowCount = table->num_rows();
     int64_t newRowCount = 0;
-    for(int i = 0; i < table->num_rows(); i++)
-        newRowCount += mask->mutable_data()[i];
+    for(int i = 0; i < oldRowCount; )
+        newRowCount += maskBuffer[i++];
     
     std::vector<std::shared_ptr<arrow::Array>> newColumns;
 
@@ -46,7 +47,6 @@ std::shared_ptr<arrow::Table> filter(std::shared_ptr<arrow::Table> table, const 
             using TD = ArrayTypeDescription<std::remove_pointer_t<decltype(array)>>;
             using T = typename TD::ValueType;
 
-            const unsigned char *maskBuffer = mask->data();
 
             if constexpr(std::is_scalar_v<T>)
             {
