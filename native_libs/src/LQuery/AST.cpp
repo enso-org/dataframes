@@ -165,12 +165,14 @@ namespace ast
             {"gt" , PredicateFromValueOperator::Greater  },
             {"lt" , PredicateFromValueOperator::Lesser },
             {"eq" , PredicateFromValueOperator::Equal },
+            {"startsWith" , PredicateFromValueOperator::StartsWith },
+            {"matches" , PredicateFromValueOperator::Matches },
         };
 
         if(auto itr = map.find(name); itr != map.end())
             return itr->second;
 
-        throw std::runtime_error("unknown value operation: `" + name + "`");
+        throw std::runtime_error("unknown predicate operation: `" + name + "`");
     }
 
     std::pair<ColumnMapping, Predicate> parsePredicate(const arrow::Table &table, const char *lqueryJsonText)

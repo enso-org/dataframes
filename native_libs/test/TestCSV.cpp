@@ -232,6 +232,62 @@ BOOST_FIXTURE_TEST_CASE(FilterSimpleCase, FilteringFixture)
 
 		BOOST_CHECK_THROW(filter(table, jsonQuery), std::exception);
 	}
+	{
+		// c.startsWith "f"
+		const auto jsonQuery = R"(
+			{
+				"predicate": "startsWith", 
+				"arguments": 
+					[ 
+						{"column": "c"},
+						"f"
+					] 
+			})";
+
+		testQuery(jsonQuery, {0});
+	}
+	{
+		// c.startsWith "ba"
+		const auto jsonQuery = R"(
+			{
+				"predicate": "startsWith", 
+				"arguments": 
+					[ 
+						{"column": "c"},
+						"ba"
+					] 
+			})";
+
+		testQuery(jsonQuery, {1, 2});
+	}
+	{
+		// c.startsWith "ba"
+		const auto jsonQuery = R"(
+			{
+				"predicate": "startsWith", 
+				"arguments": 
+					[ 
+						{"column": "c"},
+						"baa"
+					] 
+			})";
+
+		testQuery(jsonQuery, {});
+	}
+	{
+		// c.matches "ba."
+		const auto jsonQuery = R"(
+			{
+				"predicate": "matches", 
+				"arguments": 
+					[ 
+						{"column": "c"},
+						"ba."
+					] 
+			})";
+
+		testQuery(jsonQuery, {1, 2});
+	}
 }
 
 

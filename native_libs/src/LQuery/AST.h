@@ -73,7 +73,9 @@ namespace ast
 
     enum class PredicateFromValueOperator
     {
-        Greater, Lesser, Equal,
+        Greater, Lesser,  // works for int/real
+        Equal, // works for all types
+        StartsWith, Matches // works for strings
     };
 
 

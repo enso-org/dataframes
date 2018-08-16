@@ -3,6 +3,7 @@
 #include <string_view>
 #include <arrow/buffer.h>
 #include <arrow/table.h>
+#include <regex>
 
 #include "Core/ArrowUtilities.h"
 #include "AST.h"
@@ -134,6 +135,34 @@ using namespace std::literals;
     struct GreaterThan { BINARY_REL_OPERATOR(>); FAIL_ON_STRING(bool); };
     struct LessThan    { BINARY_REL_OPERATOR(<); FAIL_ON_STRING(bool); };
     struct EqualTo     { BINARY_REL_OPERATOR(==);};
+    struct StartsWith
+    {
+        static bool exec(const std::string_view &lhs, const std::string_view &rhs)
+        {
+            return lhs.length() >= rhs.length()
+                && std::memcmp(lhs.data(), rhs.data(), rhs.length()) == 0;
+        }
+
+        template<typename Lhs, typename Rhs>
+        static bool exec(const Lhs &lhs, const Rhs &rhs)
+        {
+            COMPLAIN_ABOUT_OPERAND_TYPES;
+        }
+    };
+    struct Matches
+    {
+        static bool exec(const std::string_view &lhs, const std::string_view &rhs)
+        {
+            std::regex regex{std::string(rhs)};
+            return std::regex_match(lhs.begin(), lhs.end(), regex);
+        }
+
+        template<typename Lhs, typename Rhs>
+        static bool exec(const Lhs &lhs, const Rhs &rhs)
+        {
+            COMPLAIN_ABOUT_OPERAND_TYPES;
+        }
+    };
     struct Plus        { BINARY_ARIT_OPERATOR(+); FAIL_ON_STRING(int64_t); };
     struct Minus       { BINARY_ARIT_OPERATOR(-); FAIL_ON_STRING(int64_t); };
     struct Times       { BINARY_ARIT_OPERATOR(*); FAIL_ON_STRING(int64_t); };
@@ -301,6 +330,14 @@ struct Interpreter
             case ast::PredicateFromValueOperator::Equal:
                 return std::visit(
                     [&] (auto &&lhs, auto &&rhs) { return exec<EqualTo>(lhs, rhs, table.num_rows());},
+                    operands[0], operands[1]);
+            case ast::PredicateFromValueOperator::StartsWith:
+                return std::visit(
+                    [&] (auto &&lhs, auto &&rhs) { return exec<StartsWith>(lhs, rhs, table.num_rows());},
+                    operands[0], operands[1]);
+            case ast::PredicateFromValueOperator::Matches:
+                return std::visit(
+                    [&] (auto &&lhs, auto &&rhs) { return exec<Matches>(lhs, rhs, table.num_rows());},
                     operands[0], operands[1]);
             default:
                 throw std::runtime_error("not implemented: predicate operator " + std::to_string((int)elem.what));
