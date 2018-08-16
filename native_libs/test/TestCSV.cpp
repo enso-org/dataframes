@@ -139,6 +139,38 @@ std::string get_file_contents(const char *filename)
 	throw(errno);
 }
 
+
+BOOST_AUTO_TEST_CASE(FilterSimpleCase)
+{
+	std::vector<int64_t> a = {-1, 2, 3, -4, 5};
+	std::vector<double> b = {5, 10, 0, -10, -5};
+	std::vector<std::string> c = {"foo", "bar", "baz", "", "1"};
+
+	auto table = tableFromArrays({toArray(a), toArray(b), toArray(c)}, {"a", "b", "c"});
+	
+	const auto jsonQuery = R"(
+		{
+			"predicate": "gt", 
+			"arguments": 
+				[ 
+					{"column": "a"}, 
+					0 
+				] 
+		})";
+
+	const auto filteredTable = filter(table, jsonQuery);
+	auto [a2, b2, c2] = toVectors<int64_t, double, std::string>(*filteredTable);
+
+	auto aOk = a2 == std::vector<int64_t>{2, 3, 5};
+	auto bOk = b2 == std::vector<double>{10, 0, -5};
+	auto cOk = c2 == std::vector<std::string>{"bar", "baz", "1"};
+	BOOST_CHECK(aOk);
+	BOOST_CHECK(bOk);
+	BOOST_CHECK(cOk);
+
+}
+
+
 BOOST_AUTO_TEST_CASE(FilterBigFile0)
 {
 	const auto jsonQuery = R"({"predicate": "gt", "arguments": [ {"column": "NUM_INSTALMENT_NUMBER"}, 50 ] } )";

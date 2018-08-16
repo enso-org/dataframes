@@ -43,14 +43,15 @@ std::shared_ptr<arrow::Table> filter(std::shared_ptr<arrow::Table> table, const 
 
         visitArray(chunk.get(), [&](auto *array) 
         {
-            // TODO string
             using TD = ArrayTypeDescription<std::remove_pointer_t<decltype(array)>>;
             using T = typename TD::ValueType;
+
+            const unsigned char *maskBuffer = mask->data();
+
             if constexpr(std::is_scalar_v<T>)
             {
                 auto valueBuffer = allocateBuffer<T>(newRowCount);
 
-                const unsigned char *maskBuffer = mask->data();
                 const T *sourceBuffer = array->raw_values();
                 T *outputBuffer = reinterpret_cast<T*>(valueBuffer->mutable_data());
 
@@ -65,7 +66,23 @@ std::shared_ptr<arrow::Table> filter(std::shared_ptr<arrow::Table> table, const 
                 newColumns.push_back(std::make_shared<typename TD::Array>(newRowCount, valueBuffer));
             }
             else
-                throw std::runtime_error("not implemented: filtering strings");// TODO string
+            {
+                const auto stringSource = static_cast<const arrow::StringArray *>(array);
+                arrow::StringBuilder builder;
+
+                int32_t lengthBuffer;
+
+                for(int64_t sourceItr = 0; sourceItr < oldRowCount; sourceItr++)
+                {
+                    if(maskBuffer[sourceItr])
+                    {
+                        auto ptr = stringSource->GetValue(sourceItr, &lengthBuffer);
+                        builder.Append(ptr, lengthBuffer);
+                    }
+                }
+
+                newColumns.push_back(finish(builder));
+            }
         });
 
 
