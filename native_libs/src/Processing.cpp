@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <numeric>
 #include <vector>
 
 #include <arrow/table.h>
@@ -27,9 +28,7 @@ std::shared_ptr<arrow::Table> filter(std::shared_ptr<arrow::Table> table, const 
     const unsigned char * const maskBuffer = mask->data();
 
     const auto oldRowCount = table->num_rows();
-    int64_t newRowCount = 0;
-    for(int i = 0; i < oldRowCount; )
-        newRowCount += maskBuffer[i++];
+    const int64_t newRowCount = std::accumulate(maskBuffer, maskBuffer + oldRowCount, std::int64_t{});
     
     std::vector<std::shared_ptr<arrow::Array>> newColumns;
 
