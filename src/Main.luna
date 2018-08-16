@@ -1,3 +1,4 @@
+import Dataframes.IO
 import Std.Base
 import Std.Foreign.C.Value
 
@@ -7,6 +8,12 @@ import Dataframes.Types
 import Dataframes.Internal.Test.Test
 
 
-def main:
-    setHelperVerbosity False
-    benchmark "running tests" TestArrayBuilder.run
+«0»def main:
+    «1»setHelperVerbosity False
+    «2»benchmark "running tests" TestArrayBuilder.run
+
+«3»def test:
+    «4»readFile1 = CSVParser . readFile "data/kaggle.csv"
+    «5»columns1 = readFile1 . columns ["SK_ID_CURR", "NAME_CONTRACT_TYPE"]
+    None
+### META {"metas":[{"marker":1,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":0}}}},{"marker":2,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":176}}}},{"marker":4,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":-368}}}},{"marker":5,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":16}}}}]}
