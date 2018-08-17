@@ -428,7 +428,7 @@ auto arrayWith(const arrow::Table &table, const ArrayOperand<T> &arrayProto)
     constexpr auto id = ValueTypeToId<T>();
     if constexpr(std::is_arithmetic_v<T>)
     {
-        return std::make_shared<TypeDescription<id>::Array>(N, arrayProto.buffer);
+        return std::make_shared<typename TypeDescription<id>::Array>(N, arrayProto.buffer);
     }
     else
     {
@@ -455,7 +455,7 @@ auto arrayWith(const arrow::Table &table, const T &constant)
         auto buffer = allocateBuffer<T>(N);
         auto raw = reinterpret_cast<T*>(buffer->mutable_data());
         std::fill_n(raw, N, constant);
-        return std::make_shared<TypeDescription<id>::Array>(N, buffer);
+        return std::make_shared<typename TypeDescription<id>::Array>(N, buffer);
     }
     else
     {
