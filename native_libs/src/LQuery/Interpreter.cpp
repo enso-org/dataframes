@@ -7,6 +7,7 @@
 
 #include "Core/ArrowUtilities.h"
 #include "AST.h"
+#include "Core/Common.h"
 
 using namespace std::literals;
 
@@ -418,7 +419,21 @@ struct Interpreter
 std::shared_ptr<arrow::Buffer> execute(const arrow::Table &table, const ast::Predicate &predicate, ColumnMapping mapping)
 {
     Interpreter interpreter{table, mapping};
-    return interpreter.evaluate(predicate).buffer;
+    auto ret = interpreter.evaluate(predicate);
+
+    for(auto && [refid, columnIndex] : mapping)
+    {
+        const auto column = table.column(columnIndex);
+        if(column->null_count() == 0)
+            continue;
+
+        int i = 0;
+        iterateOverGeneric(*column, 
+            [&] (auto &&) { i++;              }, 
+            [&]           { ret[i++] = false; });
+    }
+
+    return ret.buffer;
 }
 
 template<typename T>

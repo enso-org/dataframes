@@ -380,21 +380,39 @@ class TestArrayBuilder:
         assertEqual "column 1" (te1.columnAt 1 . toList) ["2", "", "8", "11"]
         assertEqual "column 2" (te1.columnAt 2 . toList) ["3", "6", "9", "12"]
     
-    def testFilter:
+    def testFiltering:
         print "=== Testing filtering ==="
         numbersCol = Column.fromList "numbers" Int64Type $ 1.upto 10
         numbersTable = Table.fromColumns [numbersCol]
         numbersTableFiltered = numbersTable.filter (row: row.at "numbers" > 5)
         assertEqual "filtered > 5" (numbersTableFiltered.columnAt 0 . toList) [6, 7, 8, 9, 10]
 
-        mappedCol1 = numbersTable.each "nowe" row: row.at "numbers" + 5
-        assertEqual "filtered > 5" mappedCol1.toList [6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-        mappedCol2 = numbersTable.each "nowe" row: (row.at "numbers" . negate)
-        assertEqual "filtered > 5" mappedCol2.toList [-1, -2, -3, -4, -5, -6, -7, -8, -9, -10]
+        maybeIntColumn = Column.fromList "numbers" MaybeInt64Type [Just 1, Nothing, Just 3, Just 4, Just 5]
+        maybeIntTable = Table.fromColumns [maybeIntColumn]
+        maybeIntFiltered = maybeIntTable.filter (row: row.at "numbers" < 4)
+        assertEqual "filtered > 5" (maybeIntFiltered.columnAt 0 . toList) [Just 1, Just 3]
+
+
+    
+    def testMapping:
+        print "=== Testing mapping ==="
+        intsCol = Column.fromList "ints" Int64Type $ 1.upto 5
+        doublesCol = Column.fromList "doubles" DoubleType $ [3.0, 2.0, 1.0, 0.0, -1.0]
+        intsTable = Table.fromColumns [intsCol, doublesCol]
+        mappedCol1 = intsTable.each "nowe" row: row.at "ints" + 5
+        assertEqual "ints+5" mappedCol1.toList [6, 7, 8, 9, 10]
+        mappedCol2 = intsTable.each "nowe" row: (row.at "ints" . negate)
+        assertEqual "-ints" mappedCol2.toList [-1, -2, -3, -4, -5]
+        mappedCol3 = intsTable.each "nowe" (row: (row.at "ints") * 2)
+        assertEqual "filtered > 5" mappedCol3.toList [2, 4, 6, 8, 10]
+        mappedCol4 = intsTable.each "nowe" (row: (row.at "ints") * (row.at "ints"))
+        assertEqual "filtered > 5" mappedCol4.toList [1, 4, 9, 16, 25]
+        
 
 
     def run:
-        self.testFilter
+        self.testMapping
+        self.testFiltering
         throw "stop"
         self.testIO
         self.testSchema
