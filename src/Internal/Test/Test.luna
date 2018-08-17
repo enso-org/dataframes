@@ -7,6 +7,7 @@ import Dataframes.Column
 import Dataframes.DataType
 import Dataframes.Field
 import Dataframes.Schema
+import Dataframes.Table
 import Dataframes.Types
 import Dataframes.IO.Options
 import Dataframes.IO
@@ -369,8 +370,15 @@ class TestArrayBuilder:
         assertEqual "column 0" (te1.columnAt 0 . toList) ["1", "4", "7", "10"]
         assertEqual "column 1" (te1.columnAt 1 . toList) ["2", "", "8", "11"]
         assertEqual "column 2" (te1.columnAt 2 . toList) ["3", "6", "9", "12"]
-        
+    
+    def testFilter:
+        numbersCol = Column.fromList "numbers" Int64Type $ 1.upto 10
+        numbersTable = Table.fromColumns [numbersCol]
+        numbersTableFiltered = numbersTable.filter (row: row.at "numbers" > 5)
+        assertEqual "filtered > 5" (numbersTableFiltered.columnAt 0 . toList) [6, 7, 8, 9, 10]
+
     def run:
+        self.testFilter
         self.testIO
         self.testSchema
         self.testColumn

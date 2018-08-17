@@ -91,4 +91,5 @@ namespace ast
     };
 
     EXPORT std::pair<ColumnMapping, Predicate> parsePredicate(const arrow::Table &table, const char *lqueryJsonText);
+    EXPORT std::pair<ColumnMapping, Value> parseValue(const arrow::Table &table, const char *lqueryJsonText);
 }

@@ -265,6 +265,11 @@ class TableWrapper:
         ptr = CString.with predicateJsonText predicateC:
             callHandlingError "tableFilter" (Pointer None) [self.ptr.toCArg, predicateC.toCArg]
         wrapReleasableResouce TableWrapper ptr
+    def eachToChunked predicate:
+        predicateJsonText = predicate.toJSON.toText
+        ptr = CString.with predicateJsonText predicateC:
+            callHandlingError "tableMapToChunkedArray" (Pointer None) [self.ptr.toCArg, predicateC.toCArg]
+        wrapReleasableResouce ChunkedArrayWrapper ptr
 
 def createTableWrapper schemaWrapper columnWrappers:
     Array (Pointer None) . with (columnWrappers.each .ptr.ptr) columnsCArray:

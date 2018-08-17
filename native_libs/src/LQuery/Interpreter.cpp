@@ -361,7 +361,6 @@ struct Interpreter
             //[&] (const ast::Literal<std::string> &l) -> Field { return l.literal; },
             [&] (auto &&t) -> Field { throw std::runtime_error("not implemented: value node of type "s + typeid(decltype(t)).name()); }
             }, (const ast::ValueBase &) value);
-
     }
 
     ArrayOperand<unsigned char> evaluate(const ast::Predicate &p)
@@ -421,4 +420,65 @@ std::shared_ptr<arrow::Buffer> execute(const arrow::Table &table, const ast::Pre
 {
     Interpreter interpreter{table, mapping};
     return interpreter.evaluate(predicate).buffer;
+}
+
+template<typename T>
+auto arrayWith(const arrow::Table &table, const ArrayOperand<T> &arrayProto)
+{
+    const auto N = table.num_rows();
+    constexpr auto id = ValueTypeToId<T>();
+    if constexpr(std::is_arithmetic_v<T>)
+    {
+        return std::make_shared<TypeDescription<id>::Array>(N, arrayProto.buffer);
+    }
+    else
+    {
+        arrow::StringBuilder builder;
+        builder.Reserve(N);
+
+        for(int i = 0; i < N; i++)
+        {
+            const auto sv = arrayProto[i];
+            builder.Append(sv.data(), sv.size());
+        }
+
+        return finish(builder);
+    }
+}
+
+template<typename T>
+auto arrayWith(const arrow::Table &table, const T &constant)
+{
+    const auto N = table.num_rows();
+    constexpr auto id = ValueTypeToId<T>();
+    if constexpr(std::is_arithmetic_v<T>)
+    {
+        auto buffer = allocateBuffer<T>(N);
+        auto raw = reinterpret_cast<T*>(buffer->mutable_data());
+        std::fill_n(raw, N, constant);
+        return std::make_shared<TypeDescription<id>::Array>(N, buffer);
+    }
+    else
+    {
+        arrow::StringBuilder builder;
+        builder.Reserve(N);
+
+        const auto length = (int32_t)constant.size();
+        for(int i = 0; i < N; i++)
+            builder.Append(constant.data(), length);
+
+        return finish(builder);
+    }
+}
+
+std::shared_ptr<arrow::Array> execute(const arrow::Table &table, const ast::Value &value, ColumnMapping mapping)
+{
+    Interpreter interpreter{table, mapping};
+    auto field = interpreter.evaluateValue(value);
+    // int64_t, double, std::string, ArrayOperand<int64_t>, ArrayOperand<double>, ArrayOperand<std::string>
+    return std::visit(
+        [&] (auto &&i) -> std::shared_ptr<arrow::Array>
+        {
+            return arrayWith(table, i);
+        }, field);
 }

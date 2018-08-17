@@ -167,7 +167,62 @@ struct FilteringFixture
 		BOOST_CHECK(b2 == expectedB);
 		BOOST_CHECK(c2 == expectedC);
 	}
+
+	template<typename T>
+	void testMap(const char *jsonQuery, std::vector<T> expectedValues)
+	{
+		const auto column = each(table, jsonQuery);
+		const auto result = toVector<T>(*column);
+		BOOST_CHECK(result == expectedValues);
+	}
 };
+
+BOOST_FIXTURE_TEST_CASE(MappingSimpleCase, FilteringFixture)
+{
+	{
+		const auto jsonQuery = R"(5)";
+		testMap<int64_t>(jsonQuery, { 5, 5, 5, 5, 5 });
+	}
+	{
+		const auto jsonQuery = R"(5.0)";
+		testMap<double>(jsonQuery, { 5.0, 5.0, 5.0, 5.0, 5.0 });
+	}
+	{
+		const auto jsonQuery = R"("foo")";
+		testMap<std::string>(jsonQuery, { "foo", "foo", "foo", "foo", "foo" });
+	}
+	{
+		const auto jsonQuery = R"(
+			{
+				"operation": "times", 
+				"arguments": 
+				[ 
+					{"column": "a"},
+					{"column": "b"}
+				] 
+			})";
+		testMap<double>(jsonQuery, { -5, 20, 0, 40, -25 });
+	}
+	{
+		const auto jsonQuery = R"(
+			{
+				"operation": "plus", 
+				"arguments": 
+				[ 
+					{
+						"operation": "times", 
+						"arguments": 
+						[ 
+							{"column": "a"},
+							2
+						] 
+					},
+					4
+				] 
+			})";
+		testMap<double>(jsonQuery, { 2, 8, 10, -4, 14 });
+	}
+}
 
 BOOST_FIXTURE_TEST_CASE(FilterSimpleCase, FilteringFixture)
 {
@@ -326,6 +381,25 @@ BOOST_AUTO_TEST_CASE(FilterBigFile0)
 	for(int i  = 0; i < 2000; i++)
 	{
 		measure("filter installments_payments", [&]
+		{
+			auto table2 = filter(table, jsonQuery);
+			// 			std::ofstream out{"tescik.csv"};
+			// 			generateCsv(out, *table2, GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy::QuoteWhenNeeded);
+		});
+	}
+	std::cout<<"";
+}
+
+BOOST_AUTO_TEST_CASE(FilterBigFile1)
+{
+	const auto jsonQuery = R"({"predicate": "eq", "arguments": [ {"column": "NAME_TYPE_SUITE"}, "Unaccompanied" ] } )";
+
+	auto table = loadTableFromFeatherFile("C:/temp/application_train.feather");
+
+
+	for(int i  = 0; i < 2000; i++)
+	{
+		measure("filter application_train", [&]
 		{
 			auto table2 = filter(table, jsonQuery);
 			// 			std::ofstream out{"tescik.csv"};

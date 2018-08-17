@@ -155,16 +155,24 @@ struct DslParser
 
     ast::Predicate parsePredicate(const char *dslInJsonText)
     {
-        using namespace ast;
-        using namespace rapidjson;
+        return parsePredicate(parseJSON(dslInJsonText));
+    }
 
-        Document doc{};
-        doc.Parse(dslInJsonText);
+    ast::Value parseValue(const char *dslJsonText)
+    {
+        auto doc = parseJSON(dslJsonText);
+        return parseValue(doc);
+    }
+
+    rapidjson::Document parseJSON(const char *json)
+    {
+        rapidjson::Document doc{};
+        doc.Parse(json);
 
         if(doc.HasParseError())
             throw std::runtime_error("Failed to parse JSON: "s + GetParseError_En(doc.GetParseError()));
 
-        return parsePredicate(doc);
+        return doc;
     }
 };
 
@@ -227,5 +235,12 @@ namespace ast
         DslParser parser{table};
         auto pred = parser.parsePredicate(lqueryJsonText);
         return std::make_pair(parser.columnMapping, std::move(pred));
+    }
+
+    std::pair<ColumnMapping, ast::Value> parseValue(const arrow::Table &table, const char *lqueryJsonText)
+    {
+        DslParser parser{table};
+        auto val = parser.parseValue(lqueryJsonText);
+        return std::make_pair(parser.columnMapping, std::move(val));
     }
 }

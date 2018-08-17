@@ -90,3 +90,8 @@ std::shared_ptr<arrow::Table> filter(std::shared_ptr<arrow::Table> table, const 
     return arrow::Table::Make(table->schema(), newColumns);
 }
 
+std::shared_ptr<arrow::Array> each(std::shared_ptr<arrow::Table> table, const char *dslJsonText)
+{
+    auto [mapping, v] = ast::parseValue(*table, dslJsonText);
+    return execute(*table, v, mapping);
+}
