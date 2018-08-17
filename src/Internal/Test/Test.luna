@@ -395,6 +395,18 @@ class TestArrayBuilder:
 
     
     def testMapping:
+
+        print "=== Testing mapping with null ==="
+        maybeTextColumn = Column.fromList "texts" MaybeStringType [Just "foo", Nothing, Just "baz"]
+        maybeTextTable = Table.fromColumns [maybeTextColumn]
+        maybeTextMapped1 = maybeTextTable.each "nowe" row: row.at "texts"
+        assertEqual "ints+5" maybeTextMapped1.toList [Just "foo", Nothing, Just "baz"]
+
+        maybeIntColumn = Column.fromList "ints" MaybeInt64Type [Just 1, Nothing, Just 3, Just 4, Just 5]
+        maybeIntTable = Table.fromColumns [maybeIntColumn]
+        maybeMapped1 = maybeIntTable.each "nowe" row: row.at "ints" + 5
+        assertEqual "ints+5" maybeMapped1.toList [Just 6, Nothing, Just 8, Just 9, Just 10]
+
         print "=== Testing mapping ==="
         intsCol = Column.fromList "ints" Int64Type $ 1.upto 5
         doublesCol = Column.fromList "doubles" DoubleType $ [3.0, 2.0, 1.0, 0.0, -1.0]
@@ -404,16 +416,13 @@ class TestArrayBuilder:
         mappedCol2 = intsTable.each "nowe" row: (row.at "ints" . negate)
         assertEqual "-ints" mappedCol2.toList [-1, -2, -3, -4, -5]
         mappedCol3 = intsTable.each "nowe" (row: (row.at "ints") * 2)
-        assertEqual "filtered > 5" mappedCol3.toList [2, 4, 6, 8, 10]
+        assertEqual "ints*2" mappedCol3.toList [2, 4, 6, 8, 10]
         mappedCol4 = intsTable.each "nowe" (row: (row.at "ints") * (row.at "ints"))
-        assertEqual "filtered > 5" mappedCol4.toList [1, 4, 9, 16, 25]
-        
-
+        assertEqual "ints*ints" mappedCol4.toList [1, 4, 9, 16, 25]
 
     def run:
         self.testMapping
         self.testFiltering
-        throw "stop"
         self.testIO
         self.testSchema
         self.testColumn

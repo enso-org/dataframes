@@ -437,23 +437,39 @@ std::shared_ptr<arrow::Buffer> execute(const arrow::Table &table, const ast::Pre
 }
 
 template<typename T>
-auto arrayWith(const arrow::Table &table, const ArrayOperand<T> &arrayProto)
+auto arrayWith(const arrow::Table &table, const ArrayOperand<T> &arrayProto, std::shared_ptr<arrow::Buffer> nullBuffer)
 {
     const auto N = table.num_rows();
     constexpr auto id = ValueTypeToId<T>();
     if constexpr(std::is_arithmetic_v<T>)
     {
-        return std::make_shared<typename TypeDescription<id>::Array>(N, arrayProto.buffer);
+        return std::make_shared<typename TypeDescription<id>::Array>(N, arrayProto.buffer, nullBuffer, -1);
     }
     else
     {
         arrow::StringBuilder builder;
         checkStatus(builder.Reserve(N));
 
-        for(int i = 0; i < N; i++)
+        if(nullBuffer)
         {
-            const auto sv = arrayProto[i];
-            checkStatus(builder.Append(sv.data(), (int)sv.size()));
+            for(int i = 0; i < N; i++)
+            {
+                if(arrow::BitUtil::GetBit(nullBuffer->data(), i))
+                {
+                    const auto sv = arrayProto[i];
+                    checkStatus(builder.Append(sv.data(), (int)sv.size()));
+                }
+                else
+                    checkStatus(builder.AppendNull());
+            }
+        }
+        else
+        {
+            for(int i = 0; i < N; i++)
+            {
+                const auto sv = arrayProto[i];
+                checkStatus(builder.Append(sv.data(), (int)sv.size()));
+            }
         }
 
         return finish(builder);
@@ -461,7 +477,7 @@ auto arrayWith(const arrow::Table &table, const ArrayOperand<T> &arrayProto)
 }
 
 template<typename T>
-auto arrayWith(const arrow::Table &table, const T &constant)
+auto arrayWith(const arrow::Table &table, const T &constant, std::shared_ptr<arrow::Buffer> nullBuffer)
 {
     const auto N = table.num_rows();
     constexpr auto id = ValueTypeToId<T>();
@@ -470,7 +486,7 @@ auto arrayWith(const arrow::Table &table, const T &constant)
         auto buffer = allocateBuffer<T>(N);
         auto raw = reinterpret_cast<T*>(buffer->mutable_data());
         std::fill_n(raw, N, constant);
-        return std::make_shared<typename TypeDescription<id>::Array>(N, buffer);
+        return std::make_shared<typename TypeDescription<id>::Array>(N, buffer, nullBuffer, -1);
     }
     else
     {
@@ -478,8 +494,21 @@ auto arrayWith(const arrow::Table &table, const T &constant)
         checkStatus(builder.Reserve(N));
 
         const auto length = (int32_t)constant.size();
-        for(int i = 0; i < N; i++)
-            checkStatus(builder.Append(constant.data(), length));
+        if(!nullBuffer)
+        {
+            for(int i = 0; i < N; i++)
+                checkStatus(builder.Append(constant.data(), length));
+        }
+        else
+        {
+            for(int i = 0; i < N; i++)
+            {
+                if(arrow::BitUtil::GetBit(nullBuffer->data(), i))
+                    checkStatus(builder.Append(constant.data(), length));
+                else
+                    checkStatus(builder.AppendNull());
+            }
+        }
 
         return finish(builder);
     }
@@ -489,10 +518,33 @@ std::shared_ptr<arrow::Array> execute(const arrow::Table &table, const ast::Valu
 {
     Interpreter interpreter{table, mapping};
     auto field = interpreter.evaluateValue(value);
-    // int64_t, double, std::string, ArrayOperand<int64_t>, ArrayOperand<double>, ArrayOperand<std::string>
+
+
+    bool usedNullableColumns = false;
+    auto nullMapBuffer = allocateBuffer<uint8_t>(arrow::BitUtil::BytesForBits(table.num_rows()));
+    auto nullMapData = nullMapBuffer->mutable_data();
+    std::memset(nullMapData, 0xff, nullMapBuffer->size());
+    // TODO: above sets by bytes, the last byte should have only part of bits set
+
+    for(auto && [refid, columnIndex] : mapping)
+    {
+        const auto column = table.column(columnIndex);
+        if(column->null_count() == 0)
+            continue;
+ 
+        usedNullableColumns = true;
+
+        int64_t i = 0;
+        iterateOverGeneric(*column, 
+            [&] (auto &&) { i++;}, 
+            [&]           { arrow::BitUtil::ClearBit(nullMapData, i++); });
+    }
+
+    const auto nullBufferToBeUsed = usedNullableColumns ? nullMapBuffer : nullptr;
+
     return std::visit(
         [&] (auto &&i) -> std::shared_ptr<arrow::Array>
         {
-            return arrayWith(table, i);
+            return arrayWith(table, i, nullBufferToBeUsed);
         }, field);
 }

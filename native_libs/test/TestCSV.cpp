@@ -439,6 +439,22 @@ BOOST_AUTO_TEST_CASE(FilterBigFile0)
 	std::cout<<"";
 }
 
+BOOST_AUTO_TEST_CASE(MapBigFile)
+{
+	const auto jsonQuery = R"({"operation": "plus", "arguments": [ {"column": "NUM_INSTALMENT_NUMBER"}, 50 ] } )";
+	auto table = loadTableFromFeatherFile("C:/installments_payments.feather");
+	for(int i  = 0; i < 2000; i++)
+	{
+		measure("map installments_payments", [&]
+		{
+			auto column = each(table, jsonQuery);
+			// 			std::ofstream out{"tescik.csv"};
+			// 			generateCsv(out, *table2, GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy::QuoteWhenNeeded);
+		});
+	}
+	std::cout<<"";
+}
+
 BOOST_AUTO_TEST_CASE(FilterBigFile1)
 {
 	const auto jsonQuery = R"({"predicate": "eq", "arguments": [ {"column": "NAME_TYPE_SUITE"}, "Unaccompanied" ] } )";
