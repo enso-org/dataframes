@@ -314,6 +314,15 @@ struct Interpreter
             [this] (auto &&operand) { return evaluate(operand); });
     }
 
+    template<typename T>
+    static auto getOperand(const T &t, unsigned index)
+    {
+        if(index < t.size())
+            return t[index];
+
+        throw std::runtime_error("failed to get operand by index " + std::to_string(index) + ": has only " + std::to_string(t.size()));
+    }
+
     Field evaluateValue(const ast::Value &value)
     {
         return std::visit(overloaded{
@@ -325,13 +334,13 @@ struct Interpreter
                 return std::visit(                                        \
                     [&] (auto &&lhs) -> Field                                \
                         { return exec<opname>(lhs, table.num_rows());},      \
-                    operands[0]);
+                    getOperand(operands, 0));
 #define VALUE_BINARY_OP(opname)                                              \
             case ast::ValueOperator::opname:                                 \
                 return std::visit(                                        \
                     [&] (auto &&lhs, auto &&rhs) -> Field                    \
                         { return exec<opname>(lhs, rhs, table.num_rows());}, \
-                    operands[0], operands[1]);
+                    getOperand(operands, 0), getOperand(operands, 1));
 
                 const auto operands = evaluateOperands(op.operands);
                 switch(op.what)
@@ -364,23 +373,23 @@ struct Interpreter
             case ast::PredicateFromValueOperator::Greater:
                 return std::visit(
                     [&] (auto &&lhs, auto &&rhs) { return exec<GreaterThan>(lhs, rhs, table.num_rows());},
-                    operands[0], operands[1]);
+                    getOperand(operands, 0), getOperand(operands, 1));
             case ast::PredicateFromValueOperator::Lesser:
                 return std::visit(
                     [&] (auto &&lhs, auto &&rhs) { return exec<LessThan>(lhs, rhs, table.num_rows());},
-                    operands[0], operands[1]);
+                    getOperand(operands, 0), getOperand(operands, 1));
             case ast::PredicateFromValueOperator::Equal:
                 return std::visit(
                     [&] (auto &&lhs, auto &&rhs) { return exec<EqualTo>(lhs, rhs, table.num_rows());},
-                    operands[0], operands[1]);
+                    getOperand(operands, 0), getOperand(operands, 1));
             case ast::PredicateFromValueOperator::StartsWith:
                 return std::visit(
                     [&] (auto &&lhs, auto &&rhs) { return exec<StartsWith>(lhs, rhs, table.num_rows());},
-                    operands[0], operands[1]);
+                    getOperand(operands, 0), getOperand(operands, 1));
             case ast::PredicateFromValueOperator::Matches:
                 return std::visit(
                     [&] (auto &&lhs, auto &&rhs) { return exec<Matches>(lhs, rhs, table.num_rows());},
-                    operands[0], operands[1]);
+                    getOperand(operands, 0), getOperand(operands, 1));
             default:
                 throw std::runtime_error("not implemented: predicate operator " + std::to_string((int)elem.what));
             }
@@ -391,9 +400,9 @@ struct Interpreter
             switch(op.what)
             {
             case ast::PredicateOperator::And:
-                return exec<And>(operands[0], operands[1], table.num_rows());
+                return exec<And>(getOperand(operands, 0), getOperand(operands, 1), table.num_rows());
             case ast::PredicateOperator::Or:
-                return exec<Or>(operands[0], operands[1], table.num_rows());
+                return exec<Or>(getOperand(operands, 0), getOperand(operands, 1), table.num_rows());
             case ast::PredicateOperator::Not:
                 return exec<Not>(operands[0], table.num_rows());
             default:
@@ -429,7 +438,7 @@ auto arrayWith(const arrow::Table &table, const ArrayOperand<T> &arrayProto)
         for(int i = 0; i < N; i++)
         {
             const auto sv = arrayProto[i];
-            builder.Append(sv.data(), sv.size());
+            builder.Append(sv.data(), (int)sv.size());
         }
 
         return finish(builder);

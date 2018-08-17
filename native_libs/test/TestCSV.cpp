@@ -399,6 +399,27 @@ BOOST_FIXTURE_TEST_CASE(FilterSimpleCase, FilteringFixture)
 
 		testQuery(jsonQuery, {0, 3});
 	}
+	{
+		// (a > 0) ||
+		// error: missing second argument for `or`
+		const auto jsonQuery = R"(
+			{
+				"boolean": "or",
+				"arguments":
+				[
+					{
+						"predicate": "gt", 
+						"arguments": 
+						[ 
+							{"column": "a"},
+							0
+						] 
+					}
+				]
+			})";
+
+		BOOST_CHECK_THROW(filter(table, jsonQuery), std::exception);
+	}
 }
 
 
