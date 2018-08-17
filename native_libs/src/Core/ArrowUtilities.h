@@ -71,15 +71,33 @@ auto arrayAt(const arrow::Array &array, int64_t index)
 template <arrow::Type::type type, typename ElementF, typename NullF>
 void iterateOver(const arrow::Array &array, ElementF &&handleElem, NullF &&handleNull)
 {
-    for(int64_t row = 0; row < array.length(); row++)
+    const auto N = array.length();
+    const auto nullCount = array.null_count();
+    //const auto nullBitmapData = array.null_bitmap_data();
+
+    // special fast paths when there are no nulls or array is all nulls
+    if(nullCount == 0)
     {
-        if(!array.IsNull(row))
-        {
+        for(int64_t row = 0; row < N; row++)
             handleElem(arrayAt<type>(array, row));
-        }
-        else
-        {
+    }
+    else if(nullCount == N)
+    {
+        for(int64_t row = 0; row < N; row++)
             handleNull();
+    }
+    else
+    {
+        for(int64_t row = 0; row < N; row++)
+        {
+            if(!array.IsNull(row))
+            {
+                handleElem(arrayAt<type>(array, row));
+            }
+            else
+            {
+                handleNull();
+            }
         }
     }
 }
