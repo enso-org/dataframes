@@ -52,3 +52,19 @@ static auto measure(std::string text, F&& func, Args&&... args)
     std::cout << text << " took " << std::chrono::duration_cast<std::chrono::milliseconds>(t).count() << " ms" << std::endl;
     return t;
 }
+
+template<typename Range, typename F>
+auto transformToVector(Range &&range, F &&f)
+{
+    using SourceT = decltype(*std::begin(range));
+    using T = std::invoke_result_t<F, SourceT>;
+
+    std::vector<T> ret;
+    // ret.reserve(std::size(range));
+    ret.reserve(std::distance(range.begin(), range.end())); // ugly because rapidjson array
+
+    for(auto &&elem : range)
+        ret.push_back(f(elem));
+
+    return ret;
+}

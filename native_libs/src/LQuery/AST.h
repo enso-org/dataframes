@@ -20,8 +20,6 @@ using ColumnMapping = std::unordered_map<ColumnReferenceId, ColumnIndexInTable>;
 
 namespace ast
 {
-    constexpr auto MaxOperatorArity = 2;
-
     struct Value;
     struct Predicate;
 
@@ -36,12 +34,12 @@ namespace ast
     template<typename OperatorTag, typename OperandType>
     struct OperationNode
     {
-        OperationNode(OperatorTag what, std::array<std::unique_ptr<OperandType>, MaxOperatorArity> operands)
+        OperationNode(OperatorTag what, std::vector<OperandType> operands)
             : what(what), operands(std::move(operands))
         {}
 
         OperatorTag what;
-        std::array<std::unique_ptr<OperandType>, MaxOperatorArity> operands; // unused are null
+        std::vector<OperandType> operands; // unused are null
     };
 
     template<typename Storage>

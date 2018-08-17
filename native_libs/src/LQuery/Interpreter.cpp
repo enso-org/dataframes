@@ -303,25 +303,15 @@ struct Interpreter
             return ArrayOperand<T>(array);
         });
     }
-    
-
-    std::array<Field, ast::MaxOperatorArity> evaluateOperands(const std::array<std::unique_ptr<ast::Value>, ast::MaxOperatorArity> &operands)
+    std::vector<Field> evaluateOperands(const std::vector<ast::Value> &operands)
     {
-        static_assert(ast::MaxOperatorArity == 2); // if changed, adjust entries below :(
-        return 
-        {{
-            evaluateValue(*operands[0]),
-            evaluateValue(*operands[1])
-        }};
+        return transformToVector(operands, 
+            [this] (auto &&operand) { return evaluateValue(operand); });
     }
-    std::array<ArrayOperand<unsigned char>, ast::MaxOperatorArity> evaluatePredicates(const std::array<std::unique_ptr<ast::Predicate>, ast::MaxOperatorArity> &operands)
+    std::vector<ArrayOperand<unsigned char>> evaluatePredicates(const std::vector<ast::Predicate> &operands)
     {
-        static_assert(ast::MaxOperatorArity == 2); // if changed, adjust entries below :(
-        return 
-        {{
-            evaluate(*operands[0]),
-            evaluate(*operands[1])
-        }};
+        return transformToVector(operands, 
+            [this] (auto &&operand) { return evaluate(operand); });
     }
 
     Field evaluateValue(const ast::Value &value)

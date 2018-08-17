@@ -389,6 +389,8 @@ class TestArrayBuilder:
 
         mappedCol1 = numbersTable.each "nowe" row: row.at "numbers" + 5
         assertEqual "filtered > 5" mappedCol1.toList [6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        mappedCol2 = numbersTable.each "nowe" row: (row.at "numbers" . negate)
+        assertEqual "filtered > 5" mappedCol2.toList [-1, -2, -3, -4, -5, -6, -7, -8, -9, -10]
 
 
     def run:

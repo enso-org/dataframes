@@ -53,10 +53,9 @@ struct DslParser
             throw std::runtime_error("cannot parse operands from non-list json element: " + toJsonString(v));
 
         const auto arguments = v.GetArray();
-        std::array<std::unique_ptr<ast::Value>, ast::MaxOperatorArity> operands;
-        for(int i = 0; i < (int)arguments.Size(); i++)
-            operands.at(i) = std::make_unique<ast::Value>(parseValue(arguments[i]));
-
+        std::vector<ast::Value> operands;
+        std::transform(arguments.begin(), arguments.end(), std::back_inserter(operands), 
+            [&] (auto &&arg) { return parseValue(arg); });
         return operands;
     }
     auto parsePredicates(const rapidjson::Value &v)
@@ -65,11 +64,8 @@ struct DslParser
             throw std::runtime_error("cannot parse operands from non-list json element: " + toJsonString(v));
 
         const auto arguments = v.GetArray();
-        std::array<std::unique_ptr<ast::Predicate>, ast::MaxOperatorArity> operands;
-        for(int i = 0; i < (int)arguments.Size(); i++)
-            operands.at(i) = std::make_unique<ast::Predicate>(parsePredicate(arguments[i]));
-
-        return operands;
+        return transformToVector(arguments, 
+            [&] (auto &&arg) { return parsePredicate(arg); });
     }
 
     ast::Value parseValue(const rapidjson::Value &v)
