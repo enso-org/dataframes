@@ -12,6 +12,7 @@
 #include "Processing.h"
 #include "LifetimeManager.h"
 #include "IO/csv.h"
+#include "IO/Feather.h"
 #include "IO/IO.h"
 #include "IO/XLSX.h"
 
@@ -1075,6 +1076,25 @@ extern "C"
                 throw std::runtime_error("Cannot write to file "s + filename);
 
             writeXlsx(out, *table, headerPolicy);
+        };
+    }
+
+    EXPORT arrow::Table *readTableFromFeatherFile(const char *filename, const char **outError)
+    {
+        LOG("{}", filename);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto table = loadTableFromFeatherFile(filename);
+            return LifetimeManager::instance().addOwnership(std::move(table));
+        };
+    }
+
+    EXPORT void writeTableToFeatherFile(const char *filename, arrow::Table *table, const char **outError)
+    {
+        LOG("table={}, filepath={}", (void*)table, filename);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            saveTableToFeatherFile(filename, *table);
         };
     }
 }
