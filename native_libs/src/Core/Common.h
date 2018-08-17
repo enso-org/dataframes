@@ -53,6 +53,15 @@ static auto measure(std::string text, F&& func, Args&&... args)
     return t;
 }
 
+template<typename F, typename ...Args>
+static auto measure(std::string text, int N, F&& func, Args&&... args)
+{
+    for(int i = 0; i < N; i++)
+    {
+        measure(text, std::forward<F>(func), std::forward<Args>(args)...);
+    }
+}
+
 template<typename Range, typename F>
 auto transformToVector(Range &&range, F &&f)
 {
