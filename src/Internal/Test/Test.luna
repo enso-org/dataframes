@@ -141,6 +141,7 @@ class TestArrayBuilder:
         assertEqual msg (arr . toList) list
 
     def testListArrayRoundTrip:
+        print "=== Testing list <-> array round trip ==="
         self.testRoundTrip "Double64 round trip" DoubleType [10.25, -5.825,  5000000000.0]
         self.testRoundTrip "Maybe Double64 round trip" MaybeDoubleType [Just 10.25, Just -5.825, Just 5000000000.0, Nothing]
         self.testRoundTrip "Int32 round trip" Int32Type [10, -5,  1000000000]
@@ -151,6 +152,7 @@ class TestArrayBuilder:
         self.testRoundTrip "Maybe Text round trip" MaybeStringType [Just "ten", Just "-5", Just "legion", Nothing]
 
     def testSlicing:
+        print "=== Testing slicing ==="
         arr = Array Int32Type . fromList [1, 2, 3, 4, 5]
         arr2 = arr.slice 1 3
         assertEqual "slice result" arr2.toList [2, 3, 4]
@@ -160,6 +162,7 @@ class TestArrayBuilder:
         assertEqual "sliced data has proper offset" arr2.data.offset (arr.data.offset+1)
 
     def testChunkedArray:
+        print "=== Testing ChunkedArray ==="
         arr = Array Int32Type . fromList [1, 2, 3, 4, 5]
         charr = ChunkedArray.fromChunk arr
         assertEqual "chunked array type" charr.type.name "int32"
@@ -176,6 +179,7 @@ class TestArrayBuilder:
         assertEqual "as list" charr2.toList [1, 2, 3, 4, 5, 10, 20, 30]
 
     def testDatatype:
+        print "=== Testing DataType ==="
         typeInt32 = DataType.fromTypeTag Int32Type
         assertEqual "name" typeInt32.name "int32"
         assertEqual "bitWidth" typeInt32.bitWidth 32
@@ -193,6 +197,7 @@ class TestArrayBuilder:
         assertThrow "bitWidth" typeString.bitWidth
 
     def testField:
+        print "=== Testing Field ==="
         fieldInt64 = Field.fromTypeTag "x" Int64Type
         assertEqual "name" fieldInt64.name "x"
         assertEqual "type.name" fieldInt64.type.name "int64"
@@ -204,6 +209,7 @@ class TestArrayBuilder:
         assertEqual "nullable" fieldMaybeString.nullable True
 
     def testColumn:
+        print "=== Testing Column ==="
         col = Column.fromList "good numbers" Int64Type [1,20,333]
         assertEqual "length" col.length 3
         assertEqual "name" col.name "good numbers"
@@ -232,6 +238,7 @@ class TestArrayBuilder:
         assertEqual "maybe real contents" colMappedMaybeReal.toList [Just 8.5, Just 9.5, Just 10.5]
 
     def testSchema:
+        print "=== Testing Schema ==="
         x = Field.fromTypeTag "x" Int64Type
         y = Field.fromTypeTag "y" Int64Type
         z = Field.fromTypeTag "z" MaybeInt64Type
@@ -271,6 +278,7 @@ class TestArrayBuilder:
         assertThrow "remove field past index" (schema2.removeField 5)
 
     def testTable:
+        print "=== Testing Table ==="
         colX = Column.fromList "x" Int64Type [0, 10, -10, 500]
         colY = Column.fromList "y" Int64Type [1, 2, 3, 600]
         colName = Column.fromList "name" StringType ["start", "left", "right", "far away"]
@@ -321,6 +329,7 @@ class TestArrayBuilder:
         assertEqual "header" (tableJson.lookup "header") (Just ["x", "y", "name"].toJSON)
  
     def testIO:
+        print "=== Testing IO ==="
         print "CSV parsing case 1"
         t1 = CSVParser . useCustomNames ["x", "y", "z"] . setTypes [IntElement, MaybeIntElement] . readText "1,2,3"
         assertEqual "names" t1.columnNames ["x", "y", "z"]
@@ -372,13 +381,19 @@ class TestArrayBuilder:
         assertEqual "column 2" (te1.columnAt 2 . toList) ["3", "6", "9", "12"]
     
     def testFilter:
+        print "=== Testing filtering ==="
         numbersCol = Column.fromList "numbers" Int64Type $ 1.upto 10
         numbersTable = Table.fromColumns [numbersCol]
         numbersTableFiltered = numbersTable.filter (row: row.at "numbers" > 5)
         assertEqual "filtered > 5" (numbersTableFiltered.columnAt 0 . toList) [6, 7, 8, 9, 10]
 
+        mappedCol1 = numbersTable.each "nowe" row: row.at "numbers" + 5
+        assertEqual "filtered > 5" mappedCol1.toList [6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+
+
     def run:
         self.testFilter
+        throw "stop"
         self.testIO
         self.testSchema
         self.testColumn

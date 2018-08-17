@@ -50,7 +50,8 @@ class Table:
     def filter f:
         pred = f TableHandle
         self.fromWrapper $ self.ptr.filter pred
-    def each name typeTag f:
+    def each name f:
         mapper = f TableHandle
-        chunked = ChunkedArrayVal typeTag $ self.ptr.eachToChunked mapper
+        columnWrapper = self.ptr.eachToColumn name mapper
+        Column.fromColumnWrapper columnWrapper
         

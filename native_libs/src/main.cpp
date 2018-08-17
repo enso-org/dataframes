@@ -966,6 +966,18 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
+    EXPORT arrow::Column *tableMapToColumn(arrow::Table *table, const char *retName, const char *lqueryJSON, const char **outError) noexcept
+    {
+        LOG("@{} @{}", (void*)table, (void*)lqueryJSON);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto managedTable = LifetimeManager::instance().accessOwned(table);
+            auto chunk = each(managedTable, lqueryJSON);
+            auto field = arrow::field(retName, chunk->type(), chunk->null_count());
+            auto ret = std::make_shared<arrow::Column>(field, chunk);
+            return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
 }
 
 arrow::Table *readTableFromCSVFileContentsHelper(std::string data, const char **columnNames, int32_t columnNamesPolicy, int8_t *columnTypes, int8_t *columnIsNullableTypes, int32_t columnTypeInfoCount)
