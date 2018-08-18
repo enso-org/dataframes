@@ -9,6 +9,8 @@
 #include "Core/ArrowUtilities.h"
 #include "Processing.h"
 
+#include <optional>
+
 #pragma comment(lib, "DataframeHelper.lib")
 #ifdef _DEBUG
 #pragma comment(lib, "arrowd.lib")
@@ -23,7 +25,7 @@ void testFieldParser(std::string input, std::string expectedContent, int expecte
 
 	BOOST_TEST_CONTEXT("Parsing `" << input << "`")
 	{
-		BOOST_CHECK_EQUAL(nsv.str(), expectedContent);
+		BOOST_CHECK_EQUAL(nsv, expectedContent);
 		BOOST_CHECK_EQUAL(std::distance(parser.bufferStart, parser.bufferIterator), expectedPosition);
 	}
 }
@@ -48,7 +50,7 @@ void testRecordParser(std::string input, std::vector<std::string> expectedConten
 	{
 		BOOST_REQUIRE_EQUAL(fields.size(), expectedContents.size());
 		for(int i = 0; i < expectedContents.size(); i++)
-			BOOST_CHECK_EQUAL(fields.at(i).str(), expectedContents.at(i));
+			BOOST_CHECK_EQUAL(fields.at(i), expectedContents.at(i));
 	}
 }
 
@@ -79,7 +81,7 @@ void testCsvParser(std::string input, std::vector<std::vector<std::string>> expe
 				auto &expectedRow = expectedContents.at(i);
 				BOOST_REQUIRE_EQUAL(readRow.size(), expectedRow.size());
 				for(int j = 0; j < readRow.size(); j++)
-					BOOST_CHECK_EQUAL(readRow.at(j).str(), expectedRow.at(j));
+					BOOST_CHECK_EQUAL(readRow.at(j), expectedRow.at(j));
 			}
 		}
 	}
@@ -492,12 +494,19 @@ BOOST_AUTO_TEST_CASE(FilterBigFile)
 
 BOOST_AUTO_TEST_CASE(ParseBigFile)
 {
+	measure("parse big file", 20, [&]
+	{
+	 	auto csv = parseCsvFile("C:/installments_payments.csv");
+	 	auto table = csvToArrowTable(std::move(csv), TakeFirstRowAsHeaders{}, {});
+	 
+	 	//saveTableToFeatherFile("C:/installments_payments.feather", *table);
+	});
 
 	auto integerType = std::make_shared<arrow::Int64Type>();
 	auto doubleType = std::make_shared<arrow::DoubleType>();
 	auto textType = std::make_shared<arrow::StringType>();
 
-	std::vector<ColumnType> types
+	std::vector<ColumnType> expectedTypes
 	{
 		ColumnType{ integerType, false },
 		ColumnType{ integerType, false },
@@ -508,30 +517,18 @@ BOOST_AUTO_TEST_CASE(ParseBigFile)
 		ColumnType{ doubleType , false },
 		ColumnType{ doubleType , false },
 	};
-// 
-// 
+	auto csv = parseCsvFile("C:/installments_payments.csv");
+	auto table = csvToArrowTable(std::move(csv), TakeFirstRowAsHeaders{}, {});
 
- 	//const auto path = R"(E:/hmda_lar-florida.csv)";
-	
- 	for(int i  = 0; i < 20; i++)
- 	{
-		measure("parse big file", [&]
-		{
-			auto csv = parseCsvFile("C:/installments_payments.csv");
-			auto table = csvToArrowTable(std::move(csv), TakeFirstRowAsHeaders{}, types);
+	//std::vector<ColumnType> typesEncountered;
+	for(int i = 0; i < table->num_columns(); i++)
+	{
+		const auto column = table->column(i);
+		//typesEncountered.emplace_back(column->type(), column->field()->nullable());
 
-			//saveTableToFeatherFile("C:/installments_payments.feather", *table);
-		});
- 	}
-
-// 	for(int i = 0; i < 10; i++)
-// 	{
-// 		measure("parse big file", [&]
-// 		{
-// 			auto csv = parseCsvFile(path);
-// 			auto table = csvToArrowTable(csv, TakeFirstRowAsHeaders{}, {});
-// 		});
-// 	}
+		BOOST_CHECK_EQUAL(expectedTypes.at(i).type->id(), column->type()->id());
+		BOOST_CHECK_EQUAL(expectedTypes.at(i).nullable, column->field()->nullable());
+	}
 }
 
 
@@ -554,4 +551,21 @@ BOOST_AUTO_TEST_CASE(WriteBigFile)
 			generateCsv(out, *table, GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy::QueteAllFields);
 		});
 	}
+}
+
+BOOST_AUTO_TEST_CASE(TypeDeducing)
+{
+	BOOST_CHECK_EQUAL(deduceType("5.0"), arrow::Type::DOUBLE);
+	BOOST_CHECK_EQUAL(deduceType("5"), arrow::Type::INT64);
+	BOOST_CHECK_EQUAL(deduceType("five"), arrow::Type::STRING);
+	BOOST_CHECK_EQUAL(deduceType(""), arrow::Type::NA);
+
+	auto csv = parseCsvFile("data/variedColumn.csv"); 
+	auto table = csvToArrowTable(csv, GenerateColumnNames{}, {});
+	BOOST_REQUIRE_BITWISE_EQUAL(table->num_columns(), 5);
+	BOOST_CHECK_EQUAL(table->column(0)->type()->id(), arrow::Type::INT64);
+	BOOST_CHECK_EQUAL(table->column(1)->type()->id(), arrow::Type::INT64);
+	BOOST_CHECK_EQUAL(table->column(2)->type()->id(), arrow::Type::DOUBLE);
+	BOOST_CHECK_EQUAL(table->column(3)->type()->id(), arrow::Type::STRING);
+	BOOST_CHECK_EQUAL(table->column(4)->type()->id(), arrow::Type::STRING);
 }

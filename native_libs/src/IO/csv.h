@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <memory>
 #include <ostream>
+#include <string_view>
 #include <vector>
 
 #include <arrow/type.h>
@@ -16,38 +17,12 @@ namespace arrow
     class Table;
 }
 
-struct EXPORT NaiveStringView
-{
-    char *text{};
-    std::int32_t length{}; // note: arrow limits string length
 
-    NaiveStringView(char *text,  std::int32_t length)
-        : text(text), length(length)
-    {
-        assert(length == this->length); // we didn't suffer any losses during conversion
-    }
-
-    NaiveStringView(NaiveStringView &&) = default;
-
-    friend auto &operator<<(std::ostream &out, const NaiveStringView &nsv)
-    {
-        out.write(nsv.text, nsv.length);
-        return out;
-    }
-
-    auto str() const
-    {
-        return std::string{ text, text + length };
-    }
-    friend bool operator==(const NaiveStringView &lhs, const NaiveStringView &rhs)
-    {
-        return lhs.length == rhs.length  &&  std::memcmp(lhs.text, rhs.text, lhs.length) == 0;
-    }
-};
+EXPORT arrow::Type::type deduceType(std::string_view text);
 
 struct ParsedCsv
 {
-    using Field = NaiveStringView;
+    using Field = std::string_view;
     using Record = std::vector<Field>;
     using Table = std::vector<Record>;
 
@@ -85,9 +60,9 @@ struct EXPORT CsvParser
     {}
 
 
-    NaiveStringView parseField(); // sets buffer Iterator to the next separator
-    std::vector<NaiveStringView> parseRecord();
-    std::vector<std::vector<NaiveStringView>> parseCsvTable();
+    std::string_view parseField(); // sets buffer Iterator to the next separator
+    std::vector<std::string_view> parseRecord();
+    std::vector<std::vector<std::string_view>> parseCsvTable();
 };
 
 EXPORT ParsedCsv parseCsvFile(const char *filepath, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');

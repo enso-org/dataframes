@@ -1,7 +1,8 @@
 #include "csv.h"
 #include "IO.h"
-#include "Core/Logger.h"
 #include "Core/ArrowUtilities.h"
+#include "Core/Logger.h"
+#include "Core/Utils.h"
 
 
 #include <algorithm>
@@ -11,11 +12,23 @@
 #include <iostream>
 #include <map>
 #include <sstream>
+#include <unordered_set>
 
 #include <arrow/table.h>
 #include <arrow/builder.h>
 
 using namespace std::literals;
+
+arrow::Type::type deduceType(std::string_view text)
+{
+    if(text.empty())
+        return arrow::Type::NA;
+    if(parseAs<int64_t>(text))
+        return arrow::Type::INT64;
+    if(parseAs<double>(text))
+        return arrow::Type::DOUBLE;
+    return arrow::Type::STRING;
+}
 
 ParsedCsv parseCsvFile(const char *filepath, char fieldSeparator, char recordSeparator, char quote)
 {
@@ -50,29 +63,24 @@ struct ColumnBuilder
 
     ColumnBuilder(MissingField missingField) : missingField(missingField) {}
 
-    void addFromString(const NaiveStringView &field)
+    void addFromString(const std::string_view &field)
     {
         if constexpr(type == arrow::Type::STRING)
         {
-            checkStatus(builder.Append(field.text, field.length));
+            checkStatus(builder.Append(field.data(), (int32_t)field.size()));
         }
         else
         {
-            if(!field.length)
+            if(field.size() != 0)
             {
-                addMissing();
-            }
-            else
-            {
-                const auto fieldEnd = field.text + field.length;
+                const auto fieldEnd = const_cast<char *>(field.data() + field.size());
                 *fieldEnd = '\0';
                 char *next = nullptr;
                 if constexpr(type == arrow::Type::INT64)
                 {
-                    auto v = std::strtoll(field.text, &next, 10);
-                    if(next == fieldEnd)
+                    if(auto v = parseAs<int64_t>(field))
                     {
-                        checkStatus(builder.Append(v));
+                        checkStatus(builder.Append(*v));
                     }
                     else
                     {
@@ -81,10 +89,9 @@ struct ColumnBuilder
                 }
                 else if constexpr(type == arrow::Type::DOUBLE)
                 {
-                    auto v = std::strtod(field.text, &next);
-                    if(next == fieldEnd)
+                    if(auto v = parseAs<double>(field))
                     {
-                        checkStatus(builder.Append(v));
+                        checkStatus(builder.Append(*v));
                     }
                     else
                     {
@@ -93,6 +100,10 @@ struct ColumnBuilder
                 }
                 else
                     throw std::runtime_error("wrong type");
+            }
+            else
+            {
+                addMissing();
             }
         }
     }
@@ -109,6 +120,36 @@ struct ColumnBuilder
     }
 };
 
+ColumnType deduceType(const ParsedCsv &csv, size_t columnIndex, size_t startRow, size_t lookupDepth = 50)
+{
+    lookupDepth = std::min<int>(lookupDepth, csv.records.size());
+
+    std::unordered_set<arrow::Type::type> encounteredTypes;
+    for(int i = startRow; i < lookupDepth; i++)
+    {
+        const auto &record = csv.records.at(i);
+        if(columnIndex < record.size())
+        {
+            const auto field = record.at(columnIndex);
+            encounteredTypes.insert(deduceType(field));
+        }
+    }
+
+    auto typePtr = [&]
+    {
+        if(encounteredTypes.count(arrow::Type::STRING))
+            return arrow::TypeTraits<arrow::StringType>::type_singleton();
+        if(encounteredTypes.count(arrow::Type::DOUBLE))
+            return arrow::TypeTraits<arrow::DoubleType>::type_singleton();
+        if(encounteredTypes.count(arrow::Type::INT64))
+            return arrow::TypeTraits<arrow::Int64Type>::type_singleton();
+
+        return arrow::TypeTraits<arrow::StringType>::type_singleton();
+    }();
+
+    return ColumnType{typePtr, encounteredTypes.count(arrow::Type::NA) > 0};
+}
+
 std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy header, std::vector<ColumnType> columnTypes)
 {
     // empty table
@@ -118,20 +159,19 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
         return arrow::Table::Make(schema, std::vector<std::shared_ptr<arrow::Array>>{});
     }
 
-    // If there is no type info for column, default to non-nullable Text (it always works)
-    if(columnTypes.size() < csv.fieldCount)
-    {
-        const ColumnType nonNullableText{ std::make_shared<arrow::StringType>(), false };
-        columnTypes.resize(csv.fieldCount, nonNullableText);
-    }
+
 
     std::vector<std::shared_ptr<arrow::Array>> arrays;
     arrays.reserve(csv.fieldCount);
 
     const bool takeFirstRowAsNames = std::holds_alternative<TakeFirstRowAsHeaders>(header);
-
-
     const int startRow = takeFirstRowAsNames ? 1 : 0;
+
+    // Attempt to deduce all non-specified types
+    for(size_t i = columnTypes.size(); i < csv.fieldCount; i++)
+    {
+        columnTypes.push_back(deduceType(csv, i, startRow));
+    }
 
     for(int column = 0; column < csv.fieldCount; column++)
     {
@@ -176,7 +216,7 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
     {
         const auto &headerRow = csv.records[0];
         if(column < (int)headerRow.size())
-            return headerRow[column].str();
+            return std::string(headerRow[column]);
         else
             return ""s;
     });
@@ -370,10 +410,10 @@ void generateCsv(std::ostream &out, const arrow::Table &table, GeneratorHeaderPo
     }
 }
 
-NaiveStringView CsvParser::parseField()
+std::string_view CsvParser::parseField()
 {
     if(bufferIterator == bufferEnd)
-        NaiveStringView{bufferIterator, 0};
+        std::string_view{bufferIterator, 0};
 
     char firstChar = *bufferIterator;
     bool quoted = firstChar == quote;
@@ -389,7 +429,7 @@ NaiveStringView CsvParser::parseField()
             if(c == fieldSeparator || c == recordSeparator)
                 break;
         }
-        return { start, (int32_t)std::distance(start, bufferIterator) };
+        return std::string_view(start, std::distance(start, bufferIterator));
     }
 
     // Quoted fields
@@ -415,7 +455,7 @@ NaiveStringView CsvParser::parseField()
             else
             {
                 auto length = std::distance(start, bufferIterator++);
-                return { start, (int32_t)(length - rewriteOffset) };
+                return std::string_view(start, length - rewriteOffset);
             }
         }
 
@@ -426,9 +466,9 @@ NaiveStringView CsvParser::parseField()
     throw std::runtime_error("reached the end of the file with an unmatched quote character");
 }
 
-std::vector<NaiveStringView> CsvParser::parseRecord()
+std::vector<std::string_view> CsvParser::parseRecord()
 {
-    std::vector<NaiveStringView> ret;
+    std::vector<std::string_view> ret;
     ret.reserve(lastColumnCount);
     while(true)
     {
@@ -444,9 +484,9 @@ std::vector<NaiveStringView> CsvParser::parseRecord()
     }
 }
 
-std::vector<std::vector<NaiveStringView>> CsvParser::parseCsvTable()
+std::vector<std::vector<std::string_view>> CsvParser::parseCsvTable()
 {
-    std::vector<std::vector<NaiveStringView>> ret;
+    std::vector<std::vector<std::string_view>> ret;
 
     for( ; bufferIterator < bufferEnd; )
     {
