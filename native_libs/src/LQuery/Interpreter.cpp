@@ -31,8 +31,16 @@ using namespace std::literals;
             buffer = allocateBuffer<T>(length);
         }
 
-        T &operator[](size_t index) { return mutable_data()[index]; }
-        const T &operator[](size_t index) const { return data()[index]; }
+        //T &operator[](size_t index) { return mutable_data()[index]; }
+        
+        T load(size_t index) const
+        {
+            return data()[index];
+        }
+        void store(size_t index, T value)
+        {
+            mutable_data()[index] = value;
+        }
     };
 
     template<>
@@ -58,25 +66,44 @@ using namespace std::literals;
 //             bufferData = allocateBuffer<uint8_t>(0);
         }
 
-        std::string &operator[](size_t index) 
-        {
-            throw std::runtime_error("not implemented: accessing mutable string in column view");
-        }
-        std::string_view operator[](size_t index) const 
+        std::string_view load(size_t index) const
         {
             int32_t length;
             auto ptr = array->GetValue(index, &length);
             return std::string_view(reinterpret_cast<const char*>(ptr), length);
+        }
+
+        void store(size_t index, const std::string &value)
+        {
+            throw std::runtime_error("not implemented: storing string in column view");
+        }
+
+    };
+    template<>
+    struct ArrayOperand<bool> : ArrayOperand<unsigned char>
+    {
+        ArrayOperand(size_t length)
+            : ArrayOperand<unsigned char>(arrow::BitUtil::BytesForBits(length))
+        {}
+
+        bool load(size_t index) const
+        {
+            return arrow::BitUtil::GetBit(data(), index);
+        }
+
+        void store(size_t index, bool value)
+        {
+            if(value)
+                arrow::BitUtil::SetBit(mutable_data(), index);
+            else
+                arrow::BitUtil::ClearBit(mutable_data(), index);
         }
     };
 
     template<typename T>
     auto getValue(const ArrayOperand<T> &src, int64_t index)
     {
-        if constexpr(std::is_same_v<T, unsigned char>)
-            return bool(src[index]);
-        else
-            return src[index];
+        return src.load(index);
     }
     template<typename T>
     auto getValue(const T &src, int64_t index)
@@ -84,8 +111,6 @@ using namespace std::literals;
         // so our functions get only string_view
         if constexpr(std::is_same_v<T, std::string>)
             return std::string_view(src);
-        else if constexpr(std::is_same_v<T, unsigned char>)
-            return bool(src);
         else
             return src;
     }
@@ -230,47 +255,24 @@ using namespace std::literals;
     };
 
 
-    template<typename Operation, typename Lhs>
-    auto exec(const Lhs &lhs, int64_t count)
+    template<typename Operation, typename ... Operands>
+    __declspec(noinline) auto exec(int64_t count, const Operands & ...operands)
     {
-        using OperationResult = decltype(Operation::exec(getValue(lhs, 0)));
-        using OperandValue = std::conditional_t<std::is_same_v<bool, OperationResult>, unsigned char, OperationResult>;
+        using OperationResult = decltype(Operation::exec(getValue(operands, 0)...));
 
         // TODO: optimization opportunity: boolean constant support (remove the last part of if below and fix the build)
-        if constexpr(std::is_arithmetic_v<Lhs> && !std::is_same_v<unsigned char, OperandValue>)
+        constexpr bool arithmeticOperands = (std::is_arithmetic_v<Operands> && ...);
+        if constexpr(arithmeticOperands && !std::is_same_v<bool, OperationResult>)
         {
-            return Operation::exec(lhs);
+            return Operation::exec(operands...);
         }
         else
         {
-            ArrayOperand<OperandValue> ret{ (size_t)count };
-            static_assert(sizeof(OperandValue) >= sizeof(OperationResult));
+            ArrayOperand<OperationResult> ret{ (size_t)count };
             for(int64_t i = 0; i < count; i++)
             {
-                ret[i] = Operation::exec(getValue(lhs, i));
-            }
-            return ret;
-        }
-    }
-
-    template<typename Operation, typename Lhs, typename Rhs>
-    auto exec(const Lhs &lhs, const Rhs &rhs, int64_t count)
-    {
-        using OperationResult = decltype(Operation::exec(getValue(lhs, 0), getValue(rhs, 0)));
-        using OperandValue = std::conditional_t<std::is_same_v<bool, OperationResult>, unsigned char, OperationResult>;
-
-        // TODO: optimization opportunity: boolean constant support (remove the last part of if below and fix the build)
-        if constexpr(std::is_arithmetic_v<Lhs> && std::is_arithmetic_v<Rhs> && !std::is_same_v<unsigned char, OperandValue>)
-        {
-            return Operation::exec(lhs, rhs);
-        }
-        else
-        {
-            ArrayOperand<OperandValue> ret{ (size_t)count };
-            static_assert(sizeof(OperandValue) >= sizeof(OperationResult));
-            for(int64_t i = 0; i < count; i++)
-            {
-                ret[i] = Operation::exec(getValue(lhs, i), getValue(rhs, i));
+                auto result = Operation::exec(getValue(operands, i)...);
+                ret.store(i, result);
             }
             return ret;
         }
@@ -309,7 +311,7 @@ struct Interpreter
         return transformToVector(operands, 
             [this] (auto &&operand) { return evaluateValue(operand); });
     }
-    std::vector<ArrayOperand<unsigned char>> evaluatePredicates(const std::vector<ast::Predicate> &operands)
+    std::vector<ArrayOperand<bool>> evaluatePredicates(const std::vector<ast::Predicate> &operands)
     {
         return transformToVector(operands, 
             [this] (auto &&operand) { return evaluate(operand); });
@@ -334,13 +336,13 @@ struct Interpreter
             case ast::ValueOperator::opname:                                 \
                 return std::visit(                                        \
                     [&] (auto &&lhs) -> Field                                \
-                        { return exec<opname>(lhs, table.num_rows());},      \
+                        { return exec<opname>(table.num_rows(), lhs);},      \
                     getOperand(operands, 0));
 #define VALUE_BINARY_OP(opname)                                              \
             case ast::ValueOperator::opname:                                 \
                 return std::visit(                                        \
                     [&] (auto &&lhs, auto &&rhs) -> Field                    \
-                        { return exec<opname>(lhs, rhs, table.num_rows());}, \
+                        { return exec<opname>(table.num_rows(), lhs, rhs);}, \
                     getOperand(operands, 0), getOperand(operands, 1));
 
                 const auto operands = evaluateOperands(op.operands);
@@ -363,49 +365,49 @@ struct Interpreter
             }, (const ast::ValueBase &) value);
     }
 
-    ArrayOperand<unsigned char> evaluate(const ast::Predicate &p)
+    ArrayOperand<bool> evaluate(const ast::Predicate &p)
     {
         return std::visit(overloaded{
-            [&] (const ast::PredicateFromValueOperation &elem) -> ArrayOperand<unsigned char>
+            [&] (const ast::PredicateFromValueOperation &elem) -> ArrayOperand<bool>
         {
             const auto operands = evaluateOperands(elem.operands);
             switch(elem.what)
             {
             case ast::PredicateFromValueOperator::Greater:
                 return std::visit(
-                    [&] (auto &&lhs, auto &&rhs) { return exec<GreaterThan>(lhs, rhs, table.num_rows());},
+                    [&] (auto &&lhs, auto &&rhs) { return exec<GreaterThan>(table.num_rows(), lhs, rhs);},
                     getOperand(operands, 0), getOperand(operands, 1));
             case ast::PredicateFromValueOperator::Lesser:
                 return std::visit(
-                    [&] (auto &&lhs, auto &&rhs) { return exec<LessThan>(lhs, rhs, table.num_rows());},
+                    [&] (auto &&lhs, auto &&rhs) { return exec<LessThan>(table.num_rows(), lhs, rhs);},
                     getOperand(operands, 0), getOperand(operands, 1));
             case ast::PredicateFromValueOperator::Equal:
                 return std::visit(
-                    [&] (auto &&lhs, auto &&rhs) { return exec<EqualTo>(lhs, rhs, table.num_rows());},
+                    [&] (auto &&lhs, auto &&rhs) { return exec<EqualTo>(table.num_rows(), lhs, rhs);},
                     getOperand(operands, 0), getOperand(operands, 1));
             case ast::PredicateFromValueOperator::StartsWith:
                 return std::visit(
-                    [&] (auto &&lhs, auto &&rhs) { return exec<StartsWith>(lhs, rhs, table.num_rows());},
+                    [&] (auto &&lhs, auto &&rhs) { return exec<StartsWith>(table.num_rows(), lhs, rhs);},
                     getOperand(operands, 0), getOperand(operands, 1));
             case ast::PredicateFromValueOperator::Matches:
                 return std::visit(
-                    [&] (auto &&lhs, auto &&rhs) { return exec<Matches>(lhs, rhs, table.num_rows());},
+                    [&] (auto &&lhs, auto &&rhs) { return exec<Matches>(table.num_rows(), lhs, rhs);},
                     getOperand(operands, 0), getOperand(operands, 1));
             default:
                 throw std::runtime_error("not implemented: predicate operator " + std::to_string((int)elem.what));
             }
         },
-            [&] (const ast::PredicateOperation &op) -> ArrayOperand<unsigned char> 
+            [&] (const ast::PredicateOperation &op) -> ArrayOperand<bool> 
         {
             const auto operands = evaluatePredicates(op.operands);
             switch(op.what)
             {
             case ast::PredicateOperator::And:
-                return exec<And>(getOperand(operands, 0), getOperand(operands, 1), table.num_rows());
+                return exec<And>(table.num_rows(), getOperand(operands, 0), getOperand(operands, 1));
             case ast::PredicateOperator::Or:
-                return exec<Or>(getOperand(operands, 0), getOperand(operands, 1), table.num_rows());
+                return exec<Or>(table.num_rows(), getOperand(operands, 0), getOperand(operands, 1));
             case ast::PredicateOperator::Not:
-                return exec<Not>(operands[0], table.num_rows());
+                return exec<Not>(table.num_rows(), operands[0]);
             default:
                 throw std::runtime_error("not implemented: predicate operator " + std::to_string((int)op.what));
             }
@@ -430,7 +432,7 @@ std::shared_ptr<arrow::Buffer> execute(const arrow::Table &table, const ast::Pre
         int i = 0;
         iterateOverGeneric(*column, 
             [&] (auto &&) { i++;              }, 
-            [&]           { ret[i++] = false; });
+            [&]           { ret.store(i++, false); });
     }
 
     return ret.buffer;
@@ -456,7 +458,7 @@ auto arrayWith(const arrow::Table &table, const ArrayOperand<T> &arrayProto, std
             {
                 if(arrow::BitUtil::GetBit(nullBuffer->data(), i))
                 {
-                    const auto sv = arrayProto[i];
+                    const auto sv = arrayProto.load(i);
                     checkStatus(builder.Append(sv.data(), (int)sv.size()));
                 }
                 else
@@ -467,7 +469,7 @@ auto arrayWith(const arrow::Table &table, const ArrayOperand<T> &arrayProto, std
         {
             for(int i = 0; i < N; i++)
             {
-                const auto sv = arrayProto[i];
+                const auto sv = arrayProto.load(i);
                 checkStatus(builder.Append(sv.data(), (int)sv.size()));
             }
         }

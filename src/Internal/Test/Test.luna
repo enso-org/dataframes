@@ -430,6 +430,7 @@ class TestArrayBuilder:
     def run:
         self.testMapping
         self.testFiltering
+        throw "stop"
         self.testIO
         self.testSchema
         self.testColumn

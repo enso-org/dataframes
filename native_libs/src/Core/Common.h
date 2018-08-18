@@ -56,9 +56,12 @@ static auto measure(std::string text, F&& func, Args&&... args)
 template<typename F, typename ...Args>
 static auto measure(std::string text, int N, F&& func, Args&&... args)
 {
+    std::chrono::microseconds bestTime = std::chrono::hours{150};
     for(int i = 0; i < N; i++)
     {
-        measure(text, std::forward<F>(func), std::forward<Args>(args)...);
+        auto t = std::chrono::duration_cast<std::chrono::microseconds>(duration(std::forward<F>(func), std::forward<Args>(args)...));
+        bestTime = std::min(bestTime, t);
+        std::cout << text << " took " << t.count() / 1000.0 << " ms, best: " << bestTime.count() / 1000. << " ms" << std::endl;
     }
 }
 

@@ -480,15 +480,12 @@ BOOST_AUTO_TEST_CASE(FilterBigFile)
 {
 	const auto jsonQuery = R"({"predicate": "gt", "arguments": [ {"column": "NUM_INSTALMENT_NUMBER"}, {"operation": "plus", "arguments": [50, 1]} ] } )";
 	auto table = loadTableFromFeatherFile("C:/installments_payments.feather");
-	for(int i  = 0; i < 2000; i++)
+	measure("filter installments_payments", 2000, [&]
 	{
-		measure("filter installments_payments", [&]
-		{
-			auto table2 = filter(table, jsonQuery);
+		auto table2 = filter(table, jsonQuery);
 //  			std::ofstream out{"tescik100.csv"};
 //  			generateCsv(out, *table2, GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy::QuoteWhenNeeded);
-		});
-	}
+	});
 	std::cout<<"";
 }
 

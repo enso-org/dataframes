@@ -8,6 +8,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{67737722-0E44-4F64-8D8C-E1C48F35C21A}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
+		DataframeHelperTests.psess = DataframeHelperTests.psess
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DataframeHelperTests", "..\test\DataframeHelperTests.vcxproj", "{EAD3EB9B-8C2F-40E8-80A1-4B5ED9AD6842}"
@@ -38,6 +39,18 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6BCEC416-E86B-4B08-8F0B-C020AA3B399F}
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
 	EndGlobalSection
 	GlobalSection(Performance) = preSolution
 		HasPerformanceSessions = true
