@@ -521,10 +521,7 @@ std::shared_ptr<arrow::Array> execute(const arrow::Table &table, const ast::Valu
 
 
     bool usedNullableColumns = false;
-    auto nullMapBuffer = allocateBuffer<uint8_t>(arrow::BitUtil::BytesForBits(table.num_rows()));
-    auto nullMapData = nullMapBuffer->mutable_data();
-    std::memset(nullMapData, 0xff, nullMapBuffer->size());
-    // TODO: above sets by bytes, the last byte should have only part of bits set
+    BitmaskGenerator bitmask{table.num_rows(), true};
 
     for(auto && [refid, columnIndex] : mapping)
     {
@@ -537,10 +534,10 @@ std::shared_ptr<arrow::Array> execute(const arrow::Table &table, const ast::Valu
         int64_t i = 0;
         iterateOverGeneric(*column, 
             [&] (auto &&) { i++;}, 
-            [&]           { arrow::BitUtil::ClearBit(nullMapData, i++); });
+            [&]           { bitmask.clear(i++); });
     }
 
-    const auto nullBufferToBeUsed = usedNullableColumns ? nullMapBuffer : nullptr;
+    const auto nullBufferToBeUsed = usedNullableColumns ? bitmask.buffer : nullptr;
 
     return std::visit(
         [&] (auto &&i) -> std::shared_ptr<arrow::Array>

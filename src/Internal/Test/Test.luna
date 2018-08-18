@@ -387,10 +387,17 @@ class TestArrayBuilder:
         numbersTableFiltered = numbersTable.filter (row: row.at "numbers" > 5)
         assertEqual "filtered > 5" (numbersTableFiltered.columnAt 0 . toList) [6, 7, 8, 9, 10]
 
-        maybeIntColumn = Column.fromList "numbers" MaybeInt64Type [Just 1, Nothing, Just 3, Just 4, Just 5]
-        maybeIntTable = Table.fromColumns [maybeIntColumn]
+        print "=== Testing filtering with nulls ==="
+        maybeIntColumn = Column.fromList "numbers" MaybeInt64Type [Just 1, Nothing, Just 3, Nothing, Just 5]
+        maybeTextColumn = Column.fromList "texts" MaybeStringType [Nothing, Nothing, Just "Third", Just "Fourth", Just "Fifth"]
+        maybeDoubleColumn = Column.fromList "doubles" MaybeDoubleType [Nothing, Nothing, Just 3.0, Just 4.0, Just 5.0]
+        maybeIntTable = Table.fromColumns [maybeIntColumn, maybeTextColumn, maybeDoubleColumn]
         maybeIntFiltered = maybeIntTable.filter (row: row.at "numbers" < 4)
-        assertEqual "filtered > 5" (maybeIntFiltered.columnAt 0 . toList) [Just 1, Just 3]
+        assertEqual "numbers < 4: numbers" (maybeIntFiltered.columnAt 0 . toList) [Just 1, Just 3]
+        assertEqual "numbers < 4: texts" (maybeIntFiltered.columnAt 1 . toList) [Nothing, Just "Third"]
+        assertEqual "numbers < 4: texts null count" (maybeIntFiltered.columnAt 1 . nullCount) 1
+        assertEqual "numbers < 4: doubles" (maybeIntFiltered.columnAt 2 . toList) [Nothing, Just 3.0]
+        assertEqual "numbers < 4: doubles null count" (maybeIntFiltered.columnAt 2 . nullCount) 1
 
 
     

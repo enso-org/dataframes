@@ -53,16 +53,22 @@ std::shared_ptr<arrow::Table> filter(std::shared_ptr<arrow::Table> table, const 
 
                 const T *sourceBuffer = array->raw_values();
                 T *outputBuffer = reinterpret_cast<T*>(valueBuffer->mutable_data());
+                BitmaskGenerator generator{newRowCount, true};
 
                 int filteredItr = 0;
                 for(int64_t sourceItr = 0; sourceItr < oldRowCount; sourceItr++)
                 {
                     if(maskBuffer[sourceItr])
-                        outputBuffer[filteredItr++] = sourceBuffer[sourceItr];
+                    {
+                        outputBuffer[filteredItr] = sourceBuffer[sourceItr];
+                        if(array->IsNull(sourceItr))
+                            generator.clear(filteredItr);
+                        ++filteredItr;
+                    }
                 }
 
 
-                newColumns.push_back(std::make_shared<typename TD::Array>(newRowCount, valueBuffer));
+                newColumns.push_back(std::make_shared<typename TD::Array>(newRowCount, valueBuffer, generator.buffer, -1));
             }
             else
             {
@@ -76,7 +82,10 @@ std::shared_ptr<arrow::Table> filter(std::shared_ptr<arrow::Table> table, const 
                     if(maskBuffer[sourceItr])
                     {
                         auto ptr = stringSource->GetValue(sourceItr, &lengthBuffer);
-                        builder.Append(ptr, lengthBuffer);
+                        if(array->IsNull(sourceItr))
+                            builder.AppendNull();
+                        else
+                            builder.Append(ptr, lengthBuffer);
                     }
                 }
 

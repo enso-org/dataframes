@@ -284,4 +284,16 @@ std::tuple<std::vector<Ts>...> toVectors(const arrow::Table &table)
     return detail::toVectorsHlp<Ts...>(table, std::index_sequence_for<Ts...>{});
 }
 
+struct EXPORT BitmaskGenerator
+{
+    uint8_t *data;
+    std::shared_ptr<arrow::Buffer> buffer;
+    int64_t length;
+
+    BitmaskGenerator(int64_t length, bool initialValue);
+
+    void set(int64_t index);
+    void clear(int64_t index);
+};
+
 EXPORT std::shared_ptr<arrow::Table> tableFromArrays(std::vector<std::shared_ptr<arrow::Array>> arrays, std::vector<std::string> names = {}, std::vector<bool> nullables = {});

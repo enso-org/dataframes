@@ -19,3 +19,22 @@ std::shared_ptr<arrow::Table> tableFromArrays(std::vector<std::shared_ptr<arrow:
     auto schema = arrow::schema(std::move(fields));
     return arrow::Table::Make(schema, std::move(arrays));
 }
+
+BitmaskGenerator::BitmaskGenerator(int64_t length, bool initialValue) : length(length)
+{
+    auto bytes = arrow::BitUtil::BytesForBits(length);
+    buffer = allocateBuffer<uint8_t>(bytes);
+    data = buffer->mutable_data();
+    std::memset(data, initialValue ? 0xFF : 0, bytes);
+    // TODO: above sets by bytes, the last byte should have only part of bits set
+}
+
+void BitmaskGenerator::set(int64_t index)
+{
+    arrow::BitUtil::SetBit(data, index);
+}
+
+void BitmaskGenerator::clear(int64_t index)
+{
+    arrow::BitUtil::ClearBit(data, index);
+}
