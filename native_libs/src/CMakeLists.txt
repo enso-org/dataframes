@@ -75,7 +75,7 @@ file(GLOB_RECURSE SRC_FILES ${PROJECT_SOURCE_DIR}/*.cpp)
 add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SRC_FILES})
 
 # Includes path: project root, arrow, third-party any-lite
-target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR} ${ARROW_INCLUDE} ${PROJECT_SOURCE_DIR}/../third-party/any-lite ${PROJECT_SOURCE_DIR}/../third-party/variant ${RAPIDJSON_INCLUDE})
+target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR} ${ARROW_INCLUDE} ${PROJECT_SOURCE_DIR}/../third-party/any-lite ${PROJECT_SOURCE_DIR}/../third-party/optional-lite ${PROJECT_SOURCE_DIR}/../third-party/variant ${RAPIDJSON_INCLUDE})
 target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS}})
 
 if(XLNT_LIBRARY AND XLNT_INCLUDE)
@@ -107,7 +107,7 @@ endif()
 file(GLOB_RECURSE PLOTTER_HEADER_FILES ${PROJECT_SOURCE_DIR}/../plotter/*.h)
 file(GLOB_RECURSE PLOTTER_SRC_FILES    ${PROJECT_SOURCE_DIR}/../plotter/*.cpp)
 
-add_executable(DataframePlotter ${PLOTTER_HEADER_FILES} ${PLOTTER_SRC_FILES})
+add_library(DataframePlotter SHARED ${PLOTTER_HEADER_FILES} ${PLOTTER_SRC_FILES})
 
 find_package(PythonLibs 2.7)
 target_include_directories(DataframePlotter PRIVATE ${PYTHON_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/../third-party/matplotlib-cpp)

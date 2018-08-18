@@ -4,8 +4,9 @@
 #include <cstddef>
 #include <functional>
 #include <iostream>
-#include <optional>
 #include <string>
+
+#include "optional.h"
 
 #ifdef _MSC_VER
 #define EXPORT _declspec(dllexport)

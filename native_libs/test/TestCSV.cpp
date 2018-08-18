@@ -7,9 +7,9 @@
 #include "IO/IO.h"
 #include "IO/Feather.h"
 #include "Core/ArrowUtilities.h"
+#include "optional.h"
 #include "Processing.h"
 
-#include <optional>
 
 #pragma comment(lib, "DataframeHelper.lib")
 #ifdef _DEBUG
