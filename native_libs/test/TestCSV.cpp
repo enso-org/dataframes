@@ -508,14 +508,14 @@ BOOST_AUTO_TEST_CASE(ParseBigFile)
 
 	std::vector<ColumnType> expectedTypes
 	{
-		ColumnType{ integerType, false },
-		ColumnType{ integerType, false },
-		ColumnType{ doubleType , false },
-		ColumnType{ integerType, false },
-		ColumnType{ doubleType , false },
-		ColumnType{ doubleType , false },
-		ColumnType{ doubleType , false },
-		ColumnType{ doubleType , false },
+		ColumnType{ integerType, false, true },
+		ColumnType{ integerType, false, true },
+		ColumnType{ doubleType , false, true },
+		ColumnType{ integerType, false, true },
+		ColumnType{ doubleType , false, true },
+		ColumnType{ doubleType , false, true },
+		ColumnType{ doubleType , false, true },
+		ColumnType{ doubleType , false, true },
 	};
 	auto csv = parseCsvFile("C:/installments_payments.csv");
 	auto table = csvToArrowTable(std::move(csv), TakeFirstRowAsHeaders{}, {});

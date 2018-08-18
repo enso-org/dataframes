@@ -120,7 +120,7 @@ struct ColumnBuilder
     }
 };
 
-ColumnType deduceType(const ParsedCsv &csv, size_t columnIndex, size_t startRow, size_t lookupDepth = 50)
+ColumnType deduceType(const ParsedCsv &csv, size_t columnIndex, size_t startRow, size_t lookupDepth)
 {
     lookupDepth = std::min<int>(lookupDepth, csv.records.size());
 
@@ -147,10 +147,10 @@ ColumnType deduceType(const ParsedCsv &csv, size_t columnIndex, size_t startRow,
         return arrow::TypeTraits<arrow::StringType>::type_singleton();
     }();
 
-    return ColumnType{typePtr, encounteredTypes.count(arrow::Type::NA) > 0};
+    return ColumnType{typePtr, encounteredTypes.count(arrow::Type::NA) > 0, true};
 }
 
-std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy header, std::vector<ColumnType> columnTypes)
+std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy header, std::vector<ColumnType> columnTypes, int typeDeductionDepth)
 {
     // empty table
     if(csv.recordCount == 0 || csv.fieldCount == 0)
@@ -158,8 +158,6 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
         auto schema = std::make_shared<arrow::Schema>(std::vector<std::shared_ptr<arrow::Field>>{});
         return arrow::Table::Make(schema, std::vector<std::shared_ptr<arrow::Array>>{});
     }
-
-
 
     std::vector<std::shared_ptr<arrow::Array>> arrays;
     arrays.reserve(csv.fieldCount);
@@ -170,7 +168,7 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
     // Attempt to deduce all non-specified types
     for(size_t i = columnTypes.size(); i < csv.fieldCount; i++)
     {
-        columnTypes.push_back(deduceType(csv, i, startRow));
+        columnTypes.push_back(deduceType(csv, i, startRow, typeDeductionDepth));
     }
 
     for(int column = 0; column < csv.fieldCount; column++)

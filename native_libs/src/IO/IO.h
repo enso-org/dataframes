@@ -27,9 +27,10 @@ struct ColumnType
 {
     std::shared_ptr<arrow::DataType> type;
     bool nullable;
+    bool deduced; // deduced types allow fallback
 
-    ColumnType(std::shared_ptr<arrow::DataType> type, bool nullable)
-        : type(type), nullable(nullable)
+    ColumnType(std::shared_ptr<arrow::DataType> type, bool nullable, bool deduced)
+        : type(type), nullable(nullable), deduced(deduced)
     {}
 };
 

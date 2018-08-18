@@ -98,7 +98,7 @@ std::shared_ptr<arrow::Table> readXlsxFile(const char *filepath, HeaderPolicy he
         // If there is no type info for column, default to non-nullable Text (it always works)
         if((int)columnTypes.size() < columnCount)
         {
-            const ColumnType nonNullableText{ std::make_shared<arrow::StringType>(), false };
+            const ColumnType nonNullableText{ std::make_shared<arrow::StringType>(), false, false };
             columnTypes.resize(columnCount, nonNullableText);
         }
         const auto names = decideColumnNames(columnCount, header, [&](int column)

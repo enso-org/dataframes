@@ -155,7 +155,7 @@ namespace
              auto typeId = (arrow::Type::type) columnTypes[i];
              bool nullable = columnIsNullableTypes[i];
              auto type = idToDataType(typeId);
-             types.emplace_back(type, nullable);
+             types.emplace_back(type, nullable, true);
          }
          return types;
     };
