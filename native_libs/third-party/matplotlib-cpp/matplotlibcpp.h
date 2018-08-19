@@ -59,6 +59,8 @@ struct _interpreter {
     PyObject *s_python_empty_tuple;
     PyObject *s_python_function_stem;
     PyObject *s_python_function_xkcd;
+    PyObject *s_python_function_newbytesio;
+
 
     /* For now, _interpreter is implemented as a singleton since its currently not possible to have
        multiple independent embedded python interpreters without patching the python source code
@@ -107,14 +109,25 @@ private:
 
         PyObject* matplotlibname = PyString_FromString("matplotlib");
         PyObject* pyplotname = PyString_FromString("matplotlib.pyplot");
+        PyObject* pyplotstylename = PyString_FromString("matplotlib.style");
         PyObject* pylabname  = PyString_FromString("pylab");
-        if (!pyplotname || !pylabname || !matplotlibname) {
+        PyObject* ioname     = PyString_FromString("io");
+        if (!pyplotname || !pylabname || !matplotlibname || !pyplotstylename || !ioname) {
             throw std::runtime_error("couldnt create string");
         }
 
         PyObject* matplotlib = PyImport_Import(matplotlibname);
         Py_DECREF(matplotlibname);
         if (!matplotlib) { throw std::runtime_error("Error loading module matplotlib!"); }
+
+        //char* ver = PyString_AsString(PyObject_GetAttrString(matplotlib, "__version__"));
+        //std::cout << ver << std::endl;
+
+        PyObject* pystylemod = PyImport_Import(pyplotstylename);
+        Py_DECREF(pyplotstylename);
+        if (!pystylemod) { throw std::runtime_error("Error loading module matplotlib.pyplot.style!"); }
+
+
 
         // matplotlib.use() must be called *before* pylab, matplotlib.pyplot,
         // or matplotlib.backends is imported for the first time
@@ -126,10 +139,13 @@ private:
         Py_DECREF(pyplotname);
         if (!pymod) { throw std::runtime_error("Error loading module matplotlib.pyplot!"); }
 
-
         PyObject* pylabmod = PyImport_Import(pylabname);
         Py_DECREF(pylabname);
         if (!pylabmod) { throw std::runtime_error("Error loading module pylab!"); }
+
+        PyObject* iomod = PyImport_Import(ioname);
+        Py_DECREF(ioname);
+        if (!iomod) { throw std::runtime_error("Error loading module io!"); }
 
         s_python_function_show = PyObject_GetAttrString(pymod, "show");
         s_python_function_close = PyObject_GetAttrString(pymod, "close");
@@ -159,6 +175,16 @@ private:
         s_python_function_tight_layout = PyObject_GetAttrString(pymod, "tight_layout");
         s_python_function_stem = PyObject_GetAttrString(pymod, "stem");
         s_python_function_xkcd = PyObject_GetAttrString(pymod, "xkcd");
+        s_python_function_newbytesio = PyObject_GetAttrString(iomod, "BytesIO");
+
+        PyObject *usestyle = PyObject_GetAttrString(pystylemod, "use");
+        if (!usestyle) { throw std::runtime_error("Couldn't find plt.style.use attribute"); }
+        PyObject* dark = PyString_FromString("dark_background");
+        PyObject* style_args = PyTuple_New(1);
+        PyTuple_SetItem(style_args, 0, dark);
+        PyObject* res = PyObject_CallObject(usestyle, style_args);
+
+
 
         if(    !s_python_function_show
             || !s_python_function_close
@@ -188,6 +214,7 @@ private:
             || !s_python_function_tight_layout
             || !s_python_function_stem
             || !s_python_function_xkcd
+            || !s_python_function_newbytesio
         ) { throw std::runtime_error("Couldn't find required function!"); }
 
         if (   !PyFunction_Check(s_python_function_show)
@@ -403,6 +430,34 @@ bool fill_between(const std::vector<Numeric>& x, const std::vector<Numeric>& y1,
     return res;
 }
 
+bool hist(PyObject* yarray, long bins=10,std::string color="b", double alpha=1.0)
+{
+
+    PyObject* kwargs = PyDict_New();
+    PyDict_SetItemString(kwargs, "bins", PyLong_FromLong(bins));
+    PyDict_SetItemString(kwargs, "color", PyString_FromString(color.c_str()));
+    PyDict_SetItemString(kwargs, "alpha", PyFloat_FromDouble(alpha));
+
+
+    PyObject* plot_args = PyTuple_New(1);
+
+    PyTuple_SetItem(plot_args, 0, yarray);
+
+
+    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_hist, plot_args, kwargs);
+    if (!res) {
+        std::cout << "EXCEPTION HIST" << std::endl;
+        throw std::runtime_error("Call to hist() failed.");
+    }
+
+
+    Py_DECREF(plot_args);
+    Py_DECREF(kwargs);
+    if(res) Py_DECREF(res);
+
+    return res;
+}
+
 template< typename Numeric>
 bool hist(const std::vector<Numeric>& y, long bins=10,std::string color="b", double alpha=1.0)
 {
@@ -449,6 +504,27 @@ bool named_hist(std::string label,const std::vector<Numeric>& y, long bins=10, s
 
     Py_DECREF(plot_args);
     Py_DECREF(kwargs);
+    if(res) Py_DECREF(res);
+
+    return res;
+}
+
+bool plot(PyObject* xarray, PyObject* yarray, const std::string& s = "")
+{
+    PyObject* pystring = PyString_FromString(s.c_str());
+
+    PyObject* plot_args = PyTuple_New(3);
+    PyTuple_SetItem(plot_args, 0, xarray);
+    PyTuple_SetItem(plot_args, 1, yarray);
+    PyTuple_SetItem(plot_args, 2, pystring);
+
+    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_plot, plot_args);
+    if (!res) {
+        std::cout << "EXCEPTION PLOT" << std::endl;
+        throw std::runtime_error("Call to plot() failed.");
+    }
+
+    Py_DECREF(plot_args);
     if(res) Py_DECREF(res);
 
     return res;
@@ -762,7 +838,7 @@ inline void figure_size(size_t w, size_t h)
     PyDict_SetItemString(kwargs, "figsize", size);
     PyDict_SetItemString(kwargs, "dpi", PyLong_FromSize_t(dpi));
 
-    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_figure, 
+    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_figure,
             detail::_interpreter::get().s_python_empty_tuple, kwargs);
 
     Py_DECREF(kwargs);
@@ -1017,6 +1093,51 @@ inline void save(const std::string& filename)
     Py_DECREF(args);
     Py_DECREF(res);
 }
+
+inline void getPNG(char** buf, size_t* len)
+{
+    PyObject* bytesIO = PyObject_CallObject(detail::_interpreter::get().s_python_function_newbytesio, detail::_interpreter::get().s_python_empty_tuple);
+    if (!bytesIO) throw std::runtime_error("Creating bytesIO failed");
+    std::cout << "1" << std::endl;
+    std::cout << "3" << std::endl;
+    PyObject* kwargs = PyDict_New();
+    PyDict_SetItemString(kwargs, "transparent", Py_True);
+    std::cout << detail::_interpreter::get().s_python_function_save << std::endl;
+    std::cout << bytesIO << std::endl;
+    PyObject* res = NULL;
+    std::cout << "4" << std::endl;
+    PyObject* args = PyTuple_New(1);
+    try {
+        std::cout << "2" << std::endl;
+        PyTuple_SetItem(args, 0, bytesIO);
+        res = PyObject_Call(detail::_interpreter::get().s_python_function_save, args, kwargs);
+    } catch (std::exception &e) {
+        std::cout << "EXCEPTION " << e.what() << std::endl;
+    }
+    std::cout << "SHALL THROW" << std::endl;
+    if (!res) throw std::runtime_error("Call to save() failed.");
+    PyObject* getvalue = PyObject_GetAttrString(bytesIO, "getvalue");
+    PyObject* bytes = PyObject_CallObject(getvalue, detail::_interpreter::get().s_python_empty_tuple);
+    Py_ssize_t length;
+    char* buffer;
+    PyBytes_AsStringAndSize(bytes, &buffer, &length);
+    std::cout << length << std::endl;
+    *len = (size_t) length;
+    *buf = (char*) malloc((size_t) length);
+    memcpy(*buf, buffer, length);
+    std::cout << "memcpy doone" << std::endl;
+    Py_DECREF(args);
+    std::cout << "decref args doone" << std::endl;
+    Py_DECREF(res);
+    std::cout << "decref res doone" << std::endl;
+    Py_DECREF(bytes);
+    std::cout << "decref bytes doone" << std::endl;
+    Py_DECREF(getvalue);
+    std::cout << "decref getvalue doone" << std::endl;
+    Py_DECREF(bytesIO);
+    std::cout << "decrefs done" << std::endl;
+}
+
 
 inline void clf() {
     PyObject *res = PyObject_CallObject(

@@ -14,7 +14,7 @@ class TypedColumn a:
     def typeTag: case self of
         TypedColumn t: t
         TypedColumnVal t _: t
-        
+
     def ptr: case self of
         TypedColumnVal _ ptr: ptr
 
@@ -71,7 +71,7 @@ class Column:
             ColumnMaybeReal tc: tc.toList
             ColumnText      tc: tc.toList
             ColumnMaybeText tc: tc.toList
-            
+
     def slice fromIndex length:
         case self of
             ColumnInt       tc: ntc = ColumnInt       (tc.slice fromIndex length)
@@ -84,7 +84,7 @@ class Column:
     def toText: self.toList.toText
 
     def toJSON:
-        JSON.empty . insert "header" [self.name] . insert "data" (self.toList . each (Prepend _ Empty))
+        JSON.empty . insert "header" [self.name] . insert "data" (self.slice 0 100 . toList . each (Prepend _ Empty))
 
     def map fromTypeTag toTypeTag newName f:
         tc = fromTypeTag.useColumn self (_.map toTypeTag newName f)
@@ -112,5 +112,5 @@ class Column:
     def nullCount: self.ptr.nullCount
     def length: self.ptr.length
     def name: self.ptr.name
-    def field: 
+    def field:
         Field.fromWrapper $ self.ptr.field

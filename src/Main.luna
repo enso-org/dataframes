@@ -1,14 +1,70 @@
+import Dataframes.Main
 import Dataframes.IO
 import Std.Base
 import Std.Foreign.C.Value
+import Std.Foreign
 
 import Dataframes.Internal.Utils
 import Dataframes.Array
 import Dataframes.Types
 import Dataframes.Internal.Test.Test
 
+class Plot:
+    Plot
+    Scatter Column Column
+    Histogram Column
+    UnionPlt Plot Plot
 
-«0»def main:
+    def + that: UnionPlt self that
+
+    def render: case self of
+        UnionPlt p1 p2:
+            p1.render
+            p2.render
+        Scatter x y:
+            xs = x . ptr . data . ptr . toCArg
+            ys = y . ptr . data . ptr . toCArg
+            lookupSymbol "DataframePlotter" "plot" . call None [xs, ys]
+        Histogram x:
+            xs = x . ptr . data . ptr . toCArg
+            lookupSymbol "DataframePlotter" "histogram" . call None [xs]
+
+    def show:
+        self.render
+        lookupSymbol "DataframePlotter" "show" . call None []
+
+    def toJSON:
+        lookupSymbol "DataframePlotter" "init" . call None []
+        self.render
+        r = lookupSymbol "DataframePlotter" "getPNG" . call CString []
+        case r.isNull of
+            True: throw "Matplotlib: getPNG call failed."
+            False:
+                t = r.toText
+                r.free
+                ("data:image/png;base64," + t).toJSON
+
+«6»def mkPlot:
+    «8»fr = CSVParser.setTypes [MaybeRealElement, MaybeRealElement] . readFile "data/simple_plot.csv"
+    «9»xs = fr . columnAt 0 . ptr . data . ptr . toCArg
+    «10»ys = fr.columnAt 1 . ptr . data . ptr . toCArg
+    «11»lookupSymbol "DataframePlotter" "plot" . call None [xs, ys]
+    «12»lookupSymbol "DataframePlotter" "histogram" . call None [xs]
+    «13»r = lookupSymbol "DataframePlotter" "getPNG" . call CString []
+    «14»t = r.toText
+    «15»r.free
+    «16»Plot t
+
+«7»def main:
+    «17»fr = CSVParser.setTypes [MaybeRealElement, MaybeRealElement, MaybeRealElement, MaybeRealElement, MaybeRealElement, MaybeRealElement, MaybeRealElement, MaybeRealElement] . readFile "/Users/marcinkostrzewa/Downloads/all (1)/application_train.csv"
+    «19»columnAt2 = fr . columnAt 6
+    «18»columnAt1 = fr . columnAt 7
+    «20»histogram1 = Histogram columnAt2
+    «21»plot1 = Scatter columnAt1 columnAt2
+    None
+
+
+«0»def main2:
     «1»setHelperVerbosity False
     «2»benchmark "running tests" TestArrayBuilder.run
 
@@ -16,4 +72,5 @@ import Dataframes.Internal.Test.Test
     «4»readFile1 = CSVParser . readFile "data/kaggle.csv"
     «5»columns1 = readFile1 . columns ["SK_ID_CURR", "NAME_CONTRACT_TYPE"]
     None
-### META {"metas":[{"marker":1,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":0}}}},{"marker":2,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":176}}}},{"marker":4,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":-368}}}},{"marker":5,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":16}}}}]}
+
+### META {"metas":[{"marker":1,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":0}}}},{"marker":2,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":176}}}},{"marker":4,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":-368}}}},{"marker":5,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":16}}}},{"marker":17,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":32,"_vector2_x":-128}}}},{"marker":19,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":128,"_vector2_x":112}}}},{"marker":18,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-112,"_vector2_x":128}}}},{"marker":20,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: image","image/image.html"],"_position":{"fromPosition":{"_vector2_y":128,"_vector2_x":352}}}},{"marker":21,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: image","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-112,"_vector2_x":576}}}},{"marker":8,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":0}}}},{"marker":9,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":176}}}},{"marker":10,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":176}}}},{"marker":11,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":352}}}},{"marker":12,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":528}}}},{"marker":13,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":704}}}},{"marker":14,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":880}}}},{"marker":15,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":880}}}},{"marker":16,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":1056}}}}]}
