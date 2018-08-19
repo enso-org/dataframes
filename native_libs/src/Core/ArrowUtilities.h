@@ -36,6 +36,8 @@ struct NumericTypeDescription
     using ValueType = typename BuilderType::value_type;
     using CType = typename BuilderType::value_type;
     using Array = arrow::NumericArray<T>;
+    using StorageValueType = ValueType;
+    using OffsetType = void;
 };
 
 template<> struct TypeDescription<arrow::Type::UINT8 > : NumericTypeDescription<arrow::UInt8Type>  {};
@@ -56,6 +58,8 @@ template<> struct TypeDescription<arrow::Type::STRING>
     using ValueType = std::string;
     using CType = const char *;
     using Array = arrow::StringArray;
+    using StorageValueType = uint8_t;
+    using OffsetType = int32_t;
 };
 
 template <arrow::Type::type type>

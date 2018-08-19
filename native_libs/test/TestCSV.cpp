@@ -183,10 +183,10 @@ struct FilteringFixture
 
 		const auto filteredTable = filter(table, jsonQuery);
 		auto[a2, b2, c2, d2] = toVectors<int64_t, double, std::string, std::optional<double>>(*filteredTable);
-		BOOST_CHECK(a2 == expectedA);
-		BOOST_CHECK(b2 == expectedB);
-		BOOST_CHECK(c2 == expectedC);
-		BOOST_CHECK(d2 == expectedD);
+		BOOST_CHECK_EQUAL_COLLECTIONS(a2.begin(), a2.end(), expectedA.begin(), expectedA.end());
+		BOOST_CHECK_EQUAL_COLLECTIONS(b2.begin(), b2.end(), expectedB.begin(), expectedB.end());
+		BOOST_CHECK_EQUAL_COLLECTIONS(c2.begin(), c2.end(), expectedC.begin(), expectedC.end());
+		BOOST_CHECK_EQUAL_COLLECTIONS(d2.begin(), d2.end(), expectedD.begin(), expectedD.end());
 	}
 
 	template<typename T>
@@ -443,7 +443,7 @@ BOOST_FIXTURE_TEST_CASE(FilterSimpleCase, FilteringFixture)
 	}
 }
 
-BOOST_AUTO_TEST_CASE(SimpleFilterWithNulls)
+BOOST_AUTO_TEST_CASE(FilterWithNulls)
 {
 	std::vector<std::optional<int64_t>> ints;
 	for(int i = 0; i < 256; i++)
@@ -456,9 +456,16 @@ BOOST_AUTO_TEST_CASE(SimpleFilterWithNulls)
 
 
 	std::vector<int64_t> expected;
+	std::vector<int64_t> expectedTail10;
 	for(int i = 0; i < 256; i++)
+	{
 		if(i % 3  &&  (i % 2 == 0))
+		{
 			expected.push_back(i);
+			if(i >= 246)
+				expectedTail10.push_back(i);
+		}
+	}
 
 	auto array = toArray(ints);
 	auto arrayTail10 = array->Slice(246);
@@ -487,6 +494,8 @@ BOOST_AUTO_TEST_CASE(SimpleFilterWithNulls)
 	BOOST_CHECK_EQUAL_COLLECTIONS(expected.begin(), expected.end(), filteredV.begin(), filteredV.end());
 
 	auto tableTail10 = tableFromArrays({arrayTail10}, {"a"});
+	auto [filteredVTail10] = toVectors<std::optional<int64_t>>(*filter(tableTail10, jsonQuery));
+	BOOST_CHECK_EQUAL_COLLECTIONS(expectedTail10.begin(), expectedTail10.end(), filteredVTail10.begin(), filteredVTail10.end());
 
 }
 
