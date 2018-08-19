@@ -104,25 +104,41 @@ BOOST_AUTO_TEST_CASE(HelperConversionFunctions)
 	std::vector<int64_t> numbers;
 	std::vector<double> numbersD;
 	std::vector<std::string> numbersS;
+	std::vector<std::optional<double>> numbersOD;
+	std::vector<std::optional<std::string>> numbersOS;
 
 	for(int i = 0; i < 50; i++) 
 	{
 		numbers.push_back(i);
 		numbersD.push_back(i);
+		if(i % 5)
+			numbersOD.push_back(i);
+		else
+			numbersOD.push_back(std::nullopt);
 	}
 
 	for(int i = 0; i < 40; i++) 
+	{
 		numbersS.push_back(std::to_string(i));
+		if(i % 5)
+			numbersOS.push_back(std::to_string(i));
+		else
+			numbersOS.push_back(std::nullopt);
+	}
 
 	auto numbersArray = toArray(numbers);
 	auto numbersDArray = toArray(numbersD);
 	auto numbersSArray = toArray(numbersS);
+	auto numbersODArray = toArray(numbersOD);
+	auto numbersOSArray = toArray(numbersOS);
 
-	auto table = tableFromArrays({numbersArray, numbersDArray, numbersSArray});
-	auto [retI, retD, retS] = toVectors<int64_t, double, std::string>(*table);
+	auto table = tableFromArrays({numbersArray, numbersDArray, numbersSArray, numbersODArray, numbersOSArray});
+	auto [retI, retD, retS, retOD, retOS] = toVectors<int64_t, double, std::string, std::optional<double>, std::optional<std::string>>(*table);
 	BOOST_CHECK(retI == numbers);
 	BOOST_CHECK(retD == numbersD);
 	BOOST_CHECK(retS == numbersS);
+	BOOST_CHECK(retOD == numbersOD);
+	BOOST_CHECK(retOS == numbersOS);
 }
  
 std::string get_file_contents(const char *filename)
@@ -146,8 +162,9 @@ struct FilteringFixture
 	std::vector<int64_t> a = {-1, 2, 3, -4, 5};
 	std::vector<double> b = {5, 10, 0, -10, -5};
 	std::vector<std::string> c = {"foo", "bar", "baz", "", "1"};
+	std::vector<std::optional<double>> d = {1, 2, std::nullopt, 4, std::nullopt};
 
-	std::shared_ptr<arrow::Table> table = tableFromArrays({toArray(a), toArray(b), toArray(c)}, {"a", "b", "c"});
+	std::shared_ptr<arrow::Table> table = tableFromArrays({toArray(a), toArray(b), toArray(c), toArray(d)}, {"a", "b", "c", "d"});
 
 	void testQuery(const char *jsonQuery, std::vector<int> expectedIndices)
 	{

@@ -248,13 +248,32 @@ std::vector<T> toVector(const arrow::Column &array)
     return toVector<T>(*array.data());
 }
 
+template<typename T> struct strip_optional                                    { using type = T; };
+template<typename T> struct strip_optional<std::optional<T>> : std::true_type { using type = T; };
+template<typename T>
+using strip_optional_t = typename strip_optional<T>::type;
+
+
+
 template<typename T>
 auto toArray(const std::vector<T> &elems)
 {
-    using BuilderT = typename TypeDescription<ValueTypeToId<T>()>::BuilderType;
+    using ValueT = strip_optional_t<T>;
+
+    using BuilderT = typename TypeDescription<ValueTypeToId<ValueT>()>::BuilderType;
     BuilderT builder;
     for(auto &&elem : elems)
-        builder.Append(elem);
+    {
+        if constexpr(is_optional_v<T>)
+        {
+            if(elem)
+                builder.Append(*elem);
+            else
+                builder.AppendNull();
+        }
+        else
+            builder.Append(elem);
+    }
 
     return finish(builder);
 }
