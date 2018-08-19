@@ -446,12 +446,18 @@ BOOST_FIXTURE_TEST_CASE(FilterSimpleCase, FilteringFixture)
 BOOST_AUTO_TEST_CASE(FilterWithNulls)
 {
 	std::vector<std::optional<int64_t>> ints;
+	std::vector<std::optional<std::string>> strings;
 	for(int i = 0; i < 256; i++)
 	{
 		if(i % 3)
 			ints.push_back(i);
 		else
 			ints.push_back(std::nullopt);
+
+		if(i % 7)
+			strings.push_back(std::to_string(i));
+		else
+			strings.push_back(std::nullopt);
 	}
 
 
@@ -467,8 +473,9 @@ BOOST_AUTO_TEST_CASE(FilterWithNulls)
 		}
 	}
 
-	auto array = toArray(ints);
-	auto arrayTail10 = array->Slice(246);
+	auto arrayI = toArray(ints);
+	auto arrayS = toArray(strings);
+	auto arrayTail10 = arrayI->Slice(246);
 
 	const auto jsonQuery = R"(
 			{
@@ -487,8 +494,8 @@ BOOST_AUTO_TEST_CASE(FilterWithNulls)
 					] 
 			})";
 
-	auto table = tableFromArrays({array}, {"a"});
-	auto [filteredV] = toVectors<std::optional<int64_t>>(*filter(table, jsonQuery));
+	auto table = tableFromArrays({arrayI, arrayS}, {"a", "b"});
+	auto [filteredV, filteredS] = toVectors<std::optional<int64_t>, std::optional<std::string>>(*filter(table, jsonQuery));
 
 
 	BOOST_CHECK_EQUAL_COLLECTIONS(expected.begin(), expected.end(), filteredV.begin(), filteredV.end());

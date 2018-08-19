@@ -172,7 +172,7 @@ struct FilteredArrayBuilder
                     }
                     else
                     {
-                        arrow::BitUtil::ClearBit(nullData, addedCount++);
+                        arrow::BitUtil::ClearBit(nullData, addedCount);
                     }
                     offsetsData[++addedCount] = currentOffset;
                 }
