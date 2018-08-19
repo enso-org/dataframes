@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON) 
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # decide on subdirectory name within native_libs
 if(WIN32)
@@ -109,7 +109,7 @@ file(GLOB_RECURSE PLOTTER_SRC_FILES    ${PROJECT_SOURCE_DIR}/../plotter/*.cpp)
 
 add_library(DataframePlotter SHARED ${PLOTTER_HEADER_FILES} ${PLOTTER_SRC_FILES})
 
-find_package(PythonLibs 2.7)
+find_package(PythonLibs 3.6)
 target_include_directories(DataframePlotter PRIVATE ${PYTHON_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/../third-party/matplotlib-cpp)
 
 target_link_libraries(DataframePlotter ${PROJECT_NAME} ${PYTHON_LIBRARIES})

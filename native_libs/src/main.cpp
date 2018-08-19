@@ -16,7 +16,6 @@
 #include "IO/IO.h"
 #include "IO/XLSX.h"
 
-
 #include <arrow/array.h>
 #include <arrow/buffer.h>
 #include <arrow/record_batch.h>
@@ -38,7 +37,7 @@ using namespace std;
 
 template<typename ...Ts> struct TypeList {};
 
-using Types = TypeList<int32_t, int64_t, float, double>; 
+using Types = TypeList<int32_t, int64_t, float, double>;
 
 struct UInt8  { static constexpr arrow::Type::type id = arrow::Type::UINT8 ; };
 struct UInt16 { static constexpr arrow::Type::type id = arrow::Type::UINT16; };
@@ -333,7 +332,7 @@ extern "C"
         };
     }
 
-    // NOTE: needs release 
+    // NOTE: needs release
     // (shallow view)
     EXPORT arrow::Buffer *bufferSlice(arrow::Buffer *buffer, int64_t start, int64_t byteCount, const char **outError) noexcept
     {
@@ -347,7 +346,7 @@ extern "C"
         };
     }
 
-    // NOTE: needs release 
+    // NOTE: needs release
     // (deep copy)
     EXPORT arrow::Buffer *bufferCopy(arrow::Buffer *buffer, int64_t start, int64_t byteCount, const char **outError) noexcept
     {
@@ -443,7 +442,7 @@ extern "C"
 
     // arrow::Array subclasses are needed to obtain specific elements or access
     // raw values buffer. We use macro to generate method for each supported type.
-    // 
+    //
     // This is likely the best we can do when building C language API.
 
 #define NUMERIC_ARRAY_METHODS(TYPENAME)                                                                                                  \
@@ -481,11 +480,11 @@ extern "C"
     // string array uses somewhat different interface than numeric -- and needs a special method thereof
     // TODO should an actual array subtype be required? generally speaking having right data in array should be enough
     EXPORT const char * arrayStringValueAt(arrow::Array *array, int64_t index, const char **outError) noexcept
-    {                                                                                                         
-        LOG("[{}]", index);                                                                                   
-        /* NOTE: needs release */                                                                             
-        return TRANSLATE_EXCEPTION(outError)                                                                  
-        {                                                                                                     
+    {
+        LOG("[{}]", index);
+        /* NOTE: needs release */
+        return TRANSLATE_EXCEPTION(outError)
+        {
             validateIndex(*array, index);
             return returnString(asSpecificArray<String>(array)->GetString(index));
         };
@@ -588,7 +587,7 @@ extern "C"
                     if(!chunksCollected.front()->type()->Equals(chunksCollected.back()->type()))
                     {
                         std::ostringstream msg;
-                        auto writeTypeAt = [&] (int index) 
+                        auto writeTypeAt = [&] (int index)
                         {
                             msg << "at " << index << " the chunk type is " << chunksCollected.at(index)->type()->ToString();
                         };
@@ -1014,7 +1013,7 @@ arrow::Table *readTableFromCSVFileContentsHelper(std::string data, const char **
     const auto headerPolicy = headerPolicyFromC(columnNamesPolicy, columnNames);
     const auto types = columnTypesFromC(columnTypeInfoCount, columnTypes, columnIsNullableTypes);
 
-    auto csv = parseCsvData(std::move(data)); 
+    auto csv = parseCsvData(std::move(data));
     auto table = csvToArrowTable(csv, headerPolicy, types);
     LOG("table has size {}x{}", table->num_columns(), table->num_rows());
     return LifetimeManager::instance().addOwnership(table);
@@ -1031,7 +1030,7 @@ extern "C"
         {
             // assume csv
             // TODO deduce separators
-            auto csv = parseCsvFile(filename); 
+            auto csv = parseCsvFile(filename);
             auto table = csvToArrowTable(csv, TakeFirstRowAsHeaders{}, {});
             return LifetimeManager::instance().addOwnership(table);
         };
@@ -1139,3 +1138,4 @@ extern "C"
         };
     }
 }
+
