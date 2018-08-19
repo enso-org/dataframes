@@ -130,16 +130,22 @@ void iterateOverGeneric(const arrow::Array &array, ElementF &&handleElem, NullF 
 }
 
 template <typename ElementF, typename NullF>
-void iterateOverGeneric(const arrow::Column &column, ElementF &&handleElem, NullF &&handleNull)
+void iterateOverGeneric(const arrow::ChunkedArray &array, ElementF &&handleElem, NullF &&handleNull)
 {
-    const auto t = column.field()->type();
+    const auto t = array.type();
     switch(t->id())
     {
-    case arrow::Type::INT64 : return iterateOver<arrow::Type::INT64 >(*column.data(), handleElem, handleNull);
-    case arrow::Type::DOUBLE: return iterateOver<arrow::Type::DOUBLE>(*column.data(), handleElem, handleNull);
-    case arrow::Type::STRING: return iterateOver<arrow::Type::STRING>(*column.data(), handleElem, handleNull);
+    case arrow::Type::INT64 : return iterateOver<arrow::Type::INT64 >(array, handleElem, handleNull);
+    case arrow::Type::DOUBLE: return iterateOver<arrow::Type::DOUBLE>(array, handleElem, handleNull);
+    case arrow::Type::STRING: return iterateOver<arrow::Type::STRING>(array, handleElem, handleNull);
     default                 : throw  std::runtime_error(__FUNCTION__ + std::string(": not supported array type ") + t->ToString());
     }
+}
+
+template <typename ElementF, typename NullF>
+void iterateOverGeneric(const arrow::Column &column, ElementF &&handleElem, NullF &&handleNull)
+{
+    return iterateOverGeneric(*column.data(), handleElem, handleNull);
 }
 
 inline void checkStatus(const arrow::Status &status)
