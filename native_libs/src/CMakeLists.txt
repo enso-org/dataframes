@@ -26,6 +26,11 @@ endif()
 
 project(DataframeHelper)
 
+find_package(Boost 1.62.0)
+if(NOT Boost_FOUND)
+    message(WARNING "Cannot find Boost library headers")
+endif()
+
 find_path(RAPIDJSON_INCLUDE rapidjson/document.h)
 if(NOT RAPIDJSON_INCLUDE)
     message(WARNING "Cannot find rapidjson include dir with rapidjson/document.h. If it is present, consider setting CMAKE_PREFIX_PATH or CMAKE_INCLUDE_PATH.")
@@ -71,6 +76,7 @@ add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SRC_FILES})
 
 # Includes path: project root, arrow, third-party any-lite
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR} ${ARROW_INCLUDE} ${PROJECT_SOURCE_DIR}/../third-party/any-lite ${PROJECT_SOURCE_DIR}/../third-party/variant ${RAPIDJSON_INCLUDE})
+target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS}})
 
 if(XLNT_LIBRARY AND XLNT_INCLUDE)
     target_include_directories(${PROJECT_NAME} PRIVATE ${XLNT_INCLUDE})
@@ -105,8 +111,6 @@ add_executable(DataframePlotter ${PLOTTER_HEADER_FILES} ${PLOTTER_SRC_FILES})
 
 find_package(PythonLibs 2.7)
 target_include_directories(DataframePlotter PRIVATE ${PYTHON_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/../third-party/matplotlib-cpp)
-
-message(WARNING "PYTHON lib" ${PYTHON_LIBRARIES})
 
 target_link_libraries(DataframePlotter ${PROJECT_NAME} ${PYTHON_LIBRARIES})
 target_compile_definitions(DataframePlotter PRIVATE WITHOUT_NUMPY)

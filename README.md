@@ -6,6 +6,7 @@ This project is a library with dataframes implementation. Dataframes are structu
 ## Third-party dependencies
 Required dependencies:
 * [Apache Arrow](https://arrow.apache.org/) — from it [C++ library](https://github.com/apache/arrow/tree/master/cpp) component must be installed
+* [Boost C++ Libraries](https://www.boost.org/) — also required by Apache Arrow.
 * [RapidJSON](https://github.com/Tencent/rapidjson) — needed for LQuery processing
 * C++ build tools:
     * [CMake](https://cmake.org/) — cross-platform build tool for C++ used by the C++ helper and all its dependencies.

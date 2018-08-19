@@ -272,7 +272,7 @@ using namespace std::literals;
 
 
     template<typename Operation, typename ... Operands>
-    __declspec(noinline) auto exec(int64_t count, const Operands & ...operands)
+    auto exec(int64_t count, const Operands & ...operands)
     {
         using OperationResult = decltype(Operation::exec(getValue(operands, 0)...));
 
