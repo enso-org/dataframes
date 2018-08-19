@@ -90,3 +90,21 @@ struct is_optional<std::optional<T>> : std::true_type {};
 
 template<typename T>
 constexpr bool is_optional_v = is_optional<T>::value;
+
+namespace std
+{
+    inline std::ostream &operator<<(std::ostream &out, std::nullopt_t)
+    {
+        return out << "[none]";
+    }
+
+    template<typename T>
+    inline std::ostream &operator<<(std::ostream &out, const std::optional<T> &opt)
+    {
+        if(opt)
+            return out << *opt;
+        else
+            return out << std::nullopt;
+    }
+}
+

@@ -26,7 +26,7 @@ namespace ast
 
     enum class ValueOperator
     {
-        Plus, Minus, Times, Divide, 
+        Plus, Minus, Times, Divide, Modulo,
         Negate
     };
 

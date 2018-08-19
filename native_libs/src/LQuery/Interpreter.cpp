@@ -198,6 +198,22 @@ using namespace std::literals;
     struct Minus       { BINARY_ARIT_OPERATOR(-); FAIL_ON_STRING(int64_t); };
     struct Times       { BINARY_ARIT_OPERATOR(*); FAIL_ON_STRING(int64_t); };
     struct Divide      { BINARY_ARIT_OPERATOR(/); FAIL_ON_STRING(int64_t); };
+    struct Modulo      
+    {
+        static constexpr int64_t exec(const int64_t &lhs, const int64_t &rhs)
+        {
+            return lhs % rhs;
+        }
+        static double exec(const double &lhs, const double &rhs)
+        {
+            return std::fmod(lhs, rhs);
+        }
+        template<typename Lhs, typename Rhs>
+        static int64_t exec(const Lhs &lhs, const Rhs &rhs)
+        {
+            COMPLAIN_ABOUT_OPERAND_TYPES;
+        }
+    };
     struct Negate
     {
         template<typename Lhs>
@@ -352,6 +368,7 @@ struct Interpreter
                     VALUE_BINARY_OP(Minus);
                     VALUE_BINARY_OP(Times);
                     VALUE_BINARY_OP(Divide);
+                    VALUE_BINARY_OP(Modulo);
                     VALUE_UNARY_OP(Negate);
                 default:
                     throw std::runtime_error("not implemented: value operator " + std::to_string((int)op.what));

@@ -162,7 +162,7 @@ struct FilteringFixture
 	std::vector<int64_t> a = {-1, 2, 3, -4, 5};
 	std::vector<double> b = {5, 10, 0, -10, -5};
 	std::vector<std::string> c = {"foo", "bar", "baz", "", "1"};
-	std::vector<std::optional<double>> d = {1, 2, std::nullopt, 4, std::nullopt};
+	std::vector<std::optional<double>> d = {1.0, 2.0, std::nullopt, 4.0, std::nullopt};
 
 	std::shared_ptr<arrow::Table> table = tableFromArrays({toArray(a), toArray(b), toArray(c), toArray(d)}, {"a", "b", "c", "d"});
 
@@ -179,12 +179,14 @@ struct FilteringFixture
 		auto expectedA = expected(a);
 		auto expectedB = expected(b);
 		auto expectedC = expected(c);
+		auto expectedD = expected(d);
 
 		const auto filteredTable = filter(table, jsonQuery);
-		auto[a2, b2, c2] = toVectors<int64_t, double, std::string>(*filteredTable);
+		auto[a2, b2, c2, d2] = toVectors<int64_t, double, std::string, std::optional<double>>(*filteredTable);
 		BOOST_CHECK(a2 == expectedA);
 		BOOST_CHECK(b2 == expectedB);
 		BOOST_CHECK(c2 == expectedC);
+		BOOST_CHECK(d2 == expectedD);
 	}
 
 	template<typename T>
@@ -441,6 +443,52 @@ BOOST_FIXTURE_TEST_CASE(FilterSimpleCase, FilteringFixture)
 	}
 }
 
+BOOST_AUTO_TEST_CASE(SimpleFilterWithNulls)
+{
+	std::vector<std::optional<int64_t>> ints;
+	for(int i = 0; i < 256; i++)
+	{
+		if(i % 3)
+			ints.push_back(i);
+		else
+			ints.push_back(std::nullopt);
+	}
+
+
+	std::vector<int64_t> expected;
+	for(int i = 0; i < 256; i++)
+		if(i % 3  &&  (i % 2 == 0))
+			expected.push_back(i);
+
+	auto array = toArray(ints);
+	auto arrayTail10 = array->Slice(246);
+
+	const auto jsonQuery = R"(
+			{
+				"predicate": "eq", 
+				"arguments": 
+					[ 
+						{
+							"operation": "mod", 
+							"arguments": 
+							[ 
+								{"column": "a"},
+								2
+							] 
+						},
+						0
+					] 
+			})";
+
+	auto table = tableFromArrays({array}, {"a"});
+	auto [filteredV] = toVectors<std::optional<int64_t>>(*filter(table, jsonQuery));
+
+
+	BOOST_CHECK_EQUAL_COLLECTIONS(expected.begin(), expected.end(), filteredV.begin(), filteredV.end());
+
+	auto tableTail10 = tableFromArrays({arrayTail10}, {"a"});
+
+}
 
 BOOST_AUTO_TEST_CASE(FilterBigFile0)
 {

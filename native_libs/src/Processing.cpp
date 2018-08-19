@@ -54,8 +54,8 @@ struct FilteredArrayBuilder
         nullData = bitmask->mutable_data();
         valueData = reinterpret_cast<T*>(values->mutable_data());
 
-        std::memset(valueData, 0xFF, maskByteCount);
-        const auto lastByte = 0xFF >> (length % 8);
+        std::memset(nullData, 0xFF, maskByteCount);
+        const auto lastByte = 0xFF >> (8 - length % 8);
         if(lastByte) // exception would be 0, if length is multiple of 8 - then we don't touch the mask
             *(nullData + maskByteCount - 1) = lastByte;
     }

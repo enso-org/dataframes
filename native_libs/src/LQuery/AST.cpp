@@ -185,6 +185,7 @@ namespace ast
             {"minus" , ValueOperator::Minus },
             {"times" , ValueOperator::Times },
             {"divide", ValueOperator::Divide},
+            {"mod",    ValueOperator::Modulo},
             {"negate", ValueOperator::Negate},
         };
 
