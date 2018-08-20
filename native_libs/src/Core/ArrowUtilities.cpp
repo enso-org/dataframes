@@ -1,5 +1,6 @@
 #include "ArrowUtilities.h"
 
+using namespace std::literals;
 
 std::shared_ptr<arrow::Table> tableFromArrays(std::vector<PossiblyChunkedArray> arrays, std::vector<std::string> names, std::vector<bool> nullables)
 {
@@ -39,6 +40,70 @@ std::shared_ptr<arrow::Table> tableFromArrays(std::vector<PossiblyChunkedArray> 
     return arrow::Table::Make(schema, std::move(columns));
 }
 
+DynamicField arrayAt(const arrow::Array &array, int64_t index)
+{
+    return visitArray(array, [&](auto *array) -> DynamicField
+    {
+        if(array->IsValid(index))
+            return arrayValueAt(*array, index);
+        else
+            return std::nullopt;
+    });
+}
+
+DynamicField arrayAt(const arrow::ChunkedArray &array, int64_t index)
+{
+    auto [chunk, indexInChunk] = locateChunk(array, index);
+    return arrayAt(*chunk, indexInChunk);
+}
+
+DynamicField arrayAt(const arrow::Column &column, int64_t index)
+{
+    return arrayAt(*column.data(), index);
+}
+
+std::pair<std::shared_ptr<arrow::Array>, int64_t> locateChunk(const arrow::ChunkedArray &chunkedArray, int64_t index)
+{
+    validateIndex(chunkedArray, index);
+
+    int64_t i = index;
+    for(auto &chunk : chunkedArray.chunks())
+    {
+        if(i < chunk->length())
+            return {chunk, i};
+
+        i -= chunk->length();
+    }
+
+    throw std::runtime_error(__FUNCTION__ + ": unexpected failure"s);
+}
+
+std::vector<DynamicField> rowAt(const arrow::Table &table, int64_t index)
+{
+    std::vector<DynamicField> ret;
+    for(int i = 0; i < table.num_columns(); i++)
+    {
+        auto column = table.column(i);
+        ret.push_back(arrayAt(*column, index));
+    }
+    return ret;
+}
+
+void validateIndex(const arrow::Array &array, int64_t index)
+{
+    validateIndex(array.length(), index);
+}
+
+void validateIndex(const arrow::ChunkedArray &array, int64_t index)
+{
+    validateIndex(array.length(), index);
+}
+
+void validateIndex(const arrow::Column &column, int64_t index)
+{
+    validateIndex(column.length(), index);
+}
+
 BitmaskGenerator::BitmaskGenerator(int64_t length, bool initialValue) : length(length)
 {
     auto bytes = arrow::BitUtil::BytesForBits(length);
@@ -46,6 +111,11 @@ BitmaskGenerator::BitmaskGenerator(int64_t length, bool initialValue) : length(l
     data = buffer->mutable_data();
     std::memset(data, initialValue ? 0xFF : 0, bytes);
     // TODO: above sets by bytes, the last byte should have only part of bits set
+}
+
+bool BitmaskGenerator::get(int64_t index)
+{
+    return arrow::BitUtil::GetBit(data, index);
 }
 
 void BitmaskGenerator::set(int64_t index)

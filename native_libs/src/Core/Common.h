@@ -109,3 +109,4 @@ namespace std
     }
 }
 
+void validateIndex(const size_t size, int64_t index);

@@ -315,7 +315,7 @@ struct Interpreter
             throw std::runtime_error("not implemented: processing of chunked arrays");
 
         const auto chunkPtr = data->chunk(0).get();
-        return visitArray(chunkPtr, [] (auto *array) -> Field
+        return visitArray(*chunkPtr, [] (auto *array) -> Field
         {
             using ArrowType = typename std::remove_pointer_t<decltype(array)>::TypeClass;
             using T = typename TypeDescription<ArrowType::type_id>::ValueType;

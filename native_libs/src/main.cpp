@@ -61,16 +61,6 @@ auto asSpecificArray(arrow::Array *array)
     return throwingDowncastArray<TypeTag::id>(array);
 }
 
-void validateIndex(arrow::Array *array, int64_t index)
-{
-    if(index < 0 || index >= array->length())
-    {
-        std::ostringstream out;
-        out << "wrong index " << index << " when array length is " << array->length();
-        throw std::out_of_range{ out.str() };
-    }
-}
-
 template<typename T>
 void validateIndex(const std::vector<T> &array, int64_t index)
 {
@@ -78,16 +68,6 @@ void validateIndex(const std::vector<T> &array, int64_t index)
     {
         std::ostringstream out;
         out << "wrong index " << index << " when array length is " << array.size();
-        throw std::out_of_range{ out.str() };
-    }
-}
-
-void validateIndex(const size_t size, int64_t index)
-{
-    if(index < 0 || index >= (int64_t)size)
-    {
-        std::ostringstream out;
-        out << "wrong index " << index << " when array length is " << size;
         throw std::out_of_range{ out.str() };
     }
 }
@@ -465,7 +445,7 @@ extern "C"
         /* NOTE: needs release */                                                                                                        \
         return TRANSLATE_EXCEPTION(outError)                                                                                             \
         {                                                                                                                                \
-            validateIndex(array, index);                                                                                                 \
+            validateIndex(*array, index);                                                                                                 \
             return asSpecificArray<TYPENAME>(array)->Value(index);                                                                       \
         };                                                                                                                               \
     }                                                                                                                                    \
@@ -498,7 +478,7 @@ extern "C"
         /* NOTE: needs release */                                                                             
         return TRANSLATE_EXCEPTION(outError)                                                                  
         {                                                                                                     
-            validateIndex(array, index);
+            validateIndex(*array, index);
             return returnString(asSpecificArray<String>(array)->GetString(index));
         };
     }
@@ -554,7 +534,7 @@ extern "C"
         LOG("@{}", (void*)array);
         return TRANSLATE_EXCEPTION(outError)
         {
-            validateIndex(array, index);
+            validateIndex(*array, index);
             return array->IsNull(index);
         };
     }

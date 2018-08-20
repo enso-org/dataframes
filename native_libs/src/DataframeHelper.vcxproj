@@ -85,6 +85,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Core\ArrowUtilities.cpp" />
+    <ClCompile Include="Core\Common.cpp" />
     <ClCompile Include="Core\Error.cpp" />
     <ClCompile Include="Core\Logger.cpp" />
     <ClCompile Include="Core\Utils.cpp" />

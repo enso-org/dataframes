@@ -483,6 +483,7 @@ BOOST_AUTO_TEST_CASE(FilterWithNulls)
 	auto arrayS = toArray(strings);
 	auto arrayTail10 = arrayI->Slice(246);
 
+	// query: a%2 == 0
 	const auto jsonQuery = R"(
 			{
 				"predicate": "eq", 
@@ -528,9 +529,6 @@ BOOST_AUTO_TEST_CASE(FilterWithNulls)
 	auto [filtered2I, filtered2S, filtered2AI] = toVectors<std::optional<int64_t>, std::optional<std::string>, std::optional<int64_t>>(*filter(table2, jsonQuery));
 
 	BOOST_CHECK_EQUAL_COLLECTIONS(expectedI.begin(), expectedI.end(), filtered2AI.begin(), filtered2AI.end());
-	//arrow::Column(chunkedInts)
-
-
 }
 
 BOOST_AUTO_TEST_CASE(FilterBigFile0)
@@ -582,6 +580,28 @@ BOOST_AUTO_TEST_CASE(FilterBigFile1)
 		});
 	}
 	std::cout<<"";
+}
+
+BOOST_AUTO_TEST_CASE(DropNABigFile)
+{
+	auto csv = parseCsvFile("F:/dev/csv/application_train.csv");
+	auto table = csvToArrowTable(std::move(csv), TakeFirstRowAsHeaders{}, {});
+
+	auto table2 = dropNA(table);
+
+	auto row = rowAt(*table, 307'407);
+
+	{
+		std::ofstream out{ "trained_filtered_nasze.csv" };
+		if(!out)
+			throw std::runtime_error("Cannot write to file ");
+		generateCsv(out, *table2, GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy::QuoteWhenNeeded);
+	}
+
+	measure("drop NA from application_train", 5000, [&]
+	{
+		auto table2 = dropNA(table);
+	});
 }
 
 BOOST_AUTO_TEST_CASE(FilterBigFile)

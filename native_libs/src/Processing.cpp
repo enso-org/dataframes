@@ -185,11 +185,6 @@ struct FilteredArrayBuilder
             // So we need to take care for leading and trailing elements.
             const auto initialBitIndex = initiallyProcessed % 8;
             const auto leadingElementCount = std::min(N, (8 - initialBitIndex)) % 8;
-//             {
-//                 const auto i = processedCount % 8;
-//                 const auto leadingBits = i ? 8 - i : 0; 
-// 
-//             }
             const auto fullBytesOfMask = (N - leadingElementCount) / 8;
             const auto fullByteEncodedElementCount = fullBytesOfMask * 8;
             const auto trailingElementCount = N - leadingElementCount - fullByteEncodedElementCount;
@@ -242,7 +237,6 @@ struct FilteredArrayBuilder
                     ++processedCount;
                 }
             }
-
         }
     }
 
@@ -280,30 +274,50 @@ struct FilteredArrayBuilder
     }
 };
 
+std::shared_ptr<arrow::Table> dropNA(std::shared_ptr<arrow::Table> table, std::vector<int> columnIndices)
+{
+    BitmaskGenerator bitmask{table->num_rows(), true};
+    for(auto columnIndex : columnIndices)
+    {
+        auto column = table->column(columnIndex);
+        if(column->null_count() == 0)
+            continue;
+
+        int64_t row = 0;
+        iterateOverGeneric(*column,
+            [&] (auto&&) { row++;                },
+            [&] ()       { bitmask.clear(row++); });
+    }
+
+    return filter(table, *bitmask.buffer);
+}
+
+std::shared_ptr<arrow::Table> dropNA(std::shared_ptr<arrow::Table> table)
+{
+    std::vector<int> columnIndices;
+    for(int i = 0; i < table->num_columns(); i++)
+        columnIndices.push_back(i);
+
+    return dropNA(table, columnIndices);
+}
+
 std::shared_ptr<arrow::Table> filter(std::shared_ptr<arrow::Table> table, const char *dslJsonText)
 {
     auto [mapping, predicate] = ast::parsePredicate(*table, dslJsonText);
-    const auto mask = execute(*table, predicate, mapping);
-    const unsigned char * const maskBuffer = mask->data();
+    const auto maskBuffer = execute(*table, predicate, mapping);
+    return filter(table, *maskBuffer);
+}
 
+std::shared_ptr<arrow::Table> filter(std::shared_ptr<arrow::Table> table, const arrow::Buffer &maskBuffer)
+{
+    const unsigned char * const maskData = maskBuffer.data();
     const auto oldRowCount = table->num_rows();
+
     int newRowCount = 0;
     for(int i = 0; i < oldRowCount; i++)
-        newRowCount += arrow::BitUtil::GetBit(maskBuffer, i);
-    //const int64_t newRowCount = std::accumulate(maskBuffer, maskBuffer + oldRowCount, std::int64_t{});
-    
+        newRowCount += arrow::BitUtil::GetBit(maskData, i);
+
     std::vector<std::shared_ptr<arrow::Column>> newColumns;
-
-
-//     auto bufferN = arrow::BitUtil::BytesForBits(oldRowCount);
-//     auto buffer = allocateBuffer<uint8_t>(bufferN);
-//     auto bd = buffer->mutable_data();
-//     std::memset(bd, 0, bufferN);
-//     for(int i = 0; i < oldRowCount; i++)
-//     {
-//         if(maskBuffer[i])
-//             arrow::BitUtil::SetBit(buffer->mutable_data(), i);
-//     }
 
     for(int columnIndex = 0; columnIndex < table->num_columns(); columnIndex++)
     {
@@ -313,61 +327,14 @@ std::shared_ptr<arrow::Table> filter(std::shared_ptr<arrow::Table> table, const 
             const auto t = column->type();
             switch(t->id())
             {
-            case arrow::Type::INT64 : return FilteredArrayBuilder<arrow::Type::INT64>::makeFiltered(maskBuffer, newRowCount, *column);
-            case arrow::Type::DOUBLE: return FilteredArrayBuilder<arrow::Type::DOUBLE>::makeFiltered(maskBuffer, newRowCount, *column);
-            case arrow::Type::STRING: return FilteredArrayBuilder<arrow::Type::STRING>::makeFiltered(maskBuffer, newRowCount, *column);
+            case arrow::Type::INT64 : return FilteredArrayBuilder<arrow::Type::INT64 >::makeFiltered(maskData, newRowCount, *column);
+            case arrow::Type::DOUBLE: return FilteredArrayBuilder<arrow::Type::DOUBLE>::makeFiltered(maskData, newRowCount, *column);
+            case arrow::Type::STRING: return FilteredArrayBuilder<arrow::Type::STRING>::makeFiltered(maskData, newRowCount, *column);
             default                 : throw  std::runtime_error(__FUNCTION__ + std::string(": not supported array type ") + t->ToString());
             }
         }();
         newColumns.push_back(filteredColumn);
-
-// 
-//         // TODO handle zero chunks?
-//         // TODO handle more chunks
-//         const auto chunk = column->data()->chunk(0);
-// 
-// 
-//         visitArray(chunk.get(), [&](auto *array) 
-//         {
-//             using TD = ArrayTypeDescription<std::remove_pointer_t<decltype(array)>>;
-//             using T = typename TD::ValueType;
-// 
-//             if constexpr(std::is_scalar_v<T>)
-//             {
-// //                   measure("inner", 100000, [&]
-// //                   {
-//                     constexpr auto idd = std::is_same_v<T, int64_t> ? arrow::Type::INT64 : arrow::Type::DOUBLE;
-//                     FilteredArrayBuilder<idd> fab{newRowCount, mask->data()};
-//                     if(newRowCount)
-//                         fab.add(*chunk);
-//                     newColumns.push_back(fab.finish());
-// //                  });
-//             }
-//             else
-//             {
-//                 const auto stringSource = static_cast<const arrow::StringArray *>(array);
-//                 arrow::StringBuilder builder;
-// 
-//                 int32_t lengthBuffer;
-// 
-//                 for(int64_t sourceItr = 0; sourceItr < oldRowCount; sourceItr++)
-//                 {
-//                     if(arrow::BitUtil::GetBit(maskBuffer, sourceItr))
-//                     {
-//                         auto ptr = stringSource->GetValue(sourceItr, &lengthBuffer);
-//                         if(array->IsNull(sourceItr))
-//                             builder.AppendNull();
-//                         else
-//                             builder.Append(ptr, lengthBuffer);
-//                     }
-//                 }
-// 
-//                 newColumns.push_back(finish(builder));
-//             }
-//         });
-// 
-// 
-     }
+    }
 
     return arrow::Table::Make(table->schema(), newColumns);
 }

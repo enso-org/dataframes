@@ -67,7 +67,10 @@ struct ColumnBuilder
     {
         if constexpr(type == arrow::Type::STRING)
         {
-            checkStatus(builder.Append(field.data(), (int32_t)field.size()));
+            if(field.size())
+                checkStatus(builder.Append(field.data(), (int32_t)field.size()));
+            else
+               addMissing(); 
         }
         else
         {
@@ -174,7 +177,7 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
     for(int column = 0; column < csv.fieldCount; column++)
     {
         const auto typeInfo = columnTypes.at(column);
-        const auto missingFieldsPolicy = typeInfo.nullable ? MissingField::AsNull : MissingField::AsZeroValue;
+        const auto missingFieldsPolicy = (typeInfo.deduced || typeInfo.nullable) ? MissingField::AsNull : MissingField::AsZeroValue;
         auto processColumn = [&] (auto &&builder)
         {
             builder.reserve(csv.recordCount);

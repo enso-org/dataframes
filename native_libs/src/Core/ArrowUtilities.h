@@ -63,14 +63,30 @@ template<> struct TypeDescription<arrow::Type::STRING>
     using OffsetType = int32_t;
 };
 
+template<typename Array>
+using ArrayTypeDescription = TypeDescription<std::decay_t<std::remove_pointer_t<Array>>::TypeClass::type_id>;
+
 template <arrow::Type::type type>
-auto arrayAt(const arrow::Array &array, int64_t index)
+auto arrayValueAt(const arrow::Array &array, int64_t index)
 {
     const auto &arr = static_cast<const typename TypeDescription<type>::Array &>(array);
     if constexpr(type == arrow::Type::STRING)
         return arr.GetString(index);
     else
         return arr.Value(index);
+}
+
+template <typename Array>
+auto arrayValueAt(const Array &array, int64_t index)
+{
+    if constexpr(std::is_same_v<arrow::StringArray, Array>)
+    {
+        int32_t length = 0;
+        auto ptr = array.GetValue(index, &length);
+        return std::string_view(reinterpret_cast<const char *>(ptr), length);
+    }
+    else
+        return array.Value(index);
 }
 
 template <arrow::Type::type type, typename ElementF, typename NullF>
@@ -84,7 +100,7 @@ void iterateOver(const arrow::Array &array, ElementF &&handleElem, NullF &&handl
     if(nullCount == 0)
     {
         for(int64_t row = 0; row < N; row++)
-            handleElem(arrayAt<type>(array, row));
+            handleElem(arrayValueAt<type>(array, row));
     }
     else if(nullCount == N)
     {
@@ -97,7 +113,7 @@ void iterateOver(const arrow::Array &array, ElementF &&handleElem, NullF &&handl
         {
             if(!array.IsNull(row))
             {
-                handleElem(arrayAt<type>(array, row));
+                handleElem(arrayValueAt<type>(array, row));
             }
             else
             {
@@ -186,15 +202,14 @@ auto staticDowncastArray(const arrow::Array *array)
 }
 
 template<typename Function>
-auto visitArray(const arrow::Array *array, Function &&f)
+auto visitArray(const arrow::Array &array, Function &&f)
 {
-    assert(array);
-    switch(array->type_id())
+    switch(array.type_id())
     {
-    case arrow::Type::INT64 : return f(staticDowncastArray<arrow::Type::INT64 >(array));
-    case arrow::Type::DOUBLE: return f(staticDowncastArray<arrow::Type::DOUBLE>(array));
-    case arrow::Type::STRING: return f(staticDowncastArray<arrow::Type::STRING>(array));
-    default: throw std::runtime_error("array type not supported to downcast: " + array->type()->ToString());
+    case arrow::Type::INT64 : return f(staticDowncastArray<arrow::Type::INT64 >(&array));
+    case arrow::Type::DOUBLE: return f(staticDowncastArray<arrow::Type::DOUBLE>(&array));
+    case arrow::Type::STRING: return f(staticDowncastArray<arrow::Type::STRING>(&array));
+    default: throw std::runtime_error("array type not supported to downcast: " + array.type()->ToString());
     }
 }
 
@@ -215,9 +230,6 @@ std::shared_ptr<arrow::Buffer> allocateBuffer(size_t length)
     checkStatus(arrow::AllocateBuffer(length * sizeof(T), &ret));
     return ret;
 }
-
-template<typename Array>
-using ArrayTypeDescription = TypeDescription<std::remove_pointer_t<Array>::TypeClass::type_id>;
 
 template<typename T>
 void toVector(std::vector<T> &out, const arrow::Array &array)
@@ -322,6 +334,7 @@ struct EXPORT BitmaskGenerator
 
     BitmaskGenerator(int64_t length, bool initialValue);
 
+    bool get(int64_t index);
     void set(int64_t index);
     void clear(int64_t index);
 };
@@ -329,3 +342,18 @@ struct EXPORT BitmaskGenerator
 using PossiblyChunkedArray = std::variant<std::shared_ptr<arrow::Array>, std::shared_ptr<arrow::ChunkedArray>>;
 
 EXPORT std::shared_ptr<arrow::Table> tableFromArrays(std::vector<PossiblyChunkedArray> arrays, std::vector<std::string> names = {}, std::vector<bool> nullables = {});
+
+using DynamicField = std::variant<int64_t, double, std::string_view, std::nullopt_t>;
+
+EXPORT DynamicField arrayAt(const arrow::Array &array, int64_t index);
+EXPORT DynamicField arrayAt(const arrow::ChunkedArray &array, int64_t index);
+EXPORT DynamicField arrayAt(const arrow::Column &column, int64_t index);
+
+EXPORT std::pair<std::shared_ptr<arrow::Array>, int64_t> locateChunk(const arrow::ChunkedArray &chunkedArray, int64_t index);
+
+EXPORT std::vector<DynamicField> rowAt(const arrow::Table &table, int64_t index);
+
+EXPORT void validateIndex(const arrow::Array &array, int64_t index);
+EXPORT void validateIndex(const arrow::ChunkedArray &array, int64_t index);
+EXPORT void validateIndex(const arrow::Column &column, int64_t index);
+
