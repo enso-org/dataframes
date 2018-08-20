@@ -274,7 +274,7 @@ struct FilteredArrayBuilder
     }
 };
 
-std::shared_ptr<arrow::Table> dropNA(std::shared_ptr<arrow::Table> table, std::vector<int> columnIndices)
+std::shared_ptr<arrow::Table> dropNA(std::shared_ptr<arrow::Table> table, const std::vector<int> &columnIndices)
 {
     BitmaskGenerator bitmask{table->num_rows(), true};
     for(auto columnIndex : columnIndices)

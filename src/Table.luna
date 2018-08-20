@@ -54,4 +54,9 @@ class Table:
         mapper = f TableHandle
         columnWrapper = self.ptr.eachToColumn name mapper
         Column.fromColumnWrapper columnWrapper
+    def dropNa:
+        self.fromWrapper $ self.ptr.dropNa
+    def dropNaAt columnName:
+        self.fromWrapper $ self.ptr.dropNaByName columnName
+
         

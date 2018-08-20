@@ -139,6 +139,14 @@ namespace
          }
          return types;
     };
+    template<typename T>
+    std::vector<T> vectorFromC(const T *vals, int32_t size)
+    {
+        std::vector<T> ret;
+        for(int i = 0; i < size; i++)
+            ret.push_back(vals[i]);
+        return ret;
+    }
 }
 
 extern "C"
@@ -957,6 +965,46 @@ extern "C"
             auto field = arrow::field(retName, chunk->type(), chunk->null_count());
             auto ret = std::make_shared<arrow::Column>(field, chunk);
             return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
+//     EXPORT arrow::Table *tableDropNABy(arrow::Table *table, const int32_t *indices, int32_t columnCount, const char **outError) noexcept
+//     {
+//         LOG("@{} column count={}", (void*)table, columnCount);
+//         return TRANSLATE_EXCEPTION(outError)
+//         {
+//             auto managedTable = LifetimeManager::instance().accessOwned(table);
+//             std::vector<int> indicesManaged = vectorFromC(indices, columnCount);
+//             auto ret = dropNA(managedTable, indicesManaged);
+//             return LifetimeManager::instance().addOwnership(ret);
+//         };
+//     }
+    EXPORT arrow::Table *tableDropNA(arrow::Table *table, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)table);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto managedTable = LifetimeManager::instance().accessOwned(table);
+            auto ret = dropNA(managedTable);
+            return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
+    EXPORT arrow::Table *tableDropNAByName(arrow::Table *table, const char *columnName, const char **outError) noexcept
+    {
+        LOG("@{} column name={}", (void*)table, columnName);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto managedTable = LifetimeManager::instance().accessOwned(table);
+            for(int i = 0; i < table->num_columns(); i++)
+            {
+                auto column = table->column(i);
+                if(column->name() == columnName)
+                {
+                    auto ret = dropNA(managedTable, {i});
+                    return LifetimeManager::instance().addOwnership(ret);
+                }
+            }
+
+            throw std::runtime_error("Failed to find column by name: "s + columnName);
         };
     }
 }

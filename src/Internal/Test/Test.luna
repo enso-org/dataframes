@@ -427,7 +427,26 @@ class TestArrayBuilder:
         mappedCol4 = intsTable.each "nowe" (row: (row.at "ints") * (row.at "ints"))
         assertEqual "ints*ints" mappedCol4.toList [1, 4, 9, 16, 25]
 
+    def testDropping:
+        intCol  = Column.fromList "a" MaybeInt64Type  [Just 0,   Nothing,  Just 2,   Just 3,   Just 4  ]
+        realCol = Column.fromList "b" MaybeDoubleType [Just 0.0, Just 1.0, Nothing,  Just 3.0, Just 4.0]
+        textCol = Column.fromList "c" MaybeStringType [Just "0", Just "1", Just "2", Just "3", Nothing ]
+        table = Table.fromColumns [intCol, realCol, textCol]
+
+        tableDroppedAll = table.dropNa
+        assertEqual "dropNa: col int" (tableDroppedAll.columnAt 0 . toList) [Just 0, Just 3]
+        assertEqual "dropNa: col double" (tableDroppedAll.columnAt 1 . toList) [Just 0.0, Just 3.0]
+        assertEqual "dropNa: col text" (tableDroppedAll.columnAt 2 . toList) [Just "0", Just "3"]
+
+        tableDroppedByA = table.dropNaAt "a"
+        assertEqual 'dropNaAt "a": col int' (tableDroppedByA.columnAt 0 . toList) [Just 0, Just 2, Just 3, Just 4]
+        assertEqual 'dropNaAt "a": col double' (tableDroppedByA.columnAt 1 . toList) [Just 0.0, Nothing, Just 3.0, Just 4.0]
+        assertEqual 'dropNaAt "a": col text' (tableDroppedByA.columnAt 2 . toList) [Just "0", Just "2", Just "3", Nothing]
+
+        assertThrow 'dropNaAt "d"' $ table.dropNaAt "d"
+
     def run:
+        self.testDropping
         self.testMapping
         self.testFiltering
         self.testIO

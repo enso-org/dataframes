@@ -276,6 +276,13 @@ class TableWrapper:
             CString.with name nameC:
                 callHandlingError "tableMapToColumn" (Pointer None) [self.ptr.toCArg, nameC.toCArg, predicateC.toCArg]
         wrapReleasableResouce ColumnWrapper ptr
+    def dropNa:
+        ptr = callHandlingError "tableDropNA" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce TableWrapper ptr
+    def dropNaByName name:
+        ptr = CString.with name nameC:
+            callHandlingError "tableDropNAByName" (Pointer None) [self.ptr.toCArg, nameC.toCArg]
+        wrapReleasableResouce TableWrapper ptr
 
 def createTableWrapper schemaWrapper columnWrappers:
     Array (Pointer None) . with (columnWrappers.each .ptr.ptr) columnsCArray:
