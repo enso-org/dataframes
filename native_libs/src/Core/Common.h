@@ -9,6 +9,12 @@
 #include "optional.h"
 
 #ifdef _MSC_VER
+#define FORCE_INLINE __forceinline
+#else
+#define FORCE_INLINE __attribute__((always_inline))
+#endif 
+
+#ifdef _MSC_VER
 #define EXPORT _declspec(dllexport)
 #else
 #define EXPORT

@@ -98,7 +98,7 @@ struct FilteredArrayBuilder
 //     }
 
     template<bool nullable>
-    __forceinline void addElem(const Array &array, const T *arrayValues, int arrayIndex)
+    FORCE_INLINE void addElem(const Array &array, const T *arrayValues, int arrayIndex)
     {
         if(!nullable || array.IsValid(arrayIndex))
         {
@@ -127,7 +127,7 @@ struct FilteredArrayBuilder
     }
 
     template<bool nullable>
-    __forceinline void addDynamic1(unsigned char maskCode, const Array &array, const T *arrayValues, int arrayIndex, int bitIndex)
+    FORCE_INLINE void addDynamic1(unsigned char maskCode, const Array &array, const T *arrayValues, int arrayIndex, int bitIndex)
     {
         if((maskCode & (1 << bitIndex)) != 0) 
             addElem<nullable>(array, arrayValues, arrayIndex);
