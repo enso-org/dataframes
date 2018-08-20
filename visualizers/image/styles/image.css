@@ -3,9 +3,37 @@ p {
   margin: 15px 15% 0px 15%;
 }
 
+div.container {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  top: 0;
+  left: 0;
+}
+
+@media only screen and (max-height: 400px) {
+  .small {
+    display: block;
+  }
+  .big {
+    display: none;
+  }
+}
+
+@media only screen and (min-height: 400px) {
+  .small {
+    display: none;
+  }
+  .big {
+    display: block;
+  }
+}
+
 img {
   max-width: 100%;
+  max-height: 100%;
   height: auto;
+  width: auto;
 }
 
 img.no-vis {

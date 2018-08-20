@@ -16,15 +16,13 @@
     });
   }
 
-  var displayImage = function (data) {
-    document.body.innerHTML = "<img src=" + data + " />"
+  var render = function (data) {
+    document.body.innerHTML = '<div class="container small"><img src=' + data.small + " /></div>" +
+                              '<div class="container big"><img src=' + data.big + " /></div>";
   }
 
-  var render = function (data) {
-      displayImage(data);
-  };
-
   window.addEventListener("message", function (evt) {
-    render(evt.data.data);
+    d = JSON.parse(evt.data.data);
+    render(d);
   });
 }());
