@@ -1,13 +1,22 @@
 #include "ArrowUtilities.h"
 
 
-std::shared_ptr<arrow::Table> tableFromArrays(std::vector<std::shared_ptr<arrow::Array>> arrays, std::vector<std::string> names, std::vector<bool> nullables)
+std::shared_ptr<arrow::Table> tableFromArrays(std::vector<PossiblyChunkedArray> arrays, std::vector<std::string> names, std::vector<bool> nullables)
 {
-    std::vector<std::shared_ptr<arrow::Field>> fields;
-
-    for(int i = 0; i < arrays.size(); i++)
+    std::vector<std::shared_ptr<arrow::ChunkedArray>> chunkedArrays;
+    for(auto &someArray: arrays)
     {
-        const auto arr = arrays.at(i);
+        auto chunk = std::visit(overloaded {
+            [&] (std::shared_ptr<arrow::Array> array) { return std::make_shared<arrow::ChunkedArray>(arrow::ArrayVector{array}); },
+            [&] (std::shared_ptr<arrow::ChunkedArray> array) { return array; }
+            }, someArray);
+        chunkedArrays.push_back(chunk);
+    }
+
+    std::vector<std::shared_ptr<arrow::Field>> fields;
+    for(int i = 0; i < chunkedArrays.size(); i++)
+    {
+        const auto arr = chunkedArrays.at(i);
         if(names.size() <= i)
             names.push_back("col" + std::to_string(i));
         if(nullables.size() <= i)
@@ -16,8 +25,18 @@ std::shared_ptr<arrow::Table> tableFromArrays(std::vector<std::shared_ptr<arrow:
         fields.push_back(arrow::field(names.at(i), arr->type(), nullables.at(i)));
     }
 
+    std::vector<std::shared_ptr<arrow::Column>> columns;
+    for(int i = 0; i < chunkedArrays.size(); i++)
+    {
+        auto field = fields.at(i);
+        auto chunks = chunkedArrays.at(i);
+        auto column = std::make_shared<arrow::Column>(field, chunks);
+        columns.push_back(column);
+    }
+
+
     auto schema = arrow::schema(std::move(fields));
-    return arrow::Table::Make(schema, std::move(arrays));
+    return arrow::Table::Make(schema, std::move(columns));
 }
 
 BitmaskGenerator::BitmaskGenerator(int64_t length, bool initialValue) : length(length)

@@ -4,6 +4,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <tuple>
+#include "variant.h"
 
 #include <arrow/array.h>
 #include <arrow/builder.h>
@@ -325,4 +326,6 @@ struct EXPORT BitmaskGenerator
     void clear(int64_t index);
 };
 
-EXPORT std::shared_ptr<arrow::Table> tableFromArrays(std::vector<std::shared_ptr<arrow::Array>> arrays, std::vector<std::string> names = {}, std::vector<bool> nullables = {});
+using PossiblyChunkedArray = std::variant<std::shared_ptr<arrow::Array>, std::shared_ptr<arrow::ChunkedArray>>;
+
+EXPORT std::shared_ptr<arrow::Table> tableFromArrays(std::vector<PossiblyChunkedArray> arrays, std::vector<std::string> names = {}, std::vector<bool> nullables = {});
