@@ -56,11 +56,7 @@ class Plot:
     «16»Plot t
 
 «7»def main:
-    «17»fr = CSVParser.setTypes [MaybeRealElement, MaybeRealElement, MaybeRealElement, MaybeRealElement, MaybeRealElement, MaybeRealElement, MaybeRealElement, MaybeRealElement] . readFile "/Users/marcinkostrzewa/Downloads/all (1)/application_train.csv"
-    «19»columnAt2 = fr . columnAt 6
-    «18»columnAt1 = fr . columnAt 7
-    «20»histogram1 = Histogram columnAt2
-    «21»plot1 = Scatter columnAt1 columnAt2
+    «17»fr = CSVParser . readFile "data/kaggle.csv"
     None
 
 

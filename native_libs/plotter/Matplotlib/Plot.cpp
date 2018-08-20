@@ -17,7 +17,16 @@ PyObject* chunkedArrayToPyObj(const arrow::ChunkedArray &arr) {
         for (size_t row = 0; row < chunk->length(); row++) {
             pyInd = row + chunkStart;
             if (!chunk->IsNull(row)) {
-                PyList_SetItem(list, pyInd, PyFloat_FromDouble(arrayAt<arrow::Type::DOUBLE>(*chunk, row)));
+                PyObject *item = NULL;
+                switch (arr.type()->id()) {
+                  case arrow::Type::DOUBLE:
+                    item = PyFloat_FromDouble(arrayAt<arrow::Type::DOUBLE>(*chunk, row));
+                    break;
+                  case arrow::Type::STRING:
+                    item = PyString_FromString(arrayAt<arrow::Type::STRING>(*chunk, row).c_str());
+                    break;
+                }
+                PyList_SetItem(list, pyInd, item);
             } else {
                 PyList_SetItem(list, pyInd, PyFloat_FromDouble(nan(" ")));
             }
