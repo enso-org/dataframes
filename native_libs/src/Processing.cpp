@@ -98,7 +98,7 @@ struct FilteredArrayBuilder
 //     }
 
     template<bool nullable>
-    void addElem(const Array &array, const T *arrayValues, int arrayIndex)
+    __forceinline void addElem(const Array &array, const T *arrayValues, int arrayIndex)
     {
         if(!nullable || array.IsValid(arrayIndex))
         {
@@ -114,20 +114,20 @@ struct FilteredArrayBuilder
     void addStatic8(const Array &array, const T *arrayValues, int arrayIndex)
     {
         // Note: it will be fast even if we call dynamic variant - compiler can easily propagate const
-         for(int bit = 0; bit < 8; ++bit)
-             addDynamic1<nullable>(maskCode, array, arrayValues, arrayIndex + bit, bit);
-//         if constexpr((maskCode & (1 << 0)) != 0) addElem<nullable>(array, arrayValues, arrayIndex + 0);
-//         if constexpr((maskCode & (1 << 1)) != 0) addElem<nullable>(array, arrayValues, arrayIndex + 1);
-//         if constexpr((maskCode & (1 << 2)) != 0) addElem<nullable>(array, arrayValues, arrayIndex + 2);
-//         if constexpr((maskCode & (1 << 3)) != 0) addElem<nullable>(array, arrayValues, arrayIndex + 3);
-//         if constexpr((maskCode & (1 << 4)) != 0) addElem<nullable>(array, arrayValues, arrayIndex + 4);
-//         if constexpr((maskCode & (1 << 5)) != 0) addElem<nullable>(array, arrayValues, arrayIndex + 5);
-//         if constexpr((maskCode & (1 << 6)) != 0) addElem<nullable>(array, arrayValues, arrayIndex + 6);
-//         if constexpr((maskCode & (1 << 7)) != 0) addElem<nullable>(array, arrayValues, arrayIndex + 7);
+//          for(int bit = 0; bit < 8; ++bit)
+//              addDynamic1<nullable>(maskCode, array, arrayValues, arrayIndex + bit, bit);
+        if constexpr((maskCode & (1 << 0)) != 0) addElem<nullable>(array, arrayValues, arrayIndex + 0);
+        if constexpr((maskCode & (1 << 1)) != 0) addElem<nullable>(array, arrayValues, arrayIndex + 1);
+        if constexpr((maskCode & (1 << 2)) != 0) addElem<nullable>(array, arrayValues, arrayIndex + 2);
+        if constexpr((maskCode & (1 << 3)) != 0) addElem<nullable>(array, arrayValues, arrayIndex + 3);
+        if constexpr((maskCode & (1 << 4)) != 0) addElem<nullable>(array, arrayValues, arrayIndex + 4);
+        if constexpr((maskCode & (1 << 5)) != 0) addElem<nullable>(array, arrayValues, arrayIndex + 5);
+        if constexpr((maskCode & (1 << 6)) != 0) addElem<nullable>(array, arrayValues, arrayIndex + 6);
+        if constexpr((maskCode & (1 << 7)) != 0) addElem<nullable>(array, arrayValues, arrayIndex + 7);
     }
 
     template<bool nullable>
-    void addDynamic1(unsigned char maskCode, const Array &array, const T *arrayValues, int arrayIndex, int bitIndex)
+    __forceinline void addDynamic1(unsigned char maskCode, const Array &array, const T *arrayValues, int arrayIndex, int bitIndex)
     {
         if((maskCode & (1 << bitIndex)) != 0) 
             addElem<nullable>(array, arrayValues, arrayIndex);
@@ -208,29 +208,30 @@ struct FilteredArrayBuilder
 
 
             // Consume elements encoded on full mask bytes
-            const auto processUpTo = processedCount + fullByteEncodedElementCount;
             if(fullByteEncodedElementCount)
             {
                 assert(processedCount % 8 == 0);
-                assert(processUpTo % 8 == 0);
+                assert(fullByteEncodedElementCount % 8 == 0);
             }
-            for(; processedCount < processUpTo; processedCount += 8)
+
+            auto alignedMask = mask + processedCount/8;
+            for(auto i = sourceIndex(); i < fullByteEncodedElementCount; i += 8)
             {
-                const auto maskCode = mask[processedCount / 8];
-                const auto sourceIndex_ = processedCount - initiallyProcessed;
+                const auto maskCode = *alignedMask++;
 
                 // We force generating code for each possible mask byte value.
                 switch(maskCode)
                 {
 #define CASE(a, code, offset) \
-                    case (code+offset): addStatic8<(code+offset), nullable>(array, arrayValues, sourceIndex_); break;
+                    case (code+offset): addStatic8<(code+offset), nullable>(array, arrayValues, i); break;
                     BOOST_PP_REPEAT_FROM_TO(0, 128, CASE, 0)
-                        BOOST_PP_REPEAT_FROM_TO(0, 128, CASE, 128)
-                        // Note: ugly MSVC workaround: repeating doesn't work with higher index ranges (like 256)
-                        // so we keep indices 0-128 and add 0/128 as offset.
+                    BOOST_PP_REPEAT_FROM_TO(0, 128, CASE, 128)
+                    // Note: ugly MSVC workaround: repeating doesn't work with higher index ranges (like 256)
+                    // so we keep indices 0-128 and add 0/128 as offset.
 #undef CASE
                 }
             }
+            processedCount += fullByteEncodedElementCount;
 
             // consume trailing elements after last full byte
             {
@@ -251,26 +252,6 @@ struct FilteredArrayBuilder
              addInternal<true>(array_);
          else
              addInternal<false>(array_);
-
-//         const auto &array = dynamic_cast<const Array&>(array_);
-//         const auto N = (int32_t)array.length();
-//         const auto arrayValues = array.raw_values();
-// 
-//         for(int i = 0; i < N; ++i)
-//         {
-//             if(mask[processedCount++])
-//             {
-//                 if(array.IsValid(i))
-//                 {
-//                     valueData[addedCount++] = arrayValues[i];
-//                 }
-//                 else
-//                 {
-//                     arrow::BitUtil::ClearBit(nullData, addedCount++);
-//                 };
-//             }
-//         }
-
     }
     void addInternal(const arrow::ChunkedArray &chunkedArray)
     {
