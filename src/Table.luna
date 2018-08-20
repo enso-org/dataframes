@@ -1,6 +1,7 @@
 import Dataframes.Column
 import Dataframes.Schema
 import Dataframes.Internal.CWrappers
+import Dataframes.Plot.Matplotlib
 
 class Table:
     Table
@@ -69,3 +70,17 @@ class Table:
 
     def shortRep:
         "Table<" + self.columnCount.toText + "×" + self.rowCount.toText + ">"
+
+    def chart: ChartBuilder self
+
+class ChartBuilder:
+    table :: Table
+
+    def plot cname1 cname2:
+        c1 = self.table.at cname1 . columnAt 0
+        c2 = self.table.at cname2 . columnAt 0
+        Plot c1 c2 "o"
+
+    def histogram cname:
+        c = self.table.at cname . columnAt 0
+        Histogram c 10 Map.empty

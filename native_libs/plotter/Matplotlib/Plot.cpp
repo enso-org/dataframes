@@ -42,51 +42,57 @@ PyObject* chunkedArrayToPyObj(const arrow::ChunkedArray &arr) {
     builder.init(arr.length());
     iterateOverGeneric(arr,
         [&] (auto &&elem) { builder.append(elem); },
-        [&] () { builder.appendNull(); });
+        [&] () { });
     return builder.list;
-}
-
-void testMpl()
-{
-	int n = 5000; // number of data points
-	vector<double> x(n),y(n);
-	for(int i=0; i<n; ++i) {
-		double t = 2*M_PI*i/n;
-		x.at(i) = 16*sin(t)*sin(t)*sin(t);
-		y.at(i) = 13*cos(t) - 5*cos(2*t) - 2*cos(3*t) - cos(4*t);
-	}
-
-	// plot() takes an arbitrary number of (x,y,format)-triples.
-	// x must be iterable (that is, anything providing begin(x) and end(x)),
-	// y must either be callable (providing operator() const) or iterable.
-	plt::plot(x, y, "r-", x, [](double d) { return 12.5+abs(sin(d)); }, "k-");
-
-
-	// show plots
-	plt::show();
 }
 
 extern "C"
 {
-    void plot(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys) {
+    void plot(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* style) {
+        std::string st(style);
         auto xsarray = chunkedArrayToPyObj(*xs);
         std::cout << "XS " << xsarray << std::endl;
         auto ysarray = chunkedArrayToPyObj(*ys);
         std::cout << "YS " << ysarray << std::endl;
         try {
             std::cout << "PLOT BEG" << std::endl;
-            plt::plot(xsarray, ysarray, "o");
+            plt::plot(xsarray, ysarray, st);
             std::cout << "PLOT END" << std::endl;
         } catch (const runtime_error& e) {
           std::cout << e.what() << std::endl;
         }
     }
 
-    void histogram(arrow::ChunkedArray *xs) {
+    void kdeplot2(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys) {
+        auto xsarray = chunkedArrayToPyObj(*xs);
+        std::cout << "XS " << xsarray << std::endl;
+        auto ysarray = chunkedArrayToPyObj(*ys);
+        std::cout << "YS " << ysarray << std::endl;
+        try {
+            std::cout << "KDEPLOT2 BEG" << std::endl;
+            plt::kdeplot2(xsarray, ysarray);
+            std::cout << "KDEPLOT2 END" << std::endl;
+        } catch (const runtime_error& e) {
+          std::cout << e.what() << std::endl;
+        }
+    }
+
+    void kdeplot(arrow::ChunkedArray *xs) {
+        auto xsarray = chunkedArrayToPyObj(*xs);
+        try {
+          std::cout << "KDE BEG" << std::endl;
+          plt::kdeplot(xsarray);
+          std::cout << "KDE END" << std::endl;
+        } catch (const runtime_error& e) {
+          std::cout << e.what() << std::endl;
+        }
+    }
+
+    void histogram(arrow::ChunkedArray *xs, size_t bins) {
         auto xsarray = chunkedArrayToPyObj(*xs);
         try {
           std::cout << "HIST BEG" << std::endl;
-          plt::hist(xsarray);
+          plt::hist(xsarray, bins);
           std::cout << "HIST END" << std::endl;
         } catch (const runtime_error& e) {
           std::cout << e.what() << std::endl;
