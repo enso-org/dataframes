@@ -461,15 +461,21 @@ BOOST_AUTO_TEST_CASE(FilterWithNulls)
 	}
 
 
-	std::vector<int64_t> expected;
+	std::vector<int64_t> expectedI;
+	std::vector<std::optional<std::string>> expectedS;
 	std::vector<int64_t> expectedTail10;
 	for(int i = 0; i < 256; i++)
 	{
 		if(i % 3  &&  (i % 2 == 0))
 		{
-			expected.push_back(i);
+			expectedI.push_back(i);
 			if(i >= 246)
 				expectedTail10.push_back(i);
+
+			if(i % 7)
+				expectedS.push_back(std::to_string(i));
+			else
+				expectedS.push_back(std::nullopt);
 		}
 	}
 
@@ -495,14 +501,35 @@ BOOST_AUTO_TEST_CASE(FilterWithNulls)
 			})";
 
 	auto table = tableFromArrays({arrayI, arrayS}, {"a", "b"});
-	auto [filteredV, filteredS] = toVectors<std::optional<int64_t>, std::optional<std::string>>(*filter(table, jsonQuery));
+	auto [filteredI, filteredS] = toVectors<std::optional<int64_t>, std::optional<std::string>>(*filter(table, jsonQuery));
 
 
-	BOOST_CHECK_EQUAL_COLLECTIONS(expected.begin(), expected.end(), filteredV.begin(), filteredV.end());
+	BOOST_CHECK_EQUAL_COLLECTIONS(expectedI.begin(), expectedI.end(), filteredI.begin(), filteredI.end());
+	BOOST_CHECK_EQUAL_COLLECTIONS(expectedS.begin(), expectedS.end(), filteredS.begin(), filteredS.end());
 
 	auto tableTail10 = tableFromArrays({arrayTail10}, {"a"});
 	auto [filteredVTail10] = toVectors<std::optional<int64_t>>(*filter(tableTail10, jsonQuery));
 	BOOST_CHECK_EQUAL_COLLECTIONS(expectedTail10.begin(), expectedTail10.end(), filteredVTail10.begin(), filteredVTail10.end());
+
+	arrow::ArrayVector chunksVectorI;
+	int currentPos = 0;
+	int currentChunkSize = 1;
+	while(currentPos < ints.size())
+	{
+		chunksVectorI.push_back(arrayI->Slice(currentPos, currentChunkSize));
+		currentPos += currentChunkSize;
+		currentChunkSize++;
+	}
+	auto chunksI = std::make_shared<arrow::ChunkedArray>(chunksVectorI);
+	auto table2 = tableFromArrays({arrayI, arrayS, chunksI}, {"a", "b", "a2"});
+	auto [aa, bb, aa2] = toVectors<std::optional<int64_t>, std::optional<std::string>, std::optional<int64_t>>(*table2);
+
+	BOOST_CHECK_EQUAL_COLLECTIONS(aa.begin(), aa.end(), aa2.begin(), aa2.end());
+	auto [filtered2I, filtered2S, filtered2AI] = toVectors<std::optional<int64_t>, std::optional<std::string>, std::optional<int64_t>>(*filter(table2, jsonQuery));
+
+	BOOST_CHECK_EQUAL_COLLECTIONS(expectedI.begin(), expectedI.end(), filtered2AI.begin(), filtered2AI.end());
+	//arrow::Column(chunkedInts)
+
 
 }
 

@@ -31,10 +31,10 @@ struct FilteredArrayBuilder
     using T = typename TypeDescription<id>::StorageValueType;
     using Array = typename TypeDescription<id>::Array;
 
-    int64_t currentOffset = 0;
-    int64_t addedCount = 0;
-    int64_t processedCount = 0;
-    int64_t length;
+    int64_t currentOffset = 0; // current position in value buffer for var-sized elements (currently only strings)
+    int64_t addedCount = 0; // needed to know where to write next elements
+    int64_t processedCount = 0; // needed to know which bit to read from mask
+    int64_t length = 0;
     const unsigned char * const mask{};
 
     uint8_t *nullData{};
@@ -115,7 +115,7 @@ struct FilteredArrayBuilder
     {
         // Note: it will be fast even if we call dynamic variant - compiler can easily propagate const
          for(int bit = 0; bit < 8; ++bit)
-             addDynamic1<nullable>(maskCode, array, arrayValues, arrayIndex, bit);
+             addDynamic1<nullable>(maskCode, array, arrayValues, arrayIndex + bit, bit);
 //         if constexpr((maskCode & (1 << 0)) != 0) addElem<nullable>(array, arrayValues, arrayIndex + 0);
 //         if constexpr((maskCode & (1 << 1)) != 0) addElem<nullable>(array, arrayValues, arrayIndex + 1);
 //         if constexpr((maskCode & (1 << 2)) != 0) addElem<nullable>(array, arrayValues, arrayIndex + 2);
@@ -127,17 +127,17 @@ struct FilteredArrayBuilder
     }
 
     template<bool nullable>
-    void addDynamic1(unsigned char maskCode, const Array &array, const T *arrayValues, int arrayIndexBase, int bitPosition)
+    void addDynamic1(unsigned char maskCode, const Array &array, const T *arrayValues, int arrayIndex, int bitIndex)
     {
-        if((maskCode & (1 << bitPosition)) != 0) 
-            addElem<nullable>(array, arrayValues, arrayIndexBase + bitPosition);
+        if((maskCode & (1 << bitIndex)) != 0) 
+            addElem<nullable>(array, arrayValues, arrayIndex);
     }
 
     template<bool nullable>
     void addDynamic8(unsigned char maskCode, const Array &array, const T *arrayValues, int arrayIndex)
     {
         for(int bit = 0; bit < 8; ++bit)
-            addDynamic1<nullable>(maskCode, array, arrayValues, arrayIndex, bit);
+            addDynamic1<nullable>(maskCode, array, arrayValues, arrayIndex + bit, bit);
     }
 
 
@@ -146,11 +146,6 @@ struct FilteredArrayBuilder
     {
         if(array_.length() == 0)
             return;
-
-        // TODO fix the chunks
-        if(processedCount % 8)
-            throw std::runtime_error("not implemented: chunked array with elem count not being multple of 8");
-
 
         const auto &array = dynamic_cast<const Array&>(array_);
         const auto N = array.length();
@@ -182,25 +177,53 @@ struct FilteredArrayBuilder
         else
         {
             const auto arrayValues = array.raw_values();
+            const auto initiallyProcessed = processedCount;
+            const auto sourceIndex = [&] { return processedCount - initiallyProcessed; };
 
-            static_assert(sizeof(T) <= 8);
-
-            auto maskAdjustedToI = mask + (processedCount / 8);
-
-            const auto remainderCount = N % 8;
-            const auto bigIterationsCount = remainderCount ? (N - 8) : N;
-            int i = 0;
-
-            // This loop consumes single mask byte, i. e. 8 source array entries.
-            for(; i < bigIterationsCount; i += 8)
+            // Generally we process mask byte-by-byte. That means consuming elements in batches of 8.
+            // However an array (chunk) is not necessarily aligned to start or end at the multiple of 8.
+            // So we need to take care for leading and trailing elements.
+            const auto initialBitIndex = initiallyProcessed % 8;
+            const auto leadingElementCount = std::min(N, (8 - initialBitIndex)) % 8;
+//             {
+//                 const auto i = processedCount % 8;
+//                 const auto leadingBits = i ? 8 - i : 0; 
+// 
+//             }
+            const auto fullBytesOfMask = (N - leadingElementCount) / 8;
+            const auto fullByteEncodedElementCount = fullBytesOfMask * 8;
+            const auto trailingElementCount = N - leadingElementCount - fullByteEncodedElementCount;
+            
+            // Start processing with leading elements
             {
-                const auto maskCode = maskAdjustedToI[i / 8];
+                const auto leadingMaskCode = mask[processedCount / 8];
+                const auto initialBitIndex = initiallyProcessed % 8;
+                const auto endBitIndex = initialBitIndex + leadingElementCount;
+                for(int bit = initialBitIndex; bit < endBitIndex; ++bit)
+                {
+                    addDynamic1<nullable>(leadingMaskCode, array, arrayValues, sourceIndex(), bit);
+                    ++processedCount;
+                }
+            }
+
+
+            // Consume elements encoded on full mask bytes
+            const auto processUpTo = processedCount + fullByteEncodedElementCount;
+            if(fullByteEncodedElementCount)
+            {
+                assert(processedCount % 8 == 0);
+                assert(processUpTo % 8 == 0);
+            }
+            for(; processedCount < processUpTo; processedCount += 8)
+            {
+                const auto maskCode = mask[processedCount / 8];
+                const auto sourceIndex_ = processedCount - initiallyProcessed;
 
                 // We force generating code for each possible mask byte value.
                 switch(maskCode)
                 {
 #define CASE(a, code, offset) \
-                    case (code+offset): addStatic8<(code+offset), nullable>(array, arrayValues, i); break;
+                    case (code+offset): addStatic8<(code+offset), nullable>(array, arrayValues, sourceIndex_); break;
                     BOOST_PP_REPEAT_FROM_TO(0, 128, CASE, 0)
                         BOOST_PP_REPEAT_FROM_TO(0, 128, CASE, 128)
                         // Note: ugly MSVC workaround: repeating doesn't work with higher index ranges (like 256)
@@ -209,12 +232,16 @@ struct FilteredArrayBuilder
                 }
             }
 
-            // If source array length is not multiple of 8, we consume remainder.
-            const auto maskCode = maskAdjustedToI[i / 8];
-            for(int bit = 0; bit < remainderCount; bit++)
-                addDynamic1<nullable>(maskCode, array, arrayValues, i, bit);
+            // consume trailing elements after last full byte
+            {
+                const auto trailingMaskCode = mask[processedCount / 8];
+                for(int bit = 0; bit < trailingElementCount; ++bit)
+                {
+                    addDynamic1<nullable>(trailingMaskCode, array, arrayValues, sourceIndex(), bit);
+                    ++processedCount;
+                }
+            }
 
-            processedCount += array.length();
         }
     }
 
