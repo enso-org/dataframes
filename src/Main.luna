@@ -34,15 +34,25 @@ class Plot:
         lookupSymbol "DataframePlotter" "show" . call None []
 
     def toJSON:
-        lookupSymbol "DataframePlotter" "init" . call None []
+        lookupSymbol "DataframePlotter" "init" . call None [CSize.fromInt 400 . toCArg, CSize.fromInt 400 . toCArg]
         self.render
-        r = lookupSymbol "DataframePlotter" "getPNG" . call CString []
-        case r.isNull of
+        smallPtr = lookupSymbol "DataframePlotter" "getPNG" . call CString []
+        small = case smallPtr.isNull of
             True: throw "Matplotlib: getPNG call failed."
             False:
-                t = r.toText
-                r.free
-                ("data:image/png;base64," + t).toJSON
+                t = smallPtr.toText
+                smallPtr.free
+                "data:image/png;base64," + t
+        lookupSymbol "DataframePlotter" "init" . call None [CSize.fromInt 800 . toCArg, CSize.fromInt 800 . toCArg]
+        self.render
+        bigPtr = lookupSymbol "DataframePlotter" "getPNG" . call CString []
+        big = case bigPtr.isNull of
+            True: throw "Matplotlib: getPNG call failed."
+            False:
+                t = bigPtr.toText
+                bigPtr.free
+                "data:image/png;base64," + t
+        JSON.empty.insert "small" small . insert "big" big
 
 «6»def mkPlot:
     «8»fr = CSVParser.setTypes [MaybeRealElement, MaybeRealElement] . readFile "data/simple_plot.csv"
@@ -57,6 +67,10 @@ class Plot:
 
 «7»def main:
     «17»fr = CSVParser . readFile "data/kaggle.csv"
+    «18»at1 = fr . at "OCCUPATION_TYPE"
+    «19»columnAt1 = at1 . columnAt 0
+    «22»scatter1 = Scatter columnAt1 columnAt1
+    «21»histogram1 = Histogram columnAt1
     None
 
 
@@ -69,4 +83,4 @@ class Plot:
     «5»columns1 = readFile1 . columns ["SK_ID_CURR", "NAME_CONTRACT_TYPE"]
     None
 
-### META {"metas":[{"marker":1,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":0}}}},{"marker":2,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":176}}}},{"marker":4,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":-368}}}},{"marker":5,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":16}}}},{"marker":17,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":32,"_vector2_x":-128}}}},{"marker":19,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":128,"_vector2_x":112}}}},{"marker":18,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-112,"_vector2_x":128}}}},{"marker":20,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: image","image/image.html"],"_position":{"fromPosition":{"_vector2_y":128,"_vector2_x":352}}}},{"marker":21,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: image","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-112,"_vector2_x":576}}}},{"marker":8,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":0}}}},{"marker":9,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":176}}}},{"marker":10,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":176}}}},{"marker":11,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":352}}}},{"marker":12,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":528}}}},{"marker":13,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":704}}}},{"marker":14,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":880}}}},{"marker":15,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":880}}}},{"marker":16,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":1056}}}}]}
+### META {"metas":[{"marker":1,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":0}}}},{"marker":2,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":176}}}},{"marker":17,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":32,"_vector2_x":-128}}}},{"marker":18,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":32,"_vector2_x":160}}}},{"marker":19,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":400}}}},{"marker":22,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: image","image/image.html"],"_position":{"fromPosition":{"_vector2_y":288,"_vector2_x":768}}}},{"marker":21,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: image","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-144,"_vector2_x":704}}}},{"marker":4,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":-368}}}},{"marker":5,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":16}}}},{"marker":8,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":0}}}},{"marker":9,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":176}}}},{"marker":10,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":176}}}},{"marker":11,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":352}}}},{"marker":12,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":528}}}},{"marker":13,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":704}}}},{"marker":14,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":880}}}},{"marker":15,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":880}}}},{"marker":16,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":1056}}}}]}

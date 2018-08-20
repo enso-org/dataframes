@@ -8,32 +8,42 @@
 using namespace std;
 namespace plt = matplotlibcpp;
 
+struct PyListBuilder {
+  PyObject* list = NULL;
+  size_t ind = 0;
+
+  void init(size_t s) {
+    list = PyList_New(s);
+  }
+
+  void append(PyObject *item) {
+    PyList_SetItem(list, ind++, item);
+  }
+
+  void append(int64_t i) {
+    append(PyLong_FromLong(i));
+  }
+
+  void append(double d) {
+    append(PyFloat_FromDouble(d));
+  }
+
+  void append(const std::string &s) {
+    append(PyString_FromString(s.c_str()));
+  }
+
+  void appendNull() {
+    append(PyFloat_FromDouble(nan(" ")));
+  }
+};
 
 PyObject* chunkedArrayToPyObj(const arrow::ChunkedArray &arr) {
-    PyObject* list = PyList_New(arr.length());
-    size_t chunkStart = 0;
-    size_t pyInd;
-    for (auto &chunk : arr.chunks()) {
-        for (size_t row = 0; row < chunk->length(); row++) {
-            pyInd = row + chunkStart;
-            if (!chunk->IsNull(row)) {
-                PyObject *item = NULL;
-                switch (arr.type()->id()) {
-                  case arrow::Type::DOUBLE:
-                    item = PyFloat_FromDouble(arrayAt<arrow::Type::DOUBLE>(*chunk, row));
-                    break;
-                  case arrow::Type::STRING:
-                    item = PyString_FromString(arrayAt<arrow::Type::STRING>(*chunk, row).c_str());
-                    break;
-                }
-                PyList_SetItem(list, pyInd, item);
-            } else {
-                PyList_SetItem(list, pyInd, PyFloat_FromDouble(nan(" ")));
-            }
-        }
-        chunkStart += chunk->length();
-    }
-    return list;
+    PyListBuilder builder;
+    builder.init(arr.length());
+    iterateOverGeneric(arr,
+        [&] (auto &&elem) { builder.append(elem); },
+        [&] () { builder.appendNull(); });
+    return builder.list;
 }
 
 void testMpl()
@@ -93,13 +103,15 @@ extern "C"
         }
     }
 
-    void init() {
+    void init(size_t w, size_t h) {
         try {
           std::cout << "INIT BEG" << std::endl;
           plt::backend("Agg");
           plt::detail::_interpreter::get();
-          plt::figure_size(400, 400);
-          plt::clf();
+          std::cout << "figsize BEG " << w << " " << h << std::endl;
+          plt::figure_size(w, h);
+          plt::rotate_ticks(45);
+          std::cout << "figsize END" << std::endl;
           std::cout << "INIT END" << std::endl;
         } catch (const runtime_error& e) {
           std::cout << e.what() << std::endl;
@@ -111,6 +123,7 @@ extern "C"
         char* out = NULL;
         size_t l;
         try {
+          plt::tight_layout();
           std::cout << "PNG BEG" << std::endl;
           plt::getPNG(&b, &l);
           std::cout << "PNG END" << std::endl;

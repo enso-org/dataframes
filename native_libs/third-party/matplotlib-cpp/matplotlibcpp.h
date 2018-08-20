@@ -45,6 +45,7 @@ struct _interpreter {
     PyObject *s_python_function_subplot;
     PyObject *s_python_function_legend;
     PyObject *s_python_function_xlim;
+    PyObject *s_python_function_xticks;
     PyObject *s_python_function_ion;
     PyObject *s_python_function_ylim;
     PyObject *s_python_function_title;
@@ -167,6 +168,7 @@ private:
         s_python_function_ylabel = PyObject_GetAttrString(pymod, "ylabel");
         s_python_function_grid = PyObject_GetAttrString(pymod, "grid");
         s_python_function_xlim = PyObject_GetAttrString(pymod, "xlim");
+        s_python_function_xticks = PyObject_GetAttrString(pymod, "xticks");
         s_python_function_ion = PyObject_GetAttrString(pymod, "ion");
         s_python_function_save = PyObject_GetAttrString(pylabmod, "savefig");
         s_python_function_annotate = PyObject_GetAttrString(pymod,"annotate");
@@ -205,6 +207,7 @@ private:
             || !s_python_function_ylabel
             || !s_python_function_grid
             || !s_python_function_xlim
+            || !s_python_function_xticks
             || !s_python_function_ion
             || !s_python_function_save
             || !s_python_function_clf
@@ -237,6 +240,7 @@ private:
             || !PyFunction_Check(s_python_function_ylabel)
             || !PyFunction_Check(s_python_function_grid)
             || !PyFunction_Check(s_python_function_xlim)
+            || !PyFunction_Check(s_python_function_xticks)
             || !PyFunction_Check(s_python_function_ion)
             || !PyFunction_Check(s_python_function_save)
             || !PyFunction_Check(s_python_function_clf)
@@ -844,6 +848,15 @@ inline void figure_size(size_t w, size_t h)
     Py_DECREF(kwargs);
 
     if(!res) throw std::runtime_error("Call to figure_size() failed.");
+    Py_DECREF(res);
+}
+
+inline void rotate_ticks(long rot) {
+    PyObject* kwargs = PyDict_New();
+    PyDict_SetItemString(kwargs, "rotation", PyLong_FromLong(rot));
+    PyDict_SetItemString(kwargs, "ha", PyString_FromString("right"));
+    PyObject *res = PyObject_Call(detail::_interpreter::get().s_python_function_xticks, detail::_interpreter::get().s_python_empty_tuple, kwargs);
+    Py_DECREF(kwargs);
     Py_DECREF(res);
 }
 
