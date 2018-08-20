@@ -1,3 +1,4 @@
+import Dataframes.Table
 import Dataframes.Main
 import Dataframes.IO
 import Std.Base
@@ -9,10 +10,17 @@ import Dataframes.Array
 import Dataframes.Types
 import Dataframes.Internal.Test.Test
 
-class Plot:
-    Plot
+import Dataframes.Plot.Matplotlib
+
+class Whatever:
+    def shortRep: "Whatever"
+
+class Plottoto:
+    Plottoto
+    Kdeplot Column
+    Kdeplot2 Column Column
     Scatter Column Column
-    Histogram Column
+    HistogramX Column
     UnionPlt Plot Plot
 
     def + that: UnionPlt self that
@@ -25,9 +33,17 @@ class Plot:
             xs = x . ptr . data . ptr . toCArg
             ys = y . ptr . data . ptr . toCArg
             lookupSymbol "DataframePlotter" "plot" . call None [xs, ys]
-        Histogram x:
+        HistogramX x:
             xs = x . ptr . data . ptr . toCArg
             lookupSymbol "DataframePlotter" "histogram" . call None [xs]
+        Kdeplot x:
+            xs = x . ptr . data . ptr . toCArg
+            lookupSymbol "DataframePlotter" "kdeplot" . call None [xs]
+
+        Kdeplot2 x y:
+            xs = x . ptr . data . ptr . toCArg
+            ys = y . ptr . data . ptr . toCArg
+            lookupSymbol "DataframePlotter" "kdeplot2" . call None [xs, ys]
 
     def show:
         self.render
@@ -67,10 +83,9 @@ class Plot:
 
 «7»def main:
     «17»fr = CSVParser . readFile "data/kaggle.csv"
-    «18»at1 = fr . at "OCCUPATION_TYPE"
-    «19»columnAt1 = at1 . columnAt 0
-    «22»scatter1 = Scatter columnAt1 columnAt1
-    «21»histogram1 = Histogram columnAt1
+    «37»at2 = fr . chart . plot "DAYS_BIRTH" "EXT_SOURCE_2"
+    «35»at1 = fr . at "DAYS_BIRTH"
+    «44»setStyle1 = at2 . setStyle "bo"
     None
 
 
@@ -80,7 +95,8 @@ class Plot:
 
 «3»def test:
     «4»readFile1 = CSVParser . readFile "data/kaggle.csv"
-    «5»columns1 = readFile1 . columns ["SK_ID_CURR", "NAME_CONTRACT_TYPE"]
+    «5»columns1 = readFile1 . columnAt 0
+    «43»hist = Histogram columns1
     None
 
-### META {"metas":[{"marker":1,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":0}}}},{"marker":2,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":176}}}},{"marker":17,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":32,"_vector2_x":-128}}}},{"marker":18,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":32,"_vector2_x":160}}}},{"marker":19,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":400}}}},{"marker":22,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: image","image/image.html"],"_position":{"fromPosition":{"_vector2_y":288,"_vector2_x":768}}}},{"marker":21,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: image","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-144,"_vector2_x":704}}}},{"marker":4,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":-368}}}},{"marker":5,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":16}}}},{"marker":8,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":0}}}},{"marker":9,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":176}}}},{"marker":10,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":176}}}},{"marker":11,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":352}}}},{"marker":12,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":528}}}},{"marker":13,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":704}}}},{"marker":14,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":880}}}},{"marker":15,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":880}}}},{"marker":16,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":1056}}}}]}
+### META {"metas":[{"marker":4,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":-368}}}},{"marker":5,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":16}}}},{"marker":43,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":192}}}},{"marker":8,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":0}}}},{"marker":9,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":176}}}},{"marker":10,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":176}}}},{"marker":11,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":352}}}},{"marker":12,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":528}}}},{"marker":13,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":704}}}},{"marker":14,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":880}}}},{"marker":15,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":880}}}},{"marker":16,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":1056}}}},{"marker":1,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":0}}}},{"marker":2,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":176}}}},{"marker":17,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":-112,"_vector2_x":-208}}}},{"marker":37,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: image","image/image.html"],"_position":{"fromPosition":{"_vector2_y":48,"_vector2_x":176}}}},{"marker":35,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":-272,"_vector2_x":176}}}},{"marker":44,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: image","image/image.html"],"_position":{"fromPosition":{"_vector2_y":48,"_vector2_x":560}}}}]}

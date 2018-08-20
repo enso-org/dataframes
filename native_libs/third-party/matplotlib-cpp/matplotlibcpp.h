@@ -37,6 +37,7 @@ struct _interpreter {
     PyObject *s_python_function_save;
     PyObject *s_python_function_figure;
     PyObject *s_python_function_plot;
+    PyObject *s_python_function_kdeplot;
     PyObject *s_python_function_semilogx;
     PyObject *s_python_function_semilogy;
     PyObject *s_python_function_loglog;
@@ -112,6 +113,7 @@ private:
         PyObject* pyplotname = PyString_FromString("matplotlib.pyplot");
         PyObject* pyplotstylename = PyString_FromString("matplotlib.style");
         PyObject* pylabname  = PyString_FromString("pylab");
+        PyObject* seabornname  = PyString_FromString("seaborn");
         PyObject* ioname     = PyString_FromString("io");
         if (!pyplotname || !pylabname || !matplotlibname || !pyplotstylename || !ioname) {
             throw std::runtime_error("couldnt create string");
@@ -144,6 +146,10 @@ private:
         Py_DECREF(pylabname);
         if (!pylabmod) { throw std::runtime_error("Error loading module pylab!"); }
 
+        PyObject* seabornmod = PyImport_Import(seabornname);
+        Py_DECREF(seabornname);
+        if (!seabornmod) { throw std::runtime_error("Error loading module pylab!"); }
+
         PyObject* iomod = PyImport_Import(ioname);
         Py_DECREF(ioname);
         if (!iomod) { throw std::runtime_error("Error loading module io!"); }
@@ -154,6 +160,7 @@ private:
         s_python_function_pause = PyObject_GetAttrString(pymod, "pause");
         s_python_function_figure = PyObject_GetAttrString(pymod, "figure");
         s_python_function_plot = PyObject_GetAttrString(pymod, "plot");
+        s_python_function_kdeplot = PyObject_GetAttrString(seabornmod, "kdeplot");
         s_python_function_semilogx = PyObject_GetAttrString(pymod, "semilogx");
         s_python_function_semilogy = PyObject_GetAttrString(pymod, "semilogy");
         s_python_function_loglog = PyObject_GetAttrString(pymod, "loglog");
@@ -194,6 +201,7 @@ private:
             || !s_python_function_pause
             || !s_python_function_figure
             || !s_python_function_plot
+            || !s_python_function_kdeplot
             || !s_python_function_semilogx
             || !s_python_function_semilogy
             || !s_python_function_loglog
@@ -226,6 +234,7 @@ private:
             || !PyFunction_Check(s_python_function_pause)
             || !PyFunction_Check(s_python_function_figure)
             || !PyFunction_Check(s_python_function_plot)
+            || !PyFunction_Check(s_python_function_kdeplot)
             || !PyFunction_Check(s_python_function_semilogx)
             || !PyFunction_Check(s_python_function_semilogy)
             || !PyFunction_Check(s_python_function_loglog)
@@ -434,7 +443,7 @@ bool fill_between(const std::vector<Numeric>& x, const std::vector<Numeric>& y1,
     return res;
 }
 
-bool hist(PyObject* yarray, long bins=10,std::string color="b", double alpha=1.0)
+bool hist(PyObject* yarray, size_t bins=20,std::string color="b", double alpha=1.0)
 {
 
     PyObject* kwargs = PyDict_New();
@@ -508,6 +517,49 @@ bool named_hist(std::string label,const std::vector<Numeric>& y, long bins=10, s
 
     Py_DECREF(plot_args);
     Py_DECREF(kwargs);
+    if(res) Py_DECREF(res);
+
+    return res;
+}
+
+bool kdeplot2(PyObject* xarray, PyObject* yarray)
+{
+    //PyObject* pystring = PyString_FromString(s.c_str());
+
+    PyObject* plot_args = PyTuple_New(2);
+    PyTuple_SetItem(plot_args, 0, xarray);
+    PyTuple_SetItem(plot_args, 1, yarray);
+
+    PyObject* kwargs = PyDict_New();
+    //PyDict_SetItemString(kwargs, "shade", Py_True);
+    PyDict_SetItemString(kwargs, "cmap", PyString_FromString("Blues_r"));
+
+    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_kdeplot, plot_args, kwargs);
+    if (!res) {
+        std::cout << "EXCEPTION KDEPLOT" << std::endl;
+        throw std::runtime_error("Call to kdeplot() failed.");
+    }
+
+    Py_DECREF(plot_args);
+    if(res) Py_DECREF(res);
+
+    return res;
+}
+
+bool kdeplot(PyObject* xarray)
+{
+    //PyObject* pystring = PyString_FromString(s.c_str());
+
+    PyObject* plot_args = PyTuple_New(1);
+    PyTuple_SetItem(plot_args, 0, xarray);
+
+    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_kdeplot, plot_args);
+    if (!res) {
+        std::cout << "EXCEPTION KDEPLOT" << std::endl;
+        throw std::runtime_error("Call to kdeplot() failed.");
+    }
+
+    Py_DECREF(plot_args);
     if(res) Py_DECREF(res);
 
     return res;

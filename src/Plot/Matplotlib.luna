@@ -1,0 +1,82 @@
+import Std.Foreign.C.Value
+import Std.Foreign
+
+import Dataframes.Column
+
+class Matplotlib:
+    def call n ret args:
+        lookupSymbol "DataframePlotter" n . call ret args
+
+    def histogram data bins params:
+        self.call "histogram" None [data.toCArg, CInt.fromInt bins . toCArg]
+
+    def plot s1 s2 style:
+        cstr = CString.fromText style
+        self.call "plot" None [s1.toCArg, s2.toCArg, cstr.toCArg]
+
+    def init w h:
+        self.call "init" None [CSize.fromInt w . toCArg, CSize.fromInt h . toCArg]
+
+    def getPNG:
+        cstr = self.call "getPNG" CString []
+        case cstr.isNull of
+            True: throw "Matplotlib: getPNG call failed."
+            False:
+                t = cstr.toText
+                cstr.free
+                t
+
+class Chart:
+    render :: None
+
+    def + that:
+        def seqRend:
+            self.render
+            that.render
+        Chart seqRend
+
+    def renderPNG w h:
+        Matplotlib.init w h
+        self.render
+        Matplotlib.getPNG
+
+    def makeDataUrl t: "data:image/png;base64," + t
+
+    def toJSON:
+        small = self.renderPNG 400 400
+        big   = self.renderPNG 800 800
+        JSON.empty.insert "small" (self.makeDataUrl small) . insert "big" (self.makeDataUrl big)
+
+class Histogram:
+    data :: Column
+    bins :: Int
+    options :: Map Text Text
+
+    def render:
+        Matplotlib.histogram self.data.ptr.data.ptr self.bins self.options
+
+    def toChart: Chart self.render
+
+    def + that:
+        self.toChart.+ that
+
+    def toJSON: self.toChart.toJSON
+
+    def setBins b: self.bins = b
+
+class Plot:
+    series1 :: Column
+    series2 :: Column
+    style :: Text
+
+    def render:
+        Matplotlib.plot self.series1.ptr.data.ptr self.series2.ptr.data.ptr self.style
+
+    def toChart: Chart self.render
+
+    def + that:
+        self.toChart.+ that
+
+    def toJSON: self.toChart.toJSON
+
+    def setStyle s: self.style = s
