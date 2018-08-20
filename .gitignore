@@ -1,6 +1,7 @@
 .vs/
 x64/
 build/
+macos/
 .idea/
 
 *.vcxproj.user
