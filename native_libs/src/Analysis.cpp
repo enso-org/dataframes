@@ -16,6 +16,9 @@ std::shared_ptr<arrow::Table> countValueTyped(const arrow::Column &column)
     Builder valueBuilder;
     arrow::Int64Builder countBuilder;
 
+    valueBuilder.Reserve(valueCounts.size());
+    countBuilder.Reserve(valueCounts.size());
+
     for(auto && [value, count] : valueCounts)
     {
         append(valueBuilder, value);
