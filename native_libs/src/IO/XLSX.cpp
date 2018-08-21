@@ -172,11 +172,14 @@ void writeXlsx(std::ostream &out, const arrow::Table &table, GeneratorHeaderPoli
         int32_t row = headerPolicy == GeneratorHeaderPolicy::GenerateHeaderLine;
         const auto writeValue = [&] (auto &&field)
         {
+            using FieldType = std::decay_t<decltype(field)>;
             auto cell = sheet.cell(column+1, row+1);
             // NOTE: workaround for GCC: otherwise call to xlnt::cell::value would be ambiguous
             // as int64_t is long int and there is no such overload (just ints and long long ints)
-            if constexpr(std::is_same_v<int64_t, std::decay_t<decltype(field)>>)
+            if constexpr(std::is_same_v<int64_t, FieldType>)
                 cell.value((long long)field);
+            else if constexpr(std::is_same_v<std::string_view, FieldType>)
+                cell.value(std::string(field));
             else
                 cell.value(field);
             ++row;

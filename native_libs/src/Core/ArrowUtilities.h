@@ -68,18 +68,8 @@ template<> struct TypeDescription<arrow::Type::STRING>
 template<typename Array>
 using ArrayTypeDescription = TypeDescription<std::decay_t<std::remove_pointer_t<Array>>::TypeClass::type_id>;
 
-template <arrow::Type::type type>
-auto arrayValueAt(const arrow::Array &array, int64_t index)
-{
-    const auto &arr = static_cast<const typename TypeDescription<type>::Array &>(array);
-    if constexpr(type == arrow::Type::STRING)
-        return arr.GetString(index);
-    else
-        return arr.Value(index);
-}
-
 template <typename Array>
-auto arrayValueAt(const Array &array, int64_t index)
+auto arrayValueAtTyped(const Array &array, int64_t index)
 {
     if constexpr(std::is_same_v<arrow::StringArray, Array>)
     {
@@ -89,6 +79,13 @@ auto arrayValueAt(const Array &array, int64_t index)
     }
     else
         return array.Value(index);
+}
+
+template <arrow::Type::type type>
+auto arrayValueAt(const arrow::Array &array, int64_t index)
+{
+    using Array = typename TypeDescription<type>::Array;
+    return arrayValueAtTyped(static_cast<const Array &>(array), index);
 }
 
 template <arrow::Type::type type, typename ElementF, typename NullF>

@@ -82,7 +82,7 @@ DynamicField arrayAt(const arrow::Array &array, int64_t index)
     return visitArray(array, [&](auto *array) -> DynamicField
     {
         if(array->IsValid(index))
-            return arrayValueAt(*array, index);
+            return arrayValueAtTyped(*array, index);
         else
             return std::nullopt;
     });
