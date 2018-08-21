@@ -27,6 +27,7 @@ class TypedColumn a:
         self.fromWrapper $ createColumnWrapper field.ptr chunks.ptr
 
     def nullCount: self.ptr.nullCount
+    def countMissing: self.nullCount
     def length: self.ptr.length
     def field:
         Field.fromWrapper $ self.ptr.field
@@ -110,7 +111,7 @@ class Column:
         typedCol = TypedColumn typeTag . fromChunks field.ptr chunks.ptr
         typeTag.makeColumn typedCol
 
-    def nullCount: self.ptr.nullCount
+    def countMissing: self.ptr.nullCount
     def length: self.ptr.length
     def name: self.ptr.name
     def field: 
