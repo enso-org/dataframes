@@ -321,9 +321,15 @@ std::shared_ptr<arrow::Array> fillNATyped(const Array &array, DynamicField value
     else
     {
         using T = typename Array::value_type;
+    #ifdef __APPLE__
+        auto valueToFill = mpark::get<T>(value);
+        std::shared_ptr<arrow::Buffer> buffer;
+        T *data;
+        std::tie(buffer, data) = allocateBuffer<T>(array.length());
+    #else
         auto valueToFill = std::get<T>(value);
-
         auto [buffer, data] = allocateBuffer<T>(array.length());
+    #endif
         int row = 0;
         std::memcpy(data, array.raw_values(), buffer->size());
         iterateOver<ArrayTypeDescription<Array>::id>(array, 
