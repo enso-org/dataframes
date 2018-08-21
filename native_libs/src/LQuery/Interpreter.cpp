@@ -28,7 +28,7 @@ using namespace std::literals;
         {}
         explicit ArrayOperand(size_t length)
         {
-            buffer = allocateBuffer<T>(length);
+            buffer = allocateBuffer<T>(length).first;
         }
 
         //T &operator[](size_t index) { return mutable_data()[index]; }
@@ -502,8 +502,7 @@ auto arrayWith(const arrow::Table &table, const T &constant, std::shared_ptr<arr
     constexpr auto id = ValueTypeToId<T>();
     if constexpr(std::is_arithmetic_v<T>)
     {
-        auto buffer = allocateBuffer<T>(N);
-        auto raw = reinterpret_cast<T*>(buffer->mutable_data());
+        auto [buffer, raw] = allocateBuffer<T>(N);
         std::fill_n(raw, N, constant);
         return std::make_shared<typename TypeDescription<id>::Array>(N, buffer, nullBuffer, -1);
     }

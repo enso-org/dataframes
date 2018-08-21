@@ -57,7 +57,7 @@
       <DiagnosticsFormat>Classic</DiagnosticsFormat>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>VERBOSE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>RAPIDJSON_NOMEMBERITERATORCLASS;VERBOSE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>xlntd.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -72,7 +72,7 @@
       <DiagnosticsFormat>Classic</DiagnosticsFormat>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>RAPIDJSON_NOMEMBERITERATORCLASS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <SDLCheck>false</SDLCheck>
       <ControlFlowGuard>false</ControlFlowGuard>
@@ -92,6 +92,7 @@
     <ClCompile Include="IO\csv.cpp" />
     <ClCompile Include="IO\Feather.cpp" />
     <ClCompile Include="IO\IO.cpp" />
+    <ClCompile Include="IO\JSON.cpp" />
     <ClCompile Include="IO\XLSX.cpp" />
     <ClCompile Include="LifetimeManager.cpp" />
     <ClCompile Include="LQuery\AST.cpp" />
@@ -107,6 +108,7 @@
     <ClInclude Include="IO\csv.h" />
     <ClInclude Include="IO\Feather.h" />
     <ClInclude Include="IO\IO.h" />
+    <ClInclude Include="IO\JSON.h" />
     <ClInclude Include="IO\XLSX.h" />
     <ClInclude Include="LifetimeManager.h" />
     <ClInclude Include="LQuery\AST.h" />

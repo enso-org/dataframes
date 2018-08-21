@@ -18,6 +18,8 @@
 #pragma comment(lib, "arrow.lib")
 #endif
 
+using namespace std::literals;
+
 void testFieldParser(std::string input, std::string expectedContent, int expectedPosition)
 {
 	CsvParser parser{input};
@@ -604,6 +606,23 @@ BOOST_AUTO_TEST_CASE(DropNABigFile)
 	});
 }
 
+BOOST_AUTO_TEST_CASE(FillNABigFile)
+{
+	auto csv = parseCsvFile("F:/dev/csv/application_train.csv");
+	auto table = csvToArrowTable(std::move(csv), TakeFirstRowAsHeaders{}, {});
+
+	std::unordered_map<std::string, DynamicField> valuesToFillWith;
+	for(auto column : getColumns(*table))
+	{
+		valuesToFillWith[column->name()] = adjustTypeForFilling("80"s, *column->type());
+	}
+
+	measure("fill NA from application_train", 5000, [&]
+	{
+		auto table2 = dropNA(table);
+	});
+}
+
 BOOST_AUTO_TEST_CASE(FilterBigFile)
 {
 	const auto jsonQuery = R"({"predicate": "gt", "arguments": [ {"column": "NUM_INSTALMENT_NUMBER"}, {"operation": "plus", "arguments": [50, 1]} ] } )";
@@ -693,4 +712,26 @@ BOOST_AUTO_TEST_CASE(TypeDeducing)
 	BOOST_CHECK_EQUAL(table->column(2)->type()->id(), arrow::Type::DOUBLE);
 	BOOST_CHECK_EQUAL(table->column(3)->type()->id(), arrow::Type::STRING);
 	BOOST_CHECK_EQUAL(table->column(4)->type()->id(), arrow::Type::STRING);
+}
+
+BOOST_AUTO_TEST_CASE(FillingNAInts)
+{
+	int64_t fillWith = -70;
+	std::vector<std::optional<int64_t>> values = {std::nullopt, 1, 2, std::nullopt, 4, 5, std::nullopt, std::nullopt};
+	std::vector<std::optional<int64_t>> expectedFilled = {fillWith, 1, 2, fillWith, 4, 5, fillWith, fillWith};
+	auto column = toColumn(values);
+	auto columnFilled = fillNA(column, fillWith);
+	auto valuesFilled = toVector<int64_t>(*columnFilled);
+	BOOST_CHECK_EQUAL_COLLECTIONS(valuesFilled.begin(), valuesFilled.end(), expectedFilled.begin(), expectedFilled.end());
+}
+
+BOOST_AUTO_TEST_CASE(FillingNAStrings)
+{
+	std::string fillWith = "foo";
+	std::vector<std::optional<std::string>> values = {std::nullopt, "1", "2", std::nullopt, "4", "5", std::nullopt, std::nullopt};
+	std::vector<std::optional<std::string>> expectedFilled = {fillWith, "1", "2", fillWith, "4", "5", fillWith, fillWith};
+	auto column = toColumn(values);
+	auto columnFilled = fillNA(column, fillWith);
+	auto valuesFilled = toVector<std::string>(*columnFilled);
+	BOOST_CHECK_EQUAL_COLLECTIONS(valuesFilled.begin(), valuesFilled.end(), expectedFilled.begin(), expectedFilled.end());
 }

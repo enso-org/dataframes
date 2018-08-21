@@ -39,6 +39,7 @@ struct NumericTypeDescription
     using Array = arrow::NumericArray<T>;
     using StorageValueType = ValueType;
     using OffsetType = void;
+    static constexpr arrow::Type::type id = ArrowType::type_id;
 };
 
 template<> struct TypeDescription<arrow::Type::UINT8 > : NumericTypeDescription<arrow::UInt8Type>  {};
@@ -61,6 +62,7 @@ template<> struct TypeDescription<arrow::Type::STRING>
     using Array = arrow::StringArray;
     using StorageValueType = uint8_t;
     using OffsetType = int32_t;
+    static constexpr arrow::Type::type id = ArrowType::type_id;
 };
 
 template<typename Array>
@@ -224,11 +226,11 @@ inline std::shared_ptr<arrow::Array> finish(arrow::ArrayBuilder &builder)
 }
 
 template<typename T>
-std::shared_ptr<arrow::Buffer> allocateBuffer(size_t length)
+std::pair<std::shared_ptr<arrow::Buffer>, T*> allocateBuffer(size_t length)
 {
     std::shared_ptr<arrow::Buffer> ret{};
     checkStatus(arrow::AllocateBuffer(length * sizeof(T), &ret));
-    return ret;
+    return { ret, reinterpret_cast<T*>(ret->mutable_data()) } ;
 }
 
 template<typename T>
@@ -301,6 +303,15 @@ auto toArray(const std::vector<T> &elems)
     return finish(builder);
 }
 
+template<typename T>
+auto toColumn(const std::vector<T> &elems, std::string name = "col")
+{
+    auto array = toArray(elems);
+    auto field = arrow::field(name, array->type(), is_optional_v<T>);
+    return std::make_shared<arrow::Column>(field, array);
+}
+
+
 namespace detail
 {
     template<typename T, std::size_t N>
@@ -326,6 +337,9 @@ std::tuple<std::vector<Ts>...> toVectors(const arrow::Table &table)
     return detail::toVectorsHlp<Ts...>(table, std::index_sequence_for<Ts...>{});
 }
 
+EXPORT std::vector<std::shared_ptr<arrow::Column>> getColumns(const arrow::Table &table);
+EXPORT std::unordered_map<std::string, std::shared_ptr<arrow::Column>> getColumnMap(const arrow::Table &table);
+
 struct EXPORT BitmaskGenerator
 {
     uint8_t *data;
@@ -339,11 +353,14 @@ struct EXPORT BitmaskGenerator
     void clear(int64_t index);
 };
 
+std::shared_ptr<arrow::Field> setNullable(bool nullable, std::shared_ptr<arrow::Field> field);
+std::shared_ptr<arrow::Schema> setNullable(bool nullable, std::shared_ptr<arrow::Schema> field);
+
 using PossiblyChunkedArray = std::variant<std::shared_ptr<arrow::Array>, std::shared_ptr<arrow::ChunkedArray>>;
 
 EXPORT std::shared_ptr<arrow::Table> tableFromArrays(std::vector<PossiblyChunkedArray> arrays, std::vector<std::string> names = {}, std::vector<bool> nullables = {});
 
-using DynamicField = std::variant<int64_t, double, std::string_view, std::nullopt_t>;
+using DynamicField = std::variant<int64_t, double, std::string_view, std::string, std::nullopt_t>;
 
 EXPORT DynamicField arrayAt(const arrow::Array &array, int64_t index);
 EXPORT DynamicField arrayAt(const arrow::ChunkedArray &array, int64_t index);

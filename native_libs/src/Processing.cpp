@@ -9,7 +9,6 @@
 #include <arrow/table.h>
 #include <arrow/type_traits.h>
 
-#define RAPIDJSON_NOMEMBERITERATORCLASS 
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/writer.h>
@@ -44,14 +43,14 @@ struct FilteredArrayBuilder
     std::shared_ptr<arrow::Buffer> bitmask;
     std::shared_ptr<arrow::Buffer> offsets;
     std::shared_ptr<arrow::Buffer> values;
-
-    template<typename Elem>
-    auto allocateBuffer(int64_t length)
-    {
-        auto buffer = ::allocateBuffer<Elem>(length);
-        auto data = reinterpret_cast<Elem*>(buffer->mutable_data());
-        return std::make_pair(buffer, data);
-    }
+// 
+//     template<typename Elem>
+//     auto allocateBuffer(int64_t length)
+//     {
+//         auto buffer = ::allocateBuffer<Elem>(length);
+//         auto data = reinterpret_cast<Elem*>(buffer->mutable_data());
+//         return std::make_pair(buffer, data);
+//     }
 
     FilteredArrayBuilder(const unsigned char * const mask, int64_t length, const arrow::ChunkedArray &array)
         : length(length), mask(mask)
@@ -301,6 +300,100 @@ std::shared_ptr<arrow::Table> dropNA(std::shared_ptr<arrow::Table> table)
     return dropNA(table, columnIndices);
 }
 
+template<typename Array>
+std::shared_ptr<arrow::Array> fillNATyped(const Array &array, DynamicField value)
+{
+    if constexpr(std::is_same_v<Array, arrow::StringArray>)
+    {
+        std::string_view valueToFill = std::visit(overloaded{
+            [] (const std::string_view &sv) { return sv; },
+            [] (const std::string &s) { return std::string_view(s); },
+            [] (const auto &v) -> std::string_view { throw std::runtime_error("cannot fill string array with value of type "s + typeid(v).name()); }
+            }, value);
+        
+        arrow::StringBuilder builder;
+        iterateOver<arrow::Type::STRING>(array, 
+            [&] (auto &&s) { builder.Append(s.data(), s.size()); },
+            [&] () { builder.Append(valueToFill.data(), valueToFill.size()); });
+        return finish(builder);
+
+    }
+    else
+    {
+        using T = typename Array::value_type;
+        auto valueToFill = std::get<T>(value);
+
+        auto [buffer, data] = allocateBuffer<T>(array.length());
+        int row = 0;
+        std::memcpy(data, array.raw_values(), buffer->size());
+        iterateOver<ArrayTypeDescription<Array>::id>(array, 
+            [&] (auto &&) { ++row; },
+            [&] () { data[row++] = valueToFill; });
+
+        return std::make_shared<Array>(array.length(), buffer, nullptr);
+    }
+}
+
+std::shared_ptr<arrow::Array> fillNA(std::shared_ptr<arrow::Array> array, DynamicField value)
+{
+    if(array->null_count() == 0)
+        return array;
+
+    return visitArray(*array, [&] (auto *array) 
+    {
+        return std::visit([&] (auto value)
+        {
+            return fillNATyped(*array, value);
+        }, value);
+    });
+}
+
+std::shared_ptr<arrow::ChunkedArray> fillNA(std::shared_ptr<arrow::ChunkedArray> array, DynamicField value)
+{
+    if(array->null_count() == 0)
+        return array;
+
+    arrow::ArrayVector newArrays;
+    for(auto &&chunk : array->chunks())
+        newArrays.push_back(fillNA(chunk, value));
+
+    return std::make_shared<arrow::ChunkedArray>(newArrays);
+}
+
+std::shared_ptr<arrow::Column> fillNA(std::shared_ptr<arrow::Column> column, DynamicField value)
+{
+    if(column->null_count() == 0)
+        return column;
+
+    auto newField = setNullable(false, column->field());
+    auto newChunks = fillNA(column->data(), value);
+    return std::make_shared<arrow::Column>(newField, newChunks);
+}
+
+std::shared_ptr<arrow::Table> fillNA(std::shared_ptr<arrow::Table> table, const std::unordered_map<std::string, DynamicField> &valuesPerColumn)
+{
+    const auto nonNullable = [](auto &&column) { return column->field()->nullable() == false; };
+    const auto oldColumns = getColumns(*table);
+    if(std::all_of(oldColumns.begin(), oldColumns.end(), nonNullable))
+        return table;
+
+    auto newColumns = transformToVector(oldColumns, [&] (auto &&column)
+    {
+        if(auto itr = valuesPerColumn.find(column->name()); itr != valuesPerColumn.end())
+        {
+            const auto value = itr->second;
+            return fillNA(column, value);
+        }
+        else
+            return column;
+    });
+    
+    auto newFields = transformToVector(newColumns, 
+        [&](auto &&column) { return column->field(); });
+    auto newSchema = arrow::schema(newFields, table->schema()->metadata());
+    return arrow::Table::Make(newSchema, newColumns);
+}
+
 std::shared_ptr<arrow::Table> filter(std::shared_ptr<arrow::Table> table, const char *dslJsonText)
 {
     auto [mapping, predicate] = ast::parsePredicate(*table, dslJsonText);
@@ -343,4 +436,43 @@ std::shared_ptr<arrow::Array> each(std::shared_ptr<arrow::Table> table, const ch
 {
     auto [mapping, v] = ast::parseValue(*table, dslJsonText);
     return execute(*table, v, mapping);
+}
+
+struct ToString
+{
+    std::string operator() (int64_t value)          const { return std::to_string(value); }
+    std::string operator() (double value)           const { return std::to_string(value); }
+    std::string operator() (std::string value)      const { return std::move(value); }
+    std::string operator() (std::string_view value) const { return std::string(value); }
+    template<typename T>
+    std::string operator() (T)                      const { throw std::runtime_error(__FUNCTION__ + ": invalid conversion"s); }
+};
+struct ToInt64
+{
+    int64_t operator() (int64_t value)            const { return value; }
+    int64_t operator() (double value)             const { return value; }
+    int64_t operator() (const std::string &value) const { return std::stoll(value); }
+    int64_t operator() (std::string_view value)   const { return std::stoll(std::string(value)); }
+    template<typename T>
+    int64_t operator() (T)                        const { throw std::runtime_error(__FUNCTION__ + ": invalid conversion"s); }
+};
+struct ToDouble
+{
+    double operator() (int64_t value)            const { return value; }
+    double operator() (double value)             const { return value; }
+    double operator() (const std::string &value) const { return std::stod(value); }
+    double operator() (std::string_view value)   const { return std::stod(std::string(value)); }
+    template<typename T>
+    double operator() (T)                        const { throw std::runtime_error(__FUNCTION__ + ": invalid conversion"s); }
+};
+
+DynamicField adjustTypeForFilling(DynamicField valueGivenByUser, const arrow::DataType &type)
+{
+    switch(type.id())
+    {
+    case arrow::Type::STRING: return std::visit(ToString{}, valueGivenByUser);
+    case arrow::Type::INT64: return std::visit(ToInt64{}, valueGivenByUser);
+    case arrow::Type::DOUBLE: return std::visit(ToDouble{}, valueGivenByUser);
+    default: throw std::runtime_error("Not supported column type to fill: "s + type.ToString());
+    }
 }

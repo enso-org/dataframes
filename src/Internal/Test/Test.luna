@@ -445,7 +445,32 @@ class TestArrayBuilder:
 
         assertThrow 'dropNaAt "d"' $ table.dropNaAt "d"
 
+    def testFilling:
+        intCol  = Column.fromList "a" MaybeInt64Type  [Just 0,   Nothing,  Just 2,   Just 3  ]
+        realCol = Column.fromList "b" MaybeDoubleType [Just 0.0, Just 1.0, Nothing,  Just 3.0]
+        textCol = Column.fromList "c" MaybeStringType [Just "0", Just "1", Just "2", Nothing ]
+        table = Table.fromColumns [intCol, realCol, textCol]
+
+        filled8 = table.fillNa 8
+        assertEqual "filled with 8: a" (filled8.columnAt 0 . toList) [0, 8, 2, 3]
+        assertEqual "filled with 8: b" (filled8.columnAt 1 . toList) [0.0, 1.0, 8.0, 3.0]
+        assertEqual "filled with 8: c" (filled8.columnAt 2 . toList) ["0", "1", "2", "8"]
+
+        filled4S = table.fillNa "4.0"
+        assertEqual "filled with '4.0': a" (filled4S.columnAt 0 . toList) [0, 4, 2, 3]
+        assertEqual "filled with '4.0': b" (filled4S.columnAt 1 . toList) [0.0, 1.0, 4.0, 3.0]
+        assertEqual "filled with '4.0': c" (filled4S.columnAt 2 . toList) ["0", "1", "2", "4.0"]
+        assertThrow "filling non-string with non-parsable string" (table.fillNa "foo")
+        
+        filledB8 = table.fillNaAt "b" 8
+        assertEqual "filled at 'b' with 8: a" (filledB8.columnAt 0 . toList) [Just 0,   Nothing,  Just 2,   Just 3  ]
+        assertEqual "filled at 'b' with 8: b" (filledB8.columnAt 1 . toList) [0.0, 1.0, 8.0, 3.0]
+        assertEqual "filled at 'b' with 8: c" (filledB8.columnAt 2 . toList) [Just "0", Just "1", Just "2", Nothing ]
+
+        assertThrow "filling column by wrong name" $ table.fillNaAt "d" 8
+
     def run:
+        self.testFilling
         self.testDropping
         self.testMapping
         self.testFiltering

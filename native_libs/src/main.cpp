@@ -1,9 +1,11 @@
 #include <chrono>
 #include <iostream>
+#include <map>
 #include <vector>
 #include <algorithm>
 #include <fstream>
 #include <sstream>
+#include <unordered_set>
 
 #include "Core/ArrowUtilities.h"
 #include "Core/Common.h"
@@ -14,6 +16,7 @@
 #include "IO/csv.h"
 #include "IO/Feather.h"
 #include "IO/IO.h"
+#include "IO/JSON.h"
 #include "IO/XLSX.h"
 
 
@@ -1005,6 +1008,53 @@ extern "C"
             }
 
             throw std::runtime_error("Failed to find column by name: "s + columnName);
+        };
+    }
+    EXPORT arrow::Table *tableFillNA(arrow::Table *table, const char *valueJSON, const char **outError) noexcept
+    {
+        LOG("@{} value={}", (void*)table, valueJSON);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto managedTable = LifetimeManager::instance().accessOwned(table);
+
+            std::unordered_map<std::string, DynamicField> fillValuePerColumn;
+
+            auto doc = parseJSON(valueJSON);
+            if(doc.IsObject())
+            {
+                const auto columnMap = getColumnMap(*table);
+                for(auto itr = doc.MemberBegin(); itr != doc.MemberEnd(); ++itr)
+                {
+                    const auto name = itr->name.GetString();
+                    if(auto colItr = columnMap.find(name); colItr != columnMap.end())
+                    {
+                        const auto value = parseAsField(itr->value);
+                        fillValuePerColumn[name] = adjustTypeForFilling(value, *colItr->second->type());
+                    }
+                    else
+                        throw std::runtime_error("cannot find column by name: "s + name);
+                }
+            }
+            else
+            {
+                auto value = parseAsField(valueJSON);
+                for(auto &column : getColumns(*table))
+                {
+                    try
+                    {
+                        const auto typeId = column->type()->id();
+                        fillValuePerColumn[column->name()] = adjustTypeForFilling(value, *column->type());
+                    }
+                    catch(std::exception &e)
+                    {
+                        throw std::runtime_error("cannot fill column " + column->name() + " of type " 
+                            + column->type()->ToString() + " with value " + valueJSON + ": " + e.what());
+                    }
+                }
+            }
+
+            auto ret = fillNA(managedTable, fillValuePerColumn);
+            return LifetimeManager::instance().addOwnership(ret);
         };
     }
 }

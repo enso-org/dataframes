@@ -58,5 +58,9 @@ class Table:
         self.fromWrapper $ self.ptr.dropNa
     def dropNaAt columnName:
         self.fromWrapper $ self.ptr.dropNaByName columnName
+    def fillNa valueToFillWith:
+        self.fromWrapper $ self.ptr.fillNa valueToFillWith
+    def fillNaAt columnName valueToFillWith:
+        self.fromWrapper $ self.ptr.fillNaAt columnName valueToFillWith
 
         

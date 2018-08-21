@@ -7,27 +7,16 @@
 #include <arrow/table.h>
 #include <arrow/type_traits.h>
 
-#define RAPIDJSON_NOMEMBERITERATORCLASS 
 #include <rapidjson/document.h>
-#include <rapidjson/error/en.h>
-#include <rapidjson/writer.h>
-#include <rapidjson/stringbuffer.h>
-
-#include "Core/ArrowUtilities.h"
 
 #include "variant.h"
+#include "Core/ArrowUtilities.h"
+#include "IO/JSON.h"
 
 using namespace std::literals;
 
 namespace
 {
-std::string toJsonString(const rapidjson::Value &v)
-{
-    rapidjson::StringBuffer buffer;
-    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-    v.Accept(writer);
-    return buffer.GetString();
-}
 struct DslParser
 {
     DslParser(const arrow::Table &table) : table(table)
@@ -158,17 +147,6 @@ struct DslParser
     {
         auto doc = parseJSON(dslJsonText);
         return parseValue(doc);
-    }
-
-    rapidjson::Document parseJSON(const char *json)
-    {
-        rapidjson::Document doc{};
-        doc.Parse(json);
-
-        if(doc.HasParseError())
-            throw std::runtime_error("Failed to parse JSON: "s + GetParseError_En(doc.GetParseError()));
-
-        return doc;
     }
 };
 

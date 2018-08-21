@@ -2,6 +2,43 @@
 
 using namespace std::literals;
 
+std::vector<std::shared_ptr<arrow::Column>> getColumns(const arrow::Table &table)
+{
+    std::vector<std::shared_ptr<arrow::Column>> columns;
+    for(int i = 0; i < table.num_columns(); i++)
+    {
+        columns.push_back(table.column(i));
+    }
+    return columns;
+}
+
+std::unordered_map<std::string, std::shared_ptr<arrow::Column>> getColumnMap(const arrow::Table &table)
+{
+    std::unordered_map<std::string, std::shared_ptr<arrow::Column>> ret;
+
+    for(auto &&column : getColumns(table))
+        ret[column->name()] = column;
+
+    return ret;
+}
+
+std::shared_ptr<arrow::Field> setNullable(bool nullable, std::shared_ptr<arrow::Field> field)
+{
+    if(field->nullable() == nullable)
+        return field;
+
+    return arrow::field(field->name(), field->type(), nullable, field->metadata());
+}
+
+std::shared_ptr<arrow::Schema> setNullable(bool nullable, std::shared_ptr<arrow::Schema> schema)
+{
+    std::vector<std::shared_ptr<arrow::Field>> newFields;
+    for(auto &&field : schema->fields())
+        newFields.push_back(setNullable(nullable, field));
+
+    return arrow::schema(newFields, schema->metadata());
+}
+
 std::shared_ptr<arrow::Table> tableFromArrays(std::vector<PossiblyChunkedArray> arrays, std::vector<std::string> names, std::vector<bool> nullables)
 {
     std::vector<std::shared_ptr<arrow::ChunkedArray>> chunkedArrays;
@@ -107,8 +144,7 @@ void validateIndex(const arrow::Column &column, int64_t index)
 BitmaskGenerator::BitmaskGenerator(int64_t length, bool initialValue) : length(length)
 {
     auto bytes = arrow::BitUtil::BytesForBits(length);
-    buffer = allocateBuffer<uint8_t>(bytes);
-    data = buffer->mutable_data();
+    std::tie(buffer, data) = allocateBuffer<uint8_t>(bytes);
     std::memset(data, initialValue ? 0xFF : 0, bytes);
     // TODO: above sets by bytes, the last byte should have only part of bits set
 }
