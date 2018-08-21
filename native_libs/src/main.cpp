@@ -11,6 +11,7 @@
 #include "Core/Common.h"
 #include "Core/Error.h"
 #include "Core/Logger.h"
+#include "Analysis.h"
 #include "Processing.h"
 #include "LifetimeManager.h"
 #include "IO/csv.h"
@@ -770,6 +771,15 @@ extern "C"
         return TRANSLATE_EXCEPTION(outError)
         {
             return LifetimeManager::instance().addOwnership(column->Slice(fromIndex, count));
+        };
+    }
+    EXPORT arrow::Table *columnCountValues(arrow::Column *column, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)column);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto ret = countValues(*column);
+            return LifetimeManager::instance().addOwnership(ret);
         };
     }
 }

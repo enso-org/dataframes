@@ -469,7 +469,36 @@ class TestArrayBuilder:
 
         assertThrow "filling column by wrong name" $ table.fillNaAt "d" 8
 
+    def testCountValues:
+        print "countValues: nullable int64"
+        intCol = Column.fromList "a" MaybeInt64Type  [Just 0,   Nothing,  Just 2, Just 3, Just 2]
+        col0 = intCol.countValues.columnAt 0
+        col1 = intCol.countValues.columnAt 1
+        assertEqual "first col name"  col0.name "value"
+        assertEqual "second col name" col1.name "count"
+        assertEqual "first col contents"  col0.toList [Just 0, Just 2, Just 3, Nothing]
+        assertEqual "second col name" col1.toList [1, 2, 1, 1]
+
+        print "countValues: nullable string"
+        textCol = Column.fromList "a" MaybeStringType  [Just "foo", Just "foo", Nothing, Nothing, Just "bar", Just "foo"]
+        textCol0 = textCol.countValues.columnAt 0
+        textCol1 = textCol.countValues.columnAt 1
+        assertEqual "first col name"  textCol0.name "value"
+        assertEqual "second col name" textCol1.name "count"
+        assertEqual "first col contents"  textCol0.toList [Just "foo", Just "bar", Nothing]
+        assertEqual "second col name"     textCol1.toList [3, 1, 2]
+
+        print "countValues: non-nullable double"
+        doubleCol = Column.fromList "a" DoubleType  [1.0, 2.0, 3.0, 2.0, 2.5]
+        doubleCol0 = doubleCol.countValues.columnAt 0
+        doubleCol1 = doubleCol.countValues.columnAt 1
+        assertEqual "first col name"  doubleCol0.name "value"
+        assertEqual "second col name" doubleCol1.name "count"
+        assertEqual "first col contents"  doubleCol0.toList [1.0, 3.0, 2.0, 2.5]
+        assertEqual "second col name"     doubleCol1.toList [1, 1, 2, 1]
+
     def run:
+        self.testCountValues
         self.testFilling
         self.testDropping
         self.testMapping

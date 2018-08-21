@@ -35,6 +35,7 @@ struct NumericTypeDescription
     using ArrowType = T;
     using BuilderType = arrow::NumericBuilder<T>;
     using ValueType = typename BuilderType::value_type;
+    using ObservedType = ValueType;
     using CType = typename BuilderType::value_type;
     using Array = arrow::NumericArray<T>;
     using StorageValueType = ValueType;
@@ -58,6 +59,7 @@ template<> struct TypeDescription<arrow::Type::STRING>
     using ArrowType = arrow::StringType;
     using BuilderType = arrow::StringBuilder;
     using ValueType = std::string;
+    using ObservedType = std::string_view;
     using CType = const char *;
     using Array = arrow::StringArray;
     using StorageValueType = uint8_t;
@@ -130,6 +132,12 @@ void iterateOver(const arrow::ChunkedArray &arrays, ElementF &&handleElem, NullF
     {
         iterateOver<type>(*chunk, handleElem, handleNull);
     }
+}
+
+template <arrow::Type::type type, typename ElementF, typename NullF>
+void iterateOver(const arrow::Column &column, ElementF &&handleElem, NullF &&handleNull)
+{
+    return iterateOver<type>(*column.data(), handleElem, handleNull);
 }
 
 template <typename ElementF, typename NullF>
@@ -371,3 +379,26 @@ EXPORT void validateIndex(const arrow::Array &array, int64_t index);
 EXPORT void validateIndex(const arrow::ChunkedArray &array, int64_t index);
 EXPORT void validateIndex(const arrow::Column &column, int64_t index);
 
+
+template<typename F>
+auto visitType(const arrow::DataType &type, F &&f)
+{
+    switch(type.id())
+    {
+    case arrow::Type::INT64 : return f(std::integral_constant<arrow::Type::type, arrow::Type::INT64 >{});
+    case arrow::Type::DOUBLE: return f(std::integral_constant<arrow::Type::type, arrow::Type::DOUBLE>{});
+    case arrow::Type::STRING: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
+    default: throw std::runtime_error("array type not supported to downcast: " + type.ToString());
+    }
+}
+
+inline void append(arrow::StringBuilder &sb, std::string_view sv)
+{
+    sb.Append(sv.data(), sv.length());
+}
+
+template<typename Builder, typename T>
+void append(Builder &sb, T v)
+{
+    sb.Append(v);
+}

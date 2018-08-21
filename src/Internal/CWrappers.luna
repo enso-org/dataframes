@@ -196,6 +196,9 @@ class ColumnWrapper:
     def slice fromIndex length:
         ptr = callHandlingError "columnSlice" (Pointer None) [self.ptr.toCArg, CInt64.fromInt fromIndex . toCArg, CInt64.fromInt length . toCArg]
         wrapReleasableResouce ColumnWrapper ptr
+    def countValues:
+        ptr = callHandlingError "columnCountValues" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce TableWrapper ptr
 
 def createColumnWrapper field chunks:
     ptr = callHandlingError "columnNew" (Pointer None) [field.ptr.toCArg, chunks.ptr.toCArg]

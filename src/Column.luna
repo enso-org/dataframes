@@ -2,6 +2,7 @@ import Dataframes.Array
 import Dataframes.ChunkedArray
 import Dataframes.Field
 import Dataframes.Schema
+import Dataframes.Table
 import Dataframes.Types
 
 import Dataframes.Internal.CWrappers
@@ -114,3 +115,6 @@ class Column:
     def name: self.ptr.name
     def field: 
         Field.fromWrapper $ self.ptr.field
+
+    def countValues:
+        Table.fromWrapper $ self.ptr.countValues

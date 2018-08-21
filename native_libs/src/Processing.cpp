@@ -43,14 +43,6 @@ struct FilteredArrayBuilder
     std::shared_ptr<arrow::Buffer> bitmask;
     std::shared_ptr<arrow::Buffer> offsets;
     std::shared_ptr<arrow::Buffer> values;
-// 
-//     template<typename Elem>
-//     auto allocateBuffer(int64_t length)
-//     {
-//         auto buffer = ::allocateBuffer<Elem>(length);
-//         auto data = reinterpret_cast<Elem*>(buffer->mutable_data());
-//         return std::make_pair(buffer, data);
-//     }
 
     FilteredArrayBuilder(const unsigned char * const mask, int64_t length, const arrow::ChunkedArray &array)
         : length(length), mask(mask)
