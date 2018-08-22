@@ -845,6 +845,15 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
+    EXPORT arrow::Column *columnQuantile(arrow::Column *column, double q, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)column);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto ret = calculateQuantile(*column, q);
+            return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
 }
 
 // SCHEMA

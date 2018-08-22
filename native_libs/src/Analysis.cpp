@@ -43,14 +43,6 @@ std::shared_ptr<arrow::Table> countValueTyped(const arrow::Column &column)
     return tableFromArrays({valueArray, countArray}, {"value", "count"});
 }
 
-std::shared_ptr<arrow::Table> countValues(const arrow::Column &column)
-{
-    return visitType(*column.type(), [&] (auto id) 
-    {
-        return countValueTyped<id.value>(column);
-    });
-}
-
 template<typename T>
 struct Minimum
 {
@@ -148,6 +140,60 @@ std::shared_ptr<arrow::Column> calculateStat(const arrow::Column &column)
     });
 }
 
+template<typename T>
+std::common_type_t<T, double> vectorNthElement(std::vector<T> &data, int32_t n)
+{
+    assert(n >= 0 && n < data.size());
+    std::nth_element(data.begin(), data.begin() + n, data.end());
+    return data[n];
+}
+
+template<typename T>
+std::common_type_t<T, double> vectorQuantile(std::vector<T> &data, double q = 0.5)
+{
+    assert(!data.empty());
+
+    if(q >= 1.0)
+        return *std::max_element(data.begin(), data.end());
+    if(q <= 0)
+        return *std::min_element(data.begin(), data.end());
+
+    q = std::clamp(q, 0.0, 1.0);
+    const double n = data.size() * q - 0.5; 
+    const int n1 = std::floor(n);
+    const int n2 = std::ceil(n);
+    const auto t = n - n1;
+    std::nth_element(data.begin(), data.begin() + n1, data.end());
+    std::nth_element(data.begin() + n1, data.begin() + n2, data.end());
+    return lerp<double>(data[n1], data[n2], t);
+}
+
+std::shared_ptr<arrow::Column> calculateQuantile(const arrow::Column &column, double q, std::string name)
+{
+    // return calculateStat<Median>(column);
+    auto v = toJustVector(column);
+    return std::visit([&] (auto &vector) -> std::shared_ptr<arrow::Column>
+    {
+        using VectorType = std::decay_t<decltype(vector)>;
+        using T = typename VectorType::value_type;
+        if constexpr(std::is_arithmetic_v<T>)
+        {
+            auto result = vectorQuantile(vector, q);
+            return scalarToColumn(result, name);
+        }
+        else
+            throw std::runtime_error(name + " is allowed only for arithmetics type");
+    }, v);
+}
+
+
+std::shared_ptr<arrow::Table> countValues(const arrow::Column &column)
+{
+    return visitType(*column.type(), [&] (auto id) 
+    {
+        return countValueTyped<id.value>(column);
+    });
+}
 
 std::shared_ptr<arrow::Column> calculateMin(const arrow::Column &column)
 {
@@ -166,7 +212,25 @@ std::shared_ptr<arrow::Column> calculateMean(const arrow::Column &column)
 
 std::shared_ptr<arrow::Column> calculateMedian(const arrow::Column &column)
 {
-    return calculateStat<Median>(column);
+    return calculateQuantile(column, 0.5, "median");
+}
+
+std::shared_ptr<arrow::Column> calculateQuantile(const arrow::Column &column, double q)
+{
+    return calculateQuantile(column, q, "quantile " + std::to_string(q));
+}
+
+std::shared_ptr<arrow::Array> fromMemory(double *data, int32_t dataCount)
+{
+    arrow::DoubleBuilder builder;
+    builder.AppendValues(data, dataCount);
+    return finish(builder);
+}
+
+std::shared_ptr<arrow::Column> columnFromArray(std::shared_ptr<arrow::Array> array, std::string name)
+{
+    auto field = arrow::field(name, array->type(), array->null_count());
+    return std::make_shared<arrow::Column>(field, array);
 }
 
 std::shared_ptr<arrow::Column> calculateVariance(const arrow::Column &column)

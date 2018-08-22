@@ -637,6 +637,19 @@ BOOST_AUTO_TEST_CASE(FilterBigFile)
 	std::cout<<"";
 }
 
+BOOST_AUTO_TEST_CASE(StatisticsBigFile)
+{
+	const auto jsonQuery = R"({"predicate": "gt", "arguments": [ {"column": "NUM_INSTALMENT_NUMBER"}, {"operation": "plus", "arguments": [50, 1]} ] } )";
+	auto table = loadTableFromFeatherFile("C:/installments_payments.feather");
+	measure("median installments_payments", 2000, [&]
+	{
+		auto m = calculateMedian(*table->column(7));
+		std::cout << "median: " << toVector<double>(*m).at(0) << std::endl;
+
+	});
+	std::cout<<"";
+}
+
 BOOST_AUTO_TEST_CASE(ParseBigFile)
 {
 	measure("parse big file", 20, [&]

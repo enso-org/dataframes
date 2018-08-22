@@ -316,6 +316,11 @@ auto toColumn(const std::vector<T> &elems, std::string name = "col")
     return std::make_shared<arrow::Column>(field, array);
 }
 
+template<typename T>
+auto scalarToColumn(const T &elem, std::string name = "col")
+{
+    return toColumn(std::vector<T>{elem}, std::move(name));
+}
 
 namespace detail
 {
@@ -366,6 +371,10 @@ using PossiblyChunkedArray = std::variant<std::shared_ptr<arrow::Array>, std::sh
 EXPORT std::shared_ptr<arrow::Table> tableFromArrays(std::vector<PossiblyChunkedArray> arrays, std::vector<std::string> names = {}, std::vector<bool> nullables = {});
 
 using DynamicField = std::variant<int64_t, double, std::string_view, std::string, std::nullopt_t>;
+
+using DynamicJustVector = std::variant<std::vector<int64_t>, std::vector<double>, std::vector<std::string_view>>;
+EXPORT DynamicJustVector toJustVector(const arrow::ChunkedArray &chunkedArray);
+EXPORT DynamicJustVector toJustVector(const arrow::Column &column);
 
 EXPORT DynamicField arrayAt(const arrow::Array &array, int64_t index);
 EXPORT DynamicField arrayAt(const arrow::ChunkedArray &array, int64_t index);

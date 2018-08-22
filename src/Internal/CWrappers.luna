@@ -220,6 +220,9 @@ class ColumnWrapper:
     def sum:
         ptr = callHandlingError "columnSum" (Pointer None) [self.ptr.toCArg]
         wrapReleasableResouce ColumnWrapper ptr
+    def quantile q:
+        ptr = callHandlingError "columnQuantile" (Pointer None) [self.ptr.toCArg, CDouble.fromReal q . toCArg]
+        wrapReleasableResouce ColumnWrapper ptr
 
 def createColumnWrapper field chunks:
     ptr = callHandlingError "columnNew" (Pointer None) [field.ptr.toCArg, chunks.ptr.toCArg]

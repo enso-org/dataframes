@@ -508,16 +508,19 @@ class TestArrayBuilder:
         meanOnInts = intCol.mean
         assertEqual "ints mean" meanOnInts.toList [4.0]
         medianOnInts = intCol.median
-        assertEqual "ints median" medianOnInts.toList [3]
+        assertEqual "ints median" medianOnInts.toList [3.0]
         stdOnInts = intCol.std
         assertEqual "ints std" stdOnInts.toList [9.5 . sqrt]
         varOnInts = intCol.var
         assertEqual "ints var" varOnInts.toList [9.5]
         sumOnInts = intCol.sum
-        assertEqual "ints sum" sumOnInts.toList [16]        
+        assertEqual "ints sum" sumOnInts.toList [16]
+        tercileOnInts = intCol.quantile (1.0/4.0)
+        assertEqual "ints tercile " tercileOnInts.toList [2]
 
     def run:
         self.testStats
+        throw "stop"
         self.testCountValues
         self.testFilling
         self.testDropping

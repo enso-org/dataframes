@@ -77,6 +77,25 @@ std::shared_ptr<arrow::Table> tableFromArrays(std::vector<PossiblyChunkedArray> 
     return arrow::Table::Make(schema, std::move(columns));
 }
 
+DynamicJustVector toJustVector(const arrow::ChunkedArray &chunkedArray)
+{
+    return visitType(*chunkedArray.type(), [&] (auto id)  -> DynamicJustVector
+    {
+        using T = typename TypeDescription<id.value>::ObservedType;
+
+        std::vector<T> ret;
+        ret.reserve(chunkedArray.length() - chunkedArray.null_count());
+        iterateOver<id.value>(chunkedArray, 
+            [&] (auto elem) { ret.push_back(elem); },
+            [] {});
+        return ret;
+    });
+}
+DynamicJustVector toJustVector(const arrow::Column &column)
+{
+    return toJustVector(*column.data());
+}
+
 DynamicField arrayAt(const arrow::Array &array, int64_t index)
 {
     return visitArray(array, [&](auto *array) -> DynamicField
