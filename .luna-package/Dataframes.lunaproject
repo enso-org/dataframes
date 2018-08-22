@@ -3,6 +3,12 @@ modulesSettings:
     typeRepToVisMap:
     - - tag: TCons
         contents:
+        - Column
+        - []
+      - - ! 'LunaVisualizer: base: table'
+        - base/table/table.html
+    - - tag: TCons
+        contents:
         - List
         - - tag: TCons
             contents:
@@ -16,19 +22,25 @@ modulesSettings:
         - []
       - - ! 'LunaVisualizer: base: table'
         - base/table/table.html
-    currentBreadcrumb: tst2
+    currentBreadcrumb: demo2
     breadcrumbsSettings:
     - - items: []
       - breadcrumbCameraSettings:
-          logicalToScreen: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[-88.0,0.0,0.0,1.0]]'
-          screenToLogical: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[88.0,0.0,0.0,1.0]]'
-          lastInverse: 2
+          logicalToScreen: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[-344.0,16.0,0.0,1.0]]'
+          screenToLogical: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[344.0,-16.0,0.0,1.0]]'
+          lastInverse: 0
+    - - items:
+        - demo
+      - breadcrumbCameraSettings:
+          logicalToScreen: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[-982.0,345.0,0.0,1.0]]'
+          screenToLogical: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[982.0,-345.0,0.0,1.0]]'
+          lastInverse: 0
     - - items:
         - main
       - breadcrumbCameraSettings:
-          logicalToScreen: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[-24.0,0.0,0.0,1.0]]'
-          screenToLogical: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[24.0,0.0,0.0,1.0]]'
-          lastInverse: 2
+          logicalToScreen: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[-98.0,78.5,0.0,1.0]]'
+          screenToLogical: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[98.0,-78.5,0.0,1.0]]'
+          lastInverse: 0
     - - items:
         - tst
       - breadcrumbCameraSettings:

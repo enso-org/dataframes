@@ -18,11 +18,15 @@ class Field:
 
     def name:
         self.ptr.name
+    def rename n:
+        nullable = self.nullable
+        type = self.type
+        self.fromWrapper $ createFieldWrapper n type nullable
     def type:
         self.ptr.type
     def nullable:
         self.ptr.nullable
     def toText:
         self.ptr.toText
-    def == that: 
+    def == that:
         self.ptr.equals that.ptr

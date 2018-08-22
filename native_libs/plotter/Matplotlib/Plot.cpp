@@ -28,8 +28,8 @@ struct PyListBuilder {
     append(PyFloat_FromDouble(d));
   }
 
-  void append(const std::string &s) {
-    append(PyString_FromString(s.c_str()));
+  void append(const std::string_view &s) {
+    append(PyString_FromString(std::string(s).c_str()));
   }
 
   void appendNull() {
@@ -42,7 +42,7 @@ PyObject* chunkedArrayToPyObj(const arrow::ChunkedArray &arr) {
     builder.init(arr.length());
     iterateOverGeneric(arr,
         [&] (auto &&elem) { builder.append(elem); },
-        [&] () { });
+        [&] () { builder.appendNull(); });
     return builder.list;
 }
 
@@ -63,25 +63,25 @@ extern "C"
         }
     }
 
-    void kdeplot2(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys) {
+    void kdeplot2(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* colormap) {
         auto xsarray = chunkedArrayToPyObj(*xs);
         std::cout << "XS " << xsarray << std::endl;
         auto ysarray = chunkedArrayToPyObj(*ys);
         std::cout << "YS " << ysarray << std::endl;
         try {
             std::cout << "KDEPLOT2 BEG" << std::endl;
-            plt::kdeplot2(xsarray, ysarray);
+            plt::kdeplot2(xsarray, ysarray, colormap);
             std::cout << "KDEPLOT2 END" << std::endl;
         } catch (const runtime_error& e) {
           std::cout << e.what() << std::endl;
         }
     }
 
-    void kdeplot(arrow::ChunkedArray *xs) {
+    void kdeplot(arrow::ChunkedArray *xs, char* label) {
         auto xsarray = chunkedArrayToPyObj(*xs);
         try {
           std::cout << "KDE BEG" << std::endl;
-          plt::kdeplot(xsarray);
+          plt::kdeplot(xsarray, label);
           std::cout << "KDE END" << std::endl;
         } catch (const runtime_error& e) {
           std::cout << e.what() << std::endl;
@@ -124,12 +124,17 @@ extern "C"
         }
     }
 
+    void subplot(long nrows, long ncols, long plot_number) {
+        plt::subplot(nrows, ncols, plot_number);
+    }
+
     char* getPNG() {
         char* b;
         char* out = NULL;
         size_t l;
         try {
           plt::tight_layout();
+          plt::legend();
           std::cout << "PNG BEG" << std::endl;
           plt::getPNG(&b, &l);
           std::cout << "PNG END" << std::endl;

@@ -36,6 +36,10 @@ class TypedColumn a:
         ptr = self.ptr.data
         ChunkedArrayVal self.typeTag ptr
     def name: self.ptr.name
+    def rename n:
+        f = self.field.rename n
+        chunks = self.data
+        self.fromChunks f chunks
     def slice fromIndex length:
         self.fromWrapper $ self.ptr.slice fromIndex length
     def toList:
@@ -114,3 +118,9 @@ class Column:
     def name: self.ptr.name
     def field:
         Field.fromWrapper $ self.ptr.field
+
+    def rename n:
+        f = self.field.rename n
+        chunks = self.ptr.data
+        wrapper = createColumnWrapper f.ptr chunks
+        self.fromColumnWrapper wrapper

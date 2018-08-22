@@ -140,7 +140,10 @@ private:
 
         PyObject* pymod = PyImport_Import(pyplotname);
         Py_DECREF(pyplotname);
-        if (!pymod) { throw std::runtime_error("Error loading module matplotlib.pyplot!"); }
+        if (!pymod) {
+          PyErr_Print();
+          throw std::runtime_error("Error loading module matplotlib.pyplot!");
+        }
 
         PyObject* pylabmod = PyImport_Import(pylabname);
         Py_DECREF(pylabname);
@@ -522,7 +525,7 @@ bool named_hist(std::string label,const std::vector<Numeric>& y, long bins=10, s
     return res;
 }
 
-bool kdeplot2(PyObject* xarray, PyObject* yarray)
+bool kdeplot2(PyObject* xarray, PyObject* yarray, char* colorMap)
 {
     //PyObject* pystring = PyString_FromString(s.c_str());
 
@@ -532,11 +535,11 @@ bool kdeplot2(PyObject* xarray, PyObject* yarray)
 
     PyObject* kwargs = PyDict_New();
     //PyDict_SetItemString(kwargs, "shade", Py_True);
-    PyDict_SetItemString(kwargs, "cmap", PyString_FromString("Blues_r"));
+    PyDict_SetItemString(kwargs, "cmap", PyString_FromString(colorMap));
 
     PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_kdeplot, plot_args, kwargs);
     if (!res) {
-        std::cout << "EXCEPTION KDEPLOT" << std::endl;
+        PyErr_Print();
         throw std::runtime_error("Call to kdeplot() failed.");
     }
 
@@ -546,20 +549,25 @@ bool kdeplot2(PyObject* xarray, PyObject* yarray)
     return res;
 }
 
-bool kdeplot(PyObject* xarray)
+bool kdeplot(PyObject* xarray, char* label)
 {
     //PyObject* pystring = PyString_FromString(s.c_str());
 
     PyObject* plot_args = PyTuple_New(1);
     PyTuple_SetItem(plot_args, 0, xarray);
 
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_kdeplot, plot_args);
+    PyObject* kwargs = PyDict_New();
+    //PyDict_SetItemString(kwargs, "shade", Py_True);
+    if (label) PyDict_SetItemString(kwargs, "label", PyString_FromString(label));
+
+    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_kdeplot, plot_args, kwargs);
     if (!res) {
         std::cout << "EXCEPTION KDEPLOT" << std::endl;
         throw std::runtime_error("Call to kdeplot() failed.");
     }
 
     Py_DECREF(plot_args);
+    Py_DECREF(kwargs);
     if(res) Py_DECREF(res);
 
     return res;
@@ -1202,7 +1210,6 @@ inline void getPNG(char** buf, size_t* len)
     Py_DECREF(bytesIO);
     std::cout << "decrefs done" << std::endl;
 }
-
 
 inline void clf() {
     PyObject *res = PyObject_CallObject(

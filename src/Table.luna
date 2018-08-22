@@ -34,6 +34,13 @@ class Table:
         self.fromWrapper $ self.ptr.addColumn index column.ptr
     def at name:
         self.columns [name]
+    def setAt name column:
+        cols = self.toList
+        before = cols.takeWhile c: (c.name == name) . not
+        after = cols.drop (before.length + 1)
+        col = column.rename name
+        columns = before + [col] + after
+        self.fromColumns columns
     def columns names:
         schema = self.schema
         ixes = names.each schema.getFieldIndexByName
@@ -59,10 +66,13 @@ class Table:
     def filter f:
         pred = f TableHandle
         self.fromWrapper $ self.ptr.filter pred
-    def each name f:
+    def each f:
         mapper = f TableHandle
-        columnWrapper = self.ptr.eachToColumn name mapper
+        columnWrapper = self.ptr.eachToColumn "Result" mapper
         Column.fromColumnWrapper columnWrapper
+    def eachTo name f:
+        r = self.each f
+        self.setAt name r
     def dropNa:
         self.fromWrapper $ self.ptr.dropNa
     def dropNaAt columnName:
@@ -71,6 +81,17 @@ class Table:
         self.fromWrapper $ self.ptr.fillNa valueToFillWith
     def fillNaAt columnName valueToFillWith:
         self.fromWrapper $ self.ptr.fillNaAt columnName valueToFillWith
+
+    def describeNa:
+        cols = self.toList
+        nrows = self.rowCount
+        names = cols . each .name
+        nullCounts = cols . each .nullCount
+        nullRatios = nullCounts . each (_.toReal / nrows.toReal)
+        namesCol      = Column.fromList "colname" StringType names
+        nullCountsCol = Column.fromList "count"   Int64Type  nullCounts
+        nullRatiosCol = Column.fromList "ratio"   DoubleType nullRatios
+        self.fromColumns [namesCol, nullCountsCol, nullRatiosCol]
 
     def shortRep:
         "Table<" + self.columnCount.toText + "×" + self.rowCount.toText + ">"
@@ -88,3 +109,12 @@ class ChartBuilder:
     def histogram cname:
         c = self.table.at cname . columnAt 0
         Histogram c 10 Map.empty
+
+    def kde2 cname1 cname2:
+        c1 = self.table.at cname1 . columnAt 0
+        c2 = self.table.at cname2 . columnAt 0
+        KDE2 c1 c2 "Blues_r"
+
+    def kde cname:
+        c = self.table.at cname . columnAt 0
+        KDE c Nothing
