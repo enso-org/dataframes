@@ -497,7 +497,27 @@ class TestArrayBuilder:
         assertEqual "first col contents"  doubleCol0.toList [1.0, 3.0, 2.0, 2.5]
         assertEqual "second col name"     doubleCol1.toList [1, 1, 2, 1]
 
+    def testStats:
+        print "countValues: nullable int64"
+        intCol = Column.fromList "a" MaybeInt64Type  [Just 1, Nothing,  Just 2, Just 4, Just 9]
+        
+        minOnInts = intCol.min
+        assertEqual "ints min" minOnInts.toList [1]        
+        maxOnInts = intCol.max
+        assertEqual "ints max" maxOnInts.toList [9]
+        meanOnInts = intCol.mean
+        assertEqual "ints mean" meanOnInts.toList [4.0]
+        medianOnInts = intCol.median
+        assertEqual "ints median" medianOnInts.toList [3]
+        stdOnInts = intCol.std
+        assertEqual "ints std" stdOnInts.toList [9.5 . sqrt]
+        varOnInts = intCol.var
+        assertEqual "ints var" varOnInts.toList [9.5]
+        sumOnInts = intCol.sum
+        assertEqual "ints sum" sumOnInts.toList [16]        
+
     def run:
+        self.testStats
         self.testCountValues
         self.testFilling
         self.testDropping

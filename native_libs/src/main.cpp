@@ -782,6 +782,69 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
+    EXPORT arrow::Column *columnMin(arrow::Column *column, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)column);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto ret = calculateMin(*column);
+            return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
+    EXPORT arrow::Column *columnMax(arrow::Column *column, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)column);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto ret = calculateMax(*column);
+            return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
+    EXPORT arrow::Column *columnMean(arrow::Column *column, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)column);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto ret = calculateMean(*column);
+            return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
+    EXPORT arrow::Column *columnMedian(arrow::Column *column, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)column);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto ret = calculateMedian(*column);
+            return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
+    EXPORT arrow::Column *columnStd(arrow::Column *column, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)column);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto ret = calculateStandardDeviation(*column);
+            return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
+    EXPORT arrow::Column *columnVar(arrow::Column *column, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)column);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto ret = calculateVariance(*column);
+            return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
+    EXPORT arrow::Column *columnSum(arrow::Column *column, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)column);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto ret = calculateSum(*column);
+            return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
 }
 
 // SCHEMA

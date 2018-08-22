@@ -199,6 +199,27 @@ class ColumnWrapper:
     def countValues:
         ptr = callHandlingError "columnCountValues" (Pointer None) [self.ptr.toCArg]
         wrapReleasableResouce TableWrapper ptr
+    def min:
+        ptr = callHandlingError "columnMin" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce ColumnWrapper ptr
+    def max:
+        ptr = callHandlingError "columnMax" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce ColumnWrapper ptr
+    def mean:
+        ptr = callHandlingError "columnMean" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce ColumnWrapper ptr
+    def median:
+        ptr = callHandlingError "columnMedian" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce ColumnWrapper ptr
+    def std:
+        ptr = callHandlingError "columnStd" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce ColumnWrapper ptr
+    def var:
+        ptr = callHandlingError "columnVar" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce ColumnWrapper ptr
+    def sum:
+        ptr = callHandlingError "columnSum" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce ColumnWrapper ptr
 
 def createColumnWrapper field chunks:
     ptr = callHandlingError "columnNew" (Pointer None) [field.ptr.toCArg, chunks.ptr.toCArg]

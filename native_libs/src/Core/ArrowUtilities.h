@@ -394,7 +394,7 @@ auto visitType(const arrow::DataType &type, F &&f)
 
 inline void append(arrow::StringBuilder &sb, std::string_view sv)
 {
-    sb.Append(sv.data(), sv.length());
+    sb.Append(sv.data(), static_cast<int32_t>(sv.length()));
 }
 
 template<typename Builder, typename T>

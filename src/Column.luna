@@ -111,11 +111,20 @@ class Column:
         typedCol = TypedColumn typeTag . fromChunks field.ptr chunks.ptr
         typeTag.makeColumn typedCol
 
+    def nullCount: self.ptr.nullCount
     def countMissing: self.ptr.nullCount
     def length: self.ptr.length
     def name: self.ptr.name
     def field: 
         Field.fromWrapper $ self.ptr.field
 
-    def countValues:
-        Table.fromWrapper $ self.ptr.countValues
+    def countValues:  Table.fromWrapper $ self.ptr.countValues
+
+    def min:    Column.fromColumnWrapper $ self.ptr.min
+    def max:    Column.fromColumnWrapper $ self.ptr.max
+    def mean:   Column.fromColumnWrapper $ self.ptr.mean
+    def median: Column.fromColumnWrapper $ self.ptr.median
+    def std:    Column.fromColumnWrapper $ self.ptr.std
+    def var:    Column.fromColumnWrapper $ self.ptr.var
+    def sum:    Column.fromColumnWrapper $ self.ptr.sum
+

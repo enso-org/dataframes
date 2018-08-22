@@ -9,6 +9,7 @@
 #include "Core/ArrowUtilities.h"
 #include "optional.h"
 #include "Processing.h"
+#include "Analysis.h"
 
 
 #pragma comment(lib, "DataframeHelper.lib")
@@ -734,4 +735,30 @@ BOOST_AUTO_TEST_CASE(FillingNAStrings)
 	auto columnFilled = fillNA(column, fillWith);
 	auto valuesFilled = toVector<std::string>(*columnFilled);
 	BOOST_CHECK_EQUAL_COLLECTIONS(valuesFilled.begin(), valuesFilled.end(), expectedFilled.begin(), expectedFilled.end());
+}
+
+BOOST_AUTO_TEST_CASE(Statistics)
+{
+	std::vector<std::optional<int64_t>> ints{1, 1, std::nullopt, 3, std::nullopt, 11};
+	std::vector<std::optional<int64_t>> intsNulls{std::nullopt};
+	auto intsColumn = toColumn(ints, "ints");
+	auto intsMin = calculateMin(*intsColumn);
+	BOOST_CHECK(toVector<std::optional<int64_t>>(*intsMin) == std::vector<std::optional<int64_t>>{1});
+	auto nullIntsMin = toVector<std::optional<int64_t>>(*calculateMin(*toColumn(intsNulls)));
+	BOOST_CHECK(nullIntsMin == std::vector<std::optional<int64_t>>{std::nullopt});
+
+	auto intsMax = calculateMax(*intsColumn);
+	BOOST_CHECK(toVector<std::optional<int64_t>>(*intsMax) == std::vector<std::optional<int64_t>>{11});
+	auto nullIntsMax = toVector<std::optional<int64_t>>(*calculateMin(*toColumn(intsNulls)));
+	BOOST_CHECK(nullIntsMax == std::vector<std::optional<int64_t>>{std::nullopt});
+
+	auto intsMean = calculateMean(*intsColumn);
+	BOOST_CHECK(toVector<std::optional<int64_t>>(*intsMean) == std::vector<std::optional<int64_t>>{4});
+	auto nullIntsMean = toVector<std::optional<int64_t>>(*calculateMin(*toColumn(intsNulls)));
+	BOOST_CHECK(nullIntsMean == std::vector<std::optional<int64_t>>{std::nullopt});
+
+	auto intsMedian = calculateMedian(*intsColumn);
+	BOOST_CHECK(toVector<std::optional<int64_t>>(*intsMedian) == std::vector<std::optional<int64_t>>{3});
+	auto nullIntsMedian = toVector<std::optional<int64_t>>(*calculateMin(*toColumn(intsNulls)));
+	BOOST_CHECK(nullIntsMedian == std::vector<std::optional<int64_t>>{std::nullopt});
 }
