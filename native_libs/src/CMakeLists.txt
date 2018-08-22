@@ -114,3 +114,18 @@ target_include_directories(DataframePlotter PRIVATE ${PYTHON_INCLUDE_DIRS} ${PRO
 
 target_link_libraries(DataframePlotter ${PROJECT_NAME} ${PYTHON_LIBRARIES})
 target_compile_definitions(DataframePlotter PRIVATE WITHOUT_NUMPY)
+
+###################
+
+file(GLOB_RECURSE LEARN_HEADER_FILES ${PROJECT_SOURCE_DIR}/../learn/*.h)
+file(GLOB_RECURSE LEARN_SRC_FILES    ${PROJECT_SOURCE_DIR}/../learn/*.cpp)
+
+add_library(Learn SHARED ${LEARN_HEADER_FILES} ${LEARN_SRC_FILES})
+
+find_package(PythonLibs 3.6)
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR};${CMAKE_MODULE_PATH}")
+find_package(NumPy)
+target_include_directories(Learn PRIVATE ${PYTHON_INCLUDE_DIRS} ${PYTHON_NUMPY_INCLUDE_DIR})
+
+target_link_libraries(Learn ${PROJECT_NAME} ${PYTHON_LIBRARIES})
+target_compile_definitions(Learn PRIVATE)
