@@ -9,6 +9,7 @@
 #include "Core/ArrowUtilities.h"
 #include "optional.h"
 #include "Processing.h"
+#include "Analysis.h"
 
 
 #pragma comment(lib, "DataframeHelper.lib")
@@ -636,6 +637,21 @@ BOOST_AUTO_TEST_CASE(FilterBigFile)
 	std::cout<<"";
 }
 
+BOOST_AUTO_TEST_CASE(StatisticsBigFile)
+{
+	const auto jsonQuery = R"({"predicate": "gt", "arguments": [ {"column": "NUM_INSTALMENT_NUMBER"}, {"operation": "plus", "arguments": [50, 1]} ] } )";
+	auto table = loadTableFromFeatherFile("C:/installments_payments.feather");
+	measure("median installments_payments", 2000, [&]
+	{
+		calculateCorrelationMatrix(*table);
+//		toJustVector()
+// 		auto m = calculateQuantile(*table->column(7), 0.7);
+// 		std::cout << "median: " << toVector<double>(*m).at(0) << std::endl;
+
+	});
+	std::cout<<"";
+}
+
 BOOST_AUTO_TEST_CASE(ParseBigFile)
 {
 	measure("parse big file", 20, [&]
@@ -734,4 +750,39 @@ BOOST_AUTO_TEST_CASE(FillingNAStrings)
 	auto columnFilled = fillNA(column, fillWith);
 	auto valuesFilled = toVector<std::string>(*columnFilled);
 	BOOST_CHECK_EQUAL_COLLECTIONS(valuesFilled.begin(), valuesFilled.end(), expectedFilled.begin(), expectedFilled.end());
+}
+
+BOOST_AUTO_TEST_CASE(Statistics)
+{
+	std::vector<std::optional<int64_t>> ints{1, 1, std::nullopt, 3, std::nullopt, 11};
+	std::vector<std::optional<double>> doubles{std::nullopt, 1, std::nullopt, 3, 8.0, 11};
+	std::vector<std::optional<int64_t>> intsNulls{std::nullopt};
+	auto intsColumn = toColumn(ints, "ints");
+	auto doublesColumn = toColumn(doubles, "doubles");
+	auto intsMin = calculateMin(*intsColumn);
+	BOOST_CHECK(toVector<std::optional<int64_t>>(*intsMin) == std::vector<std::optional<int64_t>>{1});
+	auto nullIntsMin = toVector<std::optional<int64_t>>(*calculateMin(*toColumn(intsNulls)));
+	BOOST_CHECK(nullIntsMin == std::vector<std::optional<int64_t>>{std::nullopt});
+
+	auto intsMax = calculateMax(*intsColumn);
+	BOOST_CHECK(toVector<std::optional<int64_t>>(*intsMax) == std::vector<std::optional<int64_t>>{11});
+	auto nullIntsMax = toVector<std::optional<int64_t>>(*calculateMin(*toColumn(intsNulls)));
+	BOOST_CHECK(nullIntsMax == std::vector<std::optional<int64_t>>{std::nullopt});
+
+	auto intsMean = calculateMean(*intsColumn);
+	BOOST_CHECK(toVector<std::optional<int64_t>>(*intsMean) == std::vector<std::optional<int64_t>>{4});
+	auto nullIntsMean = toVector<std::optional<int64_t>>(*calculateMin(*toColumn(intsNulls)));
+	BOOST_CHECK(nullIntsMean == std::vector<std::optional<int64_t>>{std::nullopt});
+
+	auto intsMedian = calculateMedian(*intsColumn);
+	BOOST_CHECK(toVector<std::optional<int64_t>>(*intsMedian) == std::vector<std::optional<int64_t>>{3});
+	auto nullIntsMedian = toVector<std::optional<int64_t>>(*calculateMin(*toColumn(intsNulls)));
+	BOOST_CHECK(nullIntsMedian == std::vector<std::optional<int64_t>>{std::nullopt});
+
+	calculateCorrelation(*intsColumn, *doublesColumn);
+// 
+// 	std::vector<double> a = {14.2, 16.4, 11.9, 15.2, 18.5, 22.1, 19.4, 
+// 	25.1, 23.4, 18.1, 22.6, 17.2};
+// 	std::vector<double> b = {215, 325, 185, 332, 406, 522, 412, 614, 544, 421, 445, 408};;
+// 	calculateCorrelation(*toColumn(a), *toColumn(b));
 }

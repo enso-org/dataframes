@@ -35,6 +35,7 @@ struct NumericTypeDescription
     using ArrowType = T;
     using BuilderType = arrow::NumericBuilder<T>;
     using ValueType = typename BuilderType::value_type;
+    using ObservedType = ValueType;
     using CType = typename BuilderType::value_type;
     using Array = arrow::NumericArray<T>;
     using StorageValueType = ValueType;
@@ -58,6 +59,7 @@ template<> struct TypeDescription<arrow::Type::STRING>
     using ArrowType = arrow::StringType;
     using BuilderType = arrow::StringBuilder;
     using ValueType = std::string;
+    using ObservedType = std::string_view;
     using CType = const char *;
     using Array = arrow::StringArray;
     using StorageValueType = uint8_t;
@@ -130,6 +132,12 @@ void iterateOver(const arrow::ChunkedArray &arrays, ElementF &&handleElem, NullF
     {
         iterateOver<type>(*chunk, handleElem, handleNull);
     }
+}
+
+template <arrow::Type::type type, typename ElementF, typename NullF>
+void iterateOver(const arrow::Column &column, ElementF &&handleElem, NullF &&handleNull)
+{
+    return iterateOver<type>(*column.data(), handleElem, handleNull);
 }
 
 template <typename ElementF, typename NullF>
@@ -308,6 +316,11 @@ auto toColumn(const std::vector<T> &elems, std::string name = "col")
     return std::make_shared<arrow::Column>(field, array);
 }
 
+template<typename T>
+auto scalarToColumn(const T &elem, std::string name = "col")
+{
+    return toColumn(std::vector<T>{elem}, std::move(name));
+}
 
 namespace detail
 {
@@ -356,8 +369,13 @@ std::shared_ptr<arrow::Schema> setNullable(bool nullable, std::shared_ptr<arrow:
 using PossiblyChunkedArray = std::variant<std::shared_ptr<arrow::Array>, std::shared_ptr<arrow::ChunkedArray>>;
 
 EXPORT std::shared_ptr<arrow::Table> tableFromArrays(std::vector<PossiblyChunkedArray> arrays, std::vector<std::string> names = {}, std::vector<bool> nullables = {});
+EXPORT std::shared_ptr<arrow::Table> tableFromColumns(const std::vector<std::shared_ptr<arrow::Column>> &columns);
 
 using DynamicField = std::variant<int64_t, double, std::string_view, std::string, std::nullopt_t>;
+
+using DynamicJustVector = std::variant<std::vector<int64_t>, std::vector<double>, std::vector<std::string_view>>;
+EXPORT DynamicJustVector toJustVector(const arrow::ChunkedArray &chunkedArray);
+EXPORT DynamicJustVector toJustVector(const arrow::Column &column);
 
 EXPORT DynamicField arrayAt(const arrow::Array &array, int64_t index);
 EXPORT DynamicField arrayAt(const arrow::ChunkedArray &array, int64_t index);
@@ -371,3 +389,68 @@ EXPORT void validateIndex(const arrow::Array &array, int64_t index);
 EXPORT void validateIndex(const arrow::ChunkedArray &array, int64_t index);
 EXPORT void validateIndex(const arrow::Column &column, int64_t index);
 
+
+template<typename F>
+auto visitType(const arrow::DataType &type, F &&f)
+{
+    switch(type.id())
+    {
+    case arrow::Type::INT64 : return f(std::integral_constant<arrow::Type::type, arrow::Type::INT64 >{});
+    case arrow::Type::DOUBLE: return f(std::integral_constant<arrow::Type::type, arrow::Type::DOUBLE>{});
+    case arrow::Type::STRING: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
+    default: throw std::runtime_error("array type not supported to downcast: " + type.ToString());
+    }
+}
+
+inline void append(arrow::StringBuilder &sb, std::string_view sv)
+{
+    sb.Append(sv.data(), static_cast<int32_t>(sv.length()));
+}
+
+template<typename Builder, typename T>
+void append(Builder &sb, T v)
+{
+    sb.Append(v);
+}
+
+template<arrow::Type::type id1, arrow::Type::type id2, typename F>
+void iterateOverJustPairs(const arrow::ChunkedArray &array1, const arrow::ChunkedArray &array2, F &&f)
+{
+    assert(array1.length() == array2.length());
+    const auto N = array1.length();
+
+    auto chunks1Itr = array1.chunks().begin();
+    auto chunks2Itr = array2.chunks().begin();
+
+    int64_t row = 0;
+
+    int32_t chunk1Length = (*chunks1Itr)->length();
+    int32_t chunk2Length = (*chunks2Itr)->length();
+
+    int32_t index1 = -1, index2 = -1;
+    for( ; row < N; row++)
+    {
+        if(++index1 >= chunk1Length)
+        {
+            ++chunks1Itr;
+            chunk1Length = (*chunks1Itr)->length();
+            index1 = 0;
+        }
+        if(++index2 >= chunk2Length)
+        {
+            ++chunks2Itr;
+            chunk2Length = (*chunks2Itr)->length();
+            index2 = 0;
+        }
+
+        if((*chunks1Itr)->IsValid(index1))
+            if((*chunks2Itr)->IsValid(index2))
+                f(arrayValueAt<id1>(**chunks1Itr, index1), arrayValueAt<id2>(**chunks2Itr, index2));
+    }
+}
+
+template<arrow::Type::type id1, arrow::Type::type id2, typename F>
+void iterateOverJustPairs(const arrow::Column &column1, const arrow::Column &column2, F &&f)
+{
+    return iterateOverJustPairs<id1, id2>(*column1.data(), *column2.data(), f);
+}

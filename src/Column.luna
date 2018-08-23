@@ -2,6 +2,7 @@ import Dataframes.Array
 import Dataframes.ChunkedArray
 import Dataframes.Field
 import Dataframes.Schema
+import Dataframes.Table
 import Dataframes.Types
 
 import Dataframes.Internal.CWrappers
@@ -26,6 +27,7 @@ class TypedColumn a:
         self.fromWrapper $ createColumnWrapper field.ptr chunks.ptr
 
     def nullCount: self.ptr.nullCount
+    def countMissing: self.nullCount
     def length: self.ptr.length
     def field:
         Field.fromWrapper $ self.ptr.field
@@ -114,6 +116,7 @@ class Column:
         typeTag.makeColumn typedCol
 
     def nullCount: self.ptr.nullCount
+    def countMissing: self.ptr.nullCount
     def length: self.ptr.length
     def name: self.ptr.name
     def field:
@@ -125,3 +128,14 @@ class Column:
         chunks = self.ptr.data
         wrapper = createColumnWrapper f.ptr chunks
         self.fromColumnWrapper wrapper
+
+    def countValues:  Table.fromWrapper $ self.ptr.countValues
+
+    def min:        Column.fromColumnWrapper $ self.ptr.min
+    def max:        Column.fromColumnWrapper $ self.ptr.max
+    def mean:       Column.fromColumnWrapper $ self.ptr.mean
+    def median:     Column.fromColumnWrapper $ self.ptr.median
+    def std:        Column.fromColumnWrapper $ self.ptr.std
+    def var:        Column.fromColumnWrapper $ self.ptr.var
+    def sum:        Column.fromColumnWrapper $ self.ptr.sum
+    def quantile q: Column.fromColumnWrapper $ self.ptr.quantile q

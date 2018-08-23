@@ -84,6 +84,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Analysis.cpp" />
     <ClCompile Include="Core\ArrowUtilities.cpp" />
     <ClCompile Include="Core\Common.cpp" />
     <ClCompile Include="Core\Error.cpp" />
@@ -101,6 +102,7 @@
     <ClCompile Include="Processing.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Analysis.h" />
     <ClInclude Include="Core\ArrowUtilities.h" />
     <ClInclude Include="Core\Common.h" />
     <ClInclude Include="Core\Error.h" />

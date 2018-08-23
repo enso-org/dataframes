@@ -196,6 +196,33 @@ class ColumnWrapper:
     def slice fromIndex length:
         ptr = callHandlingError "columnSlice" (Pointer None) [self.ptr.toCArg, CInt64.fromInt fromIndex . toCArg, CInt64.fromInt length . toCArg]
         wrapReleasableResouce ColumnWrapper ptr
+    def countValues:
+        ptr = callHandlingError "columnCountValues" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce TableWrapper ptr
+    def min:
+        ptr = callHandlingError "columnMin" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce ColumnWrapper ptr
+    def max:
+        ptr = callHandlingError "columnMax" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce ColumnWrapper ptr
+    def mean:
+        ptr = callHandlingError "columnMean" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce ColumnWrapper ptr
+    def median:
+        ptr = callHandlingError "columnMedian" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce ColumnWrapper ptr
+    def std:
+        ptr = callHandlingError "columnStd" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce ColumnWrapper ptr
+    def var:
+        ptr = callHandlingError "columnVar" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce ColumnWrapper ptr
+    def sum:
+        ptr = callHandlingError "columnSum" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce ColumnWrapper ptr
+    def quantile q:
+        ptr = callHandlingError "columnQuantile" (Pointer None) [self.ptr.toCArg, CDouble.fromReal q . toCArg]
+        wrapReleasableResouce ColumnWrapper ptr
 
 def createColumnWrapper field chunks:
     ptr = callHandlingError "columnNew" (Pointer None) [field.ptr.toCArg, chunks.ptr.toCArg]
@@ -293,6 +320,9 @@ class TableWrapper:
         jsonText = JSON.empty . insert columnName valueJson . toText
         ptr = CString.with jsonText jsonTextC:
             callHandlingError "tableFillNA" (Pointer None) [self.ptr.toCArg, jsonTextC.toCArg]
+        wrapReleasableResouce TableWrapper ptr
+    def corr:
+        ptr = callHandlingError "tableCorrelationMatrix" (Pointer None) [self.ptr.toCArg]
         wrapReleasableResouce TableWrapper ptr
 
 def createTableWrapper schemaWrapper columnWrappers:

@@ -111,6 +111,10 @@ class Table:
     def shortRep:
         "Table<" + self.columnCount.toText + "×" + self.rowCount.toText + ">"
 
+    def corr:
+        self.fromWrapper $ self.ptr.corr
+
+
     def chart: ChartBuilder self
 
 class ChartBuilder:
@@ -129,7 +133,6 @@ class ChartBuilder:
         c1 = self.table.at cname1 . toColumn
         c2 = self.table.at cname2 . toColumn
         KDE2 c1 c2 "Blues_r"
-
     def kde cname:
         c = self.table.at cname . toColumn
         KDE c Nothing
