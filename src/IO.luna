@@ -133,3 +133,15 @@ class XLSXGenerator:
     def writeFile path table:
         CString.with path pathC:
             callHandlingError "writeTableToXLSXFile" CString [pathC.toCArg, table.ptr.ptr.toCArg, self.headerPolicy.toCArg] . toText
+
+class FeatherParser:
+    def readFile path:
+        CString.with path pathC:
+            wrapperPtr = callHandlingError "readTableFromFeatherFile" (Pointer None) [pathC.toCArg]
+            wrapper = wrapReleasableResouce TableWrapper wrapperPtr
+            Table.fromWrapper wrapper
+
+class FeatherGenerator:
+    def writeFile path table:
+        CString.with path pathC:
+            callHandlingError "writeTableToFeatherFile" None [pathC.toCArg, table.ptr.ptr.toCArg]
