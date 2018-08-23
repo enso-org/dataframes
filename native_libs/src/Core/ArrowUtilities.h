@@ -369,6 +369,7 @@ std::shared_ptr<arrow::Schema> setNullable(bool nullable, std::shared_ptr<arrow:
 using PossiblyChunkedArray = std::variant<std::shared_ptr<arrow::Array>, std::shared_ptr<arrow::ChunkedArray>>;
 
 EXPORT std::shared_ptr<arrow::Table> tableFromArrays(std::vector<PossiblyChunkedArray> arrays, std::vector<std::string> names = {}, std::vector<bool> nullables = {});
+EXPORT std::shared_ptr<arrow::Table> tableFromColumns(const std::vector<std::shared_ptr<arrow::Column>> &columns);
 
 using DynamicField = std::variant<int64_t, double, std::string_view, std::string, std::nullopt_t>;
 

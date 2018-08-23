@@ -77,6 +77,12 @@ std::shared_ptr<arrow::Table> tableFromArrays(std::vector<PossiblyChunkedArray> 
     return arrow::Table::Make(schema, std::move(columns));
 }
 
+std::shared_ptr<arrow::Table> tableFromColumns(const std::vector<std::shared_ptr<arrow::Column>> &columns)
+{
+    auto fields = transformToVector(columns, [](auto &col) { return col->field(); });
+    return arrow::Table::Make(arrow::schema(fields), columns);
+}
+
 DynamicJustVector toJustVector(const arrow::ChunkedArray &chunkedArray)
 {
     return visitType(*chunkedArray.type(), [&] (auto id)  -> DynamicJustVector

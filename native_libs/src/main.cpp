@@ -1139,6 +1139,16 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
+
+    EXPORT arrow::Table *tableCorrelationMatrix(arrow::Table *table, const char **outError) noexcept
+    {
+        LOG("@{} value={}", (void*)table);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto ret = calculateCorrelationMatrix(*table);
+            return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
 }
 
 arrow::Table *readTableFromCSVFileContentsHelper(std::string data, const char **columnNames, int32_t columnNamesPolicy, int8_t *columnTypes, int8_t *columnIsNullableTypes, int32_t columnTypeInfoCount)

@@ -186,6 +186,66 @@ std::shared_ptr<arrow::Column> calculateQuantile(const arrow::Column &column, do
     }, v);
 }
 
+template<arrow::Type::type id1, arrow::Type::type id2, typename F>
+void iterateOver2(const arrow::ChunkedArray &array1, const arrow::ChunkedArray &array2, F &&f)
+{
+    assert(array1.length() == array2.length());
+    const auto N = array1.length();
+
+    auto chunks1Itr = array1.chunks().begin();
+    auto chunks2Itr = array2.chunks().begin();
+
+    int64_t row = 0;
+
+    int32_t chunk1Length = (*chunks1Itr)->length();
+    int32_t chunk2Length = (*chunks2Itr)->length();
+
+    int32_t index1 = -1, index2 = -1;
+    for( ; row < N; row++)
+    {
+        if(++index1 >= chunk1Length)
+        {
+            ++chunks1Itr;
+            chunk1Length = (*chunks1Itr)->length();
+            index1 = 0;
+        }
+        if(++index2 >= chunk2Length)
+        {
+            ++chunks2Itr;
+            chunk2Length = (*chunks2Itr)->length();
+            index2 = 0;
+        }
+
+        const auto elem1Valid = (*chunks1Itr)->IsValid(index1);
+        const auto elem2Valid = (*chunks2Itr)->IsValid(index2);
+        if(elem1Valid && elem2Valid)
+            f(arrayValueAt<id1>(**chunks1Itr, index1), arrayValueAt<id2>(**chunks2Itr, index2));
+//         else if(elem1Valid)
+//             f(arrayValueAt<id1>(**chunks1Itr, index1), std::nullopt);
+//         else if(elem2Valid)
+//             f(std::nullopt, arrayValueAt<id2>(**chunks2Itr, index2));
+//         else
+//             f(std::nullopt, std::nullopt);
+    }
+}
+
+template<arrow::Type::type id1, arrow::Type::type id2, typename F>
+void iterateOver2(const arrow::Column &column1, const arrow::Column &column2, F &&f)
+{
+    return iterateOver2<id1, id2>(*column1.data(), *column2.data(), f);
+}
+
+template<typename F>
+void iterateOver2Generic(const arrow::Column &column1, const arrow::Column &column2, F &&f)
+{
+    return visitType(column1.type(), [&](auto id1)
+    {
+        return visitType(column2.type(), [&](auto id2)
+        {
+            return iterateOver2<id1.value, id2.value>(column1, column2, f);
+        });
+    });
+}
 
 std::shared_ptr<arrow::Table> countValues(const arrow::Column &column)
 {
@@ -246,4 +306,74 @@ std::shared_ptr<arrow::Column> calculateStandardDeviation(const arrow::Column &c
 std::shared_ptr<arrow::Column> calculateSum(const arrow::Column &column)
 {
     return calculateStat<Sum>(column);
+}
+
+double calculateCorrelation(const arrow::Column &xCol, const arrow::Column &yCol)
+{
+    std::vector<double> x, y;
+    x.reserve(xCol.length());
+    y.reserve(yCol.length());
+
+    visitType(*xCol.type(), [&](auto id1)
+    {
+        return visitType(*yCol.type(), [&](auto id2)
+        {
+            if constexpr(id1.value != arrow::Type::STRING  &&  id2.value != arrow::Type::STRING)
+            {
+                return iterateOver2<id1.value, id2.value>(xCol, yCol,
+                    [&] (double xVal, double yVal)
+                {
+                    x.push_back(xVal);
+                    y.push_back(yVal);
+                });
+            }
+            else
+                throw std::runtime_error("Correlation not supported on string types");
+        });
+    });
+
+    assert(x.size() == y.size());
+    const auto n = x.size();
+
+    const auto sumX = std::accumulate(x.begin(), x.end(), 0.0);
+    const auto sumY = std::accumulate(y.begin(), y.end(), 0.0);
+    const auto sumXX = std::inner_product(x.begin(), x.end(), x.begin(), 0.0);
+    const auto sumYY = std::inner_product(y.begin(), y.end(), y.begin(), 0.0);
+    const auto sumXY = std::inner_product(x.begin(), x.end(), y.begin(), 0.0);
+
+    const auto num = n * sumXY - sumX * sumY;
+    const auto den = std::sqrt(n * sumXX - (sumX*sumX)) * std::sqrt(n * sumYY - (sumY*sumY));
+
+    return num/den;
+}
+
+std::shared_ptr<arrow::Table> calculateCorrelationMatrix(const arrow::Table &table)
+{
+    const auto N = table.num_columns();
+    std::vector<std::vector<double>> correlationMatrix;
+    correlationMatrix.resize(N);
+    for(auto &correlationColumn : correlationMatrix)
+        correlationColumn.resize(N);
+
+    for(int i = 0; i < N; i++)
+    {
+        const auto ci = table.column(i);
+        correlationMatrix[i][i] = 1.0;
+        for(int j = i + 1; j < N; j++)
+        {
+            const auto cj = table.column(j);
+            const auto correlation = calculateCorrelation(*ci, *cj);
+            correlationMatrix[i][j] = correlation;
+            correlationMatrix[j][i] = correlation;
+        }
+    }
+
+    std::vector<std::shared_ptr<arrow::Column>> ret;
+    for(int i = 0; i < N; i++)
+    {
+        auto c = toColumn(correlationMatrix.at(i), table.column(i)->name());
+        ret.push_back(c);
+    }
+
+    return tableFromColumns(ret);
 }

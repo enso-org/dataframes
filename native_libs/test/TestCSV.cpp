@@ -643,8 +643,10 @@ BOOST_AUTO_TEST_CASE(StatisticsBigFile)
 	auto table = loadTableFromFeatherFile("C:/installments_payments.feather");
 	measure("median installments_payments", 2000, [&]
 	{
-		auto m = calculateMedian(*table->column(7));
-		std::cout << "median: " << toVector<double>(*m).at(0) << std::endl;
+		calculateCorrelationMatrix(*table);
+//		toJustVector()
+// 		auto m = calculateQuantile(*table->column(7), 0.7);
+// 		std::cout << "median: " << toVector<double>(*m).at(0) << std::endl;
 
 	});
 	std::cout<<"";
@@ -753,8 +755,10 @@ BOOST_AUTO_TEST_CASE(FillingNAStrings)
 BOOST_AUTO_TEST_CASE(Statistics)
 {
 	std::vector<std::optional<int64_t>> ints{1, 1, std::nullopt, 3, std::nullopt, 11};
+	std::vector<std::optional<double>> doubles{std::nullopt, 1, std::nullopt, 3, 8.0, 11};
 	std::vector<std::optional<int64_t>> intsNulls{std::nullopt};
 	auto intsColumn = toColumn(ints, "ints");
+	auto doublesColumn = toColumn(doubles, "doubles");
 	auto intsMin = calculateMin(*intsColumn);
 	BOOST_CHECK(toVector<std::optional<int64_t>>(*intsMin) == std::vector<std::optional<int64_t>>{1});
 	auto nullIntsMin = toVector<std::optional<int64_t>>(*calculateMin(*toColumn(intsNulls)));
@@ -774,4 +778,11 @@ BOOST_AUTO_TEST_CASE(Statistics)
 	BOOST_CHECK(toVector<std::optional<int64_t>>(*intsMedian) == std::vector<std::optional<int64_t>>{3});
 	auto nullIntsMedian = toVector<std::optional<int64_t>>(*calculateMin(*toColumn(intsNulls)));
 	BOOST_CHECK(nullIntsMedian == std::vector<std::optional<int64_t>>{std::nullopt});
+
+	calculateCorrelation(*intsColumn, *doublesColumn);
+// 
+// 	std::vector<double> a = {14.2, 16.4, 11.9, 15.2, 18.5, 22.1, 19.4, 
+// 	25.1, 23.4, 18.1, 22.6, 17.2};
+// 	std::vector<double> b = {215, 325, 185, 332, 406, 522, 412, 614, 544, 421, 445, 408};;
+// 	calculateCorrelation(*toColumn(a), *toColumn(b));
 }
