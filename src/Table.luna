@@ -127,6 +127,8 @@ class Table:
 
     def corr:
         self.fromWrapper $ self.ptr.corr
+    def corrWith column:
+        Column.fromColumnWrapper $ self.ptr.corrWith column.ptr
 
 
     def chart: ChartBuilder self

@@ -284,6 +284,27 @@ double calculateCorrelation(const arrow::Column &xCol, const arrow::Column &yCol
     return num/den;
 }
 
+std::shared_ptr<arrow::Column> calculateCorrelation(const arrow::Table &table, const arrow::Column &column)
+{
+    if(table.num_rows() != column.length())
+        throw std::runtime_error("cannot calculate correlation: mismatched column/table row counts");
+
+    const auto N = table.num_columns();
+    std::vector<double> correlationValues;
+    correlationValues.resize(N);
+
+    for(int i = 0; i < N; i++)
+    {
+        const auto columnI = table.column(i);
+        const auto isSelfCompare = &column == columnI.get();
+        correlationValues[i] = isSelfCompare 
+            ? 1.0 
+            : calculateCorrelation(column, *columnI);
+    }
+
+    return toColumn(correlationValues, column.name() + "_CORR");
+}
+
 std::shared_ptr<arrow::Table> calculateCorrelationMatrix(const arrow::Table &table)
 {
     const auto N = table.num_columns();

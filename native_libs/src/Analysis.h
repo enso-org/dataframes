@@ -16,4 +16,5 @@ EXPORT std::shared_ptr<arrow::Column> calculateStandardDeviation(const arrow::Co
 EXPORT std::shared_ptr<arrow::Column> calculateSum(const arrow::Column &column);
 EXPORT std::shared_ptr<arrow::Column> calculateQuantile(const arrow::Column &column, double q);
 EXPORT double calculateCorrelation(const arrow::Column &xCol, const arrow::Column &yCol);
+EXPORT std::shared_ptr<arrow::Column> calculateCorrelation(const arrow::Table &table, const arrow::Column &column);
 EXPORT std::shared_ptr<arrow::Table> calculateCorrelationMatrix(const arrow::Table &table);

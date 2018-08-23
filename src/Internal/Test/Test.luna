@@ -29,6 +29,8 @@ def assertNE msg a b:
     executeTest msg (require (a == b).not (a.toText + " != " + b.toText))
 def assertGE msg a b:
     executeTest msg (require (a >= b) (a.toText + " >= " + b.toText))
+def assertLE msg a b:
+    executeTest msg (require (a <= b) (a.toText + " <= " + b.toText))
 def assertNoThrow msg action:
     result = runError action
     print case result of
@@ -517,6 +519,15 @@ class TestArrayBuilder:
         assertEqual "ints sum" sumOnInts.toList [16]
         tercileOnInts = intCol.quantile (1.0/4.0)
         assertEqual "ints tercile " tercileOnInts.toList [1.5]
+
+        doubleCol = Column.fromList "b" Int64Type [2, 4, 6, 5, 8]
+        table2 = Table.fromColumns [intCol, doubleCol]
+        corrCol = table2.corrWith intCol
+        assertEqual "corrWith name" corrCol.name "a_CORR"
+        assertEqual "corrWith result[0]" (corrCol.toList.getAt 0) 1.0
+        expected1 = 0.824
+        diff = expected1 - corrCol.toList.getAt 1
+        assertLE "corrWith result[1]" (if diff < 0.0 then -diff else diff) 0.001
 
     def run:
         self.testStats
