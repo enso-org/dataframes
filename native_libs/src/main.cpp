@@ -1149,6 +1149,15 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
+    EXPORT arrow::Column *tableCorrelationWithColumn(arrow::Table *table, arrow::Column *column, const char **outError) noexcept
+    {
+        LOG("@{} column={}", (void*)column, column->name());
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto ret = calculateCorrelation(*table, *column);
+            return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
 }
 
 arrow::Table *readTableFromCSVFileContentsHelper(std::string data, const char **columnNames, int32_t columnNamesPolicy, int8_t *columnTypes, int8_t *columnIsNullableTypes, int32_t columnTypeInfoCount)

@@ -64,6 +64,8 @@ class Table:
         self.fromWrapper $ self.ptr.fillNaAt columnName valueToFillWith
     def corr:
         self.fromWrapper $ self.ptr.corr
+    def corrWith column:
+        Column.fromColumnWrapper $ self.ptr.corrWith column.ptr
 
 
         
