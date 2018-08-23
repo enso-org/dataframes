@@ -246,8 +246,9 @@ void toVector(std::vector<T> &out, const arrow::Array &array)
         array, 
         [&] (auto &&elem)
         {
-            if constexpr(std::is_convertible_v<decltype(elem), T>)
-                out.push_back(std::forward<decltype(elem)>(elem));
+            using ElemT = decltype(elem);
+            if constexpr(std::is_constructible_v<T, ElemT>)
+                out.push_back(T(std::forward<decltype(elem)>(elem)));
             else
                 throw std::runtime_error(std::string("Type mismatch: expected ") + typeid(T).name() + " got " + typeid(elem).name());
         },

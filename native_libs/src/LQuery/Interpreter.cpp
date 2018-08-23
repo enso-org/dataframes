@@ -116,7 +116,7 @@ using namespace std::literals;
     }
 
 #define COMPLAIN_ABOUT_OPERAND_TYPES \
-        throw std::runtime_error(__FUNCTION__ + ": not supported operand types: "s + typeid(lhs).name() + " and "s + typeid(rhs).name()); \
+        throw std::runtime_error(__FUNCTION__ + ": not supported operand types: "s + typeid(lhs).name() + " and "s + typeid(rhs).name());
 
 #define BINARY_REL_OPERATOR(op)                                                                          \
     template<typename Lhs, typename Rhs>                                                                 \
@@ -229,6 +229,33 @@ using namespace std::literals;
         {
             throw std::runtime_error("negate does not support operand of type: "s + typeid(lhs).name());
         }
+    };
+    struct Condition
+    {
+        template<typename A, typename B>
+        using Ret = std::conditional_t<std::is_arithmetic_v<A> && std::is_arithmetic_v<B>,
+            std::common_type_t<A, B>,
+            A>;
+
+        template<typename Lhs, typename Rhs>
+        static auto exec(const bool &mask, const Lhs &lhs, const Rhs &rhs)
+        {
+            if constexpr(std::is_arithmetic_v<Lhs> && std::is_arithmetic_v<Rhs>)
+                return mask ? lhs : rhs;
+            else if constexpr(std::is_same_v<Lhs, Rhs> && std::is_same_v<Lhs, std::string_view>)
+                return std::string(mask ? lhs : rhs);
+            else
+            {
+                COMPLAIN_ABOUT_OPERAND_TYPES;
+                return int64_t{}; // to deduct type
+            }
+        }
+
+        // template<typename Mask, typename Lhs, typename Rhs>
+        // static Ret<Lhs, Rhs> exec(const Mask &mask, const Lhs &lhs, const Rhs &rhs)
+        // {
+        //     throw std::runtime_error("condition operator got unexpected condition type: "s + typeid(Mask).name());
+        // }
     };
     struct And
     {
@@ -377,6 +404,16 @@ struct Interpreter
             [&] (const ast::Literal<int64_t> &l)     -> Field { return l.literal; },
             [&] (const ast::Literal<double> &l)      -> Field { return l.literal; },
             [&] (const ast::Literal<std::string> &l) -> Field { return l.literal; },
+            [&] (const ast::Condition &condition)    -> Field 
+            {
+                auto mask = this->evaluate(*condition.predicate);
+                auto onTrue = this->evaluateValue(*condition.onTrue);
+                auto onFalse = this->evaluateValue(*condition.onFalse);
+                return std::visit([&](auto &&t, auto &&f) -> Field
+                {
+                    return exec<Condition>(table.num_rows(), mask, t, f);
+                }, onTrue, onFalse);
+            },
             //[&] (const ast::Literal<std::string> &l) -> Field { return l.literal; },
             [&] (auto &&t) -> Field { throw std::runtime_error("not implemented: value node of type "s + typeid(decltype(t)).name()); }
             }, (const ast::ValueBase &) value);

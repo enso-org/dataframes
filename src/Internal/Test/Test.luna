@@ -529,7 +529,15 @@ class TestArrayBuilder:
         diff = expected1 - corrCol.toList.getAt 1
         assertLE "corrWith result[1]" (if diff < 0.0 then -diff else diff) 0.001
 
+    def testIf:
+        ints = Column.fromList "a" Int64Type  [1, -2, 3, -4, 5]
+        table = Table.fromColumns [ints]
+        result = table.each "positive" v: 
+            (v.at "a" > 0).switch (v.at "a") (v.at "a" . negate)
+        assertEqual "abs-on-if result" result.toList [1, 2, 3, 4, 5]
+
     def run:
+        self.testIf
         self.testStats
         self.testCountValues
         self.testFilling

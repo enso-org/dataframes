@@ -19,6 +19,23 @@ using ColumnReferenceId = int;
 using ColumnIndexInTable = int;
 using ColumnMapping = std::unordered_map<ColumnReferenceId, ColumnIndexInTable>;
 
+template<typename T>
+struct HeapHolder
+{
+    std::unique_ptr<T> ptr;
+
+    HeapHolder() : ptr(std::make_unique<T>()) {};
+    HeapHolder(const T &t) : ptr(std::make_unique<T>(t)) {};
+    HeapHolder(T &&t) : ptr(std::make_unique<T>(std::move(t))) {};
+    
+    HeapHolder(const HeapHolder &rhs) : ptr(ptr ? std::make_unique<T>(*rhs.ptr) : nullptr) {};
+    HeapHolder(HeapHolder &&rhs) : ptr(std::move(rhs.ptr)) {};
+
+    T * operator->() const { return ptr.get(); }
+    T & operator*() const { return *ptr; }
+    explicit operator bool() const { return ptr; }
+};
+
 namespace ast
 {
     struct Value;
@@ -27,7 +44,7 @@ namespace ast
     enum class ValueOperator
     {
         Plus, Minus, Times, Divide, Modulo,
-        Negate
+        Negate,
     };
 
     ValueOperator valueOperatorFromName(const std::string &name);
@@ -56,8 +73,16 @@ namespace ast
         int columnRefId;
     };
 
+    struct Condition
+    {
+        Condition(const Predicate &p, const Value &onTrue, const Value &onFalse);
+
+        HeapHolder<Predicate> predicate;
+        HeapHolder<Value> onTrue, onFalse;
+    };
+
     using ValueOperation = OperationNode<ValueOperator, Value>;
-    using ValueBase = std::variant<Literal<int64_t>, Literal<double>, Literal<std::string>, ColumnReference, ValueOperation>;
+    using ValueBase = std::variant<Literal<int64_t>, Literal<double>, Literal<std::string>, ColumnReference, ValueOperation, Condition>;
 
     struct Value : ValueBase
     {

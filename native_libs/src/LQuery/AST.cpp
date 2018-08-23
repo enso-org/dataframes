@@ -87,6 +87,13 @@ struct DslParser
                 auto operands = parseOperands(obj["arguments"]);
                 return ast::ValueOperation{operationCode, std::move(operands)};
             }
+            else if(obj.HasMember("condition") && obj.HasMember("onTrue") && obj.HasMember("onFalse"))
+            {
+                auto predicate = parsePredicate(obj["condition"]);
+                auto onTrue = parseValue(obj["onTrue"]);
+                auto onFalse = parseValue(obj["onFalse"]);
+                return ast::Condition{predicate, onTrue, onFalse};
+            }
         }
         else if(v.IsFloat())
         {
@@ -218,4 +225,11 @@ namespace ast
         auto val = parser.parseValue(lqueryJsonText);
         return std::make_pair(parser.columnMapping, std::move(val));
     }
+
+    Condition::Condition(const Predicate &p, const Value &onTrue, const Value &onFalse)
+        : predicate(p)
+        , onTrue(onTrue)
+        , onFalse(onFalse)
+    {}
+
 }
