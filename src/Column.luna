@@ -119,6 +119,7 @@ class Column:
     def field:
         Field.fromWrapper $ self.ptr.field
 
+    def toColumn: self
     def rename n:
         f = self.field.rename n
         chunks = self.ptr.data

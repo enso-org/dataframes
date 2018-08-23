@@ -1,7 +1,10 @@
 import Dataframes.Column
 import Dataframes.Schema
+import Dataframes.Types
 import Dataframes.Internal.CWrappers
 import Dataframes.Plot.Matplotlib
+
+import Std.Foreign
 
 class Table:
     Table
@@ -56,6 +59,14 @@ class Table:
         self.toList.each .name
     def == that:
         self.ptr.equals that.ptr
+    def slice beg count:
+        cols = self.toList
+        slicedCols = cols.each (_.slice beg count)
+        self.fromColumns slicedCols
+    def take count: self.slice 0 count
+    def drop count:
+        leftCount = self.rowCount - count
+        self.slice count leftCount
     def toJSON:
         rowCount = 10
         columnValueLists = self.toList.each (_ . slice 0 rowCount . toList)
@@ -81,6 +92,10 @@ class Table:
         self.fromWrapper $ self.ptr.fillNa valueToFillWith
     def fillNaAt columnName valueToFillWith:
         self.fromWrapper $ self.ptr.fillNaAt columnName valueToFillWith
+    def toColumn:
+        case self.toList of
+            [c]: c
+            t: throw $ "Table.toColumn: table must have exactly 1 column, but has " + t.length.toText
 
     def describeNa:
         cols = self.toList
@@ -102,19 +117,19 @@ class ChartBuilder:
     table :: Table
 
     def plot cname1 cname2:
-        c1 = self.table.at cname1 . columnAt 0
-        c2 = self.table.at cname2 . columnAt 0
+        c1 = self.table.at cname1 . toColumn
+        c2 = self.table.at cname2 . toColumn
         Plot c1 c2 "o"
 
     def histogram cname:
-        c = self.table.at cname . columnAt 0
+        c = self.table.at cname . toColumn
         Histogram c 10 Map.empty
 
     def kde2 cname1 cname2:
-        c1 = self.table.at cname1 . columnAt 0
-        c2 = self.table.at cname2 . columnAt 0
+        c1 = self.table.at cname1 . toColumn
+        c2 = self.table.at cname2 . toColumn
         KDE2 c1 c2 "Blues_r"
 
     def kde cname:
-        c = self.table.at cname . columnAt 0
+        c = self.table.at cname . toColumn
         KDE c Nothing

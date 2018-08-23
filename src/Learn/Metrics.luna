@@ -1,0 +1,4 @@
+import Dataframes.Learn.SKLearnWrapper
+
+class Metrics:
+    def confusionMatrix ytrue ypred: SKLearnWrapper.confusionMatrix ytrue ypred

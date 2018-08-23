@@ -1,0 +1,60 @@
+import Std.Foreign
+import Std.Foreign.C.Value
+
+import Dataframes.Internal.CWrappers
+import Dataframes.Internal.Utils
+import Dataframes.Column
+
+class PyModel:
+    PyModel
+    PyModelVal (ManagedPointer None)
+
+    def ptr: case self of
+        PyModel: ManagedPointer None
+        PyModelVal ptr: ptr
+
+    def freeSym:
+        lookupSymbol "Learn" "freePyObj"
+
+    def toCArg:
+        self.ptr.toCArg
+
+    def retType: Pointer None . retType
+    def fromRetType r:
+        f = self.freeSym
+        ptr = Pointer None . fromRetType r
+        mptr = ManagedPointer None . fromPointer f ptr
+        PyModelVal mptr
+
+    def fit xs y: SKLearnWrapper . fit self xs y
+
+    def score xs y: SKLearnWrapper . score self xs y
+
+    def predict xs:
+        r = SKLearnWrapper . predict self xs
+        Column.fromColumnWrapper r
+
+
+
+
+class SKLearnWrapper:
+    def call name ret args:
+        lookupSymbol "Learn" name . call ret args
+
+    def newLogisticRegression c:
+        self.call "newLogisticRegression" PyModel [CDouble.fromReal c . toCArg]
+
+    def fit model xs y:
+        lookupSymbol "Learn" "fit" . call None [model.toCArg, xs.ptr.ptr.toCArg, y.toColumn.ptr.ptr.toCArg]
+
+    def score model xs y:
+        r = lookupSymbol "Learn" "score" . call CDouble [model.toCArg, xs.ptr.ptr.toCArg, y.toColumn.ptr.ptr.toCArg]
+        r.toReal
+
+    def predict model xs:
+        r = self.call "predict" (Pointer None) [model.toCArg, xs.ptr.ptr.toCArg]
+        wrapReleasableResouce ColumnWrapper r
+
+    def confusionMatrix ytrue ypred:
+        r = self.call "confusionMatrix" (Pointer None) [ytrue.toColumn.ptr.ptr.toCArg, ypred.toColumn.ptr.ptr.toCArg]
+        None

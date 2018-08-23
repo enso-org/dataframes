@@ -68,26 +68,21 @@ PyObject* tableToNpMatrix(const arrow::Table &table) {
   return res;
 }
 
-PyObject* tableToNpArr(const arrow::Table &table) {
+PyObject* columnToNpArr(const arrow::Column &col) {
   Py_Initialize();
   import_array();
   NPArrayBuilder builder;
-  builder.init(table.num_rows(), table.num_columns());
-  auto cols = getColumns(table);
-  int colIndex = 0;
-  for (auto& col : cols) {
-    int rowIndex = 0;
-    iterateOverGeneric(*col,
-        [&] (auto &&elem) {
-          builder.setAt(rowIndex, colIndex, elem);
-          rowIndex++;
-        },
-        [&] () {
-          builder.setNaAt(rowIndex, colIndex);
-          rowIndex++;
-        });
-    colIndex++;
-  }
+  builder.init(col.length(), 1);
+  int rowIndex = 0;
+  iterateOverGeneric(col,
+      [&] (auto &&elem) {
+        builder.setAt(rowIndex, 0, elem);
+        rowIndex++;
+      },
+      [&] () {
+        builder.setNaAt(rowIndex, 0);
+        rowIndex++;
+      });
   auto res = builder.getNPArr();
   PyObject_Print(res, stdout, 0);
   return res;
@@ -95,6 +90,7 @@ PyObject* tableToNpArr(const arrow::Table &table) {
 
 arrow::Column* npArrayToColumn(PyObject* arO) {
   PyArrayObject* ar = reinterpret_cast<PyArrayObject*>(PyArray_ContiguousFromObject(arO, NPY_DOUBLE, 0, 0));
+  std::cout << "MEAN IS: " << PyFloat_AsDouble(PyArray_Mean(ar, 0, NPY_DOUBLE, NULL)) << std::endl;
   int size = PyArray_DIM(ar, 0);
   double* data = (double*) PyArray_DATA(ar);
   arrow::DoubleBuilder builder;
@@ -114,37 +110,40 @@ extern "C" {
     Py_DECREF(o);
   }
 
-  PyObject* newLogisticRegression() {
+  PyObject* newLogisticRegression(double C) {
     skl::interpreter::get();
-    return skl::newLogisticRegression();
+    return skl::newLogisticRegression(C);
   }
 
-  void fit(PyObject* model, arrow::Table *xs, arrow::Table *y) {
+  void fit(PyObject* model, arrow::Table *xs, arrow::Column *y) {
     skl::interpreter::get();
     PyObject* xsO = tableToNpMatrix(*xs);
-    PyObject* yO  = tableToNpArr(*y);
+    PyObject* yO  = columnToNpArr(*y);
     skl::fit(model, xsO, yO);
+  }
+
+  double score(PyObject* model, arrow::Table *xs, arrow::Column *y) {
+    skl::interpreter::get();
+    PyObject* xsO = tableToNpMatrix(*xs);
+    PyObject* yO  = columnToNpArr(*y);
+    return skl::score(model, xsO, yO);
   }
 
   arrow::Column* predict(PyObject* model, arrow::Table *xs) {
     skl::interpreter::get();
     PyObject* xsO = tableToNpMatrix(*xs);
     PyObject* yO  = skl::predict(model, xsO);
+    PyObject_Print(yO, stdout, 0);
     return npArrayToColumn(yO);
   }
 
-  void trainAndScoreLR(arrow::Table *xs, arrow::Table *y) {
-    skl::interpreter::get();
-    PyObject* xsO = tableToNpMatrix(*xs);
-    PyObject* yO  = tableToNpArr(*y);
-    PyObject* model = skl::newLogisticRegression();
-    std::cout << "\nFIT\n";
-    skl::fit(model, xsO, yO);
-    std::cout << "SCORE\n";
-    double r = skl::score(model, xsO, yO);
-    std::cout << r << std::endl;
-    std::cout << "PREDICT\n";
-    PyObject* pred = skl::predict(model, xsO);
-    PyObject_Print(pred, stdout, 0);
+  arrow::Table* confusionMatrix(arrow::Column* ytrue, arrow::Column* ypred) {
+    auto c1 = columnToNpArr(*ytrue);
+    auto c2 = columnToNpArr(*ypred);
+    auto t1 = skl::confusion_matrix(c1, c2);
+    std::cout << "\nBEFORE\n";
+    PyObject_Print(t1, stdout, 0);
+    std::cout << "\nAFTER\n";
+    return NULL;
   }
 }

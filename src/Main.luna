@@ -1,3 +1,4 @@
+import Dataframes.Learn.LogisticRegression
 import Dataframes.Table
 import Dataframes.Main
 import Dataframes.IO
@@ -12,91 +13,40 @@ import Dataframes.Internal.Test.Test
 
 import Dataframes.Plot.Matplotlib
 
-class Whatever:
-    def shortRep: "Whatever"
+«67»def main:
+    «69»fr = CSVParser . readFile "/Users/marcinkostrzewa/Downloads/all (1)/application_train.csv"
+    «75»columns1 = fr . columns ["TARGET", "DAYS_BIRTH", "EXT_SOURCE_1", "EXT_SOURCE_2", "EXT_SOURCE_3"]
+    «76»dropNa1 = columns1 . fillNa 0.0
+    «78»columns2 = dropNa1 . columns ["EXT_SOURCE_1", "EXT_SOURCE_2", "EXT_SOURCE_3", "TARGET"]
+    «77»tgt = dropNa1 . at "TARGET"
+    «79»logisticregression1 = LogisticRegression . setC 0.001
+    «89»histogram1 = tgt . chart . histogram "TARGET"
+    «80»train1 = logisticregression1 . fit columns2 tgt
+    «81»score1 = train1 . score columns2 tgt
+    «82»pred = train1.predict columns2
+    «91»histogram2 = Histogram pred 2 Map.empty
+    None
 
-class Plottoto:
-    Plottoto
-    Kdeplot Column
-    Kdeplot2 Column Column
-    Scatter Column Column
-    HistogramX Column
-    UnionPlt Plot Plot
+«68»def demo2:
+    «71»fr = CSVParser . readFile "data/kaggle.csv" . columns ["DAYS_BIRTH", "EXT_SOURCE_1", "EXT_SOURCE_2", "EXT_SOURCE_3", "TARGET"] . dropNa
+    «72»print fr.rowCount
+    «73»fr.trainAndScoreLR ["DAYS_BIRTH", "EXT_SOURCE_1", "EXT_SOURCE_2", "EXT_SOURCE_3"] "TARGET"
 
-    def + that: UnionPlt self that
-
-    def render: case self of
-        UnionPlt p1 p2:
-            p1.render
-            p2.render
-        Scatter x y:
-            xs = x . ptr . data . ptr . toCArg
-            ys = y . ptr . data . ptr . toCArg
-            lookupSymbol "DataframePlotter" "plot" . call None [xs, ys]
-        HistogramX x:
-            xs = x . ptr . data . ptr . toCArg
-            lookupSymbol "DataframePlotter" "histogram" . call None [xs]
-        Kdeplot x:
-            xs = x . ptr . data . ptr . toCArg
-            lookupSymbol "DataframePlotter" "kdeplot" . call None [xs]
-
-        Kdeplot2 x y:
-            xs = x . ptr . data . ptr . toCArg
-            ys = y . ptr . data . ptr . toCArg
-            lookupSymbol "DataframePlotter" "kdeplot2" . call None [xs, ys]
-
-    def show:
-        self.render
-        lookupSymbol "DataframePlotter" "show" . call None []
-
-    def toJSON:
-        lookupSymbol "DataframePlotter" "init" . call None [CSize.fromInt 400 . toCArg, CSize.fromInt 400 . toCArg]
-        self.render
-        smallPtr = lookupSymbol "DataframePlotter" "getPNG" . call CString []
-        small = case smallPtr.isNull of
-            True: throw "Matplotlib: getPNG call failed."
-            False:
-                t = smallPtr.toText
-                smallPtr.free
-                "data:image/png;base64," + t
-        lookupSymbol "DataframePlotter" "init" . call None [CSize.fromInt 800 . toCArg, CSize.fromInt 800 . toCArg]
-        self.render
-        bigPtr = lookupSymbol "DataframePlotter" "getPNG" . call CString []
-        big = case bigPtr.isNull of
-            True: throw "Matplotlib: getPNG call failed."
-            False:
-                t = bigPtr.toText
-                bigPtr.free
-                "data:image/png;base64," + t
-        JSON.empty.insert "small" small . insert "big" big
-
-«6»def mkPlot:
-    «8»fr = CSVParser.setTypes [MaybeRealElement, MaybeRealElement] . readFile "data/simple_plot.csv"
-    «9»xs = fr . columnAt 0 . ptr . data . ptr . toCArg
-    «10»ys = fr.columnAt 1 . ptr . data . ptr . toCArg
-    «11»lookupSymbol "DataframePlotter" "plot" . call None [xs, ys]
-    «12»lookupSymbol "DataframePlotter" "histogram" . call None [xs]
-    «13»r = lookupSymbol "DataframePlotter" "getPNG" . call CString []
-    «14»t = r.toText
-    «15»r.free
-    «16»Plot t
-
-«7»def main:
+«7»def main2:
     «17»fr = CSVParser . readFile "data/kaggle.csv"
-    «37»at2 = fr . chart . plot "DAYS_BIRTH" "EXT_SOURCE_2"
-    «35»at1 = fr . at "DAYS_BIRTH"
-    «44»setStyle1 = at2 . setStyle "bo"
+    «46»at2 = fr . chart . kde2 "DAYS_BIRTH" "EXT_SOURCE_2"
+    «45»setStyle1 = at2 . setStyle "bo"
     None
 
-
-«0»def main2:
-    «1»setHelperVerbosity False
-    «2»benchmark "running tests" TestArrayBuilder.run
-
-«3»def test:
-    «4»readFile1 = CSVParser . readFile "data/kaggle.csv"
-    «5»columns1 = readFile1 . columnAt 0
-    «43»hist = Histogram columns1
+«47»def demo:
+    «48»readFile1 = CSVParser.readFile "data/kaggle.csv"
+    «65»eachTo1 = readFile1 . eachTo "AGE" t: «66»(t.at "DAYS_BIRTH") / (-365.0)
+    «59»filter2 = eachTo1 . filter (x: «60»x.at "TARGET" == 0)
+    «57»filter1 = eachTo1 . filter (x: «58»x.at "TARGET" == 1)
+    «54»histogram1 = eachTo1 . chart . histogram "AGE" . setBins 25
+    «63»setLabel1 = filter2 . chart.kde "AGE" . setLabel "target = 0"
+    «62»kde1 = filter1 . chart . kde "AGE" . setLabel "target = 1"
+    «64»sum1 = kde1 + setLabel1
     None
 
-### META {"metas":[{"marker":4,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":-368}}}},{"marker":5,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":16}}}},{"marker":43,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":192}}}},{"marker":8,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":0}}}},{"marker":9,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":176}}}},{"marker":10,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":176}}}},{"marker":11,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":352}}}},{"marker":12,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":528}}}},{"marker":13,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":704}}}},{"marker":14,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":880}}}},{"marker":15,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":880}}}},{"marker":16,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":1056}}}},{"marker":1,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":0}}}},{"marker":2,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":176}}}},{"marker":17,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":-112,"_vector2_x":-208}}}},{"marker":37,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: image","image/image.html"],"_position":{"fromPosition":{"_vector2_y":48,"_vector2_x":176}}}},{"marker":35,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":-272,"_vector2_x":176}}}},{"marker":44,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: image","image/image.html"],"_position":{"fromPosition":{"_vector2_y":48,"_vector2_x":560}}}}]}
+### META {"metas":[{"marker":69,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":-240}}}},{"marker":75,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":160}}}},{"marker":76,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":512}}}},{"marker":78,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-176,"_vector2_x":688}}}},{"marker":77,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":128,"_vector2_x":704}}}},{"marker":79,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":-16,"_vector2_x":736}}}},{"marker":89,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":128,"_vector2_x":1040}}}},{"marker":80,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":-32,"_vector2_x":1104}}}},{"marker":81,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":-48,"_vector2_x":1376}}}},{"marker":82,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-208,"_vector2_x":1392}}}},{"marker":91,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-192,"_vector2_x":1680}}}},{"marker":48,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-320,"_vector2_x":320}}}},{"marker":65,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-320,"_vector2_x":528}}}},{"marker":66,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":59,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-320,"_vector2_x":752}}}},{"marker":60,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":57,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-752,"_vector2_x":784}}}},{"marker":58,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":54,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-192,"_vector2_x":752}}}},{"marker":63,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-320,"_vector2_x":1152}}}},{"marker":62,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-752,"_vector2_x":1152}}}},{"marker":64,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-528,"_vector2_x":1600}}}},{"marker":71,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":72,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":176}}}},{"marker":73,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":176}}}},{"marker":17,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-112,"_vector2_x":-208}}}},{"marker":46,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: image","image/image.html"],"_position":{"fromPosition":{"_vector2_y":48,"_vector2_x":176}}}},{"marker":45,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: image","image/image.html"],"_position":{"fromPosition":{"_vector2_y":48,"_vector2_x":560}}}}]}

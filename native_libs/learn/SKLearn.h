@@ -15,6 +15,8 @@ static std::string s_backend;
 
 struct interpreter {
     PyObject *s_python_function_logistic_regression;
+    PyObject *s_python_function_test_train_split;
+    PyObject *s_python_function_confusion_matrix;
     PyObject *s_python_empty_tuple;
 
     static interpreter& get() {
@@ -59,13 +61,37 @@ private:
             throw std::runtime_error("couldnt create string");
         }
 
+        PyObject* sklearn_selname = PyString_FromString("sklearn.model_selection");
+        if (!sklearn_selname) {
+            throw std::runtime_error("couldnt create string");
+        }
+
+        PyObject* sklearn_metricsname = PyString_FromString("sklearn.metrics");
+        if (!sklearn_metricsname) {
+            throw std::runtime_error("couldnt create string");
+        }
+
         PyObject* sklearnlinmod = PyImport_Import(sklearn_linname);
         Py_DECREF(sklearn_linname);
         if (!sklearnlinmod) { throw std::runtime_error("Error loading module sklearn.linear_model!"); }
 
+        PyObject* sklearnselmod = PyImport_Import(sklearn_selname);
+        Py_DECREF(sklearn_selname);
+        if (!sklearnselmod) { throw std::runtime_error("Error loading module sklearn.model_selection!"); }
+
+        PyObject* sklearnmetricsmod = PyImport_Import(sklearn_metricsname);
+        Py_DECREF(sklearn_metricsname);
+        if (!sklearnmetricsmod) { throw std::runtime_error("Error loading module sklearn.metrics!"); }
+
         s_python_function_logistic_regression = PyObject_GetAttrString(sklearnlinmod, "LogisticRegression");
+        s_python_function_test_train_split = PyObject_GetAttrString(sklearnlinmod, "LogisticRegression");
+        s_python_function_confusion_matrix = PyObject_GetAttrString(sklearnmetricsmod, "confusion_matrix");
 
         if(!s_python_function_logistic_regression) {
+          throw std::runtime_error("Couldn't find required function!");
+        }
+
+        if(!s_python_function_test_train_split) {
           throw std::runtime_error("Couldn't find required function!");
         }
 
@@ -77,8 +103,10 @@ private:
     }
 };
 
-inline PyObject* newLogisticRegression() {
-  PyObject* model = PyObject_CallObject(interpreter::get().s_python_function_logistic_regression, interpreter::get().s_python_empty_tuple);
+inline PyObject* newLogisticRegression(double c) {
+  PyObject* kwargs = PyDict_New();
+  PyDict_SetItemString(kwargs, "C", PyFloat_FromDouble(c));
+  PyObject* model = PyObject_Call(interpreter::get().s_python_function_logistic_regression, interpreter::get().s_python_empty_tuple, kwargs);
   return model;
 }
 
@@ -97,6 +125,15 @@ inline PyObject* predict(PyObject* model, PyObject* xs) {
   PyObject *n = PyString_FromString("predict");
   PyObject *r = PyObject_CallMethodObjArgs(model, n, xs, NULL);
   return r;
+}
+
+inline PyObject* testTrainSplit(PyObject *xs, PyObject* y) {
+  PyObject* res = PyObject_CallFunctionObjArgs(xs, y, NULL);
+  return res;
+}
+
+inline PyObject* confusion_matrix(PyObject* ytrue, PyObject* ypred) {
+  return PyObject_CallFunctionObjArgs(interpreter::get().s_python_function_confusion_matrix, ytrue, ypred, NULL);
 }
 
 } // end sklearn

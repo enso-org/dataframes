@@ -1,0 +1,22 @@
+import Dataframes.Learn.Model
+import Dataframes.Learn.SKLearnWrapper
+
+class LogisticRegression:
+    LogisticRegression
+    LogisticRegressionVal:
+        c :: Real
+
+    def defaults: case self of
+        LogisticRegression: LogisticRegressionVal 1.0
+        s: s
+
+    def c: case self of
+        LogisticRegression: 1.0
+        LogisticRegressionVal c: c
+
+    def setC c: LogisticRegressionVal c
+
+    def fit xs y:
+        mod = SKLearnWrapper . newLogisticRegression self.c
+        mod . fit xs y
+        mod
