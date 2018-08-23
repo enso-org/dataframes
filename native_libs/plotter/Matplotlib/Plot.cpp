@@ -46,6 +46,15 @@ PyObject* chunkedArrayToPyObj(const arrow::ChunkedArray &arr) {
     return builder.list;
 }
 
+PyObject* tableToPyObj(const arrow::Table &table) {
+    auto cols = getColumns(table);
+    PyObject *result = PyList_New(table.num_columns());
+    for (int i = 0; i < table.num_columns(); i++) {
+        PyList_SetItem(result, i, chunkedArrayToPyObj(*(cols[i]->data())));
+    }
+    return result;
+}
+
 extern "C"
 {
     void plot(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* style) {
@@ -83,6 +92,17 @@ extern "C"
           std::cout << "KDE BEG" << std::endl;
           plt::kdeplot(xsarray, label);
           std::cout << "KDE END" << std::endl;
+        } catch (const runtime_error& e) {
+          std::cout << e.what() << std::endl;
+        }
+    }
+
+    void heatmap(arrow::Table* xs, char* cmap, char* annot) {
+        auto xsarray = tableToPyObj(*xs);
+        try {
+            std::cout << "HEATMAP BEG" << std::endl;
+            plt::heatmap(xsarray, cmap, annot);
+            std::cout << "HEATMAP END" << std::endl;
         } catch (const runtime_error& e) {
           std::cout << e.what() << std::endl;
         }

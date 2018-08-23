@@ -3,8 +3,10 @@
 #include <Core/ArrowUtilities.h>
 #include "SKLearn.h"
 #include <numpy/arrayobject.h>
+#include <variant.h>
 #include <Python.h>
 #include <LifetimeManager.h>
+#include <Analysis.h>
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 
@@ -145,5 +147,38 @@ extern "C" {
     PyObject_Print(t1, stdout, 0);
     std::cout << "\nAFTER\n";
     return NULL;
+  }
+
+  arrow::Table* oneHotEncode(arrow::Column* col) {
+    std::unordered_map<std::string_view, int> valIndexes;
+    int lastIndex = 0;
+    iterateOver<arrow::Type::STRING>(*col,
+      [&] (auto &&elem) {
+        if (valIndexes.find(elem) == valIndexes.end()) valIndexes[elem] = lastIndex++;
+      },
+      [] () {});
+    std::vector<arrow::DoubleBuilder> builders(valIndexes.size());
+    iterateOver<arrow::Type::STRING>(*col,
+      [&] (auto &&elem) {
+        int ind = valIndexes[elem];
+        for (int i = 0; i < builders.size(); i++) {
+          builders[i].Append(i == ind ? 1 : 0);
+        }
+      },
+      [&] () {
+        for (int i = 0; i < builders.size(); i++) {
+          builders[i].Append(0);
+        }
+      });
+    std::vector<PossiblyChunkedArray> arrs;
+    for (auto& bldr : builders) {
+      arrs.push_back(finish(bldr));
+    }
+    std::vector<std::string> names(valIndexes.size());
+    for (auto& item : valIndexes) {
+      names[item.second] = col->name() + "_" + std::string(item.first);
+    }
+    auto t = tableFromArrays(arrs, names);
+    return LifetimeManager::instance().addOwnership(std::move(t));
   }
 }

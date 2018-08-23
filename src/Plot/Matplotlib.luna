@@ -2,6 +2,7 @@ import Std.Foreign.C.Value
 import Std.Foreign
 
 import Dataframes.Column
+import Dataframes.Table
 
 class Matplotlib:
     def call n ret args:
@@ -17,6 +18,13 @@ class Matplotlib:
     def kdeplot2 s1 s2 style:
         cstr = CString.fromText style
         self.call "kdeplot2" None [s1.toCArg, s2.toCArg, cstr.toCArg]
+
+    def heatmap s1 style annot:
+        annotc = case annot of
+            Nothing: CString.null
+            Just t: CString.fromText t
+        cstr = CString.fromText style
+        self.call "heatmap" None [s1.toCArg, cstr.toCArg, annotc.toCArg]
 
     def kdeplot s label:
         cstr = case label of

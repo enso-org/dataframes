@@ -92,6 +92,22 @@ class Column:
     def toJSON:
         JSON.empty . insert "header" [self.name] . insert "data" (self.slice 0 100 . toList . each (Prepend _ Empty))
 
+    def isNumeric: case self of
+        ColumnInt       tc: True
+        ColumnMaybeInt  tc: True
+        ColumnReal      tc: True
+        ColumnMaybeReal tc: True
+        ColumnText      tc: False
+        ColumnMaybeText tc: False
+
+    def isText: case self of
+        ColumnInt       tc: False
+        ColumnMaybeInt  tc: False
+        ColumnReal      tc: False
+        ColumnMaybeReal tc: False
+        ColumnText      tc: True
+        ColumnMaybeText tc: True
+
     def map fromTypeTag toTypeTag newName f:
         tc = fromTypeTag.useColumn self (_.map toTypeTag newName f)
         toTypeTag.makeColumn tc

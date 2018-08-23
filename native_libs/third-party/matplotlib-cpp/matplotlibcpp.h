@@ -38,6 +38,7 @@ struct _interpreter {
     PyObject *s_python_function_figure;
     PyObject *s_python_function_plot;
     PyObject *s_python_function_kdeplot;
+    PyObject *s_python_function_heatmap;
     PyObject *s_python_function_semilogx;
     PyObject *s_python_function_semilogy;
     PyObject *s_python_function_loglog;
@@ -164,6 +165,7 @@ private:
         s_python_function_figure = PyObject_GetAttrString(pymod, "figure");
         s_python_function_plot = PyObject_GetAttrString(pymod, "plot");
         s_python_function_kdeplot = PyObject_GetAttrString(seabornmod, "kdeplot");
+        s_python_function_heatmap = PyObject_GetAttrString(seabornmod, "heatmap");
         s_python_function_semilogx = PyObject_GetAttrString(pymod, "semilogx");
         s_python_function_semilogy = PyObject_GetAttrString(pymod, "semilogy");
         s_python_function_loglog = PyObject_GetAttrString(pymod, "loglog");
@@ -205,6 +207,7 @@ private:
             || !s_python_function_figure
             || !s_python_function_plot
             || !s_python_function_kdeplot
+            || !s_python_function_heatmap
             || !s_python_function_semilogx
             || !s_python_function_semilogy
             || !s_python_function_loglog
@@ -238,6 +241,7 @@ private:
             || !PyFunction_Check(s_python_function_figure)
             || !PyFunction_Check(s_python_function_plot)
             || !PyFunction_Check(s_python_function_kdeplot)
+            || !PyFunction_Check(s_python_function_heatmap)
             || !PyFunction_Check(s_python_function_semilogx)
             || !PyFunction_Check(s_python_function_semilogy)
             || !PyFunction_Check(s_python_function_loglog)
@@ -544,6 +548,33 @@ bool kdeplot2(PyObject* xarray, PyObject* yarray, char* colorMap)
     }
 
     Py_DECREF(plot_args);
+    if(res) Py_DECREF(res);
+
+    return res;
+}
+
+bool heatmap(PyObject* xarray, char* colorMap, char* annot)
+{
+    PyObject* plot_args = PyTuple_New(1);
+    PyTuple_SetItem(plot_args, 0, xarray);
+
+    PyObject* kwargs = PyDict_New();
+    //PyDict_SetItemString(kwargs, "shade", Py_True);
+    PyDict_SetItemString(kwargs, "cmap", PyString_FromString(colorMap));
+    if (annot) {
+        PyDict_SetItemString(kwargs, "annot", Py_True);
+        PyDict_SetItemString(kwargs, "fmt", PyString_FromString(annot));
+    }
+
+    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_heatmap, plot_args, kwargs);
+    if (!res) {
+        std::cout << "EXCEPTION HEATMAP" << std::endl;
+        PyErr_Print();
+        throw std::runtime_error("Call to heatmap() failed.");
+    }
+
+    Py_DECREF(plot_args);
+    Py_DECREF(kwargs);
     if(res) Py_DECREF(res);
 
     return res;

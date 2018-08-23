@@ -1,0 +1,9 @@
+import Std.Foreign.C.Value
+import Std.Foreign
+import Dataframes.Column
+import Dataframes.Table
+import Dataframes.Learn.SKLearnWrapper
+
+class Coach:
+    def oneHotEncode column:
+        SKLearnWrapper.oneHotEncode column

@@ -4,6 +4,7 @@ import Std.Foreign.C.Value
 import Dataframes.Internal.CWrappers
 import Dataframes.Internal.Utils
 import Dataframes.Column
+import Dataframes.Table
 
 class PyModel:
     PyModel
@@ -36,7 +37,6 @@ class PyModel:
 
 
 
-
 class SKLearnWrapper:
     def call name ret args:
         lookupSymbol "Learn" name . call ret args
@@ -58,3 +58,8 @@ class SKLearnWrapper:
     def confusionMatrix ytrue ypred:
         r = self.call "confusionMatrix" (Pointer None) [ytrue.toColumn.ptr.ptr.toCArg, ypred.toColumn.ptr.ptr.toCArg]
         None
+
+    def oneHotEncode col:
+        r = self.call "oneHotEncode" (Pointer None) [col.ptr.ptr.toCArg]
+        t = wrapReleasableResouce TableWrapper r
+        TableVal t

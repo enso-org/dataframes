@@ -35,6 +35,10 @@ class Table:
         Column.fromColumnWrapper columnWrapper
     def addColumn index column:
         self.fromWrapper $ self.ptr.addColumn index column.ptr
+    def concat ts:
+        cols = ts . each .toList . concat
+        self.fromColumns cols
+    def + that: Table.concat [self, that]
     def at name:
         self.columns [name]
     def setAt name column:
@@ -51,6 +55,8 @@ class Table:
         self.fromColumns columns
     def removeColumn index:
         self.fromWrapper $ self.ptr.removeColumn index
+    def remove name:
+        self.removeColumn $ self.schema.getFieldIndexByName name
     def toList:
         self.ptr.toList.each Column.fromColumnWrapper
     def toText:
@@ -68,7 +74,7 @@ class Table:
         leftCount = self.rowCount - count
         self.slice count leftCount
     def toJSON:
-        rowCount = 10
+        rowCount = if self.rowCount < 10 then self.rowCount else 10
         columnValueLists = self.toList.each (_ . slice 0 rowCount . toList)
         rowIndices = 0.upto (rowCount - 1)
         rows = rowIndices.each rowIndex:
@@ -77,6 +83,14 @@ class Table:
     def filter f:
         pred = f TableHandle
         self.fromWrapper $ self.ptr.filter pred
+    def filterColumns pred:
+        cols = self.toList
+        filtered = cols.filter pred
+        self.fromColumns filtered
+    def eachColumn pred:
+        cols = self.toList
+        filtered = cols.each pred
+        self.fromColumns filtered
     def each f:
         mapper = f TableHandle
         columnWrapper = self.ptr.eachToColumn "Result" mapper
@@ -136,3 +150,24 @@ class ChartBuilder:
     def kde cname:
         c = self.table.at cname . toColumn
         KDE c Nothing
+
+    def heatmap:
+        Heatmap self.table "RdBu_r" Nothing
+
+class Heatmap:
+    data :: Table
+    colorMap :: Text
+    annotations :: Maybe Text
+
+    def render:
+        Matplotlib.heatmap self.data.ptr.ptr self.colorMap self.annotations
+
+    def toChart: Chart self.render
+
+    def + that:
+        self.toChart.+ that
+
+    def toJSON: self.toChart.toJSON
+
+    def setColorMap s: self.colorMap = s
+    def setAnnotations s: self.annotations = Just s
