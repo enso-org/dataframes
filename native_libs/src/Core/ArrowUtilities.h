@@ -412,3 +412,45 @@ void append(Builder &sb, T v)
 {
     sb.Append(v);
 }
+
+template<arrow::Type::type id1, arrow::Type::type id2, typename F>
+void iterateOverJustPairs(const arrow::ChunkedArray &array1, const arrow::ChunkedArray &array2, F &&f)
+{
+    assert(array1.length() == array2.length());
+    const auto N = array1.length();
+
+    auto chunks1Itr = array1.chunks().begin();
+    auto chunks2Itr = array2.chunks().begin();
+
+    int64_t row = 0;
+
+    int32_t chunk1Length = (*chunks1Itr)->length();
+    int32_t chunk2Length = (*chunks2Itr)->length();
+
+    int32_t index1 = -1, index2 = -1;
+    for( ; row < N; row++)
+    {
+        if(++index1 >= chunk1Length)
+        {
+            ++chunks1Itr;
+            chunk1Length = (*chunks1Itr)->length();
+            index1 = 0;
+        }
+        if(++index2 >= chunk2Length)
+        {
+            ++chunks2Itr;
+            chunk2Length = (*chunks2Itr)->length();
+            index2 = 0;
+        }
+
+        if((*chunks1Itr)->IsValid(index1))
+            if((*chunks2Itr)->IsValid(index2))
+                f(arrayValueAt<id1>(**chunks1Itr, index1), arrayValueAt<id2>(**chunks2Itr, index2));
+    }
+}
+
+template<arrow::Type::type id1, arrow::Type::type id2, typename F>
+void iterateOverJustPairs(const arrow::Column &column1, const arrow::Column &column2, F &&f)
+{
+    return iterateOverJustPairs<id1, id2>(*column1.data(), *column2.data(), f);
+}

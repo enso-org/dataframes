@@ -516,11 +516,10 @@ class TestArrayBuilder:
         sumOnInts = intCol.sum
         assertEqual "ints sum" sumOnInts.toList [16]
         tercileOnInts = intCol.quantile (1.0/4.0)
-        assertEqual "ints tercile " tercileOnInts.toList [2]
+        assertEqual "ints tercile " tercileOnInts.toList [1.5]
 
     def run:
         self.testStats
-        throw "stop"
         self.testCountValues
         self.testFilling
         self.testDropping

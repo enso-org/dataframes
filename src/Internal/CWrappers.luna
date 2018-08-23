@@ -321,7 +321,7 @@ class TableWrapper:
         ptr = CString.with jsonText jsonTextC:
             callHandlingError "tableFillNA" (Pointer None) [self.ptr.toCArg, jsonTextC.toCArg]
         wrapReleasableResouce TableWrapper ptr
-    def correlationMatrix:
+    def corr:
         ptr = callHandlingError "tableCorrelationMatrix" (Pointer None) [self.ptr.toCArg]
         wrapReleasableResouce TableWrapper ptr
 
