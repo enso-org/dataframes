@@ -176,9 +176,15 @@ extern "C" {
     }
     std::vector<std::string> names(valIndexes.size());
     for (auto& item : valIndexes) {
-      names[item.second] = col->name() + "_" + std::string(item.first);
+      names[item.second] = col->name() + ": " + std::string(item.first);
     }
     auto t = tableFromArrays(arrs, names);
     return LifetimeManager::instance().addOwnership(std::move(t));
+  }
+
+  void toRealBuf(arrow::Column* col, double* buf) {
+    iterateOver<arrow::Type::DOUBLE>(*col,
+      [&] (auto &&elem) { *(buf++) = elem; },
+      [&] () { *(buf++) = 0; });
   }
 }

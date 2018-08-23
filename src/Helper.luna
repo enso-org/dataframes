@@ -1,0 +1,10 @@
+import Std.Foreign.C.Value
+import Std.Foreign
+
+def colToRealList col:
+    len = col.length
+    ar = Pointer CDouble . mallocElems len
+    lookupSymbol "Learn" "toRealBuf" . call None [col.ptr.ptr.toCArg, ar.ptr.toCArg]
+    l = 0 . upto len.pred . each i: ar . moveElems i . read
+    ar.free
+    l

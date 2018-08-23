@@ -12,7 +12,7 @@ std::shared_ptr<arrow::Table> countValueTyped(const arrow::Column &column)
     using Builder = typename TypeDescription<id>::BuilderType;
     std::unordered_map<T, int64_t> valueCounts;
 
-    iterateOver<id>(column, 
+    iterateOver<id>(column,
         [&] (auto &&elem) { valueCounts[elem]++; },
         [] () {});
 
@@ -95,6 +95,7 @@ struct Variance
 template<typename T>
 struct StdDev : Variance<T>
 {
+    std::string name = "std dev";
     auto get() { return std::sqrt(Variance<T>::get()); }
 };
 
@@ -111,7 +112,7 @@ struct Sum : Variance<T>
 template<arrow::Type::type id, typename Processor>
 auto calculateStatScalar(const arrow::Column &column, Processor &p)
 {
-    iterateOver<id>(column, 
+    iterateOver<id>(column,
         [&] (auto elem) { p(elem); },
         [] {});
 
@@ -159,7 +160,7 @@ std::common_type_t<T, double> vectorQuantile(std::vector<T> &data, double q = 0.
         return *std::min_element(data.begin(), data.end());
 
     q = std::clamp(q, 0.0, 1.0);
-    const double n = data.size() * q - 0.5; 
+    const double n = data.size() * q - 0.5;
     const int n1 = std::floor(n);
     const int n2 = std::ceil(n);
     const auto t = n - n1;
@@ -188,7 +189,7 @@ std::shared_ptr<arrow::Column> calculateQuantile(const arrow::Column &column, do
 
 std::shared_ptr<arrow::Table> countValues(const arrow::Column &column)
 {
-    return visitType(*column.type(), [&] (auto id) 
+    return visitType(*column.type(), [&] (auto id)
     {
         return countValueTyped<id.value>(column);
     });
@@ -297,8 +298,8 @@ std::shared_ptr<arrow::Column> calculateCorrelation(const arrow::Table &table, c
     {
         const auto columnI = table.column(i);
         const auto isSelfCompare = &column == columnI.get();
-        correlationValues[i] = isSelfCompare 
-            ? 1.0 
+        correlationValues[i] = isSelfCompare
+            ? 1.0
             : calculateCorrelation(column, *columnI);
     }
 

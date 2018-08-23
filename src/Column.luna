@@ -90,7 +90,7 @@ class Column:
     def toText: self.toList.toText
 
     def toJSON:
-        JSON.empty . insert "header" [self.name] . insert "data" (self.slice 0 100 . toList . each (Prepend _ Empty))
+        JSON.empty . insert "header" [self.name] . insert "data" [self.slice 0 1000 . toList]
 
     def isNumeric: case self of
         ColumnInt       tc: True
@@ -155,3 +155,10 @@ class Column:
     def var:        Column.fromColumnWrapper $ self.ptr.var
     def sum:        Column.fromColumnWrapper $ self.ptr.sum
     def quantile q: Column.fromColumnWrapper $ self.ptr.quantile q
+
+    def describe:
+        min = self.min
+        max = self.max
+        mean = self.mean
+        std = self.std
+        Table.fromColumns [mean, std, min, max]

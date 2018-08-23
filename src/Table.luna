@@ -5,6 +5,7 @@ import Dataframes.Internal.CWrappers
 import Dataframes.Plot.Matplotlib
 
 import Std.Foreign
+import Dataframes.Helper
 
 class Table:
     Table
@@ -74,12 +75,12 @@ class Table:
         leftCount = self.rowCount - count
         self.slice count leftCount
     def toJSON:
-        rowCount = if self.rowCount < 10 then self.rowCount else 10
-        columnValueLists = self.toList.each (_ . slice 0 rowCount . toList)
-        rowIndices = 0.upto (rowCount - 1)
-        rows = rowIndices.each rowIndex:
-            columnValueLists.each (_.getAt rowIndex)
-        JSON.empty . insert "header" self.columnNames . insert "data" rows
+        maxCount = 1000 / self.columnCount
+        mc = if maxCount < 10 then 10 else maxCount
+        rowCount = if self.rowCount < mc then self.rowCount else mc
+        cols = self.toList
+        columnValueLists = cols.each (_ . slice 0 rowCount . toList)
+        JSON.empty . insert "header" self.columnNames . insert "data" columnValueLists
     def filter f:
         pred = f TableHandle
         self.fromWrapper $ self.ptr.filter pred
@@ -127,9 +128,33 @@ class Table:
 
     def corr:
         self.fromWrapper $ self.ptr.corr
-    def corrWith column:
-        Column.fromColumnWrapper $ self.ptr.corrWith column.ptr
 
+    def corrWith columnName:
+        column = self.at columnName . toColumn
+        corrCol = Column.fromColumnWrapper $ self.ptr.corrWith column.ptr
+        colNames = self.toList . each .name
+        corrList = colToRealList corrCol
+        l1 = colNames . zip corrList
+        sorted = l1.sortBy .second
+        names = sorted.each .first
+        vals  = sorted.each .second
+        col1 = Column.fromList "column" StringType names
+        col2 = Column.fromList ("CORR_WITH_" + columnName) DoubleType vals
+        Table.fromColumns [col1, col2]
+
+    def describe colName:
+        col = self.at colName . toColumn
+        min = col.min
+        max = col.max
+        mean = col.mean
+        std = col.std
+        quart1 = col.quantile 0.25
+        median = col.median
+        quart3 = col.quantile 0.75
+        Table.fromColumns [mean, std, min, quart1, median, quart3, max]
+
+    def countValues colName:
+        self.at colName . toColumn . countValues
 
     def chart: ChartBuilder self
 
@@ -150,7 +175,7 @@ class ChartBuilder:
         c2 = self.table.at cname2 . toColumn
         KDE2 c1 c2 "Blues_r"
     def kde cname:
-        c = self.table.at cname . toColumn
+        c = self.table.at cname . dropNa . toColumn
         KDE c Nothing
 
     def heatmap:
