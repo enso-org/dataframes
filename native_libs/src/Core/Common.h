@@ -50,7 +50,7 @@ template<class T> constexpr bool always_false_v = always_false<T>::value;
 
 // Abominable workaround - standard library on Mac does not have invoke_result
 // And we don't just use std::result_of_t, as conforming compilers hate it
-// (it has been deperecated in C++17 and removed in C++20)
+// (it has been deprecated in C++17 and removed in C++20)
 #if !defined(_MSC_VER) && !defined(__cpp_lib_is_invocable)
 namespace std
 {
