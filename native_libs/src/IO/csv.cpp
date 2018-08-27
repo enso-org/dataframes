@@ -197,20 +197,10 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
             arrays.push_back(finish(builder.builder));
         };
 
-        switch(typeInfo.type->id())
+        visitType(*typeInfo.type, [&] (auto id)
         {
-        case arrow::Type::INT64:
-            processColumn(ColumnBuilder<arrow::Type::INT64>{missingFieldsPolicy});
-            break;
-        case arrow::Type::DOUBLE:
-            processColumn(ColumnBuilder<arrow::Type::DOUBLE>{missingFieldsPolicy});
-            break;
-        case arrow::Type::STRING:
-            processColumn(ColumnBuilder<arrow::Type::STRING>{missingFieldsPolicy});
-            break;
-        default:
-            throw std::runtime_error("type not supported " + typeInfo.type->ToString());
-        }
+            processColumn(ColumnBuilder<id.value>{missingFieldsPolicy});
+        });
     }
 
     const auto names = decideColumnNames((int)csv.fieldCount, header, [&] (int column)
@@ -319,7 +309,14 @@ struct ColumnWriter
     }
 };
 
-struct StringColumnWriter : ColumnWriter
+// Note: type below is meant to be specialzied for supported types
+template<arrow::Type::type id>
+struct ColumnWriterFor 
+{
+};
+
+template<>
+struct ColumnWriterFor<arrow::Type::STRING> : ColumnWriter
 {
     using ColumnWriter::ColumnWriter;
     virtual void consumeFromChunk(const arrow::Array &chunk, CsvGenerator &generator)
@@ -330,7 +327,8 @@ struct StringColumnWriter : ColumnWriter
     }
 };
 
-struct Int64ColumnWriter : ColumnWriter
+template<>
+struct ColumnWriterFor<arrow::Type::INT64> : ColumnWriter
 {
     using ColumnWriter::ColumnWriter;
     virtual void consumeFromChunk(const arrow::Array &chunk, CsvGenerator &generator)
@@ -342,7 +340,8 @@ struct Int64ColumnWriter : ColumnWriter
     }
 };
 
-struct DoubleColumnWriter : ColumnWriter
+template<>
+struct ColumnWriterFor<arrow::Type::DOUBLE> : ColumnWriter
 {
     using ColumnWriter::ColumnWriter;
     virtual void consumeFromChunk(const arrow::Array &chunk, CsvGenerator &generator)
@@ -379,20 +378,10 @@ void generateCsv(std::ostream &out, const arrow::Table &table, GeneratorHeaderPo
     for(int column = 0; column < table.num_columns(); column++)
     {
         const auto c = table.column(column);
-        switch(c->field()->type()->id())
+        visitType(*c->type(), [&] (auto id)
         {
-        case arrow::Type::INT64:
-            writers.push_back(std::make_unique<Int64ColumnWriter>(c->data()));
-            break;
-        case arrow::Type::DOUBLE:
-            writers.push_back(std::make_unique<DoubleColumnWriter>(c->data()));
-            break;
-        case arrow::Type::STRING:
-            writers.push_back(std::make_unique<StringColumnWriter>(c->data()));
-            break;
-        default:
-            throw std::runtime_error("type not supported " + c->field()->type()->ToString());
-        }
+            writers.push_back(std::make_unique<ColumnWriterFor<id.value>>(c->data()));
+        });
     }
 
     // write records

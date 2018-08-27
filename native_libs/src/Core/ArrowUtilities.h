@@ -70,6 +70,18 @@ template<> struct TypeDescription<arrow::Type::STRING>
 template<typename Array>
 using ArrayTypeDescription = TypeDescription<std::decay_t<std::remove_pointer_t<Array>>::TypeClass::type_id>;
 
+template<typename F>
+auto visitType(const arrow::DataType &type, F &&f)
+{
+    switch(type.id())
+    {
+    case arrow::Type::INT64 : return f(std::integral_constant<arrow::Type::type, arrow::Type::INT64 >{});
+    case arrow::Type::DOUBLE: return f(std::integral_constant<arrow::Type::type, arrow::Type::DOUBLE>{});
+    case arrow::Type::STRING: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
+    default: throw std::runtime_error("array type not supported to downcast: " + type.ToString());
+    }
+}
+
 template <typename Array>
 auto arrayValueAtTyped(const Array &array, int64_t index)
 {
@@ -143,27 +155,13 @@ void iterateOver(const arrow::Column &column, ElementF &&handleElem, NullF &&han
 template <typename ElementF, typename NullF>
 void iterateOverGeneric(const arrow::Array &array, ElementF &&handleElem, NullF &&handleNull)
 {
-    const auto t = array.type();
-    switch(t->id())
-    {
-    case arrow::Type::INT64 : return iterateOver<arrow::Type::INT64 >(array, handleElem, handleNull);
-    case arrow::Type::DOUBLE: return iterateOver<arrow::Type::DOUBLE>(array, handleElem, handleNull);
-    case arrow::Type::STRING: return iterateOver<arrow::Type::STRING>(array, handleElem, handleNull);
-    default                 : throw  std::runtime_error(__FUNCTION__ + std::string(": not supported array type ") + t->ToString());
-    }
+    return visitType(*array.type(), [&] (auto id) { return iterateOver<id.value>(array, handleElem, handleNull); });
 }
 
 template <typename ElementF, typename NullF>
 void iterateOverGeneric(const arrow::ChunkedArray &array, ElementF &&handleElem, NullF &&handleNull)
 {
-    const auto t = array.type();
-    switch(t->id())
-    {
-    case arrow::Type::INT64 : return iterateOver<arrow::Type::INT64 >(array, handleElem, handleNull);
-    case arrow::Type::DOUBLE: return iterateOver<arrow::Type::DOUBLE>(array, handleElem, handleNull);
-    case arrow::Type::STRING: return iterateOver<arrow::Type::STRING>(array, handleElem, handleNull);
-    default                 : throw  std::runtime_error(__FUNCTION__ + std::string(": not supported array type ") + t->ToString());
-    }
+    return visitType(*array.type(), [&] (auto id) { return iterateOver<id.value>(array, handleElem, handleNull); });
 }
 
 template <typename ElementF, typename NullF>
@@ -211,13 +209,10 @@ auto staticDowncastArray(const arrow::Array *array)
 template<typename Function>
 auto visitArray(const arrow::Array &array, Function &&f)
 {
-    switch(array.type_id())
+    return visitType(*array.type(), [&] (auto id)
     {
-    case arrow::Type::INT64 : return f(staticDowncastArray<arrow::Type::INT64 >(&array));
-    case arrow::Type::DOUBLE: return f(staticDowncastArray<arrow::Type::DOUBLE>(&array));
-    case arrow::Type::STRING: return f(staticDowncastArray<arrow::Type::STRING>(&array));
-    default: throw std::runtime_error("array type not supported to downcast: " + array.type()->ToString());
-    }
+        return f(staticDowncastArray<id.value>(&array));
+    });
 }
 
 inline std::shared_ptr<arrow::Array> finish(arrow::ArrayBuilder &builder)
@@ -389,19 +384,6 @@ DFH_EXPORT std::vector<DynamicField> rowAt(const arrow::Table &table, int64_t in
 DFH_EXPORT void validateIndex(const arrow::Array &array, int64_t index);
 DFH_EXPORT void validateIndex(const arrow::ChunkedArray &array, int64_t index);
 DFH_EXPORT void validateIndex(const arrow::Column &column, int64_t index);
-
-
-template<typename F>
-auto visitType(const arrow::DataType &type, F &&f)
-{
-    switch(type.id())
-    {
-    case arrow::Type::INT64 : return f(std::integral_constant<arrow::Type::type, arrow::Type::INT64 >{});
-    case arrow::Type::DOUBLE: return f(std::integral_constant<arrow::Type::type, arrow::Type::DOUBLE>{});
-    case arrow::Type::STRING: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
-    default: throw std::runtime_error("array type not supported to downcast: " + type.ToString());
-    }
-}
 
 inline void append(arrow::StringBuilder &sb, std::string_view sv)
 {

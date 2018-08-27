@@ -111,20 +111,10 @@ std::shared_ptr<arrow::Table> readXlsxFile(const char *filepath, HeaderPolicy he
         std::vector<std::unique_ptr<ColumnBuilderBase>> columnBuilders;
         for(auto columnType : columnTypes)
         {
-            auto ptr = [&] () -> std::unique_ptr<ColumnBuilderBase>
+            auto ptr = visitType(*columnType.type, [&] (auto id) -> std::unique_ptr<ColumnBuilderBase>
             {
-                switch(columnType.type->id())
-                {
-                case arrow::Type::INT64:
-                    return std::make_unique<ColumnBuilder<arrow::Type::INT64>>(columnType.nullable);
-                case arrow::Type::DOUBLE:
-                    return std::make_unique<ColumnBuilder<arrow::Type::DOUBLE>>(columnType.nullable);
-                case arrow::Type::STRING:
-                    return std::make_unique<ColumnBuilder<arrow::Type::STRING>>(columnType.nullable);
-                default:
-                    throw std::runtime_error(__FUNCTION__  + ": wrong array type "s + columnType.type->ToString());
-                }
-            }();
+                return std::make_unique<ColumnBuilder<id.value>>(columnType.nullable);
+            });
             ptr->reserve(rowCount);
             columnBuilders.push_back(std::move(ptr));
         }

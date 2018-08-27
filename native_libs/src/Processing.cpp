@@ -413,17 +413,10 @@ std::shared_ptr<arrow::Table> filter(std::shared_ptr<arrow::Table> table, const 
     for(int columnIndex = 0; columnIndex < table->num_columns(); columnIndex++)
     {
         const auto column = table->column(columnIndex);
-        const auto filteredColumn = [&] () -> std::shared_ptr<arrow::Column>
+        const auto filteredColumn = visitType(*column->type(), [&] (auto id) -> std::shared_ptr<arrow::Column>
         {
-            const auto t = column->type();
-            switch(t->id())
-            {
-            case arrow::Type::INT64 : return FilteredArrayBuilder<arrow::Type::INT64 >::makeFiltered(maskData, newRowCount, *column);
-            case arrow::Type::DOUBLE: return FilteredArrayBuilder<arrow::Type::DOUBLE>::makeFiltered(maskData, newRowCount, *column);
-            case arrow::Type::STRING: return FilteredArrayBuilder<arrow::Type::STRING>::makeFiltered(maskData, newRowCount, *column);
-            default                 : throw  std::runtime_error(__FUNCTION__ + std::string(": not supported array type ") + t->ToString());
-            }
-        }();
+            return FilteredArrayBuilder<id.value>::makeFiltered(maskData, newRowCount, *column);
+        });
         newColumns.push_back(filteredColumn);
     }
 
@@ -436,7 +429,12 @@ std::shared_ptr<arrow::Array> each(std::shared_ptr<arrow::Table> table, const ch
     return execute(*table, v, mapping);
 }
 
-struct ToString
+// specialize!
+template<arrow::Type::type>
+struct ConvertTo {};
+
+template<>
+struct ConvertTo<arrow::Type::STRING>
 {
     std::string operator() (int64_t value)          const { return std::to_string(value); }
     std::string operator() (double value)           const { return std::to_string(value); }
@@ -445,32 +443,30 @@ struct ToString
     template<typename T>
     std::string operator() (T)                      const { throw std::runtime_error(__FUNCTION__ + ": invalid conversion"s); }
 };
-struct ToInt64
+template<>
+struct ConvertTo<arrow::Type::INT64>
 {
     int64_t operator() (int64_t value)            const { return value; }
-    int64_t operator() (double value)             const { return value; }
+    int64_t operator() (double value)             const { return (int64_t)value; }
     int64_t operator() (const std::string &value) const { return std::stoll(value); }
     int64_t operator() (std::string_view value)   const { return std::stoll(std::string(value)); }
     template<typename T>
     int64_t operator() (T)                        const { throw std::runtime_error(__FUNCTION__ + ": invalid conversion"s); }
 };
-struct ToDouble
+template<>
+struct ConvertTo<arrow::Type::DOUBLE>
 {
-    double operator() (int64_t value)            const { return value; }
+    double operator() (int64_t value)            const { return (int64_t)value; }
     double operator() (double value)             const { return value; }
     double operator() (const std::string &value) const { return std::stod(value); }
     double operator() (std::string_view value)   const { return std::stod(std::string(value)); }
     template<typename T>
     double operator() (T)                        const { throw std::runtime_error(__FUNCTION__ + ": invalid conversion"s); }
 };
-
 DynamicField adjustTypeForFilling(DynamicField valueGivenByUser, const arrow::DataType &type)
 {
-    switch(type.id())
+    return visitType(type, [&] (auto id) -> DynamicField
     {
-    case arrow::Type::STRING: return std::visit(ToString{}, valueGivenByUser);
-    case arrow::Type::INT64: return std::visit(ToInt64{}, valueGivenByUser);
-    case arrow::Type::DOUBLE: return std::visit(ToDouble{}, valueGivenByUser);
-    default: throw std::runtime_error("Not supported column type to fill: "s + type.ToString());
-    }
+        return std::visit(ConvertTo<id.value>{}, valueGivenByUser);
+    });
 }
