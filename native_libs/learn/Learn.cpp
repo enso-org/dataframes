@@ -104,34 +104,34 @@ arrow::Column* npArrayToColumn(PyObject* arO) {
 }
 
 extern "C" {
-  void toNpArr(arrow::Table *tb) {
+  EXPORT void toNpArr(arrow::Table *tb) {
     tableToNpMatrix(*tb);
   }
 
-  void freePyObj(PyObject* o) {
+  EXPORT void freePyObj(PyObject* o) {
     Py_DECREF(o);
   }
 
-  PyObject* newLogisticRegression(double C) {
+  EXPORT PyObject* newLogisticRegression(double C) {
     skl::interpreter::get();
     return skl::newLogisticRegression(C);
   }
 
-  void fit(PyObject* model, arrow::Table *xs, arrow::Column *y) {
+  EXPORT void fit(PyObject* model, arrow::Table *xs, arrow::Column *y) {
     skl::interpreter::get();
     PyObject* xsO = tableToNpMatrix(*xs);
     PyObject* yO  = columnToNpArr(*y);
     skl::fit(model, xsO, yO);
   }
 
-  double score(PyObject* model, arrow::Table *xs, arrow::Column *y) {
+  EXPORT double score(PyObject* model, arrow::Table *xs, arrow::Column *y) {
     skl::interpreter::get();
     PyObject* xsO = tableToNpMatrix(*xs);
     PyObject* yO  = columnToNpArr(*y);
     return skl::score(model, xsO, yO);
   }
 
-  arrow::Column* predict(PyObject* model, arrow::Table *xs) {
+  EXPORT arrow::Column* predict(PyObject* model, arrow::Table *xs) {
     skl::interpreter::get();
     PyObject* xsO = tableToNpMatrix(*xs);
     PyObject* yO  = skl::predict(model, xsO);
@@ -139,7 +139,7 @@ extern "C" {
     return npArrayToColumn(yO);
   }
 
-  arrow::Table* confusionMatrix(arrow::Column* ytrue, arrow::Column* ypred) {
+  EXPORT arrow::Table* confusionMatrix(arrow::Column* ytrue, arrow::Column* ypred) {
     auto c1 = columnToNpArr(*ytrue);
     auto c2 = columnToNpArr(*ypred);
     auto t1 = skl::confusion_matrix(c1, c2);
@@ -149,42 +149,48 @@ extern "C" {
     return NULL;
   }
 
-  arrow::Table* oneHotEncode(arrow::Column* col) {
-    std::unordered_map<std::string_view, int> valIndexes;
-    int lastIndex = 0;
-    iterateOver<arrow::Type::STRING>(*col,
-      [&] (auto &&elem) {
-        if (valIndexes.find(elem) == valIndexes.end()) valIndexes[elem] = lastIndex++;
-      },
-      [] () {});
-    std::vector<arrow::DoubleBuilder> builders(valIndexes.size());
-    iterateOver<arrow::Type::STRING>(*col,
-      [&] (auto &&elem) {
-        int ind = valIndexes[elem];
-        for (int i = 0; i < builders.size(); i++) {
-          builders[i].Append(i == ind ? 1 : 0);
-        }
-      },
-      [&] () {
-        for (int i = 0; i < builders.size(); i++) {
-          builders[i].Append(0);
-        }
-      });
-    std::vector<PossiblyChunkedArray> arrs;
-    for (auto& bldr : builders) {
-      arrs.push_back(finish(bldr));
-    }
-    std::vector<std::string> names(valIndexes.size());
-    for (auto& item : valIndexes) {
-      names[item.second] = col->name() + ": " + std::string(item.first);
-    }
-    auto t = tableFromArrays(arrs, names);
-    return LifetimeManager::instance().addOwnership(std::move(t));
+  EXPORT arrow::Table* oneHotEncode(arrow::Column* col) {
+    return [&] // NOTE: [MU] top-level faux-lambda is needed because extern-C function can't contain polymorphic lambdas (but for some reason they can contain lambdas containing polymorphic lambdas...)
+    {
+      std::unordered_map<std::string_view, int> valIndexes;
+      int lastIndex = 0;
+      iterateOver<arrow::Type::STRING>(*col,
+        [&] (auto &&elem) {
+          if (valIndexes.find(elem) == valIndexes.end()) valIndexes[elem] = lastIndex++;
+        },
+        [] () {});
+      std::vector<arrow::DoubleBuilder> builders(valIndexes.size());
+      iterateOver<arrow::Type::STRING>(*col,
+        [&] (auto &&elem) {
+          int ind = valIndexes[elem];
+          for (int i = 0; i < builders.size(); i++) {
+            builders[i].Append(i == ind ? 1 : 0);
+          }
+        },
+        [&] () {
+          for (int i = 0; i < builders.size(); i++) {
+            builders[i].Append(0);
+          }
+        });
+      std::vector<PossiblyChunkedArray> arrs;
+      for (auto& bldr : builders) {
+        arrs.push_back(finish(bldr));
+      }
+      std::vector<std::string> names(valIndexes.size());
+      for (auto& item : valIndexes) {
+        names[item.second] = col->name() + ": " + std::string(item.first);
+      }
+      auto t = tableFromArrays(arrs, names);
+      return LifetimeManager::instance().addOwnership(std::move(t));
+    }();
   }
 
-  void toRealBuf(arrow::Column* col, double* buf) {
-    iterateOver<arrow::Type::DOUBLE>(*col,
-      [&] (auto &&elem) { *(buf++) = elem; },
-      [&] () { *(buf++) = 0; });
+  EXPORT void toRealBuf(arrow::Column* col, double* buf) {
+    [&]
+    {
+      iterateOver<arrow::Type::DOUBLE>(*col,
+        [&] (auto &&elem) { *(buf++) = elem; },
+        [&] () { *(buf++) = 0; });
+    }();
   }
 }

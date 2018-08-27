@@ -74,10 +74,11 @@ file(GLOB_RECURSE SRC_FILES ${PROJECT_SOURCE_DIR}/*.cpp)
 # Define the compilation target
 add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SRC_FILES})
 target_compile_definitions(${PROJECT_NAME} PRIVATE BUILDING_DATAFRAME_HELPER)
+target_compile_definitions(${PROJECT_NAME} PUBLIC _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS) # rapidjson is so deprecated)
 
 # Includes path: project root, arrow, third-party any-lite
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR} ${ARROW_INCLUDE} ${PROJECT_SOURCE_DIR}/../third-party/any-lite ${PROJECT_SOURCE_DIR}/../third-party/optional-lite ${PROJECT_SOURCE_DIR}/../third-party/variant ${RAPIDJSON_INCLUDE})
-target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS}})
+target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
 
 if(XLNT_LIBRARY AND XLNT_INCLUDE)
     target_include_directories(${PROJECT_NAME} PRIVATE ${XLNT_INCLUDE})
@@ -129,4 +130,3 @@ find_package(NumPy)
 target_include_directories(Learn PRIVATE ${PYTHON_INCLUDE_DIRS} ${PYTHON_NUMPY_INCLUDE_DIR})
 
 target_link_libraries(Learn ${PROJECT_NAME} ${PYTHON_LIBRARIES})
-target_compile_definitions(Learn PRIVATE)

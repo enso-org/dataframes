@@ -1,9 +1,10 @@
-#include <matplotlibcpp.h>
-#include <Python.h>
 #include <cmath>
 #include <arrow/array.h>
 #include <Core/ArrowUtilities.h>
 #include "B64.h"
+
+#include <Python.h>
+#include <matplotlibcpp.h>
 
 using namespace std;
 namespace plt = matplotlibcpp;
@@ -57,7 +58,7 @@ PyObject* tableToPyObj(const arrow::Table &table) {
 
 extern "C"
 {
-    void plot(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* style) {
+    EXPORT void plot(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* style) {
         std::string st(style);
         auto xsarray = chunkedArrayToPyObj(*xs);
         std::cout << "XS " << xsarray << std::endl;
@@ -72,7 +73,7 @@ extern "C"
         }
     }
 
-    void kdeplot2(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* colormap) {
+    EXPORT void kdeplot2(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* colormap) {
         auto xsarray = chunkedArrayToPyObj(*xs);
         std::cout << "XS " << xsarray << std::endl;
         auto ysarray = chunkedArrayToPyObj(*ys);
@@ -86,7 +87,7 @@ extern "C"
         }
     }
 
-    void kdeplot(arrow::ChunkedArray *xs, char* label) {
+    EXPORT void kdeplot(arrow::ChunkedArray *xs, char* label) {
         auto xsarray = chunkedArrayToPyObj(*xs);
         try {
           std::cout << "KDE BEG" << std::endl;
@@ -97,7 +98,7 @@ extern "C"
         }
     }
 
-    void heatmap(arrow::Table* xs, char* cmap, char* annot) {
+    EXPORT void heatmap(arrow::Table* xs, char* cmap, char* annot) {
         auto xsarray = tableToPyObj(*xs);
         try {
             std::cout << "HEATMAP BEG" << std::endl;
@@ -108,7 +109,7 @@ extern "C"
         }
     }
 
-    void histogram(arrow::ChunkedArray *xs, size_t bins) {
+    EXPORT void histogram(arrow::ChunkedArray *xs, size_t bins) {
         auto xsarray = chunkedArrayToPyObj(*xs);
         try {
           std::cout << "HIST BEG" << std::endl;
@@ -119,7 +120,7 @@ extern "C"
         }
     }
 
-    void show() {
+    EXPORT void show() {
         try {
           std::cout << "SHOW BEG" << std::endl;
           plt::show();
@@ -129,7 +130,7 @@ extern "C"
         }
     }
 
-    void init(size_t w, size_t h) {
+    EXPORT void init(size_t w, size_t h) {
         try {
           std::cout << "INIT BEG" << std::endl;
           plt::backend("Agg");
@@ -144,11 +145,11 @@ extern "C"
         }
     }
 
-    void subplot(long nrows, long ncols, long plot_number) {
+    EXPORT void subplot(long nrows, long ncols, long plot_number) {
         plt::subplot(nrows, ncols, plot_number);
     }
 
-    char* getPNG() {
+    EXPORT char* getPNG() {
         char* b;
         char* out = NULL;
         size_t l;

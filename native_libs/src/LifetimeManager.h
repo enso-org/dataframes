@@ -13,6 +13,9 @@
 #include <sstream>
 #include <vector>
 #include <unordered_map>
+
+#include "Core/Common.h"
+
 // TODO? could get rid of most headers by using pimpl
 
 // Class is meant as a helper for managing std::shared_ptr lifetimes when they are shared
@@ -24,7 +27,7 @@
 //
 // Technically there's nothing shared_ptr specific in storage (it uses type-erased any),
 // if needed it can be adjusted to work with other kinds of types with similar semantics.
-class LifetimeManager
+class DFH_EXPORT LifetimeManager
 {
     mutable std::mutex mx;
     std::unordered_multimap<const void *, nonstd::any> storage; // address => shared_ptr<T>
