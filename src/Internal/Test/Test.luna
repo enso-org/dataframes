@@ -529,7 +529,27 @@ class TestArrayBuilder:
         diff = expected1 - corrCol.toList.getAt 1
         assertLE "corrWith result[1]" (if diff < 0.0 then -diff else diff) 0.001
 
+    def testIf:
+        print "Testing conditionals in LQuery"
+        ints = Column.fromList "a" Int64Type  [1, -2, 3, -4, 5]
+        table = Table.fromColumns [ints]
+        result = table.each "positive" v: 
+            (v.at "a" > 0).switch (v.at "a") (v.at "a" . negate)
+        assertEqual "abs-on-if result" result.toList [1, 2, 3, 4, 5]
+
+    def testFeather:
+        print "Testing feather forma IO: round-trip"
+        ints = Column.fromList "a" MaybeInt64Type  [Just 1, Just -2, Just 3, Nothing, Just 5]
+        table = Table.fromColumns [ints]
+        FeatherGenerator.writeFile "data/temp.feather" table
+        table2 = FeatherParser.readFile "data/temp.feather"
+        assertEqual "read names" table2.columnNames ["a"]
+        assertEqual "read column" (table2.columnAt 0).toList [Just 1, Just -2, Just 3, Nothing, Just 5]
+
+
     def run:
+        self.testFeather
+        self.testIf
         self.testStats
         self.testCountValues
         self.testFilling

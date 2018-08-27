@@ -254,6 +254,22 @@ BOOST_FIXTURE_TEST_CASE(MappingSimpleCase, FilteringFixture)
 			})";
 		testMap<double>(jsonQuery, { 1, -2, -3, 4, -5 });
 	}
+ 	{
+ 		// (a > 0) ? a : -a
+ 		const auto jsonQuery = R"(
+ 			{
+ 				"condition": {
+ 					"predicate": "gt",
+ 					"arguments": [{"column": "a"}, 0] },
+ 				"onTrue":  {
+ 					"column": "a"},
+ 				"onFalse": {
+ 					"operation": "negate",
+ 					"arguments": [{"column": "a"}]}
+ 			})";
+ 
+		testMap<double>(jsonQuery, {1, 2, 3, 4, 5});
+ 	}
 }
 
 BOOST_FIXTURE_TEST_CASE(FilterSimpleCase, FilteringFixture)

@@ -14,10 +14,24 @@
 #define FORCE_INLINE __attribute__((always_inline))
 #endif 
 
+// NO_INLINE macro is meant to prevent compiler from inlining function.
+// primary intended use-case is for dbeugging / profiling purposes.
+#ifdef _MSC_VER
+#define NO_INLINE __declspec(noinline)
+#else
+#define NO_INLINE __attribute__((noinline))
+#endif 
+
 #ifdef _MSC_VER
 #define EXPORT _declspec(dllexport)
 #else
 #define EXPORT
+#endif
+
+#ifdef BUILDING_DATAFRAME_HELPER
+#define DFH_EXPORT EXPORT
+#else
+#define DFH_EXPORT
 #endif
 
 constexpr size_t operator"" _z (unsigned long long n)
@@ -45,32 +59,47 @@ namespace std
 }
 #endif
 
+// returns pair [f(args...), elapsed time]
 template<typename F, typename ...Args>
 static auto duration(F&& func, Args&&... args)
 {
     const auto start = std::chrono::steady_clock::now();
-    std::invoke(std::forward<F>(func), std::forward<Args>(args)...);
-    return std::chrono::steady_clock::now() - start;
+    if constexpr(std::is_same_v<void, std::invoke_result_t<F, Args...>>)
+    {
+        std::invoke(std::forward<F>(func), std::forward<Args>(args)...);
+        return std::make_pair(nullptr, std::chrono::steady_clock::now() - start);
+    }
+    else
+    {
+        auto ret = std::invoke(std::forward<F>(func), std::forward<Args>(args)...);
+        return std::make_pair(std::move(ret), std::chrono::steady_clock::now() - start);
+    }
 }
 
 template<typename F, typename ...Args>
 static auto measure(std::string text, F&& func, Args&&... args)
 {
-    const auto t = duration(std::forward<F>(func), std::forward<Args>(args)...);
-    std::cout << text << " took " << std::chrono::duration_cast<std::chrono::milliseconds>(t).count() << " ms" << std::endl;
-    return t;
+    const auto results = duration(std::forward<F>(func), std::forward<Args>(args)...);
+    const auto t = std::chrono::duration_cast<std::chrono::microseconds>(results.second).count();
+    std::cout << text << " took " << t / 1000.0 << " ms" << std::endl;
+    return results;
 }
 
 template<typename F, typename ...Args>
 static auto measure(std::string text, int N, F&& func, Args&&... args)
 {
-    std::chrono::microseconds bestTime = std::chrono::hours{150};
+    auto result = duration(func, args...);
+
     for(int i = 0; i < N; i++)
     {
-        auto t = std::chrono::duration_cast<std::chrono::microseconds>(duration(std::forward<F>(func), std::forward<Args>(args)...));
-        bestTime = std::min(bestTime, t);
-        std::cout << text << " took " << t.count() / 1000.0 << " ms, best: " << bestTime.count() / 1000. << " ms" << std::endl;
+        const auto result2 = duration(func, args...);
+        result.second = std::min(result.second, result2.second);
+        const auto t = std::chrono::duration_cast<std::chrono::microseconds>(result.second);
+        const auto tBest = std::chrono::duration_cast<std::chrono::microseconds>(result2.second);
+        std::cout << text << " took " << t.count() / 1000.0 << " ms, best: " << tBest.count() / 1000. << " ms" << std::endl;
     }
+
+    return result;
 }
 
 template<typename Range, typename F>

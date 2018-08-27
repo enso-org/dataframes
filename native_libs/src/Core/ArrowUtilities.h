@@ -246,8 +246,9 @@ void toVector(std::vector<T> &out, const arrow::Array &array)
         array, 
         [&] (auto &&elem)
         {
-            if constexpr(std::is_convertible_v<decltype(elem), T>)
-                out.push_back(std::forward<decltype(elem)>(elem));
+            using ElemT = decltype(elem);
+            if constexpr(std::is_constructible_v<T, ElemT>)
+                out.push_back(T(std::forward<decltype(elem)>(elem)));
             else
                 throw std::runtime_error(std::string("Type mismatch: expected ") + typeid(T).name() + " got " + typeid(elem).name());
         },
@@ -347,10 +348,10 @@ std::tuple<std::vector<Ts>...> toVectors(const arrow::Table &table)
     return detail::toVectorsHlp<Ts...>(table, std::index_sequence_for<Ts...>{});
 }
 
-EXPORT std::vector<std::shared_ptr<arrow::Column>> getColumns(const arrow::Table &table);
-EXPORT std::unordered_map<std::string, std::shared_ptr<arrow::Column>> getColumnMap(const arrow::Table &table);
+DFH_EXPORT std::vector<std::shared_ptr<arrow::Column>> getColumns(const arrow::Table &table);
+DFH_EXPORT std::unordered_map<std::string, std::shared_ptr<arrow::Column>> getColumnMap(const arrow::Table &table);
 
-struct EXPORT BitmaskGenerator
+struct DFH_EXPORT BitmaskGenerator
 {
     uint8_t *data;
     std::shared_ptr<arrow::Buffer> buffer;
@@ -368,26 +369,26 @@ std::shared_ptr<arrow::Schema> setNullable(bool nullable, std::shared_ptr<arrow:
 
 using PossiblyChunkedArray = std::variant<std::shared_ptr<arrow::Array>, std::shared_ptr<arrow::ChunkedArray>>;
 
-EXPORT std::shared_ptr<arrow::Table> tableFromArrays(std::vector<PossiblyChunkedArray> arrays, std::vector<std::string> names = {}, std::vector<bool> nullables = {});
-EXPORT std::shared_ptr<arrow::Table> tableFromColumns(const std::vector<std::shared_ptr<arrow::Column>> &columns);
+DFH_EXPORT std::shared_ptr<arrow::Table> tableFromArrays(std::vector<PossiblyChunkedArray> arrays, std::vector<std::string> names = {}, std::vector<bool> nullables = {});
+DFH_EXPORT std::shared_ptr<arrow::Table> tableFromColumns(const std::vector<std::shared_ptr<arrow::Column>> &columns);
 
 using DynamicField = std::variant<int64_t, double, std::string_view, std::string, std::nullopt_t>;
 
 using DynamicJustVector = std::variant<std::vector<int64_t>, std::vector<double>, std::vector<std::string_view>>;
-EXPORT DynamicJustVector toJustVector(const arrow::ChunkedArray &chunkedArray);
-EXPORT DynamicJustVector toJustVector(const arrow::Column &column);
+DFH_EXPORT DynamicJustVector toJustVector(const arrow::ChunkedArray &chunkedArray);
+DFH_EXPORT DynamicJustVector toJustVector(const arrow::Column &column);
 
-EXPORT DynamicField arrayAt(const arrow::Array &array, int64_t index);
-EXPORT DynamicField arrayAt(const arrow::ChunkedArray &array, int64_t index);
-EXPORT DynamicField arrayAt(const arrow::Column &column, int64_t index);
+DFH_EXPORT DynamicField arrayAt(const arrow::Array &array, int64_t index);
+DFH_EXPORT DynamicField arrayAt(const arrow::ChunkedArray &array, int64_t index);
+DFH_EXPORT DynamicField arrayAt(const arrow::Column &column, int64_t index);
 
-EXPORT std::pair<std::shared_ptr<arrow::Array>, int64_t> locateChunk(const arrow::ChunkedArray &chunkedArray, int64_t index);
+DFH_EXPORT std::pair<std::shared_ptr<arrow::Array>, int64_t> locateChunk(const arrow::ChunkedArray &chunkedArray, int64_t index);
 
-EXPORT std::vector<DynamicField> rowAt(const arrow::Table &table, int64_t index);
+DFH_EXPORT std::vector<DynamicField> rowAt(const arrow::Table &table, int64_t index);
 
-EXPORT void validateIndex(const arrow::Array &array, int64_t index);
-EXPORT void validateIndex(const arrow::ChunkedArray &array, int64_t index);
-EXPORT void validateIndex(const arrow::Column &column, int64_t index);
+DFH_EXPORT void validateIndex(const arrow::Array &array, int64_t index);
+DFH_EXPORT void validateIndex(const arrow::ChunkedArray &array, int64_t index);
+DFH_EXPORT void validateIndex(const arrow::Column &column, int64_t index);
 
 
 template<typename F>

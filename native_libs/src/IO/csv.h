@@ -18,7 +18,7 @@ namespace arrow
 }
 
 
-EXPORT arrow::Type::type deduceType(std::string_view text);
+DFH_EXPORT arrow::Type::type deduceType(std::string_view text);
 
 struct ParsedCsv
 {
@@ -37,7 +37,7 @@ struct ParsedCsv
     ParsedCsv(ParsedCsv &&) = default;
 };
 
-struct EXPORT CsvParser
+struct DFH_EXPORT CsvParser
 {
     char *bufferStart{};
     char *bufferIterator{};
@@ -65,8 +65,8 @@ struct EXPORT CsvParser
     std::vector<std::vector<std::string_view>> parseCsvTable();
 };
 
-EXPORT ParsedCsv parseCsvFile(const char *filepath, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');
-EXPORT ParsedCsv parseCsvData(std::string data, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');
-EXPORT std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy header, std::vector<ColumnType> columnTypes, int typeDeductionDepth = 50);
+DFH_EXPORT ParsedCsv parseCsvFile(const char *filepath, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');
+DFH_EXPORT ParsedCsv parseCsvData(std::string data, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');
+DFH_EXPORT std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy header, std::vector<ColumnType> columnTypes, int typeDeductionDepth = 50);
 
-EXPORT void generateCsv(std::ostream &out, const arrow::Table &table, GeneratorHeaderPolicy headerPolicy, GeneratorQuotingPolicy quotingPolicy, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');
+DFH_EXPORT void generateCsv(std::ostream &out, const arrow::Table &table, GeneratorHeaderPolicy headerPolicy, GeneratorQuotingPolicy quotingPolicy, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');
