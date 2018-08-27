@@ -73,6 +73,7 @@ file(GLOB_RECURSE SRC_FILES ${PROJECT_SOURCE_DIR}/*.cpp)
 
 # Define the compilation target
 add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SRC_FILES})
+target_compile_definitions(${PROJECT_NAME} PRIVATE BUILDING_DATAFRAME_HELPER)
 
 # Includes path: project root, arrow, third-party any-lite
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR} ${ARROW_INCLUDE} ${PROJECT_SOURCE_DIR}/../third-party/any-lite ${PROJECT_SOURCE_DIR}/../third-party/optional-lite ${PROJECT_SOURCE_DIR}/../third-party/variant ${RAPIDJSON_INCLUDE})

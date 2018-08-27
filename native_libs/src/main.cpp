@@ -155,7 +155,7 @@ namespace
 
 extern "C"
 {
-    EXPORT void setVerbosity(bool verbose)
+    DFH_EXPORT void setVerbosity(bool verbose)
     {
         Logger::instance().enabled.store(verbose);
     }
@@ -165,7 +165,7 @@ extern "C"
 extern "C"
 {
     // NOTE: needs release
-    EXPORT arrow::DataType *dataTypeNew(int8_t id, const char **outError)
+    DFH_EXPORT arrow::DataType *dataTypeNew(int8_t id, const char **outError)
     {
         LOG("{}", (int)id);
         return TRANSLATE_EXCEPTION(outError)
@@ -174,28 +174,28 @@ extern "C"
             return LifetimeManager::instance().addOwnership(std::move(ret));
         };
     }
-    EXPORT const char *dataTypeName(arrow::DataType *datatype, const char **outError) noexcept
+    DFH_EXPORT const char *dataTypeName(arrow::DataType *datatype, const char **outError) noexcept
     {
         return TRANSLATE_EXCEPTION(outError)
         {
             return returnString(datatype->name());
         };
     }
-    EXPORT const char *dataTypeToString(arrow::DataType *datatype, const char **outError) noexcept
+    DFH_EXPORT const char *dataTypeToString(arrow::DataType *datatype, const char **outError) noexcept
     {
         return TRANSLATE_EXCEPTION(outError)
         {
             return returnString(datatype->ToString());
         };
     }
-    EXPORT std::int8_t dataTypeId(arrow::DataType *datatype, const char **outError) noexcept
+    DFH_EXPORT std::int8_t dataTypeId(arrow::DataType *datatype, const char **outError) noexcept
     {
         return TRANSLATE_EXCEPTION(outError)
         {
             return datatype->id();
         };
     }
-    EXPORT std::int32_t dataTypeFixedWidthTypeBitWidth(const arrow::DataType *datatype, const char **outError) noexcept
+    DFH_EXPORT std::int32_t dataTypeFixedWidthTypeBitWidth(const arrow::DataType *datatype, const char **outError) noexcept
     {
         return TRANSLATE_EXCEPTION(outError)
         {
@@ -208,7 +208,7 @@ extern "C"
 extern "C"
 {
 #define COMMON_BUILDER(TYPENAME) \
-    EXPORT TypeDescriptionForTag<TYPENAME>::BuilderType *builder##TYPENAME##New(const char **outError) noexcept                                                               \
+    DFH_EXPORT TypeDescriptionForTag<TYPENAME>::BuilderType *builder##TYPENAME##New(const char **outError) noexcept                                                               \
     {                                                                                                                                                       \
         LOG(""); \
         /* NOTE: needs release */                                                                                                                           \
@@ -217,7 +217,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(std::make_shared<TypeDescriptionForTag<TYPENAME>::BuilderType>());                                       \
         };                                                                                                                                                   \
     }                                                                                                                                                       \
-    EXPORT void builder##TYPENAME##Reserve(TypeDescriptionForTag<TYPENAME>::BuilderType *builder, int64_t count, const char **outError) noexcept                           \
+    DFH_EXPORT void builder##TYPENAME##Reserve(TypeDescriptionForTag<TYPENAME>::BuilderType *builder, int64_t count, const char **outError) noexcept                           \
     {                                                                                                                                                       \
         LOG("@{}: {}", (void*)builder, count); \
         TRANSLATE_EXCEPTION(outError)                                                                                                                       \
@@ -225,7 +225,7 @@ extern "C"
             checkStatus(builder->Reserve(count));                                                                                                           \
         };                                                                                                                                                   \
     }                                                                                                                                                       \
-    EXPORT void builder##TYPENAME##Resize(TypeDescriptionForTag<TYPENAME>::BuilderType *builder, int64_t count, const char **outError) noexcept                               \
+    DFH_EXPORT void builder##TYPENAME##Resize(TypeDescriptionForTag<TYPENAME>::BuilderType *builder, int64_t count, const char **outError) noexcept                               \
     {                                                                                                                                                       \
         LOG("@{}: {}", (void*)builder, count); \
         return TRANSLATE_EXCEPTION(outError)                                                                                                               \
@@ -233,7 +233,7 @@ extern "C"
             checkStatus(builder->Resize(count));                                                                                                           \
         };                                                                                                                                                   \
     }                                                                                                                                                       \
-    EXPORT void builder##TYPENAME##AppendValue(TypeDescriptionForTag<TYPENAME>::BuilderType *builder, TypeDescriptionForTag<TYPENAME>::CType value, const char **outError) noexcept \
+    DFH_EXPORT void builder##TYPENAME##AppendValue(TypeDescriptionForTag<TYPENAME>::BuilderType *builder, TypeDescriptionForTag<TYPENAME>::CType value, const char **outError) noexcept \
     {                                                                                                                                                       \
         LOG("@{}: {} :: {}", (void*)builder, value, #TYPENAME); \
         return TRANSLATE_EXCEPTION(outError)                                                                                                               \
@@ -241,7 +241,7 @@ extern "C"
             checkStatus(builder->Append(value));                                                                                                           \
         };                                                                                                                                                   \
     }                                                                                                                                                       \
-    EXPORT void builder##TYPENAME##AppendNull(TypeDescriptionForTag<TYPENAME>::BuilderType *builder, const char **outError) noexcept                                       \
+    DFH_EXPORT void builder##TYPENAME##AppendNull(TypeDescriptionForTag<TYPENAME>::BuilderType *builder, const char **outError) noexcept                                       \
     {                                                                                                                                                       \
         LOG("@{}", (void*)builder); \
         return TRANSLATE_EXCEPTION(outError)                                                                                                               \
@@ -249,7 +249,7 @@ extern "C"
             checkStatus(builder->AppendNull());                                                                                                               \
         };                                                                                                                                                   \
     }                                                                                                                                                       \
-    EXPORT arrow::Array *builder##TYPENAME##Finish(TypeDescriptionForTag<TYPENAME>::BuilderType *builder, const char **outError) noexcept                                   \
+    DFH_EXPORT arrow::Array *builder##TYPENAME##Finish(TypeDescriptionForTag<TYPENAME>::BuilderType *builder, const char **outError) noexcept                                   \
     {                                                                                                                                                       \
         LOG("@{}", (void*)builder); \
         return TRANSLATE_EXCEPTION(outError)                                                                                                               \
@@ -275,7 +275,7 @@ extern "C"
 
     // TODO current string append needlessly allocates std::string for BinaryBuilder::Append argument
 
-    EXPORT int64_t builderLength(arrow::ArrayBuilder *builder) noexcept
+    DFH_EXPORT int64_t builderLength(arrow::ArrayBuilder *builder) noexcept
     {
         LOG("@{}", (void*)builder);
         return TRANSLATE_EXCEPTION(nullptr)
@@ -283,7 +283,7 @@ extern "C"
             return builder->length();
         };
     }
-    EXPORT int64_t builderCapacity(arrow::ArrayBuilder *builder) noexcept
+    DFH_EXPORT int64_t builderCapacity(arrow::ArrayBuilder *builder) noexcept
     {
         LOG("@{}", (void*)builder);
         return TRANSLATE_EXCEPTION(nullptr)
@@ -291,7 +291,7 @@ extern "C"
             return builder->capacity();
         };
     }
-    EXPORT int64_t builderNullCount(arrow::ArrayBuilder *builder) noexcept
+    DFH_EXPORT int64_t builderNullCount(arrow::ArrayBuilder *builder) noexcept
     {
         LOG("@{}", (void*)builder);
         return TRANSLATE_EXCEPTION(nullptr)
@@ -299,7 +299,7 @@ extern "C"
             return builder->null_count();
         };
     }
-//     EXPORT arrow::ResizableBuffer *builderObtainNullBuffer(arrow::ArrayBuilder *builder, const char **outError) noexcept
+//     DFH_EXPORT arrow::ResizableBuffer *builderObtainNullBuffer(arrow::ArrayBuilder *builder, const char **outError) noexcept
 //     {
 //         LOG("@{}", (void*)builder);
 //         return TRANSLATE_EXCEPTION(outError)
@@ -308,7 +308,7 @@ extern "C"
 //         };
 //     }
     // needs release
-    EXPORT arrow::DataType *builderObtainType(arrow::ArrayBuilder *builder, const char **outError) noexcept
+    DFH_EXPORT arrow::DataType *builderObtainType(arrow::ArrayBuilder *builder, const char **outError) noexcept
     {
         LOG("@{}", (void*)builder);
         return TRANSLATE_EXCEPTION(outError)
@@ -321,7 +321,7 @@ extern "C"
 // BUFFER
 extern "C"
 {
-    EXPORT int64_t bufferSize(arrow::Buffer *buffer, const char **outError) noexcept
+    DFH_EXPORT int64_t bufferSize(arrow::Buffer *buffer, const char **outError) noexcept
     {
         return TRANSLATE_EXCEPTION(outError)
         {
@@ -329,7 +329,7 @@ extern "C"
         };
     }
 
-    EXPORT const void *bufferData(arrow::Buffer *buffer, const char **outError) noexcept
+    DFH_EXPORT const void *bufferData(arrow::Buffer *buffer, const char **outError) noexcept
     {
         return TRANSLATE_EXCEPTION(outError)
         {
@@ -339,7 +339,7 @@ extern "C"
 
     // NOTE: needs release 
     // (shallow view)
-    EXPORT arrow::Buffer *bufferSlice(arrow::Buffer *buffer, int64_t start, int64_t byteCount, const char **outError) noexcept
+    DFH_EXPORT arrow::Buffer *bufferSlice(arrow::Buffer *buffer, int64_t start, int64_t byteCount, const char **outError) noexcept
     {
         LOG("@{} beginning from {} will copy {} bytes", (void*)buffer, start, byteCount);
         return TRANSLATE_EXCEPTION(outError)
@@ -353,7 +353,7 @@ extern "C"
 
     // NOTE: needs release 
     // (deep copy)
-    EXPORT arrow::Buffer *bufferCopy(arrow::Buffer *buffer, int64_t start, int64_t byteCount, const char **outError) noexcept
+    DFH_EXPORT arrow::Buffer *bufferCopy(arrow::Buffer *buffer, int64_t start, int64_t byteCount, const char **outError) noexcept
     {
         LOG("@{} beginning from {} will copy {} bytes", (void*)buffer, start, byteCount);
         return TRANSLATE_EXCEPTION(outError)
@@ -365,7 +365,7 @@ extern "C"
         };
     }
 
-    EXPORT int64_t bufferCapacity(arrow::Buffer *buffer, const char **outError) noexcept
+    DFH_EXPORT int64_t bufferCapacity(arrow::Buffer *buffer, const char **outError) noexcept
     {
         LOG("@{}", (void*)buffer);
         return TRANSLATE_EXCEPTION(outError)
@@ -378,7 +378,7 @@ extern "C"
 // ARRAY DATA
 extern "C"
 {
-    EXPORT int64_t arrayDataLength(arrow::ArrayData *arrayData) noexcept
+    DFH_EXPORT int64_t arrayDataLength(arrow::ArrayData *arrayData) noexcept
     {
         LOG("@{}", (void*)arrayData);
         return TRANSLATE_EXCEPTION(nullptr)
@@ -386,7 +386,7 @@ extern "C"
             return arrayData->length;
         };
     }
-    EXPORT int64_t arrayDataNullCount(arrow::ArrayData *arrayData) noexcept
+    DFH_EXPORT int64_t arrayDataNullCount(arrow::ArrayData *arrayData) noexcept
     {
         LOG("@{}", (void*)arrayData);
         return TRANSLATE_EXCEPTION(nullptr)
@@ -394,7 +394,7 @@ extern "C"
             return arrayData->null_count;
         };
     }
-    EXPORT int64_t arrayDataOffset(arrow::ArrayData *arrayData) noexcept
+    DFH_EXPORT int64_t arrayDataOffset(arrow::ArrayData *arrayData) noexcept
     {
         LOG("@{}", (void*)arrayData);
         return TRANSLATE_EXCEPTION(nullptr)
@@ -404,7 +404,7 @@ extern "C"
     }
 
     // NOTE: needs release
-    EXPORT arrow::DataType *arrayDataType(arrow::ArrayData *arrayData, const char **outError) noexcept
+    DFH_EXPORT arrow::DataType *arrayDataType(arrow::ArrayData *arrayData, const char **outError) noexcept
     {
         LOG("@{}", (void*)arrayData);
         return TRANSLATE_EXCEPTION(nullptr)
@@ -413,7 +413,7 @@ extern "C"
         };
     }
 
-    EXPORT int64_t arrayDataBufferCount(arrow::ArrayData *arrayData) noexcept
+    DFH_EXPORT int64_t arrayDataBufferCount(arrow::ArrayData *arrayData) noexcept
     {
         LOG("@{}", (void*)arrayData);
         return TRANSLATE_EXCEPTION(nullptr)
@@ -423,7 +423,7 @@ extern "C"
     }
 
     // NOTE: needs release
-    EXPORT arrow::Buffer *arrayDataBufferAt(arrow::ArrayData *arrayData, size_t bufferIndex, const char **outError) noexcept
+    DFH_EXPORT arrow::Buffer *arrayDataBufferAt(arrow::ArrayData *arrayData, size_t bufferIndex, const char **outError) noexcept
     {
         LOG("@{}", (void*)arrayData);
         return TRANSLATE_EXCEPTION(outError)
@@ -436,7 +436,7 @@ extern "C"
 // ARRAY
 extern "C"
 {
-    EXPORT int64_t arrayBufferCount(arrow::Array *array) noexcept
+    DFH_EXPORT int64_t arrayBufferCount(arrow::Array *array) noexcept
     {
         LOG("@{}", (void*)array);
         return TRANSLATE_EXCEPTION(nullptr)
@@ -451,7 +451,7 @@ extern "C"
     // This is likely the best we can do when building C language API.
 
 #define NUMERIC_ARRAY_METHODS(TYPENAME)                                                                                                  \
-    EXPORT  TypeDescriptionForTag<TYPENAME>::CType array##TYPENAME##ValueAt(arrow::Array *array, int64_t index, const char **outError) noexcept\
+    DFH_EXPORT  TypeDescriptionForTag<TYPENAME>::CType array##TYPENAME##ValueAt(arrow::Array *array, int64_t index, const char **outError) noexcept\
     {                                                                                                                                    \
         LOG("[{}]", index);                                                                                                              \
         /* NOTE: needs release */                                                                                                        \
@@ -461,7 +461,7 @@ extern "C"
             return asSpecificArray<TYPENAME>(array)->Value(index);                                                                       \
         };                                                                                                                               \
     }                                                                                                                                    \
-    EXPORT const TypeDescriptionForTag<TYPENAME>::CType *array##TYPENAME##RawValues(arrow::Array *array, const char **outError) noexcept       \
+    DFH_EXPORT const TypeDescriptionForTag<TYPENAME>::CType *array##TYPENAME##RawValues(arrow::Array *array, const char **outError) noexcept       \
     {                                                                                                                                    \
         LOG("@{}", (void*)array);                                                                                                        \
         /* NOTE: needs release */                                                                                                        \
@@ -484,7 +484,7 @@ extern "C"
 
     // string array uses somewhat different interface than numeric -- and needs a special method thereof
     // TODO should an actual array subtype be required? generally speaking having right data in array should be enough
-    EXPORT const char * arrayStringValueAt(arrow::Array *array, int64_t index, const char **outError) noexcept
+    DFH_EXPORT const char * arrayStringValueAt(arrow::Array *array, int64_t index, const char **outError) noexcept
     {                                                                                                         
         LOG("[{}]", index);                                                                                   
         /* NOTE: needs release */                                                                             
@@ -497,7 +497,7 @@ extern "C"
 
 
     // NOTE: needs release
-    EXPORT arrow::Buffer *primitiveArrayValueBuffer(arrow::Array *array, const char **outError) noexcept
+    DFH_EXPORT arrow::Buffer *primitiveArrayValueBuffer(arrow::Array *array, const char **outError) noexcept
     {
         LOG("@{}", (void*)array);
         return TRANSLATE_EXCEPTION(outError)
@@ -512,7 +512,7 @@ extern "C"
     }
 
     // NOTE: needs release
-    EXPORT arrow::Buffer *arrayNullBitmapBuffer(arrow::Array *array, size_t bufferIndex, const char **outError) noexcept
+    DFH_EXPORT arrow::Buffer *arrayNullBitmapBuffer(arrow::Array *array, size_t bufferIndex, const char **outError) noexcept
     {
         LOG("@{}", (void*)array);
         return TRANSLATE_EXCEPTION(outError)
@@ -522,7 +522,7 @@ extern "C"
     }
 
     // NOTE: needs release
-    EXPORT arrow::ArrayData *arrayData(arrow::Array *array, const char **outError) noexcept
+    DFH_EXPORT arrow::ArrayData *arrayData(arrow::Array *array, const char **outError) noexcept
     {
         LOG("@{}", (void*)array);
         return TRANSLATE_EXCEPTION(outError)
@@ -532,7 +532,7 @@ extern "C"
     }
 
     // NOTE: needs release
-    EXPORT arrow::Array *arraySlice(arrow::Array *array, int64_t offset, int64_t length, const char **outError) noexcept
+    DFH_EXPORT arrow::Array *arraySlice(arrow::Array *array, int64_t offset, int64_t length, const char **outError) noexcept
     {
         LOG("@{}", (void*)array);
         return TRANSLATE_EXCEPTION(outError)
@@ -541,7 +541,7 @@ extern "C"
         };
     }
 
-    EXPORT bool arrayIsNullAt(arrow::Array *array, int64_t index, const char **outError) noexcept
+    DFH_EXPORT bool arrayIsNullAt(arrow::Array *array, int64_t index, const char **outError) noexcept
     {
         LOG("@{}", (void*)array);
         return TRANSLATE_EXCEPTION(outError)
@@ -551,13 +551,13 @@ extern "C"
         };
     }
 
-    EXPORT int64_t arrayLength(arrow::Array *array) noexcept
+    DFH_EXPORT int64_t arrayLength(arrow::Array *array) noexcept
     {
         LOG("@{}", (void*)array);
         return array->length();
     }
 
-    EXPORT int64_t nullCount(arrow::Array *array) noexcept
+    DFH_EXPORT int64_t nullCount(arrow::Array *array) noexcept
     {
         LOG("@{}", (void*)array);
         return array->null_count();
@@ -567,7 +567,7 @@ extern "C"
 // CHUNKED ARRAY
 extern "C"
 {
-    EXPORT arrow::ChunkedArray *chunkedArrayNewSingleton(arrow::Array *array, const char **outError)
+    DFH_EXPORT arrow::ChunkedArray *chunkedArrayNewSingleton(arrow::Array *array, const char **outError)
     {
         LOG("{}", (void*)array);
         return TRANSLATE_EXCEPTION(outError)
@@ -577,7 +577,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(std::move(ptr));
         };
     }
-    EXPORT arrow::ChunkedArray *chunkedArrayNewChunks(const arrow::Array **arrays, int32_t chunkCount, const char **outError)
+    DFH_EXPORT arrow::ChunkedArray *chunkedArrayNewChunks(const arrow::Array **arrays, int32_t chunkCount, const char **outError)
     {
         LOG("{} {}", (void*)arrays, chunkCount);
         return TRANSLATE_EXCEPTION(outError)
@@ -610,24 +610,24 @@ extern "C"
         };
     }
 
-    EXPORT int64_t chunkedArrayLength(arrow::ChunkedArray *array)
+    DFH_EXPORT int64_t chunkedArrayLength(arrow::ChunkedArray *array)
     {
         LOG("@{}", (void*)array);
         return array->length();
     }
-    EXPORT int64_t chunkedArrayNullCount(arrow::ChunkedArray *array)
+    DFH_EXPORT int64_t chunkedArrayNullCount(arrow::ChunkedArray *array)
     {
         LOG("@{}", (void*)array);
         return array->null_count();
     }
-    EXPORT int64_t chunkedArrayChunkCount(arrow::ChunkedArray *array)
+    DFH_EXPORT int64_t chunkedArrayChunkCount(arrow::ChunkedArray *array)
     {
         LOG("@{}", (void*)array);
         return array->num_chunks();
     }
 
     // NOTE: needs release
-    EXPORT arrow::Array *chunkedArrayChunkAt(arrow::ChunkedArray *array, int32_t index, const char **outError) noexcept
+    DFH_EXPORT arrow::Array *chunkedArrayChunkAt(arrow::ChunkedArray *array, int32_t index, const char **outError) noexcept
     {
         LOG("@{}", (void*)array);
         return TRANSLATE_EXCEPTION(outError)
@@ -638,7 +638,7 @@ extern "C"
     }
 
     // NOTE: needs release
-    EXPORT arrow::DataType *chunkedArrayDataType(arrow::ChunkedArray *array, const char **outError) noexcept
+    DFH_EXPORT arrow::DataType *chunkedArrayDataType(arrow::ChunkedArray *array, const char **outError) noexcept
     {
         LOG("@{}", (void*)array);
         return TRANSLATE_EXCEPTION(outError)
@@ -651,7 +651,7 @@ extern "C"
 // FIELD
 extern "C"
 {
-    EXPORT arrow::Field *fieldNew(const char *name, const arrow::DataType *type, bool nullable, const char **outError) noexcept
+    DFH_EXPORT arrow::Field *fieldNew(const char *name, const arrow::DataType *type, bool nullable, const char **outError) noexcept
     {
         LOG("{} {} {}", name, type->ToString(), nullable);
         return TRANSLATE_EXCEPTION(outError)
@@ -661,7 +661,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(std::move(ret));
         };
     }
-    EXPORT const char *fieldName(arrow::Field *field, const char **outError) noexcept
+    DFH_EXPORT const char *fieldName(arrow::Field *field, const char **outError) noexcept
     {
         LOG("@{}", (void*)field);
         return TRANSLATE_EXCEPTION(outError)
@@ -669,7 +669,7 @@ extern "C"
             return returnString(field->name());
         };
     }
-    EXPORT arrow::DataType *fieldType(arrow::Field *field, const char **outError) noexcept
+    DFH_EXPORT arrow::DataType *fieldType(arrow::Field *field, const char **outError) noexcept
     {
         LOG("@{}", (void*)field);
         return TRANSLATE_EXCEPTION(outError)
@@ -677,7 +677,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(field->type());
         };
     }
-    EXPORT bool fieldNullable(arrow::Field *field) noexcept
+    DFH_EXPORT bool fieldNullable(arrow::Field *field) noexcept
     {
         LOG("@{}", (void*)field);
         return TRANSLATE_EXCEPTION(nullptr)
@@ -685,7 +685,7 @@ extern "C"
             return field->nullable();
         };
     }
-    EXPORT const char *fieldToString(arrow::Field *field, const char **outError) noexcept
+    DFH_EXPORT const char *fieldToString(arrow::Field *field, const char **outError) noexcept
     {
         LOG("@{}", (void*)field);
         return TRANSLATE_EXCEPTION(outError)
@@ -693,7 +693,7 @@ extern "C"
             return returnString(field->ToString());
         };
     }
-    EXPORT bool fieldEquals(arrow::Field *lhs, arrow::Field *rhs, const char **outError) noexcept
+    DFH_EXPORT bool fieldEquals(arrow::Field *lhs, arrow::Field *rhs, const char **outError) noexcept
     {
         LOG("@{} @{}", (void*)lhs, (void*)rhs);
         return TRANSLATE_EXCEPTION(outError)
@@ -706,7 +706,7 @@ extern "C"
 // COLUMN
 extern "C"
 {
-    EXPORT arrow::Column *columnNew(arrow::Field *field, arrow::ChunkedArray *array, const char **outError) noexcept
+    DFH_EXPORT arrow::Column *columnNew(arrow::Field *field, arrow::ChunkedArray *array, const char **outError) noexcept
     {
         LOG("{} {}", (void*)field, (void*)array);
         return TRANSLATE_EXCEPTION(outError)
@@ -717,7 +717,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(std::move(ret));
         };
     }
-    EXPORT int64_t columnLength(arrow::Column *column) noexcept
+    DFH_EXPORT int64_t columnLength(arrow::Column *column) noexcept
     {
         LOG("@{}", (void*)column);
         return TRANSLATE_EXCEPTION(nullptr)
@@ -725,7 +725,7 @@ extern "C"
             return column->length();
         };
     }
-    EXPORT int64_t columnNullCount(arrow::Column *column) noexcept
+    DFH_EXPORT int64_t columnNullCount(arrow::Column *column) noexcept
     {
         LOG("@{}", (void*)column);
         return TRANSLATE_EXCEPTION(nullptr)
@@ -733,7 +733,7 @@ extern "C"
             return column->null_count();
         };
     }
-    EXPORT arrow::Field *columnField(arrow::Column *column, const char **outError) noexcept
+    DFH_EXPORT arrow::Field *columnField(arrow::Column *column, const char **outError) noexcept
     {
         LOG("@{}", (void*)column);
         return TRANSLATE_EXCEPTION(outError)
@@ -741,7 +741,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(column->field());
         };
     }
-    EXPORT arrow::DataType *columnType(arrow::Column *column, const char **outError) noexcept
+    DFH_EXPORT arrow::DataType *columnType(arrow::Column *column, const char **outError) noexcept
     {
         LOG("@{}", (void*)column);
         return TRANSLATE_EXCEPTION(outError)
@@ -749,7 +749,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(column->type());
         };
     }
-    EXPORT arrow::ChunkedArray *columnData(arrow::Column *column, const char **outError) noexcept
+    DFH_EXPORT arrow::ChunkedArray *columnData(arrow::Column *column, const char **outError) noexcept
     {
         LOG("@{}", (void*)column);
         return TRANSLATE_EXCEPTION(outError)
@@ -757,7 +757,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(column->data());
         };
     }
-    EXPORT const char *columnName(arrow::Column *column, const char **outError) noexcept
+    DFH_EXPORT const char *columnName(arrow::Column *column, const char **outError) noexcept
     {
         LOG("@{}", (void*)column);
         return TRANSLATE_EXCEPTION(outError)
@@ -765,7 +765,7 @@ extern "C"
             return returnString(column->name());
         };
     }
-    EXPORT arrow::Column *columnSlice(arrow::Column *column, int64_t fromIndex, int64_t count, const char **outError) noexcept
+    DFH_EXPORT arrow::Column *columnSlice(arrow::Column *column, int64_t fromIndex, int64_t count, const char **outError) noexcept
     {
         LOG("@{}", (void*)column);
         return TRANSLATE_EXCEPTION(outError)
@@ -773,7 +773,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(column->Slice(fromIndex, count));
         };
     }
-    EXPORT arrow::Table *columnCountValues(arrow::Column *column, const char **outError) noexcept
+    DFH_EXPORT arrow::Table *columnCountValues(arrow::Column *column, const char **outError) noexcept
     {
         LOG("@{}", (void*)column);
         return TRANSLATE_EXCEPTION(outError)
@@ -782,7 +782,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
-    EXPORT arrow::Column *columnMin(arrow::Column *column, const char **outError) noexcept
+    DFH_EXPORT arrow::Column *columnMin(arrow::Column *column, const char **outError) noexcept
     {
         LOG("@{}", (void*)column);
         return TRANSLATE_EXCEPTION(outError)
@@ -791,7 +791,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
-    EXPORT arrow::Column *columnMax(arrow::Column *column, const char **outError) noexcept
+    DFH_EXPORT arrow::Column *columnMax(arrow::Column *column, const char **outError) noexcept
     {
         LOG("@{}", (void*)column);
         return TRANSLATE_EXCEPTION(outError)
@@ -800,7 +800,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
-    EXPORT arrow::Column *columnMean(arrow::Column *column, const char **outError) noexcept
+    DFH_EXPORT arrow::Column *columnMean(arrow::Column *column, const char **outError) noexcept
     {
         LOG("@{}", (void*)column);
         return TRANSLATE_EXCEPTION(outError)
@@ -809,7 +809,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
-    EXPORT arrow::Column *columnMedian(arrow::Column *column, const char **outError) noexcept
+    DFH_EXPORT arrow::Column *columnMedian(arrow::Column *column, const char **outError) noexcept
     {
         LOG("@{}", (void*)column);
         return TRANSLATE_EXCEPTION(outError)
@@ -818,7 +818,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
-    EXPORT arrow::Column *columnStd(arrow::Column *column, const char **outError) noexcept
+    DFH_EXPORT arrow::Column *columnStd(arrow::Column *column, const char **outError) noexcept
     {
         LOG("@{}", (void*)column);
         return TRANSLATE_EXCEPTION(outError)
@@ -827,7 +827,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
-    EXPORT arrow::Column *columnVar(arrow::Column *column, const char **outError) noexcept
+    DFH_EXPORT arrow::Column *columnVar(arrow::Column *column, const char **outError) noexcept
     {
         LOG("@{}", (void*)column);
         return TRANSLATE_EXCEPTION(outError)
@@ -836,7 +836,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
-    EXPORT arrow::Column *columnSum(arrow::Column *column, const char **outError) noexcept
+    DFH_EXPORT arrow::Column *columnSum(arrow::Column *column, const char **outError) noexcept
     {
         LOG("@{}", (void*)column);
         return TRANSLATE_EXCEPTION(outError)
@@ -845,7 +845,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
-    EXPORT arrow::Column *columnQuantile(arrow::Column *column, double q, const char **outError) noexcept
+    DFH_EXPORT arrow::Column *columnQuantile(arrow::Column *column, double q, const char **outError) noexcept
     {
         LOG("@{}", (void*)column);
         return TRANSLATE_EXCEPTION(outError)
@@ -859,7 +859,7 @@ extern "C"
 // SCHEMA
 extern "C"
 {
-    EXPORT arrow::Schema *schemaNew(const arrow::Field **fields, int32_t fieldCount, const char **outError) noexcept
+    DFH_EXPORT arrow::Schema *schemaNew(const arrow::Field **fields, int32_t fieldCount, const char **outError) noexcept
     {
         LOG("{} {}", (void*)fields, fieldCount);
         return TRANSLATE_EXCEPTION(outError)
@@ -870,7 +870,7 @@ extern "C"
         };
     }
 
-    EXPORT int32_t schemaFieldCount(arrow::Schema *schema) noexcept
+    DFH_EXPORT int32_t schemaFieldCount(arrow::Schema *schema) noexcept
     {
         LOG("@{}", (void*)schema);
         return TRANSLATE_EXCEPTION(nullptr)
@@ -879,7 +879,7 @@ extern "C"
         };
     }
 
-    EXPORT arrow::Field *schemaFieldAt(arrow::Schema *schema, int32_t index, const char **outError) noexcept
+    DFH_EXPORT arrow::Field *schemaFieldAt(arrow::Schema *schema, int32_t index, const char **outError) noexcept
     {
         LOG("@{}, {}", (void*)schema, index);
         return TRANSLATE_EXCEPTION(outError)
@@ -889,7 +889,7 @@ extern "C"
         };
     }
 
-    EXPORT arrow::Field *schemaFieldByName(arrow::Schema *schema, const char *name, const char **outError) noexcept
+    DFH_EXPORT arrow::Field *schemaFieldByName(arrow::Schema *schema, const char *name, const char **outError) noexcept
     {
         LOG("@{}, {}", (void*)schema, name);
         return TRANSLATE_EXCEPTION(outError)
@@ -898,7 +898,7 @@ extern "C"
         };
     }
 
-    EXPORT int32_t schemaFieldIndexByName(arrow::Schema *schema, const char *name, const char **outError) noexcept
+    DFH_EXPORT int32_t schemaFieldIndexByName(arrow::Schema *schema, const char *name, const char **outError) noexcept
     {
         LOG("@{}, {}", (void*)schema, name);
         return TRANSLATE_EXCEPTION(outError)
@@ -907,7 +907,7 @@ extern "C"
         };
     }
 
-    EXPORT const char *schemaToString(arrow::Schema *schema, const char **outError) noexcept
+    DFH_EXPORT const char *schemaToString(arrow::Schema *schema, const char **outError) noexcept
     {
         LOG("@{}", (void*)schema);
         return TRANSLATE_EXCEPTION(outError)
@@ -916,7 +916,7 @@ extern "C"
         };
     }
 
-    EXPORT arrow::Schema *schemaAddField(arrow::Schema *schema, int32_t index, arrow::Field *field, const char **outError) noexcept
+    DFH_EXPORT arrow::Schema *schemaAddField(arrow::Schema *schema, int32_t index, arrow::Field *field, const char **outError) noexcept
     {
         LOG("@{} {} {}", (void*)schema, index, (void*)field);
         return TRANSLATE_EXCEPTION(outError)
@@ -928,7 +928,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(std::move(ret));
         };
     }
-    EXPORT arrow::Schema *schemaRemoveField(arrow::Schema *schema, int32_t index, const char **outError) noexcept
+    DFH_EXPORT arrow::Schema *schemaRemoveField(arrow::Schema *schema, int32_t index, const char **outError) noexcept
     {
         LOG("@{} {}", (void*)schema, index);
         return TRANSLATE_EXCEPTION(outError)
@@ -943,7 +943,7 @@ extern "C"
 // TABLE
 extern "C"
 {
-    EXPORT arrow::Table *tableNewFromSchamColumns(arrow::Schema *schema, const arrow::Column **columns, int32_t columnCount, const char **outError) noexcept
+    DFH_EXPORT arrow::Table *tableNewFromSchamColumns(arrow::Schema *schema, const arrow::Column **columns, int32_t columnCount, const char **outError) noexcept
     {
         LOG("{} {} {}", (void*)schema, (void*)columns, columnCount);
         return TRANSLATE_EXCEPTION(outError)
@@ -955,7 +955,7 @@ extern "C"
         };
     }
 
-    EXPORT arrow::Schema *tableSchema(arrow::Table *table, const char **outError) noexcept
+    DFH_EXPORT arrow::Schema *tableSchema(arrow::Table *table, const char **outError) noexcept
     {
         LOG("@{}", (void*)table);
         return TRANSLATE_EXCEPTION(outError)
@@ -964,7 +964,7 @@ extern "C"
         };
     }
 
-    EXPORT std::int64_t tableRowCount(arrow::Table *table) noexcept
+    DFH_EXPORT std::int64_t tableRowCount(arrow::Table *table) noexcept
     {
         LOG("@{}", (void*)table);
         return TRANSLATE_EXCEPTION(nullptr)
@@ -972,7 +972,7 @@ extern "C"
             return table->num_rows();
         };
     }
-    EXPORT std::int32_t tableColumnCount(arrow::Table *table) noexcept
+    DFH_EXPORT std::int32_t tableColumnCount(arrow::Table *table) noexcept
     {
         LOG("@{}", (void*)table);
         return TRANSLATE_EXCEPTION(nullptr)
@@ -980,7 +980,7 @@ extern "C"
             return table->num_columns();
         };
     }
-    EXPORT arrow::Column *tableColumnAt(arrow::Table *table, int32_t index, const char **outError) noexcept
+    DFH_EXPORT arrow::Column *tableColumnAt(arrow::Table *table, int32_t index, const char **outError) noexcept
     {
         LOG("@{} {}", (void*)table, index);
         return TRANSLATE_EXCEPTION(outError)
@@ -989,7 +989,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(table->column(index));
         };
     }
-    EXPORT arrow::Table *tableAddColumn(arrow::Table *table, int32_t index, arrow::Column *column, const char **outError) noexcept
+    DFH_EXPORT arrow::Table *tableAddColumn(arrow::Table *table, int32_t index, arrow::Column *column, const char **outError) noexcept
     {
         LOG("@{} {}", (void*)table, index);
         return TRANSLATE_EXCEPTION(outError)
@@ -1001,7 +1001,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
-    EXPORT arrow::Table *tableRemoveColumn(arrow::Table *table, int32_t index, const char **outError) noexcept
+    DFH_EXPORT arrow::Table *tableRemoveColumn(arrow::Table *table, int32_t index, const char **outError) noexcept
     {
         LOG("@{} {}", (void*)table, index);
         return TRANSLATE_EXCEPTION(outError)
@@ -1011,7 +1011,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
-    EXPORT bool tableEquals(arrow::Table *lhs, arrow::Table *rhs, const char **outError) noexcept
+    DFH_EXPORT bool tableEquals(arrow::Table *lhs, arrow::Table *rhs, const char **outError) noexcept
     {
         LOG("@{} @{}", (void*)lhs, (void*)rhs);
         return TRANSLATE_EXCEPTION(outError)
@@ -1019,7 +1019,7 @@ extern "C"
             return lhs->Equals(*rhs);
         };
     }
-    EXPORT arrow::Table *tableFilter(arrow::Table *table, const char *lqueryJSON, const char **outError) noexcept
+    DFH_EXPORT arrow::Table *tableFilter(arrow::Table *table, const char *lqueryJSON, const char **outError) noexcept
     {
         LOG("@{} @{}", (void*)table, (void*)lqueryJSON);
         return TRANSLATE_EXCEPTION(outError)
@@ -1029,7 +1029,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
-    EXPORT arrow::ChunkedArray *tableMapToChunkedArray(arrow::Table *table, const char *lqueryJSON, const char **outError) noexcept
+    DFH_EXPORT arrow::ChunkedArray *tableMapToChunkedArray(arrow::Table *table, const char *lqueryJSON, const char **outError) noexcept
     {
         LOG("@{} @{}", (void*)table, (void*)lqueryJSON);
         return TRANSLATE_EXCEPTION(outError)
@@ -1040,7 +1040,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
-    EXPORT arrow::Column *tableMapToColumn(arrow::Table *table, const char *retName, const char *lqueryJSON, const char **outError) noexcept
+    DFH_EXPORT arrow::Column *tableMapToColumn(arrow::Table *table, const char *retName, const char *lqueryJSON, const char **outError) noexcept
     {
         LOG("@{} @{}", (void*)table, (void*)lqueryJSON);
         return TRANSLATE_EXCEPTION(outError)
@@ -1052,7 +1052,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
-//     EXPORT arrow::Table *tableDropNABy(arrow::Table *table, const int32_t *indices, int32_t columnCount, const char **outError) noexcept
+//     DFH_EXPORT arrow::Table *tableDropNABy(arrow::Table *table, const int32_t *indices, int32_t columnCount, const char **outError) noexcept
 //     {
 //         LOG("@{} column count={}", (void*)table, columnCount);
 //         return TRANSLATE_EXCEPTION(outError)
@@ -1063,7 +1063,7 @@ extern "C"
 //             return LifetimeManager::instance().addOwnership(ret);
 //         };
 //     }
-    EXPORT arrow::Table *tableDropNA(arrow::Table *table, const char **outError) noexcept
+    DFH_EXPORT arrow::Table *tableDropNA(arrow::Table *table, const char **outError) noexcept
     {
         LOG("@{}", (void*)table);
         return TRANSLATE_EXCEPTION(outError)
@@ -1073,7 +1073,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
-    EXPORT arrow::Table *tableDropNAByName(arrow::Table *table, const char *columnName, const char **outError) noexcept
+    DFH_EXPORT arrow::Table *tableDropNAByName(arrow::Table *table, const char *columnName, const char **outError) noexcept
     {
         LOG("@{} column name={}", (void*)table, columnName);
         return TRANSLATE_EXCEPTION(outError)
@@ -1092,7 +1092,7 @@ extern "C"
             throw std::runtime_error("Failed to find column by name: "s + columnName);
         };
     }
-    EXPORT arrow::Table *tableFillNA(arrow::Table *table, const char *valueJSON, const char **outError) noexcept
+    DFH_EXPORT arrow::Table *tableFillNA(arrow::Table *table, const char *valueJSON, const char **outError) noexcept
     {
         LOG("@{} value={}", (void*)table, valueJSON);
         return TRANSLATE_EXCEPTION(outError)
@@ -1140,7 +1140,7 @@ extern "C"
         };
     }
 
-    EXPORT arrow::Table *tableCorrelationMatrix(arrow::Table *table, const char **outError) noexcept
+    DFH_EXPORT arrow::Table *tableCorrelationMatrix(arrow::Table *table, const char **outError) noexcept
     {
         LOG("@{} value={}", (void*)table);
         return TRANSLATE_EXCEPTION(outError)
@@ -1149,7 +1149,7 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
-    EXPORT arrow::Column *tableCorrelationWithColumn(arrow::Table *table, arrow::Column *column, const char **outError) noexcept
+    DFH_EXPORT arrow::Column *tableCorrelationWithColumn(arrow::Table *table, arrow::Column *column, const char **outError) noexcept
     {
         LOG("@{} column={}", (void*)column, column->name());
         return TRANSLATE_EXCEPTION(outError)
@@ -1175,7 +1175,7 @@ arrow::Table *readTableFromCSVFileContentsHelper(std::string data, const char **
 // IO
 extern "C"
 {
-    EXPORT arrow::Table *readTableFromFile(const char *filename, const char **outError)
+    DFH_EXPORT arrow::Table *readTableFromFile(const char *filename, const char **outError)
     {
         LOG("@{}", filename);
         return TRANSLATE_EXCEPTION(outError)
@@ -1188,7 +1188,7 @@ extern "C"
         };
     }
 
-    EXPORT arrow::Table *readTableFromCSVFileContents(const char *data, const char **columnNames, int32_t columnNamesPolicy, int8_t *columnTypes, int8_t *columnIsNullableTypes, int32_t columnTypeInfoCount, const char **outError)
+    DFH_EXPORT arrow::Table *readTableFromCSVFileContents(const char *data, const char **columnNames, int32_t columnNamesPolicy, int8_t *columnTypes, int8_t *columnIsNullableTypes, int32_t columnTypeInfoCount, const char **outError)
     {
         LOG("size={} names={}, namesPolicyCode={}, typeInfoCount={}", std::strlen(data), (void*)columnNames, columnNamesPolicy, columnTypeInfoCount);
         return TRANSLATE_EXCEPTION(outError)
@@ -1198,7 +1198,7 @@ extern "C"
         };
     }
 
-    EXPORT arrow::Table *readTableFromCSVFile(const char *filename, const char **columnNames, int32_t columnNamesPolicy, int8_t *columnTypes, int8_t *columnIsNullableTypes, int32_t columnTypeInfoCount, const char **outError)
+    DFH_EXPORT arrow::Table *readTableFromCSVFile(const char *filename, const char **columnNames, int32_t columnNamesPolicy, int8_t *columnTypes, int8_t *columnIsNullableTypes, int32_t columnTypeInfoCount, const char **outError)
     {
         LOG("@{} names={}, namesPolicyCode={}, typeInfoCount={}", filename, (void*)columnNames, columnNamesPolicy, columnTypeInfoCount);
         return TRANSLATE_EXCEPTION(outError)
@@ -1208,7 +1208,7 @@ extern "C"
         };
     }
 
-    EXPORT const char *writeTableToCsvString(arrow::Table *table, GeneratorHeaderPolicy headerPolicy, GeneratorQuotingPolicy quotingPolicy, const char **outError)
+    DFH_EXPORT const char *writeTableToCsvString(arrow::Table *table, GeneratorHeaderPolicy headerPolicy, GeneratorQuotingPolicy quotingPolicy, const char **outError)
     {
         LOG("table={}", (void*)table);
         return TRANSLATE_EXCEPTION(outError)
@@ -1219,7 +1219,7 @@ extern "C"
         };
     }
 
-    EXPORT void writeTableToCsvFile(const char *filename, arrow::Table *table, GeneratorHeaderPolicy headerPolicy, GeneratorQuotingPolicy quotingPolicy, const char **outError)
+    DFH_EXPORT void writeTableToCsvFile(const char *filename, arrow::Table *table, GeneratorHeaderPolicy headerPolicy, GeneratorQuotingPolicy quotingPolicy, const char **outError)
     {
         LOG("table={}, filepath={}", (void*)table, filename);
         return TRANSLATE_EXCEPTION(outError)
@@ -1232,7 +1232,7 @@ extern "C"
         };
     }
 
-    EXPORT arrow::Table *readTableFromXLSXFile(const char *filename, const char **columnNames, int32_t columnNamesPolicy, int8_t *columnTypes, int8_t *columnIsNullableTypes, int32_t columnTypeInfoCount, const char **outError)
+    DFH_EXPORT arrow::Table *readTableFromXLSXFile(const char *filename, const char **columnNames, int32_t columnNamesPolicy, int8_t *columnTypes, int8_t *columnIsNullableTypes, int32_t columnTypeInfoCount, const char **outError)
     {
         LOG("@{} names={}, namesPolicyCode={}, typeInfoCount={}", filename, (void*)columnNames, columnNamesPolicy, columnTypeInfoCount);
         return TRANSLATE_EXCEPTION(outError)
@@ -1244,7 +1244,7 @@ extern "C"
         };
     }
 
-    EXPORT void writeTableToXLSXFile(const char *filename, arrow::Table *table, GeneratorHeaderPolicy headerPolicy, const char **outError)
+    DFH_EXPORT void writeTableToXLSXFile(const char *filename, arrow::Table *table, GeneratorHeaderPolicy headerPolicy, const char **outError)
     {
         LOG("table={}, filepath={}", (void*)table, filename);
         return TRANSLATE_EXCEPTION(outError)
@@ -1258,7 +1258,7 @@ extern "C"
         };
     }
 
-    EXPORT arrow::Table *readTableFromFeatherFile(const char *filename, const char **outError)
+    DFH_EXPORT arrow::Table *readTableFromFeatherFile(const char *filename, const char **outError)
     {
         LOG("{}", filename);
         return TRANSLATE_EXCEPTION(outError)
@@ -1268,7 +1268,7 @@ extern "C"
         };
     }
 
-    EXPORT void writeTableToFeatherFile(const char *filename, arrow::Table *table, const char **outError)
+    DFH_EXPORT void writeTableToFeatherFile(const char *filename, arrow::Table *table, const char **outError)
     {
         LOG("table={}, filepath={}", (void*)table, filename);
         return TRANSLATE_EXCEPTION(outError)
@@ -1281,7 +1281,7 @@ extern "C"
 // RESOURCE MANAGEMENT
 extern "C"
 {
-    EXPORT void release(void *handle) noexcept
+    DFH_EXPORT void release(void *handle) noexcept
     {
         LOG("@{}", (void*)handle);
         return TRANSLATE_EXCEPTION(nullptr)

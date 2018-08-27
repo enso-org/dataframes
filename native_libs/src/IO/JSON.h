@@ -5,8 +5,8 @@
 #include "Core/ArrowUtilities.h"
 
 
-EXPORT rapidjson::Document parseJSON(const char *json);
-EXPORT std::string toJsonString(const rapidjson::Value &v);
+DFH_EXPORT rapidjson::Document parseJSON(const char *json);
+DFH_EXPORT std::string toJsonString(const rapidjson::Value &v);
 
-EXPORT DynamicField parseAsField(const char *jsonText);
-EXPORT DynamicField parseAsField(const rapidjson::Value &doc);
+DFH_EXPORT DynamicField parseAsField(const char *jsonText);
+DFH_EXPORT DynamicField parseAsField(const rapidjson::Value &doc);

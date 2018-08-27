@@ -114,6 +114,6 @@ namespace ast
         using PredicateBase::variant;
     };
 
-    EXPORT std::pair<ColumnMapping, Predicate> parsePredicate(const arrow::Table &table, const char *lqueryJsonText);
-    EXPORT std::pair<ColumnMapping, Value> parseValue(const arrow::Table &table, const char *lqueryJsonText);
+    DFH_EXPORT std::pair<ColumnMapping, Predicate> parsePredicate(const arrow::Table &table, const char *lqueryJsonText);
+    DFH_EXPORT std::pair<ColumnMapping, Value> parseValue(const arrow::Table &table, const char *lqueryJsonText);
 }

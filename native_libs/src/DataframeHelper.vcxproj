@@ -57,7 +57,7 @@
       <DiagnosticsFormat>Classic</DiagnosticsFormat>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>RAPIDJSON_NOMEMBERITERATORCLASS;VERBOSE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BUILDING_DATAFRAME_HELPER;RAPIDJSON_NOMEMBERITERATORCLASS;VERBOSE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>xlntd.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -72,7 +72,7 @@
       <DiagnosticsFormat>Classic</DiagnosticsFormat>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>RAPIDJSON_NOMEMBERITERATORCLASS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BUILDING_DATAFRAME_HELPER;RAPIDJSON_NOMEMBERITERATORCLASS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <SDLCheck>false</SDLCheck>
       <ControlFlowGuard>false</ControlFlowGuard>

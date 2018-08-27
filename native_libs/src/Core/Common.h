@@ -28,6 +28,12 @@
 #define EXPORT
 #endif
 
+#ifdef BUILDING_DATAFRAME_HELPER
+#define DFH_EXPORT EXPORT
+#else
+#define DFH_EXPORT
+#endif
+
 constexpr size_t operator"" _z (unsigned long long n)
 {
     return n;
