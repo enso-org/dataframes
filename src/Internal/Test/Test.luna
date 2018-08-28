@@ -343,9 +343,9 @@ class TestArrayBuilder:
         assertEqual "col 1 typename" (t1.columnAt 1 . field.type.name) "int64"
         assertEqual "col 1 nullable" (t1.columnAt 1 . field.nullable) True
         assertEqual "col 1 toList" (t1.columnAt 1 . toList) [Just 2]
-        assertEqual "col 2 typename" (t1.columnAt 2 . field.type.name) "utf8"
+        assertEqual "col 2 typename" (t1.columnAt 2 . field.type.name) "int64"
         assertEqual "col 2 nullable" (t1.columnAt 2 . field.nullable) False
-        assertEqual "col 2 toList" (t1.columnAt 2 . toList) ["3"]
+        assertEqual "col 2 toList" (t1.columnAt 2 . toList) [3]
 
         print "CSV parsing case 2"
         t2 = CSVParser . useCustomNames ["x", "y"] . setTypes [] . readText '"1,""2,3"'
@@ -408,25 +408,25 @@ class TestArrayBuilder:
         print "=== Testing mapping with null ==="
         maybeTextColumn = Column.fromList "texts" MaybeStringType [Just "foo", Nothing, Just "baz"]
         maybeTextTable = Table.fromColumns [maybeTextColumn]
-        maybeTextMapped1 = maybeTextTable.each "nowe" row: row.at "texts"
+        maybeTextMapped1 = maybeTextTable.each row: row.at "texts"
         assertEqual "ints+5" maybeTextMapped1.toList [Just "foo", Nothing, Just "baz"]
 
         maybeIntColumn = Column.fromList "ints" MaybeInt64Type [Just 1, Nothing, Just 3, Just 4, Just 5]
         maybeIntTable = Table.fromColumns [maybeIntColumn]
-        maybeMapped1 = maybeIntTable.each "nowe" row: row.at "ints" + 5
+        maybeMapped1 = maybeIntTable.each row: row.at "ints" + 5
         assertEqual "ints+5" maybeMapped1.toList [Just 6, Nothing, Just 8, Just 9, Just 10]
 
         print "=== Testing mapping ==="
         intsCol = Column.fromList "ints" Int64Type $ 1.upto 5
         doublesCol = Column.fromList "doubles" DoubleType $ [3.0, 2.0, 1.0, 0.0, -1.0]
         intsTable = Table.fromColumns [intsCol, doublesCol]
-        mappedCol1 = intsTable.each "nowe" row: row.at "ints" + 5
+        mappedCol1 = intsTable.each row: row.at "ints" + 5
         assertEqual "ints+5" mappedCol1.toList [6, 7, 8, 9, 10]
-        mappedCol2 = intsTable.each "nowe" row: (row.at "ints" . negate)
+        mappedCol2 = intsTable.each row: (row.at "ints" . negate)
         assertEqual "-ints" mappedCol2.toList [-1, -2, -3, -4, -5]
-        mappedCol3 = intsTable.each "nowe" (row: (row.at "ints") * 2)
+        mappedCol3 = intsTable.each (row: (row.at "ints") * 2)
         assertEqual "ints*2" mappedCol3.toList [2, 4, 6, 8, 10]
-        mappedCol4 = intsTable.each "nowe" (row: (row.at "ints") * (row.at "ints"))
+        mappedCol4 = intsTable.each (row: (row.at "ints") * (row.at "ints"))
         assertEqual "ints*ints" mappedCol4.toList [1, 4, 9, 16, 25]
 
     def testDropping:
@@ -522,18 +522,20 @@ class TestArrayBuilder:
 
         doubleCol = Column.fromList "b" Int64Type [2, 4, 6, 5, 8]
         table2 = Table.fromColumns [intCol, doubleCol]
-        corrCol = table2.corrWith intCol
-        assertEqual "corrWith name" corrCol.name "a_CORR"
-        assertEqual "corrWith result[0]" (corrCol.toList.getAt 0) 1.0
-        expected1 = 0.824
-        diff = expected1 - corrCol.toList.getAt 1
-        assertLE "corrWith result[1]" (if diff < 0.0 then -diff else diff) 0.001
+        corrWithTable = table2.corrWith "a"
+        namesCol = corrWithTable.columnAt 0
+        corrCol = corrWithTable.columnAt 1
+        assertEqual "corrWith name" corrCol.name "CORR_WITH_a"
+        assertEqual "corrWith result[1]" (corrCol.toList.getAt 1) 1.0
+        expected0 = 0.824
+        diff = expected0 - corrCol.toList.getAt 0
+        assertLE ("corrWith result[0] close to " + expected0.toText) (if diff < 0.0 then -diff else diff) 0.001
 
     def testIf:
         print "Testing conditionals in LQuery"
         ints = Column.fromList "a" Int64Type  [1, -2, 3, -4, 5]
         table = Table.fromColumns [ints]
-        result = table.each "positive" v: 
+        result = table.each v: 
             (v.at "a" > 0).switch (v.at "a") (v.at "a" . negate)
         assertEqual "abs-on-if result" result.toList [1, 2, 3, 4, 5]
 
