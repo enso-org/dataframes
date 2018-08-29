@@ -21,8 +21,10 @@ class Table:
     def fromSchemaAndColumns schema columns:
         self.fromWrapper $ createTableWrapper schema.ptr (columns.each .ptr)
     def fromColumns columns:
-        schema = Schema.fromFields (columns.each .field)
-        self.fromWrapper $ createTableWrapper schema.ptr (columns.each .ptr)
+        fields = columns.each .field
+        ptrs = columns.each .ptr
+        schema = Schema.fromFields fields
+        self.fromWrapper $ createTableWrapper schema.ptr ptrs
     def fromFile path:
         self.fromWrapper $ readTableFromFile path
 
