@@ -250,39 +250,53 @@ std::shared_ptr<arrow::Column> calculateSum(const arrow::Column &column)
 
 double calculateCorrelation(const arrow::Column &xCol, const arrow::Column &yCol)
 {
-    double sumX = 0;
-    double sumY = 0;
-    double sumXX = 0;
-    double sumYY = 0;
-    double sumXY = 0;
-    int64_t n = 0;
-
-    visitType(*xCol.type(), [&] (auto id1)
+    struct CorrelationStats
     {
-        visitType(*yCol.type(), [&] (auto id2)
+        double sumX = 0;
+        double sumY = 0;
+        double sumXX = 0;
+        double sumYY = 0;
+        double sumXY = 0;
+        int64_t n = 0;
+
+        void addPair(double xVal, double yVal)
+        {
+            sumX += xVal;
+            sumY += yVal;
+            sumXX += xVal * xVal;
+            sumYY += yVal * yVal;
+            sumXY += xVal * yVal;
+            n++;
+        }
+
+        double correlation() const
+        {
+            const auto num = n * sumXY - sumX * sumY;
+            const auto den = std::sqrt(n * sumXX - (sumX*sumX)) * std::sqrt(n * sumYY - (sumY*sumY));
+            return num / den;
+        }
+    };
+
+    auto stats = visitType(*xCol.type(), [&] (auto id1)
+    {
+        return visitType(*yCol.type(), [&] (auto id2) -> CorrelationStats
         {
             if constexpr(id1.value != arrow::Type::STRING  &&  id2.value != arrow::Type::STRING)
             {
-                return iterateOverJustPairs<id1.value, id2.value>(xCol, yCol,
+                CorrelationStats stats;
+                iterateOverJustPairs<id1.value, id2.value>(xCol, yCol,
                     [&] (double xVal, double yVal)
                 {
-                    sumX += xVal;
-                    sumY += yVal;
-                    sumXX += xVal * xVal;
-                    sumYY += yVal * yVal;
-                    sumXY += xVal * yVal;
-                    n++;
+                    stats.addPair(xVal, yVal);
                 });
+                return stats;
             }
             else
                 throw std::runtime_error("Correlation not supported on string types");
         });
     });
 
-    const auto num = n * sumXY - sumX * sumY;
-    const auto den = std::sqrt(n * sumXX - (sumX*sumX)) * std::sqrt(n * sumYY - (sumY*sumY));
-
-    return num/den;
+    return stats.correlation();
 }
 
 std::shared_ptr<arrow::Column> calculateCorrelation(const arrow::Table &table, const arrow::Column &column)
