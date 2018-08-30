@@ -313,7 +313,7 @@ std::shared_ptr<arrow::Array> fillNATyped(const Array &array, DynamicField value
     else
     {
         using T = typename Array::value_type;
-    #ifdef __APPLE__
+    #ifdef __clang__
         auto valueToFill = mpark::get<T>(value);
         std::shared_ptr<arrow::Buffer> buffer;
         T *data;
