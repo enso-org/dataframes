@@ -5,7 +5,6 @@
 #include "optional.h"
 #include <string_view>
 #include <type_traits>
-#include <charconv>
 
 #include "Common.h"
 
@@ -38,6 +37,9 @@ struct OldStyleNumberParser
 };
 
 #if __cpp_lib_to_chars >= 201611 || _MSC_VER >= 1915
+
+#include <charconv>
+
 struct NewStyleNumberParser
 {
     static constexpr bool requiresNull = false;

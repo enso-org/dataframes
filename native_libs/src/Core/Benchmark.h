@@ -9,6 +9,8 @@
 #include <utility>
 #include <vector>
 
+#include "Common.h"
+
 using namespace std::chrono_literals;
 
 // returns pair [f(args...), elapsed time]
