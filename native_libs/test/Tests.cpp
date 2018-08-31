@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(ParseCsv)
 
 BOOST_AUTO_TEST_CASE(ParseFile)
 {
-	auto path = R"(F:\dev\Dataframes\data\simple_empty.csv)";
+	auto path = "data/simple_empty.csv";
 	auto csv = parseCsvFile(path);
 	auto table = csvToArrowTable(csv, TakeFirstRowAsHeaders{}, {});
 }
