@@ -46,8 +46,8 @@ The library currently provides wrappers for Apache Arrow structures.
 * `ArrayData` — type-erased storage for `Array` consisting of several contiguous memory buffers. The buffer count depends on stored type. Typically there are two buffers: one for values and one for masking nulls. More comples types (union, lists) will use more.
 * `Array tag` — data array with strongly typed accessors. See section below for supported `tag` types.
 * `ChunkedArray tag` — a list of `Array`s of the same type viewed as a single large array. Allows storing large sequences of data (that could not be feasably stored in a single memory block) and efficient slice / concat operations.
-* `Column` — type erased accessor for a named `ChunkedArray`. Stored type is represented by using one of its constructors.
-* `Table` — ordered sequence of `Column`s.
+* `Column` — type erased accessor for a named `ChunkedArray`. Stored type is represented by using one of its constructors. Described by `Field`.
+* `Table` — ordered sequence of `Column`s. Described by `Schema`.
 
 ### Type tag types
 These types are provided by the library to identify types that can be stored by `Array` and their mapping to Luna types. Currently provided type tags are listed in the table below.
@@ -64,13 +64,31 @@ These types are provided by the library to identify types that can be stored by 
 Note: Arrow's `utf8` type is a list of non-nullable bytes.
 
 ### IO types
-#### Parsers
-CSV files are supported. XLSX files are supported if the helper C++ library was built with XLNT third-part library enabled.
+CSV and Feather files are supported. XLSX files are supported if the helper C++ library was built with XLNT third-part library enabled.
 
-* `CSVParser` allows reading `Table` from [CSV file](https://tools.ietf.org/html/rfc4180).
-* `CSVGenerator` allows storing `Table` to CSV.
-* `XLSXParser` allows reading Microsoft Excel Open XML Spreadsheet File files (.xlsx).
-* `XLSXGenerator` allows storing `Table`s to Microsoft Excel Open XML Spreadsheet File files (.xlsx).
+| Format                                          | Parser Type     | Generator Type     | Remarks                                                       |
+|-------------------------------------------------|-----------------|--------------------|---------------------------------------------------------------|
+| [CSV file](https://tools.ietf.org/html/rfc4180) | `CSVParser`     | `CSVGenerator`     |                                                               |
+| XLSX                                            | `XLSXParser`    | `XLSXGenerator`    | Requires optional XLNT library                                |
+| Feather                                         | `FeatherParser` | `FeatherGenerator` | Best performance, not all value types are currently supported |
+
+
+#### Methods
+Parser type shall provide the following method:
+* `readFile path :: Text -> Table`
+Generator type shall provide the following method:
+* `writeFile path table :: Text -> Table -> IO None`
+
+Column names are by default read from the file. CSV and XLSX parsers can also work with files that do not contain the reader row. In such case one of the methods below should be called:
+* `useCustomNames names` where `names :: [Text]` are user-provided list of desired column names. If there are more columns in file than names count, then more names will be generated.
+* `useGeneratedColumnNames` — all column names will be automatically generated (and the first row will be treated as containing values).
+
+Similarly, the CSV and XLSX generators can be configured whether to output a heading row with names.
+* `setHeaderPolicy WriteHeaderLine` or `setHeaderPolicy SkipHeaderLine`
+
+The CSV generator can be also configured whether the fields should be always enclosed within quotes or whether this should be done only when necessary (the latter being the default):
+* `setQuotingPolicy QuoteWhenNeeded` or `setQuotingPolicy QuoteAllFields`
+
 
 ### Other types
 * `DataType` represents the type of values being stored in a `ArrayData`. Note that this type does not contain information whether it is nullable — being nullable is a property of `Field`, not `Datatype`.

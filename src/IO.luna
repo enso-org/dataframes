@@ -118,7 +118,7 @@ class CSVGenerator:
         callHandlingError "writeTableToCsvString" CString [table.ptr.ptr.toCArg, self.headerPolicy.toCArg, self.quotingPolicy.toCArg] . toText
     def writeFile path table:
         CString.with path pathC:
-            callHandlingError "writeTableToCsvFile" CString [pathC.toCArg, table.ptr.ptr.toCArg, self.headerPolicy.toCArg, self.quotingPolicy.toCArg] . toText
+            callHandlingError "writeTableToCsvFile" None [pathC.toCArg, table.ptr.ptr.toCArg, self.headerPolicy.toCArg, self.quotingPolicy.toCArg] . toText
 
 
 class XLSXGenerator:
