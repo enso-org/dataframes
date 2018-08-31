@@ -5,12 +5,16 @@ This project is a library with dataframes implementation. Dataframes are structu
 
 ## Third-party dependencies
 Required dependencies:
-* [Apache Arrow](https://arrow.apache.org/) — from it [C++ library](https://github.com/apache/arrow/tree/master/cpp) component must be installed
-* [Boost C++ Libraries](https://www.boost.org/) — also required by Apache Arrow.
-* [RapidJSON](https://github.com/Tencent/rapidjson) — needed for LQuery processing
 * C++ build tools:
     * [CMake](https://cmake.org/) — cross-platform build tool for C++ used by the C++ helper and all its dependencies.
-    * A mostly C++17-compliant compiler. The tested ones are Visual Studio 2017.7 on Windows and GCC 7.3.0 on Ubuntu. Anything newer is expected to work as well.
+    * A mostly C++17-compliant compiler. The tested ones are Visual Studio 2017.8 on Windows and GCC 7.3.0 on Ubuntu. Anything newer is expected to work as well.
+* Libraries:
+  * [Apache Arrow](https://arrow.apache.org/) — from it [C++ library](https://github.com/apache/arrow/tree/master/cpp) component must be installed
+  * [Boost C++ Libraries](https://www.boost.org/) — also required by Apache Arrow.
+  * [Python 3.6+](https://www.python.org/) with some packages:
+    * `matplotlib`
+    * `seaborn`
+  * [RapidJSON](https://github.com/Tencent/rapidjson) — needed for LQuery processing
 
 Optional dependencies:
 These dependencies are not required to compile the helper library, however without them certain functionalities shall be disabled.
@@ -94,6 +98,21 @@ The CSV generator can be also configured whether the fields should be always enc
 * `DataType` represents the type of values being stored in a `ArrayData`. Note that this type does not contain information whether it is nullable — being nullable is a property of `Field`, not `Datatype`.
 * `Field` is a named `DataType` with an additional information whether values are nullable. Describes contents of the `Column`.
 * `Schema` is a sequence of `Field`s describing the `Table`.
+
+## Data processing API
+
+
+## Data analysis API
+### Table
+* `describeNa`
+* `corr`
+* `corrWith columnName`
+* `describe columnName`
+* `countValues columnName`
+
+### Column
+
+
 
 ## Tutorial
 TBD

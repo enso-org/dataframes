@@ -104,16 +104,6 @@ else()
     target_link_libraries(${PROJECT_NAME} ${ARROW_LIBRARY})
 endif()
 
-##################
-# TESTS & BENCHMARKS
-file(GLOB_RECURSE TEST_HEADER_FILES ${PROJECT_SOURCE_DIR}/../test/*.h)
-file(GLOB_RECURSE TEST_SRC_FILES    ${PROJECT_SOURCE_DIR}/../test/*.cpp)
-
-add_executable(DataframeHelperTests ${TEST_HEADER_FILES} ${TEST_SRC_FILES})
-target_include_directories(DataframeHelperTests PRIVATE ${Boost_INCLUDE_DIRS})
-target_link_libraries(DataframeHelperTests ${PROJECT_NAME} Boost::unit_test_framework)
-
-
 ###################
 
 file(GLOB_RECURSE PLOTTER_HEADER_FILES ${PROJECT_SOURCE_DIR}/../plotter/*.h)
@@ -139,3 +129,13 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR};${CMAKE_MODULE_PATH}")
 find_package(NumPy)
 target_include_directories(Learn PRIVATE ${PYTHON_INCLUDE_DIRS} ${PYTHON_NUMPY_INCLUDE_DIR})
 target_link_libraries(Learn ${PROJECT_NAME} ${PYTHON_LIBRARIES})
+
+##################
+# TESTS & BENCHMARKS
+file(GLOB_RECURSE TEST_HEADER_FILES ${PROJECT_SOURCE_DIR}/../test/*.h)
+file(GLOB_RECURSE TEST_SRC_FILES    ${PROJECT_SOURCE_DIR}/../test/*.cpp)
+
+add_executable(DataframeHelperTests ${TEST_HEADER_FILES} ${TEST_SRC_FILES})
+target_include_directories(DataframeHelperTests PRIVATE ${Boost_INCLUDE_DIRS})
+target_link_libraries(DataframeHelperTests ${PROJECT_NAME} DataframePlotter Boost::unit_test_framework)
+###################

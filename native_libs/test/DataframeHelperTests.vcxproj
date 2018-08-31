@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Benchmarks.cpp" />
+    <ClCompile Include="PlotTests.cpp" />
     <ClCompile Include="Tests.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -65,7 +66,7 @@
       <PreprocessorDefinitions>VERBOSE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>DataframeHelper.lib;arrowd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>DataframePlotter.lib;DataframeHelper.lib;arrowd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
@@ -83,7 +84,7 @@
     </ClCompile>
     <Link>
       <Profile>true</Profile>
-      <AdditionalDependencies>DataframeHelper.lib;arrow.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>DataframePlotter.lib;DataframeHelper.lib;arrow.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>

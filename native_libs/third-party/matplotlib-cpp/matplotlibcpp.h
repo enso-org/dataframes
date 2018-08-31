@@ -122,7 +122,11 @@ private:
 
         PyObject* matplotlib = PyImport_Import(matplotlibname);
         Py_DECREF(matplotlibname);
-        if (!matplotlib) { throw std::runtime_error("Error loading module matplotlib!"); }
+        if (!matplotlib)
+		{
+			PyErr_Print();
+			throw std::runtime_error("Error loading module matplotlib!"); 
+		}
 
         //char* ver = PyString_AsString(PyObject_GetAttrString(matplotlib, "__version__"));
         //std::cout << ver << std::endl;
@@ -152,7 +156,11 @@ private:
 
         PyObject* seabornmod = PyImport_Import(seabornname);
         Py_DECREF(seabornname);
-        if (!seabornmod) { throw std::runtime_error("Error loading module pylab!"); }
+        if (!seabornmod) 
+		{
+			PyErr_Print();
+			throw std::runtime_error("Error loading module seaborn!"); 
+		}
 
         PyObject* iomod = PyImport_Import(ioname);
         Py_DECREF(ioname);
@@ -454,7 +462,7 @@ bool hist(PyObject* yarray, size_t bins=20,std::string color="b", double alpha=1
 {
 
     PyObject* kwargs = PyDict_New();
-    PyDict_SetItemString(kwargs, "bins", PyLong_FromLong(bins));
+    PyDict_SetItemString(kwargs, "bins", PyLong_FromLongLong(bins));
     PyDict_SetItemString(kwargs, "color", PyString_FromString(color.c_str()));
     PyDict_SetItemString(kwargs, "alpha", PyFloat_FromDouble(alpha));
 
@@ -901,8 +909,11 @@ bool named_loglog(const std::string& name, const std::vector<Numeric>& x, const 
 template<typename Numeric>
 bool plot(const std::vector<Numeric>& y, const std::string& format = "")
 {
-    std::vector<Numeric> x(y.size());
-    for(size_t i=0; i<x.size(); ++i) x.at(i) = i;
+    std::vector<Numeric> x;
+    x.resize(y.size());
+    for(size_t i=0; i < x.size(); ++i) 
+        x.at(i) = (Numeric)i;
+
     return plot(x,y,format);
 }
 

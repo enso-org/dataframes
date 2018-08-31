@@ -1,64 +1,111 @@
+#include "Plot.h"
 #include <cmath>
 #include <arrow/array.h>
 #include <Core/ArrowUtilities.h>
 #include "B64.h"
 
+
+// Windows-specific issue workaround:
+// Note [MU]:
+// When _DEBUG is defined, Python defines Py_DEBUG and Py_DEBUG leads to
+// Py_DECREF expanding to special checking code that uses symbols available
+// only in debug binaries of Python. That causes linker error on Windows
+// when using Release Python binaries with Debug Dataframe build.
+//
+// And we don't want to use Debug binaries of Python, because they are 
+// incompatible with Release packages installed through pip (e.g. numpy)
+// and having Debug and Release packages side-by-side looks non-trival.
+// Perhaps someone with better Python knowledge can improve this is future.
+// 
+// For now just let's try to trick Python into thinking that we are in Release
+// mode and hope that noone else includes this header. 
+// And that standard library/runtime won't explode.
+#if defined(_DEBUG) && defined(_MSC_VER)
+#define WAS_DEBUG
+#undef _DEBUG
+#endif
+
 #include <Python.h>
 #include <matplotlibcpp.h>
+
+#ifdef WAS_DEBUG
+#define _DEBUG 1
+#endif
+///////////////////////////////////////////////////////////////////////////////
 
 using namespace std;
 namespace plt = matplotlibcpp;
 
-struct PyListBuilder {
-  PyObject* list = NULL;
-  size_t ind = 0;
+struct PyListBuilder
+{
+protected:
+    PyObject* list = NULL;
+    size_t ind = 0;
+public:
+    PyListBuilder(size_t length)
+        : list(PyList_New(length))
+    {}
+    ~PyListBuilder()
+    {
+        if(list)
+            Py_DECREF(list);
+    }
 
-  void init(size_t s) {
-    list = PyList_New(s);
-  }
+    void append(PyObject *item)
+    {
+        PyList_SetItem(list, ind++, item);
+    }
 
-  void append(PyObject *item) {
-    PyList_SetItem(list, ind++, item);
-  }
+    void append(int64_t i)
+    {
+        append(PyLong_FromLongLong(i));
+    }
 
-  void append(int64_t i) {
-    append(PyLong_FromLong(i));
-  }
+    void append(double d)
+    {
+        append(PyFloat_FromDouble(d));
+    }
 
-  void append(double d) {
-    append(PyFloat_FromDouble(d));
-  }
+    void append(const std::string_view &s)
+    {
+        append(PyString_FromString(std::string(s).c_str()));
+    }
 
-  void append(const std::string_view &s) {
-    append(PyString_FromString(std::string(s).c_str()));
-  }
+    void appendNull()
+    {
+        append(PyFloat_FromDouble(nan(" ")));
+    }
 
-  void appendNull() {
-    append(PyFloat_FromDouble(nan(" ")));
-  }
+    auto release()
+    {
+        assert(list);
+        assert(ind == PyList_Size(list));
+        return std::exchange(list, nullptr);
+    }
 };
 
-PyObject* chunkedArrayToPyObj(const arrow::ChunkedArray &arr) {
-    PyListBuilder builder;
-    builder.init(arr.length());
+PyObject* chunkedArrayToPyObj(const arrow::ChunkedArray &arr)
+{
+    PyListBuilder builder{(size_t)arr.length()};
     iterateOverGeneric(arr,
         [&] (auto &&elem) { builder.append(elem); },
-        [&] () { builder.appendNull(); });
-    return builder.list;
+        [&] ()            { builder.appendNull(); });
+    return builder.release();
 }
 
-PyObject* tableToPyObj(const arrow::Table &table) {
+PyObject* tableToPyObj(const arrow::Table &table)
+{
     auto cols = getColumns(table);
     PyObject *result = PyList_New(table.num_columns());
-    for (int i = 0; i < table.num_columns(); i++) {
+    for (int i = 0; i < table.num_columns(); i++)
         PyList_SetItem(result, i, chunkedArrayToPyObj(*(cols[i]->data())));
-    }
+
     return result;
 }
 
 extern "C"
 {
-    EXPORT void plot(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* style) {
+    void plot(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, const char *style) {
         std::string st(style);
         auto xsarray = chunkedArrayToPyObj(*xs);
         std::cout << "XS " << xsarray << std::endl;
@@ -73,7 +120,7 @@ extern "C"
         }
     }
 
-    EXPORT void kdeplot2(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* colormap) {
+    void kdeplot2(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* colormap) {
         auto xsarray = chunkedArrayToPyObj(*xs);
         std::cout << "XS " << xsarray << std::endl;
         auto ysarray = chunkedArrayToPyObj(*ys);
@@ -87,7 +134,7 @@ extern "C"
         }
     }
 
-    EXPORT void kdeplot(arrow::ChunkedArray *xs, char* label) {
+    void kdeplot(arrow::ChunkedArray *xs, char* label) {
         auto xsarray = chunkedArrayToPyObj(*xs);
         try {
           std::cout << "KDE BEG" << std::endl;
@@ -98,7 +145,7 @@ extern "C"
         }
     }
 
-    EXPORT void heatmap(arrow::Table* xs, char* cmap, char* annot) {
+    void heatmap(arrow::Table* xs, char* cmap, char* annot) {
         auto xsarray = tableToPyObj(*xs);
         try {
             std::cout << "HEATMAP BEG" << std::endl;
@@ -109,7 +156,7 @@ extern "C"
         }
     }
 
-    EXPORT void histogram(arrow::ChunkedArray *xs, size_t bins) {
+    void histogram(arrow::ChunkedArray *xs, size_t bins) {
         auto xsarray = chunkedArrayToPyObj(*xs);
         try {
           std::cout << "HIST BEG" << std::endl;
@@ -120,7 +167,7 @@ extern "C"
         }
     }
 
-    EXPORT void show() {
+    void show() {
         try {
           std::cout << "SHOW BEG" << std::endl;
           plt::show();
@@ -130,7 +177,7 @@ extern "C"
         }
     }
 
-    EXPORT void init(size_t w, size_t h) {
+    void init(size_t w, size_t h) {
         try {
           std::cout << "INIT BEG" << std::endl;
           plt::backend("Agg");
@@ -145,11 +192,11 @@ extern "C"
         }
     }
 
-    EXPORT void subplot(long nrows, long ncols, long plot_number) {
+    void subplot(long nrows, long ncols, long plot_number) {
         plt::subplot(nrows, ncols, plot_number);
     }
 
-    EXPORT char* getPNG() {
+    char* getPNG() {
         char* b;
         char* out = NULL;
         size_t l;
