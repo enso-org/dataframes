@@ -132,10 +132,10 @@ struct ColumnBuilder
 
 ColumnType deduceType(const ParsedCsv &csv, size_t columnIndex, size_t startRow, size_t lookupDepth)
 {
-    lookupDepth = std::min<int>(lookupDepth, csv.records.size());
+    lookupDepth = std::min(lookupDepth, csv.records.size());
 
     std::unordered_set<arrow::Type::type> encounteredTypes;
-    for(int i = startRow; i < lookupDepth; i++)
+    for(size_t i = startRow; i < lookupDepth; i++)
     {
         const auto &record = csv.records.at(i);
         if(columnIndex < record.size())
