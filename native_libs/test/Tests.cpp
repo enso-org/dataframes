@@ -1,7 +1,8 @@
-#define BOOST_TEST_MODULE CsvTests
-#define NOMINMAX
-#include <boost/test/included/unit_test.hpp>
+#define BOOST_TEST_MODULE DataframeHelperTests
+#include <boost/test/unit_test.hpp>
+
 #include <chrono>
+#include <fstream>
 
 #include "IO/csv.h"
 #include "IO/IO.h"
@@ -10,14 +11,6 @@
 #include "optional.h"
 #include "Processing.h"
 #include "Analysis.h"
-
-
-#pragma comment(lib, "DataframeHelper.lib")
-#ifdef _DEBUG
-#pragma comment(lib, "arrowd.lib")
-#else
-#pragma comment(lib, "arrow.lib")
-#endif
 
 using namespace std::literals;
 
@@ -550,185 +543,6 @@ BOOST_AUTO_TEST_CASE(FilterWithNulls)
 	BOOST_CHECK_EQUAL_COLLECTIONS(expectedI.begin(), expectedI.end(), filtered2AI.begin(), filtered2AI.end());
 }
 
-BOOST_AUTO_TEST_CASE(FilterBigFile0)
-{
-	const auto jsonQuery = R"({"predicate": "gt", "arguments": [ {"column": "NUM_INSTALMENT_NUMBER"}, 50 ] } )";
-	auto table = loadTableFromFeatherFile("C:/installments_payments.feather");
-	for(int i  = 0; i < 2000; i++)
-	{
-		measure("filter installments_payments", [&]
-		{
-			auto table2 = filter(table, jsonQuery);
-			// 			std::ofstream out{"tescik.csv"};
-			// 			generateCsv(out, *table2, GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy::QuoteWhenNeeded);
-		});
-	}
-	std::cout<<"";
-}
-
-BOOST_AUTO_TEST_CASE(MapBigFile)
-{
-	const auto jsonQuery = R"({"operation": "plus", "arguments": [ {"column": "NUM_INSTALMENT_NUMBER"}, 50 ] } )";
-	auto table = loadTableFromFeatherFile("C:/installments_payments.feather");
-	for(int i  = 0; i < 2000; i++)
-	{
-		measure("map installments_payments", [&]
-		{
-			auto column = each(table, jsonQuery);
-			// 			std::ofstream out{"tescik.csv"};
-			// 			generateCsv(out, *table2, GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy::QuoteWhenNeeded);
-		});
-	}
-	std::cout<<"";
-}
-
-BOOST_AUTO_TEST_CASE(FilterBigFile1)
-{
-	const auto jsonQuery = R"({"predicate": "eq", "arguments": [ {"column": "NAME_TYPE_SUITE"}, "Unaccompanied" ] } )";
-
-	auto table = loadTableFromFeatherFile("C:/temp/application_train.feather");
-
-
-	for(int i  = 0; i < 2000; i++)
-	{
-		measure("filter application_train", [&]
-		{
-			auto table2 = filter(table, jsonQuery);
-			// 			std::ofstream out{"tescik.csv"};
-			// 			generateCsv(out, *table2, GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy::QuoteWhenNeeded);
-		});
-	}
-	std::cout<<"";
-}
-
-BOOST_AUTO_TEST_CASE(DropNABigFile)
-{
-	auto csv = parseCsvFile("F:/dev/csv/application_train.csv");
-	auto table = csvToArrowTable(std::move(csv), TakeFirstRowAsHeaders{}, {});
-
-	auto table2 = dropNA(table);
-
-	auto row = rowAt(*table, 307'407);
-
-	{
-		std::ofstream out{ "trained_filtered_nasze.csv" };
-		if(!out)
-			throw std::runtime_error("Cannot write to file ");
-		generateCsv(out, *table2, GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy::QuoteWhenNeeded);
-	}
-
-	measure("drop NA from application_train", 5000, [&]
-	{
-		auto table2 = dropNA(table);
-	});
-}
-
-BOOST_AUTO_TEST_CASE(FillNABigFile)
-{
-	auto csv = parseCsvFile("F:/dev/csv/application_train.csv");
-	auto table = csvToArrowTable(std::move(csv), TakeFirstRowAsHeaders{}, {});
-
-	std::unordered_map<std::string, DynamicField> valuesToFillWith;
-	for(auto column : getColumns(*table))
-	{
-		valuesToFillWith[column->name()] = adjustTypeForFilling("80"s, *column->type());
-	}
-
-	measure("fill NA from application_train", 5000, [&]
-	{
-		auto table2 = dropNA(table);
-	});
-}
-
-BOOST_AUTO_TEST_CASE(FilterBigFile)
-{
-	const auto jsonQuery = R"({"predicate": "gt", "arguments": [ {"column": "NUM_INSTALMENT_NUMBER"}, {"operation": "plus", "arguments": [50, 1]} ] } )";
-	auto table = loadTableFromFeatherFile("C:/installments_payments.feather");
-	measure("filter installments_payments", 2000, [&]
-	{
-		auto table2 = filter(table, jsonQuery);
-//  			std::ofstream out{"tescik100.csv"};
-//  			generateCsv(out, *table2, GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy::QuoteWhenNeeded);
-	});
-	std::cout<<"";
-}
-
-BOOST_AUTO_TEST_CASE(StatisticsBigFile)
-{
-	const auto jsonQuery = R"({"predicate": "gt", "arguments": [ {"column": "NUM_INSTALMENT_NUMBER"}, {"operation": "plus", "arguments": [50, 1]} ] } )";
-	auto table = loadTableFromFeatherFile("C:/installments_payments.feather");
-	measure("median installments_payments", 2000, [&]
-	{
-		calculateCorrelationMatrix(*table);
-//		toJustVector()
-// 		auto m = calculateQuantile(*table->column(7), 0.7);
-// 		std::cout << "median: " << toVector<double>(*m).at(0) << std::endl;
-
-	});
-	std::cout<<"";
-}
-
-BOOST_AUTO_TEST_CASE(ParseBigFile)
-{
-	measure("parse big file", 20, [&]
-	{
-	 	auto csv = parseCsvFile("C:/installments_payments.csv");
-	 	auto table = csvToArrowTable(std::move(csv), TakeFirstRowAsHeaders{}, {});
-	 
-	 	//saveTableToFeatherFile("C:/installments_payments.feather", *table);
-	});
-
-	auto integerType = std::make_shared<arrow::Int64Type>();
-	auto doubleType = std::make_shared<arrow::DoubleType>();
-	auto textType = std::make_shared<arrow::StringType>();
-
-	std::vector<ColumnType> expectedTypes
-	{
-		ColumnType{ integerType, false, true },
-		ColumnType{ integerType, false, true },
-		ColumnType{ doubleType , false, true },
-		ColumnType{ integerType, false, true },
-		ColumnType{ doubleType , false, true },
-		ColumnType{ doubleType , false, true },
-		ColumnType{ doubleType , false, true },
-		ColumnType{ doubleType , false, true },
-	};
-	auto csv = parseCsvFile("C:/installments_payments.csv");
-	auto table = csvToArrowTable(std::move(csv), TakeFirstRowAsHeaders{}, {});
-
-	//std::vector<ColumnType> typesEncountered;
-	for(int i = 0; i < table->num_columns(); i++)
-	{
-		const auto column = table->column(i);
-		//typesEncountered.emplace_back(column->type(), column->field()->nullable());
-
-		BOOST_CHECK_EQUAL(expectedTypes.at(i).type->id(), column->type()->id());
-		BOOST_CHECK_EQUAL(expectedTypes.at(i).nullable, column->field()->nullable());
-	}
-}
-
-
-BOOST_AUTO_TEST_CASE(WriteBigFile)
-{
-	const auto path = R"(E:/hmda_lar-florida.csv)";
-	auto csv = parseCsvFile(path);
-	auto table = csvToArrowTable(csv, TakeFirstRowAsHeaders{}, {});
-	// 	for(int i  = 0; i < 20; i++)
-	// 	{
-	// 		measure("load big file contents1", getFileContents, path);
-	// 		measure("load big file contents2", get_file_contents, path);
-	// 	}
-
-	for(int i = 0; i < 10; i++)
-	{
-		measure("write big file", [&]
-		{
-			std::ofstream out{"ffffff.csv"};
-			generateCsv(out, *table, GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy::QueteAllFields);
-		});
-	}
-}
-
 BOOST_AUTO_TEST_CASE(TypeDeducing)
 {
 	BOOST_CHECK_EQUAL(deduceType("5.0"), arrow::Type::DOUBLE);
@@ -776,24 +590,24 @@ BOOST_AUTO_TEST_CASE(Statistics)
 	auto intsColumn = toColumn(ints, "ints");
 	auto doublesColumn = toColumn(doubles, "doubles");
 	auto intsMin = calculateMin(*intsColumn);
-	BOOST_CHECK(toVector<std::optional<int64_t>>(*intsMin) == std::vector<std::optional<int64_t>>{1});
+	BOOST_CHECK_EQUAL(toVector<std::optional<int64_t>>(*intsMin), std::vector<std::optional<int64_t>>{1});
 	auto nullIntsMin = toVector<std::optional<int64_t>>(*calculateMin(*toColumn(intsNulls)));
-	BOOST_CHECK(nullIntsMin == std::vector<std::optional<int64_t>>{std::nullopt});
+	BOOST_CHECK_EQUAL(nullIntsMin, std::vector<std::optional<int64_t>>{std::nullopt});
 
 	auto intsMax = calculateMax(*intsColumn);
-	BOOST_CHECK(toVector<std::optional<int64_t>>(*intsMax) == std::vector<std::optional<int64_t>>{11});
+	BOOST_CHECK_EQUAL(toVector<std::optional<int64_t>>(*intsMax), std::vector<std::optional<int64_t>>{11});
 	auto nullIntsMax = toVector<std::optional<int64_t>>(*calculateMin(*toColumn(intsNulls)));
-	BOOST_CHECK(nullIntsMax == std::vector<std::optional<int64_t>>{std::nullopt});
+	BOOST_CHECK_EQUAL(nullIntsMax, std::vector<std::optional<int64_t>>{std::nullopt});
 
 	auto intsMean = calculateMean(*intsColumn);
-	BOOST_CHECK(toVector<std::optional<int64_t>>(*intsMean) == std::vector<std::optional<int64_t>>{4});
+	BOOST_CHECK_EQUAL(toVector<std::optional<int64_t>>(*intsMean), std::vector<std::optional<int64_t>>{4});
 	auto nullIntsMean = toVector<std::optional<int64_t>>(*calculateMin(*toColumn(intsNulls)));
-	BOOST_CHECK(nullIntsMean == std::vector<std::optional<int64_t>>{std::nullopt});
+	BOOST_CHECK_EQUAL(nullIntsMean, std::vector<std::optional<int64_t>>{std::nullopt});
 
 	auto intsMedian = calculateMedian(*intsColumn);
-	BOOST_CHECK(toVector<std::optional<int64_t>>(*intsMedian) == std::vector<std::optional<int64_t>>{3});
+	BOOST_CHECK_EQUAL(toVector<std::optional<int64_t>>(*intsMedian), std::vector<std::optional<int64_t>>{2});
 	auto nullIntsMedian = toVector<std::optional<int64_t>>(*calculateMin(*toColumn(intsNulls)));
-	BOOST_CHECK(nullIntsMedian == std::vector<std::optional<int64_t>>{std::nullopt});
+	BOOST_CHECK_EQUAL(nullIntsMedian,  std::vector<std::optional<int64_t>>{std::nullopt});
 
 	calculateCorrelation(*intsColumn, *doublesColumn);
 // 

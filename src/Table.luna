@@ -4,9 +4,6 @@ import Dataframes.Types
 import Dataframes.Internal.CWrappers
 import Dataframes.Plot.Matplotlib
 
-import Std.Foreign
-import Dataframes.Helper
-
 class Table:
     Table
     TableVal (TableWrapper)
@@ -135,7 +132,7 @@ class Table:
         column = self.at columnName . toColumn
         corrCol = Column.fromColumnWrapper $ self.ptr.corrWith column.ptr
         colNames = self.toList . each .name
-        corrList = colToRealList corrCol
+        corrList = corrCol.toList
         l1 = colNames . zip corrList
         sorted = l1.sortBy .second
         names = sorted.each .first

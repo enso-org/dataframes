@@ -71,6 +71,18 @@ template<typename Array>
 using ArrayTypeDescription = TypeDescription<std::decay_t<std::remove_pointer_t<Array>>::TypeClass::type_id>;
 
 template<typename F>
+auto visitType(const arrow::Type::type &id, F &&f)
+{
+    switch(id)
+    {
+    case arrow::Type::INT64 : return f(std::integral_constant<arrow::Type::type, arrow::Type::INT64 >{});
+    case arrow::Type::DOUBLE: return f(std::integral_constant<arrow::Type::type, arrow::Type::DOUBLE>{});
+    case arrow::Type::STRING: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
+    default: throw std::runtime_error("array type not supported to downcast: " + std::to_string((int)id));
+    }
+}
+
+template<typename F>
 auto visitType(const arrow::DataType &type, F &&f)
 {
     switch(type.id())
@@ -251,10 +263,20 @@ void toVector(std::vector<T> &out, const arrow::Array &array)
     );
 }
 
+template<typename ArrowSth>
+int64_t count(const ArrowSth &sth, bool withNull)
+{
+    if(withNull)
+        return sth.length();
+    else
+        return sth.length() - sth.null_count();
+}
+
 template<typename T>
 std::vector<T> toVector(const arrow::Array &array)
 {
     std::vector<T> ret;
+    ret.reserve(count(array, is_optional_v<T>));
     toVector(ret, array);
     return ret;
 }
@@ -263,6 +285,7 @@ template<typename T>
 std::vector<T> toVector(const arrow::ChunkedArray &array)
 {
     std::vector<T> ret;
+    ret.reserve(count(array, is_optional_v<T>));
     for(auto &&chunk : array.chunks())
         toVector(ret, *chunk);
     return ret;
@@ -288,6 +311,7 @@ auto toArray(const std::vector<T> &elems)
 
     using BuilderT = typename TypeDescription<ValueTypeToId<ValueT>()>::BuilderType;
     BuilderT builder;
+    builder.Reserve(elems.size());
     for(auto &&elem : elems)
     {
         if constexpr(is_optional_v<T>)

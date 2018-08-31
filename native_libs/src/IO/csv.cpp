@@ -8,11 +8,13 @@
 #include <algorithm>
 #include <cinttypes>
 #include <cstdio>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <map>
 #include <sstream>
 #include <unordered_set>
+#include <utility>
 
 #include <arrow/table.h>
 #include <arrow/builder.h>
@@ -23,9 +25,9 @@ arrow::Type::type deduceType(std::string_view text)
 {
     if(text.empty())
         return arrow::Type::NA;
-    if(parseAs<int64_t>(text))
+    if(Parser::as<int64_t>(text))
         return arrow::Type::INT64;
-    if(parseAs<double>(text))
+    if(Parser::as<double>(text))
         return arrow::Type::DOUBLE;
     return arrow::Type::STRING;
 }
@@ -63,7 +65,7 @@ struct ColumnBuilder
 
     ColumnBuilder(MissingField missingField) : missingField(missingField) {}
 
-    void addFromString(const std::string_view &field)
+    NO_INLINE void addFromString(const std::string_view &field)
     {
         if constexpr(type == arrow::Type::STRING)
         {
@@ -76,12 +78,17 @@ struct ColumnBuilder
         {
             if(field.size() != 0)
             {
-                const auto fieldEnd = const_cast<char *>(field.data() + field.size());
-                *fieldEnd = '\0';
-                char *next = nullptr;
+                // some number parsers require strings to be null terminated
+                // we can safely overwrite data with null, as it can be only junk or parsed separatror
+                if constexpr(Parser::requiresNull)
+                {
+                    const auto fieldEnd = const_cast<char *>(field.data() + field.size());
+                    *fieldEnd = '\0';
+                }
+
                 if constexpr(type == arrow::Type::INT64)
                 {
-                    if(auto v = parseAs<int64_t>(field))
+                    if(auto v = Parser::as<int64_t>(field))
                     {
                         checkStatus(builder.Append(*v));
                     }
@@ -92,7 +99,7 @@ struct ColumnBuilder
                 }
                 else if constexpr(type == arrow::Type::DOUBLE)
                 {
-                    if(auto v = parseAs<double>(field))
+                    if(auto v = Parser::as<double>(field))
                     {
                         checkStatus(builder.Append(*v));
                     }
@@ -398,6 +405,15 @@ void generateCsv(std::ostream &out, const arrow::Table &table, GeneratorHeaderPo
             writers[column]->consumeField(generator);
         }
     }
+}
+
+void generateCsv(const char *filepath, const arrow::Table &table, GeneratorHeaderPolicy headerPolicy, GeneratorQuotingPolicy quotingPolicy, char fieldSeparator /*= ','*/, char recordSeparator /*= '\n'*/, char quote /*= '"'*/)
+{
+    std::ofstream out{filepath};
+    if(!out)
+        throw std::runtime_error("Cannot write to file "s + filepath);
+
+    generateCsv(out, table, headerPolicy, quotingPolicy);
 }
 
 std::string_view CsvParser::parseField()

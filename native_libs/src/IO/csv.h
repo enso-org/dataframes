@@ -70,3 +70,4 @@ DFH_EXPORT ParsedCsv parseCsvData(std::string data, char fieldSeparator = ',', c
 DFH_EXPORT std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy header, std::vector<ColumnType> columnTypes, int typeDeductionDepth = 50);
 
 DFH_EXPORT void generateCsv(std::ostream &out, const arrow::Table &table, GeneratorHeaderPolicy headerPolicy, GeneratorQuotingPolicy quotingPolicy, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');
+DFH_EXPORT void generateCsv(const char *filepath, const arrow::Table &table, GeneratorHeaderPolicy headerPolicy = GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy quotingPolicy = GeneratorQuotingPolicy::QuoteWhenNeeded, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');

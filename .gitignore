@@ -2,6 +2,11 @@
 x64/
 build/
 native_libs/macos/**
+native_libs/windows/**
+native_libs/linux/**
 .idea/
 
 *.vcxproj.user
+*.vspx
+*.psess
+*.vsp

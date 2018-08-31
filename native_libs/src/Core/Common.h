@@ -8,6 +8,9 @@
 
 #include "optional.h"
 
+using namespace std::literals;
+using namespace std::chrono_literals;
+
 #ifdef _MSC_VER
 #define FORCE_INLINE __forceinline
 #else
@@ -59,49 +62,6 @@ namespace std
 }
 #endif
 
-// returns pair [f(args...), elapsed time]
-template<typename F, typename ...Args>
-static auto duration(F&& func, Args&&... args)
-{
-    const auto start = std::chrono::steady_clock::now();
-    if constexpr(std::is_same_v<void, std::invoke_result_t<F, Args...>>)
-    {
-        std::invoke(std::forward<F>(func), std::forward<Args>(args)...);
-        return std::make_pair(nullptr, std::chrono::steady_clock::now() - start);
-    }
-    else
-    {
-        auto ret = std::invoke(std::forward<F>(func), std::forward<Args>(args)...);
-        return std::make_pair(std::move(ret), std::chrono::steady_clock::now() - start);
-    }
-}
-
-template<typename F, typename ...Args>
-static auto measure(std::string text, F&& func, Args&&... args)
-{
-    const auto results = duration(std::forward<F>(func), std::forward<Args>(args)...);
-    const auto t = std::chrono::duration_cast<std::chrono::microseconds>(results.second).count();
-    std::cout << text << " took " << t / 1000.0 << " ms" << std::endl;
-    return results;
-}
-
-template<typename F, typename ...Args>
-static auto measure(std::string text, int N, F&& func, Args&&... args)
-{
-    auto result = duration(func, args...);
-
-    for(int i = 0; i < N; i++)
-    {
-        const auto result2 = duration(func, args...);
-        result.second = std::min(result.second, result2.second);
-        const auto t = std::chrono::duration_cast<std::chrono::microseconds>(result.second);
-        const auto tBest = std::chrono::duration_cast<std::chrono::microseconds>(result2.second);
-        std::cout << text << " took " << t.count() / 1000.0 << " ms, best: " << tBest.count() / 1000. << " ms" << std::endl;
-    }
-
-    return result;
-}
-
 template<typename Range, typename F>
 auto transformToVector(Range &&range, F &&f)
 {
@@ -141,6 +101,19 @@ namespace std
             return out << *opt;
         else
             return out << std::nullopt;
+    }
+
+    template<typename T>
+    std::ostream &operator<<(std::ostream &out, const std::vector<T> &arr)
+    {
+        out << "[ ";
+        if(arr.size())
+            out << arr[0];
+
+        for(int i = 1; i < (int)arr.size(); i++)
+            out << "; " << arr[i];
+        out << " ]";
+        return out;
     }
 }
 

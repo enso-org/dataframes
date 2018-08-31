@@ -1223,11 +1223,7 @@ extern "C"
         LOG("table={}, filepath={}", (void*)table, filename);
         return TRANSLATE_EXCEPTION(outError)
         {
-            std::ofstream out{filename};
-            if(!out)
-                throw std::runtime_error("Cannot write to file "s + filename);
-
-            generateCsv(out, *table, headerPolicy, quotingPolicy);
+            generateCsv(filename, *table, headerPolicy, quotingPolicy);
         };
     }
 

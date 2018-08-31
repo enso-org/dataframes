@@ -184,13 +184,4 @@ extern "C" {
       return LifetimeManager::instance().addOwnership(std::move(t));
     }();
   }
-
-  EXPORT void toRealBuf(arrow::Column* col, double* buf) {
-    [&]
-    {
-      iterateOver<arrow::Type::DOUBLE>(*col,
-        [&] (auto &&elem) { *(buf++) = elem; },
-        [&] () { *(buf++) = 0; });
-    }();
-  }
 }
