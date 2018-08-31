@@ -1,4 +1,7 @@
-#define BOOST_TEST_DYN_LINK 
+#ifndef  _MSC_VER
+#define BOOST_TEST_DYN_LINK  // otherwise GCC gets undefined main error
+#endif // ! _MSC_VER
+
 #define BOOST_TEST_MODULE DataframeHelperTests
 #include <boost/test/unit_test.hpp>
 
