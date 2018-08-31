@@ -12,8 +12,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
-    <ProjectGuid>{899B5CE2-B02C-4841-AAE8-6F33B5F1460E}</ProjectGuid>
-    <RootNamespace>DataframeHelper</RootNamespace>
+    <ProjectGuid>{DB21CF45-ED79-4996-A2BD-BEC689322DD7}</ProjectGuid>
+    <RootNamespace>DataframePlotter</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -43,12 +43,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LibraryPath>$(QtDir)\lib;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir);$(SolutionDir)\..\third-party\variant-lite;$(SolutionDir)\..\third-party\any-lite;$(SolutionDir);$(IncludePath)</IncludePath>
+    <LibraryPath>$(QtDir)\lib;$(OutDir);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir);$(SolutionDir)\..\third-party\variant-lite;$(SolutionDir)\..\third-party\any-lite;$(SolutionDir)\..\third-party\matplotlib-cpp;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LibraryPath>$(QtDir)\lib;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir);$(SolutionDir)\..\third-party\variant-lite;$(SolutionDir)\..\third-party\any-lite;$(SolutionDir);$(IncludePath)</IncludePath>
+    <LibraryPath>$(QtDir)\lib;$(OutDir);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir);$(SolutionDir)\..\third-party\variant-lite;$(SolutionDir)\..\third-party\any-lite;$(SolutionDir)\..\third-party\matplotlib-cpp;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -57,10 +57,10 @@
       <DiagnosticsFormat>Classic</DiagnosticsFormat>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>BUILDING_DATAFRAME_HELPER;RAPIDJSON_NOMEMBERITERATORCLASS;VERBOSE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>VERBOSE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>arrowd.lib;xlntd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>DataframeHelper.lib;arrowd.lib;xlntd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -72,7 +72,7 @@
       <DiagnosticsFormat>Classic</DiagnosticsFormat>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>BUILDING_DATAFRAME_HELPER;RAPIDJSON_NOMEMBERITERATORCLASS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <SDLCheck>false</SDLCheck>
       <ControlFlowGuard>false</ControlFlowGuard>
@@ -80,44 +80,14 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>arrow.lib;xlnt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>DataframeHelper.lib;arrow.lib;xlnt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Analysis.cpp" />
-    <ClCompile Include="Core\ArrowUtilities.cpp" />
-    <ClCompile Include="Core\Benchmark.cpp" />
-    <ClCompile Include="Core\Common.cpp" />
-    <ClCompile Include="Core\Error.cpp" />
-    <ClCompile Include="Core\Logger.cpp" />
-    <ClCompile Include="Core\Utils.cpp" />
-    <ClCompile Include="IO\csv.cpp" />
-    <ClCompile Include="IO\Feather.cpp" />
-    <ClCompile Include="IO\IO.cpp" />
-    <ClCompile Include="IO\JSON.cpp" />
-    <ClCompile Include="IO\XLSX.cpp" />
-    <ClCompile Include="LifetimeManager.cpp" />
-    <ClCompile Include="LQuery\AST.cpp" />
-    <ClCompile Include="LQuery\Interpreter.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="Processing.cpp" />
+    <ClCompile Include="..\plotter\Matplotlib\Plot.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Analysis.h" />
-    <ClInclude Include="Core\ArrowUtilities.h" />
-    <ClInclude Include="Core\Benchmark.h" />
-    <ClInclude Include="Core\Common.h" />
-    <ClInclude Include="Core\Error.h" />
-    <ClInclude Include="Core\Logger.h" />
-    <ClInclude Include="IO\csv.h" />
-    <ClInclude Include="IO\Feather.h" />
-    <ClInclude Include="IO\IO.h" />
-    <ClInclude Include="IO\JSON.h" />
-    <ClInclude Include="IO\XLSX.h" />
-    <ClInclude Include="LifetimeManager.h" />
-    <ClInclude Include="LQuery\AST.h" />
-    <ClInclude Include="LQuery\Interpreter.h" />
-    <ClInclude Include="Processing.h" />
+    <ClInclude Include="..\plotter\Matplotlib\B64.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
