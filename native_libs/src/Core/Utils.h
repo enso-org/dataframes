@@ -15,7 +15,7 @@ struct OldStyleNumberParser
     static constexpr bool requiresNull = true;
 
     template<typename T>
-    std::optional<T> parseAs(std::string_view text)
+    static std::optional<T> as(std::string_view text)
     {
         if(text.empty())
             return {};
