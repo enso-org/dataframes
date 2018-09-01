@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(SortSimple)
 {
     std::vector<std::optional<int64_t>> ints{ std::nullopt, 1, 2, std::nullopt, 1, 2, std::nullopt, 2, 1 };
     std::vector<std::optional<double>> doubles{ 20.0, 8.0, std::nullopt, std::nullopt, 16.0, 9.0, 10.0, 3.0, std::nullopt };
-    std::vector<std::optional<std::string>> strings{ std::nullopt, "one", std::nullopt, "4", "4", "five", std::nullopt, "7", "7" };
+    std::vector<std::optional<std::string>> strings{ std::nullopt, "one"s, std::nullopt, "4"s, "4"s, "five"s, std::nullopt, "7"s, "7"s };
     auto iota = iotaVector(ints.size());
 
     auto table = tableFromVectors(ints, doubles, strings, iota);
@@ -700,8 +700,8 @@ BOOST_AUTO_TEST_CASE(FillingNAInts)
 BOOST_AUTO_TEST_CASE(FillingNAStrings)
 {
 	std::string fillWith = "foo";
-	std::vector<std::optional<std::string>> values = {std::nullopt, "1", "2", std::nullopt, "4", "5", std::nullopt, std::nullopt};
-	std::vector<std::optional<std::string>> expectedFilled = {fillWith, "1", "2", fillWith, "4", "5", fillWith, fillWith};
+	std::vector<std::optional<std::string>> values = {std::nullopt, "1"s, "2"s, std::nullopt, "4"s, "5"s, std::nullopt, std::nullopt};
+	std::vector<std::optional<std::string>> expectedFilled = {fillWith, "1"s, "2"s, fillWith, "4"s, "5"s, fillWith, fillWith};
 	auto column = toColumn(values);
 	auto columnFilled = fillNA(column, fillWith);
 	auto valuesFilled = toVector<std::string>(*columnFilled);
@@ -761,7 +761,7 @@ BOOST_AUTO_TEST_CASE(InterpolateNA)
         { std::nullopt, 10, std::nullopt, std::nullopt, 16, std::nullopt },
         { 10,           10, 12,           14,           16, 16 });
     // strings cannot be interpolated
-    BOOST_CHECK_THROW(testInterpolation<std::string>({"foo", std::nullopt, "bar"}, {}), std::exception);
+    BOOST_CHECK_THROW(testInterpolation<std::string>({"foo"s, std::nullopt, "bar"s}, {}), std::exception);
 }
 
 BOOST_AUTO_TEST_CASE(MakeNullsArray)
