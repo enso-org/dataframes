@@ -198,265 +198,292 @@ struct FilteringFixture
 	}
 };
 
-BOOST_FIXTURE_TEST_CASE(MappingSimpleCase, FilteringFixture)
+BOOST_FIXTURE_TEST_CASE(MapToIntLiteral, FilteringFixture)
 {
-	{
-		const auto jsonQuery = R"(5)";
-		testMap<int64_t>(jsonQuery, { 5, 5, 5, 5, 5 });
-	}
-	{
-		const auto jsonQuery = R"(5.0)";
-		testMap<double>(jsonQuery, { 5.0, 5.0, 5.0, 5.0, 5.0 });
-	}
-	{
-		const auto jsonQuery = R"("foo")";
-		testMap<std::string>(jsonQuery, { "foo", "foo", "foo", "foo", "foo" });
-	}
-	{
-		const auto jsonQuery = R"(
-			{
-				"operation": "times", 
-				"arguments": 
+	const auto jsonQuery = R"(5)";
+	testMap<int64_t>(jsonQuery, { 5, 5, 5, 5, 5 });
+}
+
+BOOST_FIXTURE_TEST_CASE(MapToDoubleLiteral, FilteringFixture)
+{
+	const auto jsonQuery = R"(5.0)";
+	testMap<double>(jsonQuery, { 5.0, 5.0, 5.0, 5.0, 5.0 });
+}
+
+BOOST_FIXTURE_TEST_CASE(MapToStringLiteral, FilteringFixture)
+{
+	const auto jsonQuery = R"("foo")";
+	testMap<std::string>(jsonQuery, { "foo", "foo", "foo", "foo", "foo" });
+}
+
+BOOST_FIXTURE_TEST_CASE(MapToProduct, FilteringFixture)
+{
+    // a * b
+	const auto jsonQuery = R"(
+		{
+			"operation": "times", 
+			"arguments": 
+			[ 
+				{"column": "a"},
+				{"column": "b"}
+			] 
+		})";
+	testMap<double>(jsonQuery, { -5, 20, 0, 40, -25 });
+}
+
+BOOST_FIXTURE_TEST_CASE(MapToSumWithProduct, FilteringFixture)
+{
+    // a*2 + 4
+	const auto jsonQuery = R"(
+		{
+			"operation": "plus", 
+			"arguments": 
+			[ 
+				{
+					"operation": "times", 
+					"arguments": 
+					[ 
+						{"column": "a"},
+						2
+					] 
+				},
+				4
+			] 
+		})";
+	testMap<double>(jsonQuery, { 2, 8, 10, -4, 14 });
+}
+
+BOOST_FIXTURE_TEST_CASE(MapToNegated, FilteringFixture)
+{
+	const auto jsonQuery = R"(
+		{
+			"operation": "negate", 
+			"arguments": [ {"column": "a"} ]
+		})";
+	testMap<double>(jsonQuery, { 1, -2, -3, 4, -5 });
+}
+
+BOOST_FIXTURE_TEST_CASE(MapToAbsByCondition, FilteringFixture)
+{
+ 	// (a > 0) ? a : -a
+ 	const auto jsonQuery = R"(
+ 		{
+ 			"condition": {
+ 				"predicate": "gt",
+ 				"arguments": [{"column": "a"}, 0] },
+ 			"onTrue":  {
+ 				"column": "a"},
+ 			"onFalse": {
+ 				"operation": "negate",
+ 				"arguments": [{"column": "a"}]}
+ 		})";
+ 
+	testMap<double>(jsonQuery, {1, 2, 3, 4, 5});
+}
+
+BOOST_FIXTURE_TEST_CASE(FilterGreaterThanLiteral, FilteringFixture)
+{
+	// a > 0
+	const auto jsonQuery = R"(
+		{
+			"predicate": "gt", 
+			"arguments": 
+				[ 
+					{"column": "a"}, 
+					0 
+				] 
+		})";
+	testQuery(jsonQuery, {1, 2, 4});
+}
+
+BOOST_FIXTURE_TEST_CASE(FilterGreaterThanOtherColumn, FilteringFixture)
+{
+	// a > b
+	// tests not only using two columns but also mixed-type comparison
+	const auto jsonQuery = R"(
+		{
+			"predicate": "gt", 
+			"arguments": 
 				[ 
 					{"column": "a"},
 					{"column": "b"}
 				] 
-			})";
-		testMap<double>(jsonQuery, { -5, 20, 0, 40, -25 });
-	}
-	{
-		const auto jsonQuery = R"(
-			{
-				"operation": "plus", 
-				"arguments": 
-				[ 
-					{
-						"operation": "times", 
-						"arguments": 
-						[ 
-							{"column": "a"},
-							2
-						] 
-					},
-					4
-				] 
-			})";
-		testMap<double>(jsonQuery, { 2, 8, 10, -4, 14 });
-	}
-	{
-		const auto jsonQuery = R"(
-			{
-				"operation": "negate", 
-				"arguments": [ {"column": "a"} ]
-			})";
-		testMap<double>(jsonQuery, { 1, -2, -3, 4, -5 });
-	}
- 	{
- 		// (a > 0) ? a : -a
- 		const auto jsonQuery = R"(
- 			{
- 				"condition": {
- 					"predicate": "gt",
- 					"arguments": [{"column": "a"}, 0] },
- 				"onTrue":  {
- 					"column": "a"},
- 				"onFalse": {
- 					"operation": "negate",
- 					"arguments": [{"column": "a"}]}
- 			})";
- 
-		testMap<double>(jsonQuery, {1, 2, 3, 4, 5});
- 	}
+		})";
+
+	testQuery(jsonQuery, {2, 3, 4});
 }
 
-BOOST_FIXTURE_TEST_CASE(FilterSimpleCase, FilteringFixture)
+BOOST_FIXTURE_TEST_CASE(FilterEqualString, FilteringFixture)
 {
-	
-	{
-		// a > 0
-		const auto jsonQuery = R"(
-			{
-				"predicate": "gt", 
-				"arguments": 
-					[ 
-						{"column": "a"}, 
-						0 
-					] 
-			})";
-		testQuery(jsonQuery, {1, 2, 4});
-	}
+	// c == "baz"
+	// tests not only using two columns but also mixed-type comparison
+	const auto jsonQuery = R"(
+		{
+			"predicate": "eq", 
+			"arguments": 
+				[ 
+					{"column": "c"},
+					"baz"
+				] 
+		})";
 
-	{
-		// a > b
-		// tests not only using two columns but also mixed-type comparison
-		const auto jsonQuery = R"(
-			{
-				"predicate": "gt", 
-				"arguments": 
+	testQuery(jsonQuery, {2});
+}
+
+BOOST_FIXTURE_TEST_CASE(FilterEqualInt, FilteringFixture)
+{
+	// c == 8
+	// error: cannot compare string column against number literal
+	const auto jsonQuery = R"(
+		{
+			"predicate": "eq", 
+			"arguments": 
+				[ 
+					{"column": "c"},
+					8
+				] 
+		})";
+
+	BOOST_CHECK_THROW(filter(table, jsonQuery), std::exception);
+}
+
+BOOST_FIXTURE_TEST_CASE(FilterStringStartsWith, FilteringFixture)
+{
+	// c.startsWith "f"
+	const auto jsonQuery = R"(
+		{
+			"predicate": "startsWith", 
+			"arguments": 
+				[ 
+					{"column": "c"},
+					"f"
+				] 
+		})";
+
+	testQuery(jsonQuery, {0});
+}
+
+BOOST_FIXTURE_TEST_CASE(FilterStartsWith2, FilteringFixture)
+{
+	// c.startsWith "ba"
+	const auto jsonQuery = R"(
+		{
+			"predicate": "startsWith", 
+			"arguments": 
+				[ 
+					{"column": "c"},
+					"ba"
+				] 
+		})";
+
+	testQuery(jsonQuery, {1, 2});
+}
+
+BOOST_FIXTURE_TEST_CASE(FilterStartsWith3, FilteringFixture)
+{
+	// c.startsWith "baa"
+	const auto jsonQuery = R"(
+		{
+			"predicate": "startsWith", 
+			"arguments": 
+				[ 
+					{"column": "c"},
+					"baa"
+				] 
+		})";
+
+	testQuery(jsonQuery, {});
+}
+
+BOOST_FIXTURE_TEST_CASE(FilterMatches, FilteringFixture)
+{
+	// c.matches "ba."
+	const auto jsonQuery = R"(
+		{
+			"predicate": "matches", 
+			"arguments": 
+				[ 
+					{"column": "c"},
+					"ba."
+				] 
+		})";
+
+	testQuery(jsonQuery, {1, 2});
+}
+
+BOOST_FIXTURE_TEST_CASE(FilterPredicateOr, FilteringFixture)
+{
+	// a > 0 || b < 0
+	const auto jsonQuery = R"(
+		{
+			"boolean": "or",
+			"arguments":
+			[
+				{
+					"predicate": "gt", 
+					"arguments": 
 					[ 
 						{"column": "a"},
-						{"column": "b"}
+						0
 					] 
-			})";
-
-		testQuery(jsonQuery, {2, 3, 4});
-	}
-	{
-		// c == "baz"
-		// tests not only using two columns but also mixed-type comparison
-		const auto jsonQuery = R"(
-			{
-				"predicate": "eq", 
-				"arguments": 
+				},
+				{
+					"predicate": "lt", 
+					"arguments": 
 					[ 
-						{"column": "c"},
-						"baz"
+						{"column": "b"},
+						0
 					] 
-			})";
+				}
+			]
+		})";
 
-		testQuery(jsonQuery, {2});
-	}
+	testQuery(jsonQuery, {1, 2, 3, 4});
+}
 
-	{
-		// c == 8
-		// error: cannot compare string column against number literal
-		const auto jsonQuery = R"(
-			{
-				"predicate": "eq", 
-				"arguments": 
+BOOST_FIXTURE_TEST_CASE(FilterPredicateNegate, FilteringFixture)
+{
+	// !(a > 0)
+	const auto jsonQuery = R"(
+		{
+			"boolean": "not",
+			"arguments":
+			[
+				{
+					"predicate": "gt", 
+					"arguments": 
 					[ 
-						{"column": "c"},
-						8
+						{"column": "a"},
+						0
 					] 
-			})";
+				}
+			]
+		})";
 
-		BOOST_CHECK_THROW(filter(table, jsonQuery), std::exception);
-	}
-	{
-		// c.startsWith "f"
-		const auto jsonQuery = R"(
-			{
-				"predicate": "startsWith", 
-				"arguments": 
+	testQuery(jsonQuery, {0, 3});
+}
+
+BOOST_FIXTURE_TEST_CASE(FilterInvalidLQuery, FilteringFixture)
+{
+	// (a > 0) ||
+	// error: missing second argument for `or`
+	const auto jsonQuery = R"(
+		{
+			"boolean": "or",
+			"arguments":
+			[
+				{
+					"predicate": "gt", 
+					"arguments": 
 					[ 
-						{"column": "c"},
-						"f"
+						{"column": "a"},
+						0
 					] 
-			})";
+				}
+			]
+		})";
 
-		testQuery(jsonQuery, {0});
-	}
-	{
-		// c.startsWith "ba"
-		const auto jsonQuery = R"(
-			{
-				"predicate": "startsWith", 
-				"arguments": 
-					[ 
-						{"column": "c"},
-						"ba"
-					] 
-			})";
-
-		testQuery(jsonQuery, {1, 2});
-	}
-	{
-		// c.startsWith "ba"
-		const auto jsonQuery = R"(
-			{
-				"predicate": "startsWith", 
-				"arguments": 
-					[ 
-						{"column": "c"},
-						"baa"
-					] 
-			})";
-
-		testQuery(jsonQuery, {});
-	}
-	{
-		// c.matches "ba."
-		const auto jsonQuery = R"(
-			{
-				"predicate": "matches", 
-				"arguments": 
-					[ 
-						{"column": "c"},
-						"ba."
-					] 
-			})";
-
-		testQuery(jsonQuery, {1, 2});
-	}
-	{
-		// a > 0 || b < 0
-		const auto jsonQuery = R"(
-			{
-				"boolean": "or",
-				"arguments":
-				[
-					{
-						"predicate": "gt", 
-						"arguments": 
-						[ 
-							{"column": "a"},
-							0
-						] 
-					},
-					{
-						"predicate": "lt", 
-						"arguments": 
-						[ 
-							{"column": "b"},
-							0
-						] 
-					}
-				]
-			})";
-
-		testQuery(jsonQuery, {1, 2, 3, 4});
-	}
-	{
-		// !(a > 0)
-		const auto jsonQuery = R"(
-			{
-				"boolean": "not",
-				"arguments":
-				[
-					{
-						"predicate": "gt", 
-						"arguments": 
-						[ 
-							{"column": "a"},
-							0
-						] 
-					}
-				]
-			})";
-
-		testQuery(jsonQuery, {0, 3});
-	}
-	{
-		// (a > 0) ||
-		// error: missing second argument for `or`
-		const auto jsonQuery = R"(
-			{
-				"boolean": "or",
-				"arguments":
-				[
-					{
-						"predicate": "gt", 
-						"arguments": 
-						[ 
-							{"column": "a"},
-							0
-						] 
-					}
-				]
-			})";
-
-		BOOST_CHECK_THROW(filter(table, jsonQuery), std::exception);
-	}
+	BOOST_CHECK_THROW(filter(table, jsonQuery), std::exception);
 }
 
 BOOST_AUTO_TEST_CASE(FilterWithNulls)
