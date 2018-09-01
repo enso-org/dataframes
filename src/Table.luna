@@ -141,8 +141,8 @@ class Table:
         col2 = Column.fromList ("CORR_WITH_" + columnName) DoubleType vals
         Table.fromColumns [col1, col2]
 
-    def describe colName:
-        col = self.at colName . toColumn
+    def describe columnName:
+        col = self.at columnName . toColumn
         min = col.min
         max = col.max
         mean = col.mean
@@ -152,8 +152,8 @@ class Table:
         quart3 = col.quantile 0.75
         Table.fromColumns [mean, std, min, quart1, median, quart3, max]
 
-    def countValues colName:
-        self.at colName . toColumn . countValues
+    def countValues columnName:
+        self.at columnName . toColumn . countValues
 
     def chart: ChartBuilder self
 

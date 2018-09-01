@@ -102,17 +102,27 @@ The CSV generator can be also configured whether the fields should be always enc
 ## Data processing API
 
 
-## Data analysis API
+## Data description API
 ### Table
-* `describeNa`
-* `corr`
-* `corrWith columnName`
-* `describe columnName`
-* `countValues columnName`
+* `corr` — calculates correlation matrix, with Pearson correlation coefficient for each column pair.
+* `corrWith columnName` — calculates Pearson correlation coefficient between given column in a table and its other columns.
+* `countValues columnName` — returns table with pairs (value, count).
+* `describeNa` — calculates count of null values and their ratio to the total row count.
+* `describe columnName` — calculates a number of statistics for a given column (mean, std, min, quartiles, max). 
 
 ### Column
-
-
+* `countMissing` — returns the number of null values in the column.
+* `countValues` — counts occurences of each unique value and returns pairs (value, count).
+* stats:
+  * `min` — minimum of values.
+  * `max` — maximum of values.
+  * `mean` — mean of values.
+  * `median` — median of values (interpolated, if value count is even)
+  * `std` — standard deviation of values.
+  * `var` — variation of values.
+  * `sum` — sum of values.
+  * `quantile q` — value at given quantile, q belongs to <0,1>.
+* `describe` — calculates a number of statistics for a given column (mean, std, min, quartiles, max). 
 
 ## Tutorial
 TBD
