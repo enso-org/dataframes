@@ -7,16 +7,157 @@
 
 #include <chrono>
 #include <fstream>
+#include <numeric>
+#include <random>
 
 #include "IO/csv.h"
 #include "IO/IO.h"
 #include "IO/Feather.h"
 #include "Core/ArrowUtilities.h"
+#include "Core/Benchmark.h"
 #include "optional.h"
 #include "Processing.h"
+#include "Sort.h"
 #include "Analysis.h"
 
 using namespace std::literals;
+
+
+#define BOOST_CHECK_EQUAL_RANGES(a, b) BOOST_CHECK_EQUAL_COLLECTIONS(std::begin(a), std::end(a), std::begin(b), std::end(b))
+
+// TODO: use non-aligned begins with nulls
+struct ChunkedFixture
+{
+	int N = 10'000'000;
+
+	std::vector<int64_t> intsV;
+	std::vector<double> doublesV;
+	std::mt19937 generator{std::random_device{}()};
+
+	std::shared_ptr<arrow::Column> ints, doubles;
+	std::shared_ptr<arrow::Table> table;
+
+	template <typename T>
+	std::shared_ptr<arrow::ChunkedArray> toRandomChunks(std::vector<T> &v)
+	{
+		auto continuousArray = toArray(v);
+		std::vector<std::shared_ptr<arrow::Array>> chunks;
+
+		const auto maxChunk = 200;
+		std::uniform_int_distribution<> distribution{1, maxChunk};
+
+		size_t currentPos = 0;
+		while(currentPos < v.size())
+		{
+			auto chunkSize = distribution(generator);
+            chunks.push_back(continuousArray->Slice(currentPos, chunkSize));
+			currentPos += chunkSize;
+		}
+
+        std::shuffle(chunks.begin(), chunks.end(), generator);
+		auto ret = std::make_shared<arrow::ChunkedArray>(chunks);
+        v = toVector<T>(*ret);
+		return ret;
+	}
+
+	ChunkedFixture()
+	{
+		intsV.resize(N);
+		doublesV.resize(N);
+		std::iota(intsV.begin(), intsV.end(), 0);
+		std::iota(doublesV.begin(), doublesV.end(), 0.0);
+
+		ints = toColumn(toRandomChunks(intsV), "a");
+		doubles = toColumn(toRandomChunks(doublesV), "b");
+		table = tableFromColumns({ints, doubles});
+	}
+};
+
+// TODO: fails now, because lquery interpreter was implemented without support for chunked arrays
+BOOST_FIXTURE_TEST_CASE(MappingChunked, ChunkedFixture, *boost::unit_test_framework::disabled())
+{
+    // a + b
+	const auto jsonQuery = R"(
+		{
+			"operation": "plus", 
+			"arguments": 
+			[ 
+				{"column": "a"},
+				{"column": "b"}
+			] 
+		})";
+	each(table, jsonQuery);
+}
+
+BOOST_FIXTURE_TEST_CASE(SortChunked, ChunkedFixture, *boost::unit_test_framework::disabled())
+{
+    MeasureAtLeast p{50000};
+    measure("sorting", p, [&] { return sortTable(table, {table->column(0)}); });
+    auto sortedTable0 = sortTable(table, {table->column(0)});
+
+    auto [sortedTable0Ints, sortedTable0Doubles] = toVectors<int64_t, double>(*sortedTable0);
+
+    BOOST_CHECK(std::is_sorted(sortedTable0Ints.begin(), sortedTable0Ints.end()));
+    std::cout << sortedTable0Ints.front() << std::endl;
+	std::cout << sortedTable0Doubles.front() << std::endl;
+}
+
+BOOST_AUTO_TEST_CASE(SortSimple)
+{
+    std::vector<std::optional<int64_t>> ints{ std::nullopt, 1, 2, std::nullopt, 1, 2, std::nullopt, 2, 1 };
+    std::vector<std::optional<double>> doubles{ 20.0, 8.0, std::nullopt, std::nullopt, 16.0, 9.0, 10.0, 3.0, std::nullopt };
+    std::vector<std::optional<std::string>> strings{ std::nullopt, "one", std::nullopt, "4", "4", "five", std::nullopt, "7", "7" };
+    auto iota = iotaVector(ints.size());
+
+    auto table = tableFromVectors(ints, doubles, strings, iota);
+
+    auto testSort = [&](std::vector<SortBy> sortBy, Permutation expectedOrder)
+    {
+        auto sortedTable = sortTable(table, sortBy);
+        auto[ints2, doubles2, strings2, iota2] = toVectors<std::optional<int64_t>, std::optional<double>, std::optional<std::string>, int64_t>(*sortedTable);
+        //BOOST_CHECK(std::is_sorted(ints2.begin(), ints2.end()));
+        BOOST_CHECK_EQUAL_RANGES(iota2, expectedOrder);
+        // std::cout << iota2 << std::endl;
+    };
+
+    testSort(
+        { { table->column(0), SortOrder::Ascending, NullPosition::Before }
+        , { table->column(1), SortOrder::Ascending, NullPosition::Before }}, 
+        { 3, 6, 0, 8, 1, 4, 2, 7, 5});
+    testSort(
+        { { table->column(0), SortOrder::Ascending, NullPosition::Before }
+        , { table->column(1), SortOrder::Ascending, NullPosition::After  } },
+        { 6, 0, 3, 1, 4, 8, 7, 5, 2 });
+    testSort(
+        { { table->column(0), SortOrder::Ascending,  NullPosition::Before}
+        , { table->column(1), SortOrder::Descending, NullPosition::After } },
+        { 0, 6, 3, 4, 1, 8, 5, 7, 2 });
+    testSort(
+        { { table->column(0), SortOrder::Ascending,  NullPosition::Before }
+        , { table->column(1), SortOrder::Descending, NullPosition::Before } },
+        { 3, 0, 6, 8, 4, 1, 2, 5, 7 });
+    testSort(
+        { { table->column(0), SortOrder::Ascending, NullPosition::After }
+        , { table->column(1), SortOrder::Ascending, NullPosition::Before } },
+        { 8, 1, 4, 2, 7, 5, 3, 6, 0 });
+    testSort(
+        { { table->column(0), SortOrder::Ascending, NullPosition::After }
+        , { table->column(1), SortOrder::Ascending, NullPosition::After  } },
+        { 1, 4, 8, 7, 5, 2, 6, 0, 3 });
+    testSort(
+        { { table->column(0), SortOrder::Ascending,  NullPosition::After}
+        , { table->column(1), SortOrder::Descending, NullPosition::After } },
+        { 4, 1, 8, 5, 7, 2, 0, 6, 3 });
+    testSort(
+        { { table->column(0), SortOrder::Ascending,  NullPosition::After }
+        , { table->column(1), SortOrder::Descending, NullPosition::Before } },
+        { 8, 4, 1, 2, 5, 7, 3, 0, 6 });
+
+    testSort(
+        { { table->column(2), SortOrder::Ascending,  NullPosition::After }
+        , { table->column(1), SortOrder::Ascending, NullPosition::Before } },
+        { 3, 4, 8, 7, 5, 1, 2, 6, 0 });
+}
 
 void testFieldParser(std::string input, std::string expectedContent, int expectedPosition)
 {

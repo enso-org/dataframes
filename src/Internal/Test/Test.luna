@@ -548,8 +548,24 @@ class TestArrayBuilder:
         assertEqual "read names" table2.columnNames ["a"]
         assertEqual "read column" (table2.columnAt 0).toList [Just 1, Just -2, Just 3, Nothing, Just 5]
 
+    def testSort:
+        print "Testing sort"
+        ints = Column.fromList "a" MaybeInt64Type  [Just 1, Just -2, Just 3, Nothing, Just 5]
+        table = Table.fromColumns [ints]
+        tableSorted1 = table.sortByColumn [(table.columnAt 0, Ascending, NullsAfter)]
+        assertEqual "sort asc after" (tableSorted1.columnAt 0 . toList) [Just -2, Just 1, Just 3, Just 5, Nothing]
+        tableSorted2 = table.sortByColumn [(table.columnAt 0, Ascending, NullsBefore)]
+        assertEqual "sort asc before" (tableSorted2.columnAt 0 . toList) [Nothing, Just -2, Just 1, Just 3, Just 5]
+        tableSorted3 = table.sortByColumn [(table.columnAt 0, Descending, NullsAfter)]
+        assertEqual "sort desc after" (tableSorted3.columnAt 0 . toList) [Just 5, Just 3, Just 1, Just -2, Nothing]
+        tableSorted4 = table.sortByColumn [(table.columnAt 0, Descending, NullsBefore)]
+        assertEqual "sort desc before" (tableSorted4.columnAt 0 . toList) [Nothing, Just 5, Just 3, Just 1, Just -2]
+
+        tableSorted5 = table.sort [("a", Descending, NullsBefore)]
+        assertEqual "sort name desc before" (tableSorted5.column "a" . toList) [Nothing, Just 5, Just 3, Just 1, Just -2]
 
     def run:
+        self.testSort
         self.testFeather
         self.testIf
         self.testStats

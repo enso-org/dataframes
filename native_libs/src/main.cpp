@@ -13,6 +13,7 @@
 #include "Core/Logger.h"
 #include "Analysis.h"
 #include "Processing.h"
+#include "Sort.h"
 #include "LifetimeManager.h"
 #include "IO/csv.h"
 #include "IO/Feather.h"
@@ -1150,10 +1151,32 @@ extern "C"
     }
     DFH_EXPORT arrow::Column *tableCorrelationWithColumn(arrow::Table *table, arrow::Column *column, const char **outError) noexcept
     {
-        LOG("@{} column={}", (void*)column, column->name());
+        LOG("@{} column={}", (void*)table, column->name());
         return TRANSLATE_EXCEPTION(outError)
         {
             auto ret = calculateCorrelation(*table, *column);
+            return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
+    DFH_EXPORT arrow::Table *tableSortedByColumns(arrow::Table *table, int32_t columnCount, arrow::Column **columns, SortOrder *columnOrders, NullPosition *nullPositions, const char **outError) noexcept
+    {
+        static_assert(sizeof(SortOrder) == 1);
+        static_assert(sizeof(NullPosition) == 1);
+        LOG("@{}", (void*)table);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            std::vector<SortBy> sortBy;
+            for(int i = 0; i < columnCount; i++)
+            {
+                const auto columnManaged = LifetimeManager::instance().accessOwned(columns[i]);
+                if(columnManaged->length() != table->num_rows())
+                    throw std::runtime_error("Column to sort by named '" + columnManaged->name() + "' has different row count than the table to be sorted!");
+
+                sortBy.emplace_back(columnManaged, columnOrders[i], nullPositions[i]);
+            }
+
+            auto tableManaged = LifetimeManager::instance().accessOwned(table);
+            auto ret = sortTable(tableManaged, sortBy);
             return LifetimeManager::instance().addOwnership(ret);
         };
     }

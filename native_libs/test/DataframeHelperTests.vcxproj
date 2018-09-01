@@ -19,7 +19,7 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{EAD3EB9B-8C2F-40E8-80A1-4B5ED9AD6842}</ProjectGuid>
     <RootNamespace>DataframeHelperTest</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">

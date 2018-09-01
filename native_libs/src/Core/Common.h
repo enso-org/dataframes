@@ -106,13 +106,13 @@ namespace std
     template<typename T>
     std::ostream &operator<<(std::ostream &out, const std::vector<T> &arr)
     {
-        out << "[ ";
+        out << "{ ";
         if(arr.size())
             out << arr[0];
 
         for(int i = 1; i < (int)arr.size(); i++)
-            out << "; " << arr[i];
-        out << " ]";
+            out << ", " << arr[i];
+        out << " }";
         return out;
     }
 }
@@ -123,4 +123,23 @@ template<typename T>
 T lerp(T v0, T v1, T t) 
 {
     return (1 - t) * v0 + t * v1;
+}
+
+// Disabled due to MSVC bug: https://developercommunity.visualstudio.com/content/problem/327775/problem-with-auto-template-non-type-parameter-and.html
+// Very similar bug in GCC 7.
+// template<auto Value>
+// auto makeIntegralConstant()
+// {
+//     using T = decltype(Value);
+//     return std::integral_constant<T, Value>{};
+// }
+
+template<typename T = int64_t>
+std::vector<T> iotaVector(size_t N, T from = T{})
+{
+    std::vector<T> ret;
+    ret.resize(N);
+    for(auto &elem : ret)
+        elem = from++;
+    return ret;
 }

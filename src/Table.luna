@@ -4,6 +4,28 @@ import Dataframes.Types
 import Dataframes.Internal.CWrappers
 import Dataframes.Plot.Matplotlib
 
+import Std.Foreign.C.Value
+
+class SortOrder:
+    Ascending
+    Descending
+
+    def toCArg:
+        i = case self of
+            Ascending: 0
+            Descending: 1
+        CInt8.fromInt i
+
+class NullPosition:
+    NullsBefore
+    NullsAfter
+
+    def toCArg:
+        i = case self of
+            NullsBefore: 0
+            NullsAfter: 1
+        CInt8.fromInt i
+
 class Table:
     Table
     TableVal (TableWrapper)
@@ -48,10 +70,11 @@ class Table:
         col = column.rename name
         columns = before + [col] + after
         self.fromColumns columns
+    def column name:
+        ix = self.schema.getFieldIndexByName name
+        self.columnAt ix    
     def columns names:
-        schema = self.schema
-        ixes = names.each schema.getFieldIndexByName
-        columns = ixes.each self.columnAt
+        columns = names.each self.column
         self.fromColumns columns
     def removeColumn index:
         self.fromWrapper $ self.ptr.removeColumn index
@@ -98,6 +121,13 @@ class Table:
     def eachTo name f:
         r = self.each f
         self.setAt name r
+
+    # sortBy :: [(Column, SortOrder, NullPosition)]
+    def sortByColumn sortBy:
+        self.fromWrapper $ self.ptr.sort (sortBy.each (col, b, c): (col.ptr, b, c))
+    # sortBy is list of triples: [(column name :: Text, SortOrder, NullPosition)]
+    def sort sortBy:
+        self.sortByColumn $ sortBy.each (colName, order, pos): (self.column colName, order, pos)
     def dropNa:
         self.fromWrapper $ self.ptr.dropNa
     def dropNaAt columnName:

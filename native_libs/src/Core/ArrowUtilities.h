@@ -305,7 +305,7 @@ using strip_optional_t = typename strip_optional<T>::type;
 
 
 template<typename T>
-auto toArray(const std::vector<T> &elems)
+std::shared_ptr<arrow::Array> toArray(const std::vector<T> &elems)
 {
     using ValueT = strip_optional_t<T>;
 
@@ -335,6 +335,8 @@ auto toColumn(const std::vector<T> &elems, std::string name = "col")
     auto field = arrow::field(name, array->type(), is_optional_v<T>);
     return std::make_shared<arrow::Column>(field, array);
 }
+
+DFH_EXPORT std::shared_ptr<arrow::Column> toColumn(std::shared_ptr<arrow::ChunkedArray> chunks, std::string name = "col");
 
 template<typename T>
 auto scalarToColumn(const T &elem, std::string name = "col")
@@ -391,6 +393,12 @@ using PossiblyChunkedArray = std::variant<std::shared_ptr<arrow::Array>, std::sh
 DFH_EXPORT std::shared_ptr<arrow::Table> tableFromArrays(std::vector<PossiblyChunkedArray> arrays, std::vector<std::string> names = {}, std::vector<bool> nullables = {});
 DFH_EXPORT std::shared_ptr<arrow::Table> tableFromColumns(const std::vector<std::shared_ptr<arrow::Column>> &columns);
 
+template<typename ...Ts>
+std::shared_ptr<arrow::Table> tableFromVectors(const std::vector<Ts> & ...ts)
+{
+    return tableFromArrays({toArray(ts)...});
+}
+
 using DynamicField = std::variant<int64_t, double, std::string_view, std::string, std::nullopt_t>;
 
 using DynamicJustVector = std::variant<std::vector<int64_t>, std::vector<double>, std::vector<std::string_view>>;
@@ -401,8 +409,30 @@ DFH_EXPORT DynamicField arrayAt(const arrow::Array &array, int64_t index);
 DFH_EXPORT DynamicField arrayAt(const arrow::ChunkedArray &array, int64_t index);
 DFH_EXPORT DynamicField arrayAt(const arrow::Column &column, int64_t index);
 
-DFH_EXPORT std::pair<std::shared_ptr<arrow::Array>, int64_t> locateChunk(const arrow::ChunkedArray &chunkedArray, int64_t index);
+struct DFH_EXPORT ChunkAccessor
+{
+    std::vector<std::shared_ptr<arrow::Array>> chunks;
+    std::vector<int64_t> chunkStartIndices;
 
+    ChunkAccessor(const arrow::ChunkedArray &array);
+    std::pair<const arrow::Array *, int32_t> locate(int64_t index) const;
+
+    template <arrow::Type::type type>
+    auto valueAt(const arrow::Column &column, int64_t index) const
+    {
+        auto [chunk, chunkIndex] = locate(index);
+        return arrayValueAt<type>(*chunk, chunkIndex);
+    }
+};
+
+DFH_EXPORT std::pair<std::shared_ptr<arrow::Array>, int32_t> locateChunk(const arrow::ChunkedArray &chunkedArray, int64_t index);
+
+template <arrow::Type::type type>
+auto columnValueAt(const arrow::Column &column, int64_t index)
+{
+	auto [chunk, chunkIndex] = locateChunk(*column.data(), index);
+	return arrayValueAt<type>(*chunk, chunkIndex);
+}
 DFH_EXPORT std::vector<DynamicField> rowAt(const arrow::Table &table, int64_t index);
 
 DFH_EXPORT void validateIndex(const arrow::Array &array, int64_t index);
@@ -431,8 +461,8 @@ void iterateOverJustPairs(const arrow::ChunkedArray &array1, const arrow::Chunke
 
     int64_t row = 0;
 
-    int32_t chunk1Length = (*chunks1Itr)->length();
-    int32_t chunk2Length = (*chunks2Itr)->length();
+    int32_t chunk1Length = (int32_t) (*chunks1Itr)->length(); // arrow specification says that array size is 32-bit
+    int32_t chunk2Length = (int32_t) (*chunks2Itr)->length(); // arrow specification says that array size is 32-bit
 
     int32_t index1 = -1, index2 = -1;
     for( ; row < N; row++)

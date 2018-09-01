@@ -178,6 +178,8 @@ def createFieldWrapper name datatypeWrapper nullable:
 class ColumnWrapper:
     ptr :: ManagedPointer None
 
+    def toCArg:
+        self.ptr.toCArg
     def nullCount:
         callHelper "columnNullCount" CInt64 [self.ptr.toCArg] . toInt
     def length:
@@ -330,6 +332,17 @@ class TableWrapper:
     def corrWith column:
         ptr = callHandlingError "tableCorrelationWithColumn" (Pointer None) [self.ptr.toCArg, column.ptr.toCArg]
         wrapReleasableResouce ColumnWrapper ptr
+
+    # sortBy :: [(ColumnWrapper, SortOrder, NullPosition))]
+    def sort sortBy:
+        columnWrapperPtrs = sortBy.each (col, _, _): col.ptr.ptr
+        orders = sortBy.each (_, order, _): order.toCArg
+        nullPositions = sortBy.each (_, _, nullPosition): nullPosition.toCArg
+        ptr = Array (Pointer None) . with columnWrapperPtrs columnsC:
+            Array CInt8 . with orders ordersC:
+                Array CInt8 . with nullPositions nullPositionsC:
+                    callHandlingError "tableSortedByColumns" (Pointer None) [self.ptr.toCArg, CInt32.fromInt sortBy.length . toCArg, columnsC.toCArg, ordersC.toCArg, nullPositionsC.toCArg]
+        wrapReleasableResouce TableWrapper ptr
 
 def createTableWrapper schemaWrapper columnWrappers:
     Array (Pointer None) . with (columnWrappers.each .ptr.ptr) columnsCArray:

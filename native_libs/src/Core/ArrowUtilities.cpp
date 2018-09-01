@@ -2,6 +2,12 @@
 
 using namespace std::literals;
 
+std::shared_ptr<arrow::Column> toColumn(std::shared_ptr<arrow::ChunkedArray> chunks, std::string name /*= "col"*/)
+{
+	auto field = arrow::field(name, chunks->type(), chunks->null_count() != 0);
+	return std::make_shared<arrow::Column>(field, std::move(chunks));
+}
+
 std::vector<std::shared_ptr<arrow::Column>> getColumns(const arrow::Table &table)
 {
     std::vector<std::shared_ptr<arrow::Column>> columns;
@@ -124,17 +130,18 @@ DynamicField arrayAt(const arrow::Column &column, int64_t index)
     return arrayAt(*column.data(), index);
 }
 
-std::pair<std::shared_ptr<arrow::Array>, int64_t> locateChunk(const arrow::ChunkedArray &chunkedArray, int64_t index)
+std::pair<std::shared_ptr<arrow::Array>, int32_t> locateChunk(const arrow::ChunkedArray &chunkedArray, int64_t index)
 {
     validateIndex(chunkedArray, index);
 
     int64_t i = index;
     for(auto &chunk : chunkedArray.chunks())
     {
-        if(i < chunk->length())
+        const auto length = chunk->length(); // Note: having this assigned to variable greatly improves performance (MSVC)
+        if(i < length)
             return {chunk, i};
 
-        i -= chunk->length();
+        i -= length;
     }
 
     throw std::runtime_error(__FUNCTION__ + ": unexpected failure"s);
@@ -187,4 +194,28 @@ void BitmaskGenerator::set(int64_t index)
 void BitmaskGenerator::clear(int64_t index)
 {
     arrow::BitUtil::ClearBit(data, index);
+}
+
+ChunkAccessor::ChunkAccessor(const arrow::ChunkedArray &array)
+    : chunks(array.chunks())
+{
+    int64_t index = 0;
+    for(auto &chunk : chunks)
+    {
+        chunkStartIndices.push_back(index);
+        index += chunk->length();
+    }
+}
+
+std::pair<const arrow::Array *, int32_t> ChunkAccessor::locate(int64_t index) const
+{
+    auto itr = std::upper_bound(chunkStartIndices.begin(), chunkStartIndices.end(), index);
+    if(itr != chunkStartIndices.begin())
+    {
+        auto chunkStart = itr - 1;
+        auto chunkIndex = std::distance(chunkStartIndices.begin(), chunkStart);
+        return { chunks[chunkIndex].get(), index - *chunkStart };
+    }
+    else
+        throw std::runtime_error("wrong index");
 }
