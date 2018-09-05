@@ -12,70 +12,10 @@
 #include "Analysis.h"
 #include "Core/Benchmark.h"
 #include "Processing.h"
+#include "Fixture.h"
 
 using namespace std::literals;
 using boost::unit_test_framework::disabled;
-
-struct DataGenerator
-{
-	std::mt19937 generator{std::random_device{}()};
-
-	template<typename Distribution>
-	std::shared_ptr<arrow::Column> generateColumn(arrow::Type::type id, int64_t N, std::string name, double nullShare, Distribution distribution)
-	{
-		std::bernoulli_distribution nullDistribution{nullShare};
-		auto arr = visitType(id, [&] (auto id)
-		{
-			typename TypeDescription<id.value>::BuilderType b;
-			b.Reserve(N);
-			for(int64_t i = 0; i < N; i++)
-			{
-				if(nullDistribution(generator))
-				{
-					b.AppendNull();
-				}
-				else
-				{
-					const auto value = distribution(generator);
-					if constexpr(id.value != arrow::Type::STRING)
-						b.Append(value);
-					else
-						b.Append(std::to_string(value));
-				}
-			}
-
-			return finish(b);
-		});
-
-		return std::make_shared<arrow::Column>(arrow::field(name, arr->type(), arr->null_count()), arr);
-	}
-
-	std::shared_ptr<arrow::Column> generateColumn(arrow::Type::type id, int64_t N, std::string name, double nullShare = 0.0)
-	{
-		if(id == arrow::Type::INT64)
-			return generateColumn(id, N, name, nullShare, std::uniform_int_distribution<int64_t>{});
-		if(id == arrow::Type::DOUBLE)
-			return generateColumn(id, N, name, nullShare, std::uniform_real_distribution<double>{});
-		if(id == arrow::Type::STRING)
-			return generateColumn(id, N, name, nullShare, std::uniform_int_distribution<int64_t>{});
-		throw std::runtime_error("wrong type");
-	}
-
-	std::shared_ptr<arrow::Table> generateNumericTable(int N)
-	{
-		auto intColumn1 = generateColumn(arrow::Type::INT64, N, "intsNonNull");
-		auto intColumn2 = generateColumn(arrow::Type::INT64, N, "intsSomeNulls", 0.2);
-		auto intColumn3 = generateColumn(arrow::Type::INT64, N, "intsManyNulls", 0.7);
-		auto intColumn4 = generateColumn(arrow::Type::INT64, N, "intsAllNulls", 1.0);
-		auto doubleColumn1 = generateColumn(arrow::Type::DOUBLE, N, "doublesNonNull");
-		auto doubleColumn2 = generateColumn(arrow::Type::DOUBLE, N, "doublesSomeNulls", 0.2);
-		auto doubleColumn3 = generateColumn(arrow::Type::DOUBLE, N, "doublesManyNulls", 0.7);
-		auto doubleColumn4 = generateColumn(arrow::Type::DOUBLE, N, "doublesAllNulls", 1.0);
-
-		return tableFromColumns({intColumn1, intColumn2, intColumn3, intColumn4, doubleColumn1, doubleColumn2, doubleColumn3, doubleColumn4});
-	}
-};
-
 
 DFH_EXPORT std::shared_ptr<arrow::Column> calculateMin(const arrow::Column &column);
 DFH_EXPORT std::shared_ptr<arrow::Column> calculateMax(const arrow::Column &column);
@@ -319,6 +259,21 @@ BOOST_AUTO_TEST_CASE(WriteBigFile)
 			generateCsv(out, *table, GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy::QueteAllFields);
 		});
 	}
+}
+
+BOOST_FIXTURE_TEST_CASE(InterpolateBigColumn, DataGenerator)
+{
+    auto doubles30pct = generateColumn(arrow::Type::DOUBLE, 10'000'000, "double", 0.3);
+    auto doubles90pct = generateColumn(arrow::Type::DOUBLE, 10'000'000, "double", 0.9);
+    MeasureAtLeast p{100, 5s};
+    measure("interpolating doubles with 30% nulls", p, [&]
+    {
+        return interpolateNA(doubles30pct);
+    });
+//     measure("interpolating doubles with 90% nulls", p, [&]
+//     {
+//         return interpolateNA(doubles90pct);
+//     });
 }
 
 BOOST_AUTO_TEST_SUITE_END();

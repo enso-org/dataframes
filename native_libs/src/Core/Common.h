@@ -120,7 +120,7 @@ namespace std
 void validateIndex(const size_t size, int64_t index);
 
 template<typename T>
-T lerp(T v0, T v1, T t) 
+T lerp(T v0, T v1, double t) 
 {
     return (1 - t) * v0 + t * v1;
 }

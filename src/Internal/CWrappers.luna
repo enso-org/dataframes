@@ -225,6 +225,9 @@ class ColumnWrapper:
     def quantile q:
         ptr = callHandlingError "columnQuantile" (Pointer None) [self.ptr.toCArg, CDouble.fromReal q . toCArg]
         wrapReleasableResouce ColumnWrapper ptr
+    def interpolate:
+        ptr = callHandlingError "columnInterpolateNa" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce ColumnWrapper ptr
 
 def createColumnWrapper field chunks:
     ptr = callHandlingError "columnNew" (Pointer None) [field.ptr.toCArg, chunks.ptr.toCArg]
@@ -342,6 +345,9 @@ class TableWrapper:
             Array CInt8 . with orders ordersC:
                 Array CInt8 . with nullPositions nullPositionsC:
                     callHandlingError "tableSortedByColumns" (Pointer None) [self.ptr.toCArg, CInt32.fromInt sortBy.length . toCArg, columnsC.toCArg, ordersC.toCArg, nullPositionsC.toCArg]
+        wrapReleasableResouce TableWrapper ptr
+    def interpolate:
+        ptr = callHandlingError "tableInterpolateNa" (Pointer None) [self.ptr.toCArg]
         wrapReleasableResouce TableWrapper ptr
 
 def createTableWrapper schemaWrapper columnWrappers:

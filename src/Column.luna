@@ -155,6 +155,8 @@ class Column:
     def var:        Column.fromColumnWrapper $ self.ptr.var
     def sum:        Column.fromColumnWrapper $ self.ptr.sum
     def quantile q: Column.fromColumnWrapper $ self.ptr.quantile q
+    def interpolate:
+        self.fromColumnWrapper $ self.ptr.interpolate
 
     def describe:
         min = self.min

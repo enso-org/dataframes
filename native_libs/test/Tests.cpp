@@ -20,58 +20,12 @@
 #include "Sort.h"
 #include "Analysis.h"
 
+#include "Fixture.h"
+
 using namespace std::literals;
 
 
 #define BOOST_CHECK_EQUAL_RANGES(a, b) BOOST_CHECK_EQUAL_COLLECTIONS(std::begin(a), std::end(a), std::begin(b), std::end(b))
-
-// TODO: use non-aligned begins with nulls
-struct ChunkedFixture
-{
-	int N = 10'000'000;
-
-	std::vector<int64_t> intsV;
-	std::vector<double> doublesV;
-	std::mt19937 generator{std::random_device{}()};
-
-	std::shared_ptr<arrow::Column> ints, doubles;
-	std::shared_ptr<arrow::Table> table;
-
-	template <typename T>
-	std::shared_ptr<arrow::ChunkedArray> toRandomChunks(std::vector<T> &v)
-	{
-		auto continuousArray = toArray(v);
-		std::vector<std::shared_ptr<arrow::Array>> chunks;
-
-		const auto maxChunk = 200;
-		std::uniform_int_distribution<> distribution{1, maxChunk};
-
-		size_t currentPos = 0;
-		while(currentPos < v.size())
-		{
-			auto chunkSize = distribution(generator);
-            chunks.push_back(continuousArray->Slice(currentPos, chunkSize));
-			currentPos += chunkSize;
-		}
-
-        std::shuffle(chunks.begin(), chunks.end(), generator);
-		auto ret = std::make_shared<arrow::ChunkedArray>(chunks);
-        v = toVector<T>(*ret);
-		return ret;
-	}
-
-	ChunkedFixture()
-	{
-		intsV.resize(N);
-		doublesV.resize(N);
-		std::iota(intsV.begin(), intsV.end(), 0);
-		std::iota(doublesV.begin(), doublesV.end(), 0.0);
-
-		ints = toColumn(toRandomChunks(intsV), "a");
-		doubles = toColumn(toRandomChunks(doublesV), "b");
-		table = tableFromColumns({ints, doubles});
-	}
-};
 
 // TODO: fails now, because lquery interpreter was implemented without support for chunked arrays
 BOOST_FIXTURE_TEST_CASE(MappingChunked, ChunkedFixture, *boost::unit_test_framework::disabled())
@@ -787,4 +741,25 @@ BOOST_AUTO_TEST_CASE(Statistics)
 // 	25.1, 23.4, 18.1, 22.6, 17.2};
 // 	std::vector<double> b = {215, 325, 185, 332, 406, 522, 412, 614, 544, 421, 445, 408};;
 // 	calculateCorrelation(*toColumn(a), *toColumn(b));
+}
+
+template<typename T>
+void testInterpolation(std::vector<std::optional<T>> input, std::vector<std::optional<T>> expectedOutput)
+{
+    auto column = toColumn(input);
+    auto columnInterpolated = interpolateNA(column);
+    auto inputInterpolated = toVector<std::optional<T>>(*columnInterpolated);
+    BOOST_CHECK_EQUAL_RANGES(inputInterpolated, expectedOutput);
+}
+
+BOOST_AUTO_TEST_CASE(InterpolateNA)
+{
+    testInterpolation<double>(
+        { std::nullopt, std::nullopt, 1, 2, std::nullopt, 3, std::nullopt, std::nullopt, std::nullopt, 4, std::nullopt },
+        { 1,            1,            1, 2, 2.5,          3, 3.25,         3.5,          3.75,         4, 4 });
+    testInterpolation<int64_t>(
+        { std::nullopt, 10, std::nullopt, std::nullopt, 16, std::nullopt },
+        { 10,           10, 12,           14,           16, 16 });
+    // strings cannot be interpolated
+    BOOST_CHECK_THROW(testInterpolation<std::string>({"foo", std::nullopt, "bar"}, {}), std::exception);
 }

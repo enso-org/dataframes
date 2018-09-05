@@ -854,6 +854,16 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
+    DFH_EXPORT arrow::Column *columnInterpolateNa(arrow::Column *table, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)table);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto columnManaged = LifetimeManager::instance().accessOwned(table);
+            auto ret = interpolateNA(columnManaged);
+            return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
 }
 
 // SCHEMA
@@ -1177,6 +1187,16 @@ extern "C"
 
             auto tableManaged = LifetimeManager::instance().accessOwned(table);
             auto ret = sortTable(tableManaged, sortBy);
+            return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
+    DFH_EXPORT arrow::Table *tableInterpolateNa(arrow::Table *table, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)table);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto tableManaged = LifetimeManager::instance().accessOwned(table);
+            auto ret = interpolateNA(tableManaged);
             return LifetimeManager::instance().addOwnership(ret);
         };
     }

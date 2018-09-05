@@ -564,7 +564,20 @@ class TestArrayBuilder:
         tableSorted5 = table.sort [("a", Descending, NullsBefore)]
         assertEqual "sort name desc before" (tableSorted5.column "a" . toList) [Nothing, Just 5, Just 3, Just 1, Just -2]
 
+    def testInterpolate:
+        print "Testing interpolate"
+        intsCol = Column.fromList "a" MaybeInt64Type [Nothing, Just 5, Nothing, Nothing, Just 11, Nothing]
+        expectedInts = [5, 5, 7, 9, 11, 11]
+        assertEqual "interpolate int column" intsCol.interpolate.toList expectedInts
+        doublesCol = Column.fromList "a" MaybeDoubleType [Nothing, Just 2.0, Nothing, Nothing, Nothing, Just 3.0, Nothing]
+        expectedDoubles = [2.0, 2.0, 2.25, 2.5, 2.75, 3.0, 3.0]
+        table = Table.fromColumns [intsCol, doublesCol]
+        tableInterpolated = table.interpolate
+        assertEqual "interpolate table: ints" (tableInterpolated.columnAt 0 . toList) expectedInts
+        assertEqual "interpolate table: doubles" (tableInterpolated.columnAt 1 . toList) expectedDoubles
+
     def run:
+        self.testInterpolate
         self.testSort
         self.testFeather
         self.testIf

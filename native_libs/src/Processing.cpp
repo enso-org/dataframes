@@ -22,6 +22,37 @@
 
 using namespace std::literals;
 
+template<arrow::Type::type id, bool nullable>
+struct FixedSizeArrayBuilder
+{
+    using T = typename TypeDescription<id>::StorageValueType;
+    using Array = typename TypeDescription<id>::Array;
+
+    int64_t length;
+    std::shared_ptr<arrow::Buffer> valueBuffer;
+    T *nextValueToWrite{};
+
+
+    FixedSizeArrayBuilder(int32_t length)
+        : length(length)
+    {
+        std::tie(valueBuffer, nextValueToWrite) = allocateBuffer<T>(length);
+
+        static_assert(nullable == false); // would need null mask
+        static_assert(id == arrow::Type::INT64 || arrow::Type::DOUBLE); // would need another buffer
+    }
+
+    void Append(T value)
+    {
+        *nextValueToWrite++ = value;
+    }
+
+    auto Finish()
+    {
+        return std::make_shared<Array>(length, valueBuffer, nullptr, 0);
+    }
+};
+
 template<arrow::Type::type id_>
 struct FilteredArrayBuilder
 {
@@ -265,8 +296,94 @@ struct FilteredArrayBuilder
     }
 };
 
+template<arrow::Type::type id>
+struct InterpolatedColumnBuilder
+{
+    using T = typename TypeDescription<id>::StorageValueType;
+    static_assert(std::is_arithmetic_v<T>);
+ 
+    FixedSizeArrayBuilder<id, false> builder;
+
+    bool hadGoodValue = false;
+    T lastGoodValue{};
+    int64_t nanCount = 0;
+
+    InterpolatedColumnBuilder(int64_t length)
+        : builder(length)
+    {}
+
+    void operator()(T validValue)
+    {
+        if(nanCount)
+        {
+            if(!hadGoodValue)
+            {
+                lastGoodValue = validValue;
+            }
+
+            const double parts = nanCount + 1;
+            for(int64_t i = 1; i <= nanCount; i++)
+            {
+                builder.Append(lerp(lastGoodValue, validValue, i / parts));
+            }
+            nanCount = 0;
+        }
+        builder.Append(validValue);
+        lastGoodValue = validValue;
+        hadGoodValue = true;
+    }
+    void operator()()
+    {
+        ++nanCount;
+    }
+
+    auto finish()
+    {
+        for(int64_t i = 0; i < nanCount; i++)
+            builder.Append(lastGoodValue);
+
+        return builder.Finish();
+    }
+};
+
+std::shared_ptr<arrow::Column> interpolateNA(std::shared_ptr<arrow::Column> column)
+{
+    // no missing values -- no itnerpolation needed
+    if(column->null_count() == 0)
+        return std::move(column);
+
+    // If we are filled with nulls, there's no help
+    // just return as-is (could consider raising an error as well)
+    if(column->null_count() == column->length())
+        return std::move(column);
+
+    return visitType(*column->type(), [&] (auto id) -> std::shared_ptr<arrow::Column>
+    {
+        // Interpolation is currently defined only for arithmetic types.
+        if constexpr(id.value == arrow::Type::STRING)
+        {
+            throw std::runtime_error("column `"+ column->name() + "` cannot be interpolated: wrong type: `" + column->type()->ToString() + "`");
+        }
+        else
+        {
+            InterpolatedColumnBuilder<id.value> builder{ column->length() };
+            iterateOver<id.value>(*column, builder, builder);
+            auto arr = builder.finish();
+            return std::make_shared<arrow::Column>(setNullable(false, column->field()), arr);
+        }
+    });
+}
+
+std::shared_ptr<arrow::Table> interpolateNA(std::shared_ptr<arrow::Table> table)
+{
+    auto interpolatedColumns = transformToVector(getColumns(*table), [] (auto col) 
+        { return interpolateNA(col); });
+    return arrow::Table::Make(setNullable(false, table->schema()), interpolatedColumns);
+}
+
 std::shared_ptr<arrow::Table> dropNA(std::shared_ptr<arrow::Table> table, const std::vector<int> &columnIndices)
 {
+    // Start with "all valid" mask and cross out the nulls
     BitmaskGenerator bitmask{table->num_rows(), true};
     for(auto columnIndex : columnIndices)
     {

@@ -12,8 +12,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Benchmarks.cpp" />
+    <ClCompile Include="Fixture.cpp" />
     <ClCompile Include="PlotTests.cpp" />
     <ClCompile Include="Tests.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Fixture.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>

@@ -13,6 +13,8 @@ namespace arrow
     class Table;
 }
 
+DFH_EXPORT std::shared_ptr<arrow::Column> interpolateNA(std::shared_ptr<arrow::Column> column);
+DFH_EXPORT std::shared_ptr<arrow::Table> interpolateNA(std::shared_ptr<arrow::Table> table);
 
 DFH_EXPORT std::shared_ptr<arrow::Table> dropNA(std::shared_ptr<arrow::Table> table, const std::vector<int> &columnIndices);
 DFH_EXPORT std::shared_ptr<arrow::Table> dropNA(std::shared_ptr<arrow::Table> table);
