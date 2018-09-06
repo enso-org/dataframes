@@ -20,3 +20,5 @@ DFH_EXPORT std::shared_ptr<arrow::Column> calculateCorrelation(const arrow::Tabl
 DFH_EXPORT std::shared_ptr<arrow::Table> calculateCorrelationMatrix(const arrow::Table &table);
 
 DFH_EXPORT double autoCorrelation(const std::shared_ptr<arrow::Column> &column, int lag = 1);
+
+DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn, std::vector<std::shared_ptr<arrow::Column>> toAggregate);

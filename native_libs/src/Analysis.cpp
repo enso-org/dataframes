@@ -363,3 +363,152 @@ double autoCorrelation(const std::shared_ptr<arrow::Column> &column, int lag /*=
     auto debug = toVector<std::optional<int64_t>>(*shiftedColumn);
     return calculateCorrelation(*column, *shiftedColumn);
 }
+
+struct Length
+{
+    int64_t length = 0;
+
+    template<typename T>
+    void operator()(T &&)
+    {
+        length++;
+    }
+    void operator()()
+    {
+        length++;
+    }
+
+    auto get() { return length; }
+};
+
+struct Change
+{
+    std::optional<int64_t> first;
+    std::optional<int64_t> last;
+
+    template<typename T>
+    void operator()(T t)
+    {
+        if(!first)
+            first = t;
+
+        last = t;
+    }
+};
+
+template<typename T>
+struct Aggregator
+{
+    static constexpr int count = 4;
+
+    Minimum<T> min;
+    Maximum<T> max;
+    Mean<T> mean;
+    Length length;
+    
+    template<typename T>
+    void operator()(T t)
+    {
+        min(t);
+        max(t);
+        mean(t);
+        length(t);
+    }
+
+    void operator()()
+    {
+        length();
+    }
+};
+
+DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn, std::vector<std::shared_ptr<arrow::Column>> toAggregate)
+{
+    std::vector<std::shared_ptr<arrow::Column>> newColumns;
+
+    visitType(*keyColumn->type(), [&](auto keyTypeID)
+    {
+        using KeyT = typename TypeDescription<keyTypeID.value>::ObservedType;
+        std::unordered_map<KeyT, int64_t> uniqueValues; // key value => group id
+        std::vector<int64_t> groupIds; // [row index] => group id
+
+        groupIds.resize(table->num_rows());
+        auto *rowGroupId = groupIds.data();
+
+        iterateOver<keyTypeID.value>(*keyColumn, [&](auto &&value)
+        {
+            if(auto itr = uniqueValues.find(value); itr != uniqueValues.end())
+            {
+                *rowGroupId++ = itr->second;
+            }
+            else
+            {
+                *rowGroupId++ = uniqueValues.emplace(value, uniqueValues.size() + 1).first->second;
+            }
+        },
+        [&]()
+        {
+            *rowGroupId++ = 0;
+        });
+
+        const auto hasNulls = keyColumn->null_count() != 0;
+        const auto groupCount = uniqueValues.size() + hasNulls; // treat nulls as additional group with id 0
+        const auto afterLastGroup = uniqueValues.size()+1;
+
+        for(auto column : toAggregate)
+        {
+            visitType(column->type()->id(), [&](auto id)
+            {
+                if constexpr(id != arrow::Type::STRING)
+                {
+                    using T = typename TypeDescription<id.value>::ObservedType;
+                    std::vector<Aggregator<T>> aggregators(groupCount);
+
+                    int64_t row = 0;
+                    iterateOver<id.value>(*column, [&](auto value)
+                    {
+                        const auto groupId = groupIds[row++];
+                        aggregators[groupId](value);
+                    },
+                        [&]()
+                    {
+                        const auto groupId = groupIds[row++];
+                        aggregators[groupId]();
+                    });
+
+
+                    std::vector<arrow::DoubleBuilder> newColumnBuilders(Aggregator<T>::count);
+                    for(auto &&newColumnBuilder : newColumnBuilders)
+                        newColumnBuilder.Reserve(groupCount);
+
+                    for(int64_t groupItr = hasNulls; groupItr < afterLastGroup; ++groupItr)
+                    {
+                        auto &aggr = aggregators[groupItr];
+                        newColumnBuilders[0].Append(aggr.min.get());
+                        newColumnBuilders[1].Append(aggr.max.get());
+                        newColumnBuilders[2].Append(aggr.mean.get());
+                        newColumnBuilders[3].Append(aggr.length.get());
+                    }
+                    
+                    auto produceColumn = [&] (std::string statName, int index)
+                    {
+                        auto arr = finish(newColumnBuilders[index]);
+                        auto col = toColumn(arr, column->name() + "_"s + statName);
+                        newColumns.push_back(col);
+                    };
+
+                    produceColumn("min", 0);
+                    produceColumn("max", 1);
+                    produceColumn("mean", 2);
+                    produceColumn("length", 3);
+                }
+                else
+                    throw std::runtime_error("cannot aggregate string column!");
+            });
+        }
+    });
+
+
+
+    return tableFromColumns(newColumns);
+}
+

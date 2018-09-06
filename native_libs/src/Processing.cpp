@@ -19,6 +19,7 @@
 #include "Core/ArrowUtilities.h"
 #include "LQuery/AST.h"
 #include "LQuery/Interpreter.h"
+#include "Analysis.h"
 
 using namespace std::literals;
 
@@ -612,5 +613,25 @@ DynamicField adjustTypeForFilling(DynamicField valueGivenByUser, const arrow::Da
     return visitType(type, [&] (auto id) -> DynamicField
     {
         return std::visit(ConvertTo<id.value>{}, valueGivenByUser);
+    });
+}
+
+DFH_EXPORT std::shared_ptr<arrow::Table> groupBy(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn)
+{
+    if(keyColumn->length() != table->num_rows())
+        throw std::runtime_error("mismatched row count");
+
+//     std::vector<std::shared_ptr<arrow::ArrayBuilder>> newColumnBuilders;
+//     for(auto column : getColumns(*table))
+//     {
+//         if()
+//         newColumnBuilders.push_back(makeBuilder(column->type()->id()));
+//     }
+
+    visitType(*keyColumn->type(), [&](auto keyTypeID)
+    {
+        using KeyT = typename TypeDescription<keyTypeID.value>::ObservedType;
+        std::vector<KeyT> uniqueKeys;
+        std::unordered_map<int64_t, int64_t> groupId;
     });
 }

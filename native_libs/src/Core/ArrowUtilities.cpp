@@ -8,6 +8,12 @@ std::shared_ptr<arrow::Column> toColumn(std::shared_ptr<arrow::ChunkedArray> chu
 	return std::make_shared<arrow::Column>(field, std::move(chunks));
 }
 
+std::shared_ptr<arrow::Column> toColumn(std::shared_ptr<arrow::Array> array, std::string name /*= "col"*/)
+{
+    auto field = arrow::field(name, array->type(), array->null_count() != 0);
+    return std::make_shared<arrow::Column>(field, std::move(array));
+}
+
 std::vector<std::shared_ptr<arrow::Column>> getColumns(const arrow::Table &table)
 {
     std::vector<std::shared_ptr<arrow::Column>> columns;
@@ -171,6 +177,20 @@ void validateIndex(const arrow::ChunkedArray &array, int64_t index)
 void validateIndex(const arrow::Column &column, int64_t index)
 {
     validateIndex(column.length(), index);
+}
+
+std::shared_ptr<arrow::Array> makeNullsArray(arrow::Type::type id, int64_t length)
+{
+    return visitType(id, [&](auto idConstant) { return makeNullsArray<idConstant.value>(length); });
+}
+
+std::unique_ptr<arrow::ArrayBuilder> makeBuilder(arrow::Type::type id)
+{
+    return visitType(id, [&](auto idConstant) -> std::unique_ptr<arrow::ArrayBuilder>
+    {
+        using Builder = typename TypeDescription<idConstant.value>::BuilderType;
+        return std::make_unique<Builder>();
+    });
 }
 
 BitmaskGenerator::BitmaskGenerator(int64_t length, bool initialValue) : length(length)

@@ -222,6 +222,12 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
     return buildTable(names, arrays, columnTypes);
 }
 
+std::shared_ptr<arrow::Table> loadTableFromCsvFile(const char *filepath)
+{
+    auto csv = parseCsvFile(filepath);
+    return csvToArrowTable(csv, TakeFirstRowAsHeaders{}, {});
+}
+
 ParsedCsv::ParsedCsv(std::unique_ptr<std::string> buffer, Table records_)
     : buffer(std::move(buffer))
     , records(std::move(records_))

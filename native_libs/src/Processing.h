@@ -30,3 +30,4 @@ DFH_EXPORT std::shared_ptr<arrow::Array> each(std::shared_ptr<arrow::Table> tabl
 DFH_EXPORT std::shared_ptr<arrow::Column> shift(std::shared_ptr<arrow::Column> column, int64_t offset);
 
 DFH_EXPORT DynamicField adjustTypeForFilling(DynamicField valueGivenByUser, const arrow::DataType &type);
+DFH_EXPORT std::shared_ptr<arrow::Table> groupBy(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn);

@@ -337,6 +337,7 @@ auto toColumn(const std::vector<T> &elems, std::string name = "col")
 }
 
 DFH_EXPORT std::shared_ptr<arrow::Column> toColumn(std::shared_ptr<arrow::ChunkedArray> chunks, std::string name = "col");
+DFH_EXPORT std::shared_ptr<arrow::Column> toColumn(std::shared_ptr<arrow::Array> array, std::string name = "col");
 
 template<typename T>
 auto scalarToColumn(const T &elem, std::string name = "col")
@@ -502,7 +503,5 @@ std::shared_ptr<arrow::Array> makeNullsArray(int64_t length)
     return finish(builder);
 }
 
-inline std::shared_ptr<arrow::Array> makeNullsArray(arrow::Type::type id, int64_t length)
-{
-    return visitType(id, [&] (auto idConstant) { return makeNullsArray<idConstant.value>(length); });
-}
+DFH_EXPORT std::shared_ptr<arrow::Array> makeNullsArray(arrow::Type::type id, int64_t length);
+DFH_EXPORT std::unique_ptr<arrow::ArrayBuilder> makeBuilder(arrow::Type::type id);

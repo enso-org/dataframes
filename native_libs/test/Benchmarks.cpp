@@ -276,4 +276,21 @@ BOOST_FIXTURE_TEST_CASE(InterpolateBigColumn, DataGenerator)
 //     });
 }
 
+
+BOOST_FIXTURE_TEST_CASE(GroupExperiments, DataGenerator)
+{
+//     auto table1 = loadTableFromCsvFile("F:/dev/train.csv");
+//     saveTableToFeatherFile("F:/dev/train-nasze.feather", *table1);
+    auto table = loadTableFromFeatherFile("F:/dev/train-nasze.feather");
+    auto grouped = abominableGroupAggregate(table, table->column(0), {table->column(1)});
+
+    MeasureAtLeast p{ 100, 5s };
+    measure("interpolating doubles with 30% nulls", p, [&]
+    {
+        return abominableGroupAggregate(table, table->column(0), { table->column(1) });
+    });
+
+    generateCsv("F:/dev/aggr.csv", *grouped);
+}
+
 BOOST_AUTO_TEST_SUITE_END();
