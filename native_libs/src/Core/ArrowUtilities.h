@@ -491,3 +491,18 @@ void iterateOverJustPairs(const arrow::Column &column1, const arrow::Column &col
 {
     return iterateOverJustPairs<id1, id2>(*column1.data(), *column2.data(), f);
 }
+
+template<arrow::Type::type id>
+std::shared_ptr<arrow::Array> makeNullsArray(int64_t length)
+{
+    // TODO could be much faster if done by hand
+    typename TypeDescription<id>::BuilderType builder;
+    for(int64_t i = 0; i < length; i++)
+        builder.AppendNull();
+    return finish(builder);
+}
+
+inline std::shared_ptr<arrow::Array> makeNullsArray(arrow::Type::type id, int64_t length)
+{
+    return visitType(id, [&] (auto idConstant) { return makeNullsArray<idConstant.value>(length); });
+}

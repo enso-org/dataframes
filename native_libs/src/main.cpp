@@ -864,6 +864,25 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
+    DFH_EXPORT arrow::Column *columnShift(arrow::Column *table, int64_t offset, const char **outError) noexcept
+    {
+        LOG("@{}, offset={}", (void*)table, offset);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto columnManaged = LifetimeManager::instance().accessOwned(table);
+            auto ret = shift(columnManaged, offset);
+            return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
+    DFH_EXPORT double columnAutoCorrelation(arrow::Column *table, int64_t lag, const char **outError) noexcept
+    {
+        LOG("@{}, lag={}", (void*)table, lag);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto columnManaged = LifetimeManager::instance().accessOwned(table);
+            return autoCorrelation(columnManaged, lag);
+        };
+    }
 }
 
 // SCHEMA

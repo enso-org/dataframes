@@ -1,4 +1,7 @@
 #include "Analysis.h"
+
+#include "Processing.h"
+
 #include <unordered_map>
 
 #include <boost/accumulators/accumulators.hpp>
@@ -250,6 +253,9 @@ std::shared_ptr<arrow::Column> calculateSum(const arrow::Column &column)
 
 double calculateCorrelation(const arrow::Column &xCol, const arrow::Column &yCol)
 {
+    if(xCol.null_count() >= xCol.length() || yCol.null_count() >= yCol.length())
+        return std::numeric_limits<double>::quiet_NaN();
+
     struct CorrelationStats
     {
         double sumX = 0;
@@ -349,4 +355,11 @@ std::shared_ptr<arrow::Table> calculateCorrelationMatrix(const arrow::Table &tab
     }
 
     return tableFromColumns(ret);
+}
+
+double autoCorrelation(const std::shared_ptr<arrow::Column> &column, int lag /*= 1*/)
+{
+    auto shiftedColumn = shift(column, lag);
+    auto debug = toVector<std::optional<int64_t>>(*shiftedColumn);
+    return calculateCorrelation(*column, *shiftedColumn);
 }

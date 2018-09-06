@@ -763,3 +763,60 @@ BOOST_AUTO_TEST_CASE(InterpolateNA)
     // strings cannot be interpolated
     BOOST_CHECK_THROW(testInterpolation<std::string>({"foo", std::nullopt, "bar"}, {}), std::exception);
 }
+
+BOOST_AUTO_TEST_CASE(MakeNullsArray)
+{
+    auto nullInts = makeNullsArray<arrow::Type::INT64>(5);
+    BOOST_CHECK_EQUAL(nullInts->type_id(), arrow::Type::INT64);
+    BOOST_CHECK_EQUAL(nullInts->length(), 5);
+    BOOST_CHECK_EQUAL(nullInts->null_count(), 5);
+
+    auto nullIntsV = toVector<std::optional<int64_t>>(*nullInts);
+    std::vector<std::optional<int64_t>> nullIntsVExpected(5);
+    BOOST_CHECK_EQUAL_RANGES(nullIntsV, nullIntsVExpected);
+}
+
+BOOST_AUTO_TEST_CASE(ColumnShift)
+{
+    std::vector<int64_t> ints{ 1, 2, 3 };
+    auto intsCol = toColumn(ints);
+
+    auto test = [&] (int lag, std::vector<std::optional<int64_t>> expected)
+    {
+        BOOST_TEST_CONTEXT("shifting by " << lag)
+        {
+            auto shiftedCol = shift(intsCol, lag);
+            auto shiftedVector = toVector<std::optional<int64_t>>(*shiftedCol);
+            BOOST_CHECK_EQUAL_RANGES(shiftedVector, expected);
+        }
+    };
+
+    BOOST_CHECK_EQUAL(intsCol, shift(intsCol, 0));
+    test(0, { 1, 2, 3 });
+    test(1, { std::nullopt, 1, 2 });
+    test(2, { std::nullopt, std::nullopt, 1 });
+    test(3, { std::nullopt, std::nullopt, std::nullopt });
+    test(4, { std::nullopt, std::nullopt, std::nullopt });
+
+    test(-1, { 2, 3, std::nullopt });
+    test(-2, { 3, std::nullopt, std::nullopt });
+    test(-3, { std::nullopt, std::nullopt, std::nullopt });
+    test(-4, { std::nullopt, std::nullopt, std::nullopt });
+}
+
+BOOST_AUTO_TEST_CASE(AutoCorrelation)
+{
+    std::vector<int64_t> ints{ 1, 2, 3, 2, 5, 6, 7 };
+    auto intsCol = toColumn(ints);
+
+    BOOST_CHECK_CLOSE(autoCorrelation(intsCol, 0), 1.0, 0.0001);
+    BOOST_CHECK_CLOSE(autoCorrelation(intsCol, 1), 0.811749, 0.0001);
+    BOOST_CHECK_CLOSE(autoCorrelation(intsCol, -1), 0.811749, 0.0001);
+    BOOST_CHECK_CLOSE(autoCorrelation(intsCol, 2), 0.7313574508612273, 0.0001);
+    BOOST_CHECK_CLOSE(autoCorrelation(intsCol, -2), 0.7313574508612273, 0.0001);
+    BOOST_CHECK_CLOSE(autoCorrelation(intsCol, 3), 0.7559289460184545, 0.0001);
+    BOOST_CHECK_CLOSE(autoCorrelation(intsCol, -3), 0.7559289460184545, 0.0001);
+    BOOST_CHECK(std::isnan(autoCorrelation(intsCol, 50)));
+    BOOST_CHECK(std::isnan(autoCorrelation(intsCol, -50)));
+    // Note: values above are calculated by pandas.
+}

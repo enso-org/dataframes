@@ -228,6 +228,11 @@ class ColumnWrapper:
     def interpolate:
         ptr = callHandlingError "columnInterpolateNa" (Pointer None) [self.ptr.toCArg]
         wrapReleasableResouce ColumnWrapper ptr
+    def shift periods:
+        ptr = callHandlingError "columnShift" (Pointer None) [self.ptr.toCArg, CInt64.fromInt periods . toCArg]
+        wrapReleasableResouce ColumnWrapper ptr
+    def autoCorr lag:
+        callHandlingError "columnAutoCorrelation" (CDouble) [self.ptr.toCArg, CInt64.fromInt lag . toCArg] . toReal
 
 def createColumnWrapper field chunks:
     ptr = callHandlingError "columnNew" (Pointer None) [field.ptr.toCArg, chunks.ptr.toCArg]

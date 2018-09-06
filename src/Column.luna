@@ -157,6 +157,10 @@ class Column:
     def quantile q: Column.fromColumnWrapper $ self.ptr.quantile q
     def interpolate:
         self.fromColumnWrapper $ self.ptr.interpolate
+    def shift periods:
+        self.fromColumnWrapper $ self.ptr.shift periods
+    def autoCorr lag:
+        self.ptr.autoCorr lag
 
     def describe:
         min = self.min

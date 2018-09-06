@@ -546,6 +546,33 @@ std::shared_ptr<arrow::Array> each(std::shared_ptr<arrow::Table> table, const ch
     return execute(*table, v, mapping);
 }
 
+DFH_EXPORT std::shared_ptr<arrow::Column> shift(std::shared_ptr<arrow::Column> column, int64_t offset)
+{
+    if(offset == 0)
+        return column;
+
+    const auto id = column->type()->id();
+    if(std::abs(offset) >= column->length())
+        return std::make_shared<arrow::Column>(column->field(), makeNullsArray(id, column->length()));
+
+    auto nullsPart = makeNullsArray(id, std::abs(offset));
+    auto remainingLength = column->length() - std::abs(offset);
+
+    arrow::ArrayVector newChunks;
+    if(offset > 0)
+    {
+        newChunks = { nullsPart };
+        auto shiftedData = column->Slice(0, remainingLength)->data()->chunks();
+        newChunks.insert(newChunks.end(), shiftedData.begin(), shiftedData.end());
+    }
+    else
+    {
+        newChunks = column->Slice(std::abs(offset), remainingLength)->data()->chunks();
+        newChunks.push_back(nullsPart);
+    }
+    return std::make_shared<arrow::Column>(column->field(), newChunks);
+}
+
 // specialize!
 template<arrow::Type::type>
 struct ConvertTo {};

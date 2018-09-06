@@ -576,7 +576,21 @@ class TestArrayBuilder:
         assertEqual "interpolate table: ints" (tableInterpolated.columnAt 0 . toList) expectedInts
         assertEqual "interpolate table: doubles" (tableInterpolated.columnAt 1 . toList) expectedDoubles
 
+    def testShift:
+        intCol = Column.fromList "a" MaybeStringType [Just "first", Nothing, Just "last"]
+        assertEqual "shift -1" (intCol.shift -1 . toList) [Nothing, Just "last", Nothing]
+        assertEqual "shift 0" (intCol.shift 0 . toList) [Just "first", Nothing, Just "last"]
+        assertEqual "shift 1" (intCol.shift 1 . toList) [Nothing, Just "first", Nothing]
+        assertEqual "shift 2" (intCol.shift 2 . toList) [Nothing, Nothing, Just "first"]
+        assertEqual "shift 3" (intCol.shift 3 . toList) [Nothing, Nothing, Nothing]
+
+    def testAutoCorr:
+        intCol = Column.fromList "a" Int64Type [5, 8, 3, 1, 5, 2, 8, 7]
+        assertNoThrow "no throw" $ intCol.autoCorr 1
+
     def run:
+        self.testAutoCorr
+        self.testShift
         self.testInterpolate
         self.testSort
         self.testFeather

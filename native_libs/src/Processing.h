@@ -27,5 +27,6 @@ DFH_EXPORT std::shared_ptr<arrow::Table> fillNA(std::shared_ptr<arrow::Table> ta
 DFH_EXPORT std::shared_ptr<arrow::Table> filter(std::shared_ptr<arrow::Table> table, const char *dslJsonText);
 DFH_EXPORT std::shared_ptr<arrow::Table> filter(std::shared_ptr<arrow::Table> table, const arrow::Buffer &maskBuffer);
 DFH_EXPORT std::shared_ptr<arrow::Array> each(std::shared_ptr<arrow::Table> table, const char *dslJsonText);
+DFH_EXPORT std::shared_ptr<arrow::Column> shift(std::shared_ptr<arrow::Column> column, int64_t offset);
 
 DFH_EXPORT DynamicField adjustTypeForFilling(DynamicField valueGivenByUser, const arrow::DataType &type);

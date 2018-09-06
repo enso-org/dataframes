@@ -18,3 +18,5 @@ DFH_EXPORT std::shared_ptr<arrow::Column> calculateQuantile(const arrow::Column 
 DFH_EXPORT double calculateCorrelation(const arrow::Column &xCol, const arrow::Column &yCol);
 DFH_EXPORT std::shared_ptr<arrow::Column> calculateCorrelation(const arrow::Table &table, const arrow::Column &column);
 DFH_EXPORT std::shared_ptr<arrow::Table> calculateCorrelationMatrix(const arrow::Table &table);
+
+DFH_EXPORT double autoCorrelation(const std::shared_ptr<arrow::Column> &column, int lag = 1);
