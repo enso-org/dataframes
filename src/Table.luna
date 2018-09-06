@@ -127,7 +127,8 @@ class Table:
         self.fromWrapper $ self.ptr.sort (sortBy.each (col, b, c): (col.ptr, b, c))
     # sortBy is list of triples: [(column name :: Text, SortOrder, NullPosition)]
     def sort sortBy:
-        self.sortByColumn $ sortBy.each (colName, order, pos): (self.column colName, order, pos)
+        sortByColumns = sortBy.each (colName, order, pos): (self.column colName, order, pos)
+        self.sortByColumn sortByColumns
     def dropNa:
         self.fromWrapper $ self.ptr.dropNa
     def dropNaAt columnName:
