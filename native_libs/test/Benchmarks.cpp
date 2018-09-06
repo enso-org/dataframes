@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(GeneralBenchmark)
 	auto intColumn1 = g.generateColumn(arrow::Type::INT64, 10'000'000, "intsNonNull");
 	BOOST_CHECK_EQUAL(intColumn1->null_count(), 0);
 
-	auto [v, blah] = benchmark("int column to vector", [&] { return toVector<int64_t>(*intColumn1); });
+	auto v = benchmark("int column to vector", [&] { return toVector<int64_t>(*intColumn1); }).first;
 	auto [intVector, blah2] = benchmark("int column from vector", [&] { return toColumn(v); });
 }
 
