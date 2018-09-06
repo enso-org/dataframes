@@ -343,7 +343,8 @@ class TableWrapper:
 
     # sortBy :: [(ColumnWrapper, SortOrder, NullPosition))]
     def sort sortBy:
-        columnWrapperPtrs = sortBy.each (col, _, _): col.ptr.ptr
+        columnWrapperManagedPtrs = sortBy.each (col, _, _): col.ptr
+        columnWrapperPtrs = columnWrapperManagedPtrs.each .ptr
         orders = sortBy.each (_, order, _): order.toCArg
         nullPositions = sortBy.each (_, _, nullPosition): nullPosition.toCArg
         ptr = Array (Pointer None) . with columnWrapperPtrs columnsC:
