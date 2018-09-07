@@ -631,6 +631,59 @@ DFH_EXPORT std::shared_ptr<arrow::Table> groupBy(std::shared_ptr<arrow::Table> t
     visitType(*keyColumn->type(), [&](auto keyTypeID)
     {
         using KeyT = typename TypeDescription<keyTypeID.value>::ObservedType;
+        std::unordered_map<KeyT, std::vector<int64_t>> keyToRows;
+        std::vector<int64_t> nullRows;
+
+        int64_t row = 0;
+        iterateOver<keyTypeID.value>(*keyColumn, 
+            [&] (auto &&value)
+            {
+                keyToRows[value].push_back(row++);
+            },
+            [&] ()
+            {
+                nullRows.push_back(row++);
+            });
+
+        std::vector<std::shared_ptr<arrow::Column>> newColumns;
+        for(auto column : getColumns(*table))
+        {
+            if(column == keyColumn)
+                continue;
+
+            visitType(column->type()->id(), [&](auto colType)
+            {
+                using StoredTypeBuilder = typename TypeDescription<colType.value>::BuilderType;
+                auto nestedBuilder = std::make_shared<StoredTypeBuilder>();
+                nestedBuilder->Reserve(column->length());
+                arrow::ListBuilder lb{nullptr, nestedBuilder};
+                lb.Reserve(keyToRows.size());
+
+                for(auto & [keyval, rows] : keyToRows)
+                {
+                    lb.Append(true);
+                    for(auto row : rows)
+                    {
+                        auto val = columnValueAt<colType.value>(*column, row);
+                        if constexpr(colType.value != arrow::Type::STRING)
+                            nestedBuilder->Append(val);
+                        else
+                            nestedBuilder->Append(val.data(), val.size());
+                    }
+                }
+                lb.Append(true);
+                for(auto row : nullRows)
+                {
+                    nestedBuilder->AppendNull();
+                }
+                lb.Append(true);
+
+                auto arr = finish(lb);
+
+                newColumns.push_back(toColumn(arr, column->name()));
+            });
+        }
+
         std::vector<KeyT> uniqueKeys;
         std::unordered_map<int64_t, int64_t> groupId;
     });

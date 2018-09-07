@@ -427,32 +427,11 @@ DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_pt
 
     visitType(*keyColumn->type(), [&](auto keyTypeID)
     {
-        using KeyT = typename TypeDescription<keyTypeID.value>::ObservedType;
-        std::unordered_map<KeyT, int64_t> uniqueValues; // key value => group id
-        std::vector<int64_t> groupIds; // [row index] => group id
+        GroupedKeyInfo<keyTypeID.value> groups{*keyColumn};
 
-        groupIds.resize(table->num_rows());
-        auto *rowGroupId = groupIds.data();
-
-        iterateOver<keyTypeID.value>(*keyColumn, [&](auto &&value)
-        {
-            if(auto itr = uniqueValues.find(value); itr != uniqueValues.end())
-            {
-                *rowGroupId++ = itr->second;
-            }
-            else
-            {
-                *rowGroupId++ = uniqueValues.emplace(value, uniqueValues.size() + 1).first->second;
-            }
-        },
-        [&]()
-        {
-            *rowGroupId++ = 0;
-        });
-
-        const auto hasNulls = keyColumn->null_count() != 0;
-        const auto groupCount = uniqueValues.size() + hasNulls; // treat nulls as additional group with id 0
-        const auto afterLastGroup = uniqueValues.size()+1;
+        const auto groupCount = groups.groupCount();
+        const auto hasNulls = groups.hasNulls;
+        const auto afterLastGroup = groups.uniqueValues.size()+1;
 
         for(auto column : toAggregate)
         {
@@ -461,17 +440,17 @@ DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_pt
                 if constexpr(id != arrow::Type::STRING)
                 {
                     using T = typename TypeDescription<id.value>::ObservedType;
-                    std::vector<Aggregator<T>> aggregators(groupCount);
+                    std::vector<Aggregator<T>> aggregators(groups.groupCount());
 
                     int64_t row = 0;
                     iterateOver<id.value>(*column, [&](auto value)
                     {
-                        const auto groupId = groupIds[row++];
+                        const auto groupId = groups.groupIds[row++];
                         aggregators[groupId](value);
                     },
                         [&]()
                     {
-                        const auto groupId = groupIds[row++];
+                        const auto groupId = groups.groupIds[row++];
                         aggregators[groupId]();
                     });
 

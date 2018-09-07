@@ -285,6 +285,11 @@ BOOST_FIXTURE_TEST_CASE(GroupExperiments, DataGenerator)
     auto grouped = abominableGroupAggregate(table, table->column(0), {table->column(1)});
 
     MeasureAtLeast p{ 100, 5s };
+    measure("groupBy", p, [&]
+    {
+        return groupBy(table, table->column(0));
+    });
+
     measure("interpolating doubles with 30% nulls", p, [&]
     {
         return abominableGroupAggregate(table, table->column(0), { table->column(1) });
