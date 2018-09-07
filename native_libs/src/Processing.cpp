@@ -628,7 +628,7 @@ DFH_EXPORT std::shared_ptr<arrow::Table> groupBy(std::shared_ptr<arrow::Table> t
 //         newColumnBuilders.push_back(makeBuilder(column->type()->id()));
 //     }
 
-    visitType(*keyColumn->type(), [&](auto keyTypeID)
+    return visitType(*keyColumn->type(), [&](auto keyTypeID)
     {
         using KeyT = typename TypeDescription<keyTypeID.value>::ObservedType;
         std::unordered_map<KeyT, std::vector<int64_t>> keyToRows;
@@ -653,30 +653,42 @@ DFH_EXPORT std::shared_ptr<arrow::Table> groupBy(std::shared_ptr<arrow::Table> t
 
             visitType(column->type()->id(), [&](auto colType)
             {
+                ChunkAccessor accessor{*column};
                 using StoredTypeBuilder = typename TypeDescription<colType.value>::BuilderType;
                 auto nestedBuilder = std::make_shared<StoredTypeBuilder>();
                 nestedBuilder->Reserve(column->length());
                 arrow::ListBuilder lb{nullptr, nestedBuilder};
                 lb.Reserve(keyToRows.size());
 
-                for(auto & [keyval, rows] : keyToRows)
+                auto appendRow = [&] (auto row) // Note: row is always int64_t but if lambda is not polymorphic, the compiler fails to properly handle if constexpr (MSVC bug)
                 {
-                    lb.Append(true);
-                    for(auto row : rows)
+                    if(accessor.isNull(row))
                     {
-                        auto val = columnValueAt<colType.value>(*column, row);
+                        nestedBuilder->AppendNull();
+                    }
+                    else
+                    {
+                        auto val = accessor.valueAt<colType.value>(row);
                         if constexpr(colType.value != arrow::Type::STRING)
                             nestedBuilder->Append(val);
                         else
                             nestedBuilder->Append(val.data(), val.size());
                     }
-                }
-                lb.Append(true);
-                for(auto row : nullRows)
+                };
+
+                for(auto & [keyval, rows] : keyToRows)
                 {
-                    nestedBuilder->AppendNull();
+
+                    lb.Append();
+                    for(auto row : rows)
+                        appendRow(row);
                 }
-                lb.Append(true);
+                if(nullRows.size())
+                {
+                    lb.Append();
+                    for(auto row : nullRows)
+                        appendRow(row);
+                }
 
                 auto arr = finish(lb);
 
@@ -684,7 +696,6 @@ DFH_EXPORT std::shared_ptr<arrow::Table> groupBy(std::shared_ptr<arrow::Table> t
             });
         }
 
-        std::vector<KeyT> uniqueKeys;
-        std::unordered_map<int64_t, int64_t> groupId;
+        return tableFromColumns(newColumns);
     });
 }

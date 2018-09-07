@@ -277,6 +277,107 @@ BOOST_FIXTURE_TEST_CASE(InterpolateBigColumn, DataGenerator)
 }
 
 
+template<typename F>
+auto visitType4(const arrow::Type::type &id, F &&f)
+{
+    switch(id)
+    {
+    case arrow::Type::INT64: return f(std::integral_constant<arrow::Type::type, arrow::Type::INT64 >{});
+    case arrow::Type::DOUBLE: return f(std::integral_constant<arrow::Type::type, arrow::Type::DOUBLE>{});
+    case arrow::Type::STRING: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
+    case arrow::Type::LIST: return f(std::integral_constant<arrow::Type::type, arrow::Type::LIST>{});
+    default: throw std::runtime_error("array type not supported to downcast: " + std::to_string((int)id));
+    }
+}
+
+template<typename Range, typename Reader>
+void printList(Range &&r, Reader &&f)
+{
+    auto end = std::end(r);
+    auto itr = std::begin(r);
+    if(itr != end)
+    {
+        std::cout << std::invoke(f, *itr++);
+    }
+
+    while(itr != end)
+    {
+        std::cout << "\t" << std::invoke(f, *itr++);
+    }
+}
+
+template<typename T>
+std::string formatColumnElem(const T &elem)
+{
+    return std::to_string(elem);
+}
+std::string formatColumnElem(const std::string_view &elem)
+{
+    return std::string(elem);
+}
+std::string formatColumnElem(const ListElemView &elem)
+{
+    std::ostringstream out;
+    out << "[";
+
+    visitType4(elem.array->type_id(), [&](auto id)
+    {
+        if(elem.length)
+        {
+            auto value = arrayValueAt<id.value>(*elem.array, elem.offset + 0);
+            out << formatColumnElem(value);
+        }
+
+        for(int i = 1; i < elem.length; i++)
+        {
+            out << ", ";
+            auto value = arrayValueAt<id.value>(*elem.array, elem.offset + i);
+            out << formatColumnElem(value);
+        }
+    });
+
+    out << "]";
+    return out.str();
+}
+
+void uglyPrint(const arrow::Table &table)
+{
+    auto cols = getColumns(table);
+    std::cout << "[i]\t";
+    printList(cols, [](auto col){ return col->name(); });
+    std::cout << '\n';
+
+    int64_t partsSize = 5;
+
+    auto printedElement = [&](const arrow::Column &col, int row)
+    {
+        return visitType4(col.type()->id(), [&](auto id) -> std::string
+        {
+            const auto value = columnValueAt<id.value>(col, row);
+            return formatColumnElem(value);
+        });
+    };
+
+    auto printRow = [&](int64_t row)
+    {
+        std::cout << row << "\t";
+        printList(cols, [&](const auto &col) -> std::string
+        {
+            return printedElement(*col, row);
+        });
+        std::cout << '\n';
+    };
+
+    for(int64_t row = 0; row < partsSize && row < table.num_rows(); row++)
+        printRow(row);
+    if(table.num_rows() > partsSize*2)
+        std::cout << "... " << (table.num_rows() - partsSize * 2) << " more rows ...\n";
+    for(int64_t row = std::max<int64_t>(partsSize, std::max<int64_t>(0, table.num_rows() - partsSize)); row < table.num_rows(); row++)
+        printRow(row);
+
+    std::cout << "[" << table.num_rows() << " rows x " << table.num_columns() << " cols]" << std::endl;
+}
+
 BOOST_FIXTURE_TEST_CASE(GroupExperiments, DataGenerator)
 {
 //     auto table1 = loadTableFromCsvFile("F:/dev/train.csv");
@@ -284,18 +385,39 @@ BOOST_FIXTURE_TEST_CASE(GroupExperiments, DataGenerator)
     auto table = loadTableFromFeatherFile("F:/dev/train-nasze.feather");
     auto grouped = abominableGroupAggregate(table, table->column(0), {table->column(1)});
 
+    const auto idCol = table->column(0);
+    const auto timestampCol = table->column(1);
+    const auto yCol = table->column(110);
+    auto tableSelected = tableFromColumns({ idCol, timestampCol, yCol });
+
+    auto hlp = groupBy(tableSelected, table->column(0));
+    uglyPrint(*hlp);
+
     MeasureAtLeast p{ 100, 5s };
     measure("groupBy", p, [&]
     {
-        return groupBy(table, table->column(0));
+        return groupBy(tableSelected, table->column(0));
     });
 
     measure("interpolating doubles with 30% nulls", p, [&]
     {
-        return abominableGroupAggregate(table, table->column(0), { table->column(1) });
+        return abominableGroupAggregate(table, idCol, { timestampCol, yCol });
     });
 
     generateCsv("F:/dev/aggr.csv", *grouped);
 }
+
+BOOST_FIXTURE_TEST_CASE(GroupBy, DataGenerator)
+{
+    auto id = std::vector<int64_t>{ 1, 1, 2, 3, 1, 2, 3, 4, 5, 4 };
+    auto iota = iotaVector(10);
+    auto idCol = toColumn(id, "id");
+    auto iotaCol = toColumn(iota, "iota");
+    auto table = tableFromColumns({ idCol, iotaCol });
+
+    auto groupedTable = groupBy(table, idCol);
+    uglyPrint(*groupedTable);
+}
+
 
 BOOST_AUTO_TEST_SUITE_END();

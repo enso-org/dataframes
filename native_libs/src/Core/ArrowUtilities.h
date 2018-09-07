@@ -67,6 +67,30 @@ template<> struct TypeDescription<arrow::Type::STRING>
     static constexpr arrow::Type::type id = ArrowType::type_id;
 };
 
+struct ListElemView
+{
+    arrow::Array *array{};
+    int32_t offset{};
+    int32_t length{};
+
+    ListElemView(arrow::Array *array, int32_t offset, int32_t length)
+        : array(array), offset(offset), length(length)
+    {}
+};
+
+template<> struct TypeDescription<arrow::Type::LIST>
+{
+    using ArrowType = arrow::ListType;
+    using BuilderType = arrow::ListBuilder;
+    //using ValueType = std::string;
+    using ObservedType = ListElemView;
+    //using CType = const char *;
+    using Array = arrow::ListArray;
+    // using StorageValueType = uint8_t;
+    using OffsetType = int32_t;
+    static constexpr arrow::Type::type id = ArrowType::type_id;
+};
+
 template<typename Array>
 using ArrayTypeDescription = TypeDescription<std::decay_t<std::remove_pointer_t<Array>>::TypeClass::type_id>;
 
@@ -102,6 +126,12 @@ auto arrayValueAtTyped(const Array &array, int64_t index)
         int32_t length = 0;
         auto ptr = array.GetValue(index, &length);
         return std::string_view(reinterpret_cast<const char *>(ptr), length);
+    }
+    else if constexpr(std::is_same_v<arrow::ListArray, Array>)
+    {
+        const auto length = array.value_length(index);
+        const auto offset = array.value_offset(index);
+        return ListElemView{ array.values().get(), offset, length };
     }
     else
         return array.Value(index);
@@ -416,14 +446,17 @@ struct DFH_EXPORT ChunkAccessor
     std::vector<int64_t> chunkStartIndices;
 
     ChunkAccessor(const arrow::ChunkedArray &array);
+    ChunkAccessor(const arrow::Column &column);
     std::pair<const arrow::Array *, int32_t> locate(int64_t index) const;
 
     template <arrow::Type::type type>
-    auto valueAt(const arrow::Column &column, int64_t index) const
+    auto valueAt(int64_t index) const
     {
         auto [chunk, chunkIndex] = locate(index);
         return arrayValueAt<type>(*chunk, chunkIndex);
     }
+
+    bool isNull(int64_t index);
 };
 
 DFH_EXPORT std::pair<std::shared_ptr<arrow::Array>, int32_t> locateChunk(const arrow::ChunkedArray &chunkedArray, int64_t index);

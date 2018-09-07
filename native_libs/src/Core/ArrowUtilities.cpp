@@ -227,6 +227,10 @@ ChunkAccessor::ChunkAccessor(const arrow::ChunkedArray &array)
     }
 }
 
+ChunkAccessor::ChunkAccessor(const arrow::Column &column)
+    : ChunkAccessor(*column.data())
+{}
+
 std::pair<const arrow::Array *, int32_t> ChunkAccessor::locate(int64_t index) const
 {
     auto itr = std::upper_bound(chunkStartIndices.begin(), chunkStartIndices.end(), index);
@@ -238,4 +242,10 @@ std::pair<const arrow::Array *, int32_t> ChunkAccessor::locate(int64_t index) co
     }
     else
         throw std::runtime_error("wrong index");
+}
+
+bool ChunkAccessor::isNull(int64_t index)
+{
+    auto[chunk, chunkIndex] = locate(index);
+    return chunk->IsNull(chunkIndex);
 }
