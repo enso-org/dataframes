@@ -473,15 +473,14 @@ DFH_EXPORT void validateIndex(const arrow::Array &array, int64_t index);
 DFH_EXPORT void validateIndex(const arrow::ChunkedArray &array, int64_t index);
 DFH_EXPORT void validateIndex(const arrow::Column &column, int64_t index);
 
-inline void append(arrow::StringBuilder &sb, std::string_view sv)
+inline void append(arrow::StringBuilder &builder, std::string_view sv)
 {
-    sb.Append(sv.data(), static_cast<int32_t>(sv.length()));
+    builder.Append(sv.data(), static_cast<int32_t>(sv.length()));
 }
-
-template<typename Builder, typename T>
-void append(Builder &sb, T v)
+template<typename N, typename V>
+void append(arrow::NumericBuilder<N> &builder, const V &value)
 {
-    sb.Append(v);
+    builder.Append(value);
 }
 
 template<arrow::Type::type id1, arrow::Type::type id2, typename F>
@@ -538,3 +537,48 @@ std::shared_ptr<arrow::Array> makeNullsArray(int64_t length)
 
 DFH_EXPORT std::shared_ptr<arrow::Array> makeNullsArray(arrow::Type::type id, int64_t length);
 DFH_EXPORT std::unique_ptr<arrow::ArrayBuilder> makeBuilder(arrow::Type::type id);
+
+template<arrow::Type::type id, bool nullable>
+struct FixedSizeArrayBuilder
+{
+    using T = typename TypeDescription<id>::StorageValueType;
+    using Array = typename TypeDescription<id>::Array;
+
+    int64_t length;
+    std::shared_ptr<arrow::Buffer> valueBuffer;
+    T *nextValueToWrite{};
+
+
+    FixedSizeArrayBuilder(int32_t length)
+        : length(length)
+    {
+        std::tie(valueBuffer, nextValueToWrite) = allocateBuffer<T>(length);
+
+        static_assert(nullable == false); // would need null mask
+        static_assert(id == arrow::Type::INT64 || arrow::Type::DOUBLE); // would need another buffer
+    }
+
+    void Append(T value)
+    {
+        *nextValueToWrite++ = value;
+    }
+
+    auto Finish()
+    {
+        return std::make_shared<Array>(length, valueBuffer, nullptr, 0);
+    }
+};
+
+
+#define MAKE_INTEGRAL_CONSTANT(value) std::integral_constant<decltype(value), value>{} 
+#define CASE_DISPATCH(value) case value: return f(MAKE_INTEGRAL_CONSTANT(value));
+
+template<typename F>
+auto dispatch(bool value, F &&f)
+{
+    switch(value)
+    {
+        CASE_DISPATCH(false);
+        CASE_DISPATCH(true);
+    }
+}

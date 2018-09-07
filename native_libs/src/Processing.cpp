@@ -20,39 +20,9 @@
 #include "LQuery/AST.h"
 #include "LQuery/Interpreter.h"
 #include "Analysis.h"
+#include "Sort.h"
 
 using namespace std::literals;
-
-template<arrow::Type::type id, bool nullable>
-struct FixedSizeArrayBuilder
-{
-    using T = typename TypeDescription<id>::StorageValueType;
-    using Array = typename TypeDescription<id>::Array;
-
-    int64_t length;
-    std::shared_ptr<arrow::Buffer> valueBuffer;
-    T *nextValueToWrite{};
-
-
-    FixedSizeArrayBuilder(int32_t length)
-        : length(length)
-    {
-        std::tie(valueBuffer, nextValueToWrite) = allocateBuffer<T>(length);
-
-        static_assert(nullable == false); // would need null mask
-        static_assert(id == arrow::Type::INT64 || arrow::Type::DOUBLE); // would need another buffer
-    }
-
-    void Append(T value)
-    {
-        *nextValueToWrite++ = value;
-    }
-
-    auto Finish()
-    {
-        return std::make_shared<Array>(length, valueBuffer, nullptr, 0);
-    }
-};
 
 template<arrow::Type::type id_>
 struct FilteredArrayBuilder
@@ -621,15 +591,10 @@ DFH_EXPORT std::shared_ptr<arrow::Table> groupBy(std::shared_ptr<arrow::Table> t
     if(keyColumn->length() != table->num_rows())
         throw std::runtime_error("mismatched row count");
 
-//     std::vector<std::shared_ptr<arrow::ArrayBuilder>> newColumnBuilders;
-//     for(auto column : getColumns(*table))
-//     {
-//         if()
-//         newColumnBuilders.push_back(makeBuilder(column->type()->id()));
-//     }
-
     return visitType(*keyColumn->type(), [&](auto keyTypeID)
     {
+        const auto N = table->num_rows();
+
         using KeyT = typename TypeDescription<keyTypeID.value>::ObservedType;
         std::unordered_map<KeyT, std::vector<int64_t>> keyToRows;
         std::vector<int64_t> nullRows;
@@ -645,6 +610,22 @@ DFH_EXPORT std::shared_ptr<arrow::Table> groupBy(std::shared_ptr<arrow::Table> t
                 nullRows.push_back(row++);
             });
 
+        Permutation permutation(N);
+        auto target = permutation.begin();
+        target = std::copy(nullRows.begin(), nullRows.end(), target);
+        for(auto &[keyval, rows] : keyToRows)
+            target = std::copy(rows.begin(), rows.end(), target);
+
+        auto buffer = allocateBuffer<int32_t>(N + 1);
+        *buffer.second++ = 0;
+        int64_t currentOffset = 0;
+        auto prepareForGroupOfSize = [&] (int64_t size)
+        {
+            currentOffset += size;
+            *buffer.second++ = currentOffset;
+        };
+
+
         std::vector<std::shared_ptr<arrow::Column>> newColumns;
         for(auto column : getColumns(*table))
         {
@@ -653,46 +634,11 @@ DFH_EXPORT std::shared_ptr<arrow::Table> groupBy(std::shared_ptr<arrow::Table> t
 
             visitType(column->type()->id(), [&](auto colType)
             {
-                ChunkAccessor accessor{*column};
-                using StoredTypeBuilder = typename TypeDescription<colType.value>::BuilderType;
-                auto nestedBuilder = std::make_shared<StoredTypeBuilder>();
-                nestedBuilder->Reserve(column->length());
-                arrow::ListBuilder lb{nullptr, nestedBuilder};
-                lb.Reserve(keyToRows.size());
+                const auto listType = std::make_shared<arrow::ListType>(column->field());
 
-                auto appendRow = [&] (auto row) // Note: row is always int64_t but if lambda is not polymorphic, the compiler fails to properly handle if constexpr (MSVC bug)
-                {
-                    if(accessor.isNull(row))
-                    {
-                        nestedBuilder->AppendNull();
-                    }
-                    else
-                    {
-                        auto val = accessor.valueAt<colType.value>(row);
-                        if constexpr(colType.value != arrow::Type::STRING)
-                            nestedBuilder->Append(val);
-                        else
-                            nestedBuilder->Append(val.data(), val.size());
-                    }
-                };
-
-                for(auto & [keyval, rows] : keyToRows)
-                {
-
-                    lb.Append();
-                    for(auto row : rows)
-                        appendRow(row);
-                }
-                if(nullRows.size())
-                {
-                    lb.Append();
-                    for(auto row : nullRows)
-                        appendRow(row);
-                }
-
-                auto arr = finish(lb);
-
-                newColumns.push_back(toColumn(arr, column->name()));
+                auto permutedArray = permuteToArray(column, permutation);
+                auto groupedArray = std::make_shared<arrow::ListArray>(listType, N, buffer.first, permutedArray, nullptr, 0);
+                newColumns.push_back(toColumn(groupedArray, column->name()));
             });
         }
 

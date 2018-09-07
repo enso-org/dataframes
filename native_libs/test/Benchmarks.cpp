@@ -393,7 +393,7 @@ BOOST_FIXTURE_TEST_CASE(GroupExperiments, DataGenerator)
     auto hlp = groupBy(tableSelected, table->column(0));
     uglyPrint(*hlp);
 
-    MeasureAtLeast p{ 100, 5s };
+    MeasureAtLeast p{ 100, 15s };
     measure("groupBy", p, [&]
     {
         return groupBy(tableSelected, table->column(0));
