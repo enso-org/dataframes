@@ -34,28 +34,19 @@ std::shared_ptr<arrow::Array> permuteInnerToArray(std::shared_ptr<arrow::Column>
         using T = typename TD::StorageValueType;
         using Builder = typename TD::BuilderType;
 
-        return dispatch(column->null_count() != 0, [&](auto nullable)
+        const ChunkAccessor chunks{ *column->data() };
+        Builder b;
+        b.Reserve(indices.size());
+        for(auto index : indices)
         {
-            const ChunkAccessor chunks{ *column->data() };
-            Builder b;
-            b.Reserve(indices.size());
-            for(auto index : indices)
-            {
-                auto[chunk, indexInChunk] = chunks.locate(index);
+            auto[chunk, indexInChunk] = chunks.locate(index);
+            if(chunk->IsValid(indexInChunk))
+                append(b, arrayValueAt<id.value>(*chunk, indexInChunk));
+            else
+                b.AppendNull();
+        }
 
-                if constexpr(nullable.value)
-                {
-                    if(chunk->IsValid(indexInChunk))
-                        append(b, arrayValueAt<id.value>(*chunk, indexInChunk));
-                    else
-                        b.AppendNull();
-                }
-                else
-                    append(b, arrayValueAt<id.value>(*chunk, indexInChunk));
-            }
-
-            return finish(b);
-        });
+        return finish(b);
     });
     //     // for fixed width
     //     if(id == arrow::Type::DOUBLE || id == arrow::Type::INT64) // fixed width types
