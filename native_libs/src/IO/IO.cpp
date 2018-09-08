@@ -63,7 +63,7 @@ std::string getFileContents(const char *filepath)
 {
     try
     {
-        std::ifstream input{filepath};
+        std::ifstream input{filepath, std::ios::binary};
         if(!input)
             throw std::runtime_error("Failed to open the file");
 
@@ -72,8 +72,10 @@ std::string getFileContents(const char *filepath)
         contents.resize(input.tellg());
         input.seekg(0, std::ios::beg);
         input.read(&contents[0], contents.size());
-        input.close();
-        return(contents);
+        if(!input)
+            throw std::runtime_error("failed reading stream");
+
+        return contents;
     }
     catch(std::exception &e)
     {

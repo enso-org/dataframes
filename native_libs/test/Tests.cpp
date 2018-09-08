@@ -4,6 +4,7 @@
 
 #define BOOST_TEST_MODULE DataframeHelperTests
 #include <boost/test/unit_test.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <chrono>
 #include <fstream>
@@ -162,29 +163,52 @@ BOOST_AUTO_TEST_CASE(ParseRecord)
 
 void testCsvParser(std::string input, std::vector<std::vector<std::string>> expectedContents)
 {
-	CsvParser parser{input};
-	auto rows = parser.parseCsvTable();
-
-	BOOST_TEST_CONTEXT("Parsing `" << input << "`")
+    auto performTest = [&]
+    {
+        CsvParser parser{ input };
+        auto rows = parser.parseCsvTable();
+        BOOST_REQUIRE_EQUAL(rows.size(), expectedContents.size());
+        for(int i = 0; i < expectedContents.size(); i++)
+        {
+            BOOST_TEST_CONTEXT("row " << i)
+            {
+                auto &readRow = rows.at(i);
+                auto &expectedRow = expectedContents.at(i);
+                BOOST_REQUIRE_EQUAL(readRow.size(), expectedRow.size());
+                for(int j = 0; j < readRow.size(); j++)
+                    BOOST_CHECK_EQUAL(readRow.at(j), expectedRow.at(j));
+            }
+        }
+    };
+	BOOST_TEST_CONTEXT("Parsing `" << input << "` with default line endings")
 	{
-		BOOST_REQUIRE_EQUAL(rows.size(), expectedContents.size());
-		for(int i = 0; i < expectedContents.size(); i++)
-		{
-			BOOST_TEST_CONTEXT("row " << i)
-			{
-				auto &readRow = rows.at(i);
-				auto &expectedRow = expectedContents.at(i);
-				BOOST_REQUIRE_EQUAL(readRow.size(), expectedRow.size());
-				for(int j = 0; j < readRow.size(); j++)
-					BOOST_CHECK_EQUAL(readRow.at(j), expectedRow.at(j));
-			}
-		}
+        performTest();
 	}
+
+    if(boost::algorithm::contains(input, "\n") && !boost::algorithm::contains(input, "\r\n"))
+    {
+        boost::algorithm::replace_all(input, "\n", "\r\n");
+        BOOST_TEST_CONTEXT("Parsing `" << input << "` with CRLF")
+        {
+            performTest();
+        }
+    }
+    else if(boost::algorithm::contains(input, "\r\n"))
+    {
+        boost::algorithm::replace_all(input, "\r\n", "\n");
+        BOOST_TEST_CONTEXT("Parsing `" << input << "` with LF")
+        {
+            performTest();
+        }
+    }
 }
 
 BOOST_AUTO_TEST_CASE(ParseCsv)
 {
-	testCsvParser("foo\nbar\nbaz", {{"foo"}, {"bar"}, {"baz"}});
+    testCsvParser("foo\nbar\nbaz", { {"foo"}, {"bar"}, {"baz"} });
+    testCsvParser("\"\"\n10", { {""}, {"10"} });
+    testCsvParser("\"\"\n10\n", { {""}, {"10"} });
+    testCsvParser("a,v\n10,20\n", { {"a", "v"}, {"10", "20"} });
 }
 
 BOOST_AUTO_TEST_CASE(ParseFile)
@@ -671,7 +695,8 @@ BOOST_AUTO_TEST_CASE(FilterWithNulls)
 
 BOOST_AUTO_TEST_CASE(TypeDeducing)
 {
-	BOOST_CHECK_EQUAL(deduceType("5.0"), arrow::Type::DOUBLE);
+    BOOST_CHECK_EQUAL(deduceType("5.0"), arrow::Type::DOUBLE);
+    BOOST_CHECK_EQUAL(deduceType("-1.060828e-39"), arrow::Type::DOUBLE);
 	BOOST_CHECK_EQUAL(deduceType("5"), arrow::Type::INT64);
 	BOOST_CHECK_EQUAL(deduceType("five"), arrow::Type::STRING);
 	BOOST_CHECK_EQUAL(deduceType(""), arrow::Type::NA);
