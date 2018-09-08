@@ -440,7 +440,7 @@ DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_pt
                 if constexpr(id != arrow::Type::STRING)
                 {
                     using T = typename TypeDescription<id.value>::ObservedType;
-                    std::vector<Aggregator<T>> aggregators(groups.groupCount());
+                    std::vector<Aggregator<T>> aggregators(afterLastGroup);
 
                     int64_t row = 0;
                     iterateOver<id.value>(*column, [&](auto value)

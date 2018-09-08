@@ -34,34 +34,53 @@ std::shared_ptr<arrow::Array> permuteInnerToArray(std::shared_ptr<arrow::Column>
         using T = typename TD::StorageValueType;
         using Builder = typename TD::BuilderType;
 
-        const ChunkAccessor chunks{ *column->data() };
-        Builder b;
-        b.Reserve(indices.size());
-        for(auto index : indices)
+        return dispatch(column->null_count() != 0, [&](auto nullable) -> std::shared_ptr<arrow::Array>
         {
-            auto[chunk, indexInChunk] = chunks.locate(index);
-            if(chunk->IsValid(indexInChunk))
-                append(b, arrayValueAt<id.value>(*chunk, indexInChunk));
-            else
-                b.AppendNull();
-        }
+            if(column->length() > std::numeric_limits<int32_t>::max())
+                throw std::runtime_error("not implemented: too big array");
 
-        return finish(b);
+            const ChunkAccessor chunks{ *column->data() };
+            if constexpr(!nullable.value && (id.value == arrow::Type::INT64 || id.value == arrow::Type::DOUBLE))
+            {
+                FixedSizeArrayBuilder<id.value, nullable.value> b{ (int32_t)column->length() };
+                {
+                    T * __restrict target = b.nextValueToWrite;
+                    for(auto index : indices)
+                    {
+                        const auto[chunk, indexInChunk] = chunks.locate(index);
+                        const auto value = arrayValueAt<id.value>(*chunk, indexInChunk);
+                        // unfortunately gives performance edge over b.Append(value)
+                        // TODO: can we have something nice and fast?
+                        *target++ = value;
+                    }
+                }
+                return b.Finish();
+            }
+            else
+            {
+                Builder b;
+                b.Reserve(indices.size());
+                for(auto index : indices)
+                {
+                    const auto[chunk, indexInChunk] = chunks.locate(index);
+                    if constexpr(nullable.value)
+                    {
+                        if(chunk->IsValid(indexInChunk))
+                        {
+                            const auto value = arrayValueAt<id.value>(*chunk, indexInChunk);
+                            append(b, value);
+                        }
+                        else
+                            b.AppendNull();
+                    }
+                    else
+                        append(b, arrayValueAt<id.value>(*chunk, indexInChunk));
+                }
+
+                return finish(b);
+            }
+        });
     });
-    //     // for fixed width
-    //     if(id == arrow::Type::DOUBLE || id == arrow::Type::INT64) // fixed width types
-    //     {
-    //         using T = typename TypeDescription<id>::StorageValueType;
-    //         auto [buffer, values] = allocateBuffer<T>(column->length());
-    // 
-    //         int64_t row = 0;
-    //         for(auto &chunk : column->data()->chunks())
-    //         {
-    //             auto &array = dynamic_cast<typename TypeDescription<id>::Array&>(*chunk);
-    //             T *values = array.raw_values;
-    // 
-    //         }
-    //     }
 }
 
 std::shared_ptr<arrow::Column> permuteInner(std::shared_ptr<arrow::Column> column, const Permutation &indices)

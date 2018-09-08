@@ -119,7 +119,7 @@ auto visitType(const arrow::DataType &type, F &&f)
 }
 
 template <typename Array>
-auto arrayValueAtTyped(const Array &array, int64_t index)
+auto arrayValueAtTyped(const Array &array, int32_t index)
 {
     if constexpr(std::is_same_v<arrow::StringArray, Array>)
     {
@@ -138,10 +138,21 @@ auto arrayValueAtTyped(const Array &array, int64_t index)
 }
 
 template <arrow::Type::type type>
-auto arrayValueAt(const arrow::Array &array, int64_t index)
+auto arrayValueAt(const arrow::Array &array, int32_t index)
 {
     using Array = typename TypeDescription<type>::Array;
     return arrayValueAtTyped(static_cast<const Array &>(array), index);
+}
+template <arrow::Type::type type>
+auto tryArrayValueAt(const arrow::Array &array, int32_t index)
+{
+    using T = typename TypeDescription<type>::ObservedType;
+    if(array.IsValid(index))
+    {
+        using Array = typename TypeDescription<type>::Array;
+        return std::optional<T>(arrayValueAtTyped(static_cast<const Array &>(array), index));
+    }
+    return std::optional<T>{};
 }
 
 template <arrow::Type::type type, typename ElementF, typename NullF>
@@ -467,6 +478,14 @@ auto columnValueAt(const arrow::Column &column, int64_t index)
 	auto [chunk, chunkIndex] = locateChunk(*column.data(), index);
 	return arrayValueAt<type>(*chunk, chunkIndex);
 }
+
+template <arrow::Type::type type>
+auto tryColumnValueAt(const arrow::Column &column, int64_t index)
+{
+    auto[chunk, chunkIndex] = locateChunk(*column.data(), index);
+    return tryArrayValueAt<type>(*chunk, chunkIndex);
+}
+
 DFH_EXPORT std::vector<DynamicField> rowAt(const arrow::Table &table, int64_t index);
 
 DFH_EXPORT void validateIndex(const arrow::Array &array, int64_t index);

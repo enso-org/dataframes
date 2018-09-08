@@ -306,6 +306,10 @@ void printList(Range &&r, Reader &&f)
     }
 }
 
+
+template<typename T>
+std::string formatColumnElem(const std::optional<T> &elem);
+
 template<typename T>
 std::string formatColumnElem(const T &elem)
 {
@@ -324,20 +328,28 @@ std::string formatColumnElem(const ListElemView &elem)
     {
         if(elem.length)
         {
-            auto value = arrayValueAt<id.value>(*elem.array, elem.offset + 0);
+            auto value = tryArrayValueAt<id.value>(*elem.array, elem.offset + 0);
             out << formatColumnElem(value);
         }
 
         for(int i = 1; i < elem.length; i++)
         {
             out << ", ";
-            auto value = arrayValueAt<id.value>(*elem.array, elem.offset + i);
+            auto value = tryArrayValueAt<id.value>(*elem.array, elem.offset + i);
             out << formatColumnElem(value);
         }
     });
 
     out << "]";
     return out.str();
+}
+
+template<typename T>
+std::string formatColumnElem(const std::optional<T> &elem)
+{
+    if(elem)
+        return formatColumnElem(*elem);
+    return "null"s;
 }
 
 void uglyPrint(const arrow::Table &table)
@@ -380,9 +392,20 @@ void uglyPrint(const arrow::Table &table)
 
 BOOST_FIXTURE_TEST_CASE(GroupExperiments, DataGenerator)
 {
-//     auto table1 = loadTableFromCsvFile("F:/dev/train.csv");
-//     saveTableToFeatherFile("F:/dev/train-nasze.feather", *table1);
-    auto table = loadTableFromFeatherFile("F:/dev/train-nasze.feather");
+    std::vector<ColumnType> types;
+    types.emplace_back(arrow::TypeTraits<arrow::Int64Type>::type_singleton(), true, false);
+    types.emplace_back(arrow::TypeTraits<arrow::Int64Type>::type_singleton(), true, false);
+    for(int i = 0; i < 108; i++)
+        types.emplace_back(arrow::TypeTraits<arrow::DoubleType>::type_singleton(), true, false);
+
+    //auto table = loadTableFromCsvFile("F:/dev/temp.csv", types);
+    //auto table = loadTableFromCsvFile("F:/dev/train.csv", types);
+    //uglyPrint(*table);
+    //std::cout << "table rows " << table->num_rows() << std::endl;
+    //auto table = loadTableFromCsvFile("F:/dev/train.csv", types);
+    //generateCsv("F:/dev/trainSel.csv", *tableFromColumns({table->column(0), table->column(1)}));
+    //saveTableToFeatherFile("F:/dev/train-nasze3.feather", *table);
+    auto table = loadTableFromFeatherFile("F:/dev/train-nasze3.feather");
     auto grouped = abominableGroupAggregate(table, table->column(0), {table->column(1)});
 
     const auto idCol = table->column(0);
@@ -390,6 +413,16 @@ BOOST_FIXTURE_TEST_CASE(GroupExperiments, DataGenerator)
     const auto yCol = table->column(110);
     auto tableSelected = tableFromColumns({ idCol, timestampCol, yCol });
 
+
+    int row = 0;
+    iterateOver<arrow::Type::INT64>(*timestampCol, [&](auto) {row++;}, [&] 
+    {
+        std::cout << "ALART " << row++ << std::endl;
+    });
+
+//     auto row1 = rowAt(*table, 1710755);
+//     auto row2 = rowAt(*table, 1710756);
+    //auto row3 = rowAt(*table, 1710757);
     auto hlp = groupBy(tableSelected, table->column(0));
     uglyPrint(*hlp);
 
@@ -411,9 +444,11 @@ BOOST_FIXTURE_TEST_CASE(GroupBy, DataGenerator)
 {
     auto id = std::vector<int64_t>{ 1, 1, 2, 3, 1, 2, 3, 4, 5, 4 };
     auto iota = iotaVector(10);
+    auto iotaNulls = std::vector<std::optional<int64_t>>{ 0, std::nullopt, 2, std::nullopt, 4, 6, 7, std::nullopt, std::nullopt, 9 };
     auto idCol = toColumn(id, "id");
     auto iotaCol = toColumn(iota, "iota");
-    auto table = tableFromColumns({ idCol, iotaCol });
+    auto iotaNullsCol = toColumn(iotaNulls, "iotaNulls");
+    auto table = tableFromColumns({ idCol, iotaCol, iotaNullsCol });
 
     auto groupedTable = groupBy(table, idCol);
     uglyPrint(*groupedTable);

@@ -616,7 +616,11 @@ DFH_EXPORT std::shared_ptr<arrow::Table> groupBy(std::shared_ptr<arrow::Table> t
         for(auto &[keyval, rows] : keyToRows)
             target = std::copy(rows.begin(), rows.end(), target);
 
-        auto buffer = allocateBuffer<int32_t>(N + 1);
+        const auto groupCount = keyToRows.size() + !!nullRows.size();
+
+        // be smart: each column for a given group has same group size
+        // so we can create offsets buffer once and reuse it across all grouped columns
+        auto buffer = allocateBuffer<int32_t>(groupCount + 1);
         *buffer.second++ = 0;
         int64_t currentOffset = 0;
         auto prepareForGroupOfSize = [&] (int64_t size)
@@ -624,6 +628,11 @@ DFH_EXPORT std::shared_ptr<arrow::Table> groupBy(std::shared_ptr<arrow::Table> t
             currentOffset += size;
             *buffer.second++ = currentOffset;
         };
+        if(nullRows.size())
+            prepareForGroupOfSize(nullRows.size());
+        for(auto &[key, groupRows] : keyToRows)
+            prepareForGroupOfSize(groupRows.size());
+        // buffer is done
 
 
         std::vector<std::shared_ptr<arrow::Column>> newColumns;
@@ -637,7 +646,7 @@ DFH_EXPORT std::shared_ptr<arrow::Table> groupBy(std::shared_ptr<arrow::Table> t
                 const auto listType = std::make_shared<arrow::ListType>(column->field());
 
                 auto permutedArray = permuteToArray(column, permutation);
-                auto groupedArray = std::make_shared<arrow::ListArray>(listType, N, buffer.first, permutedArray, nullptr, 0);
+                auto groupedArray = std::make_shared<arrow::ListArray>(listType, groupCount, buffer.first, permutedArray, nullptr, 0);
                 newColumns.push_back(toColumn(groupedArray, column->name()));
             });
         }
