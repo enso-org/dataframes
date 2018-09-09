@@ -595,6 +595,7 @@ DFH_EXPORT std::shared_ptr<arrow::Table> groupBy(std::shared_ptr<arrow::Table> t
     {
         const auto N = table->num_rows();
 
+        using TypeT = typename TypeDescription<keyTypeID.value>::ArrowType;
         using KeyT = typename TypeDescription<keyTypeID.value>::ObservedType;
         std::unordered_map<KeyT, std::vector<int64_t>> keyToRows;
         std::vector<int64_t> nullRows;
@@ -636,6 +637,19 @@ DFH_EXPORT std::shared_ptr<arrow::Table> groupBy(std::shared_ptr<arrow::Table> t
 
 
         std::vector<std::shared_ptr<arrow::Column>> newColumns;
+
+        // first prepare key column
+        {
+            auto builder = makeBuilder(std::static_pointer_cast<TypeT>(keyColumn->type()));
+            if(nullRows.size() > 0)
+                builder->AppendNull();
+            for(auto &&[keyValue, rows] : keyToRows)
+                append(*builder, keyValue);
+
+            const auto arr = finish(*builder);
+            newColumns.push_back(std::make_shared<arrow::Column>(keyColumn->field(), arr));
+        }
+
         for(auto column : getColumns(*table))
         {
             if(column == keyColumn)

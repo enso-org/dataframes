@@ -276,20 +276,6 @@ BOOST_FIXTURE_TEST_CASE(InterpolateBigColumn, DataGenerator)
 //     });
 }
 
-
-template<typename F>
-auto visitType4(const arrow::Type::type &id, F &&f)
-{
-    switch(id)
-    {
-    case arrow::Type::INT64: return f(std::integral_constant<arrow::Type::type, arrow::Type::INT64 >{});
-    case arrow::Type::DOUBLE: return f(std::integral_constant<arrow::Type::type, arrow::Type::DOUBLE>{});
-    case arrow::Type::STRING: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
-    case arrow::Type::LIST: return f(std::integral_constant<arrow::Type::type, arrow::Type::LIST>{});
-    default: throw std::runtime_error("array type not supported to downcast: " + std::to_string((int)id));
-    }
-}
-
 template<typename Range, typename Reader>
 void printList(Range &&r, Reader &&f)
 {
@@ -324,7 +310,7 @@ std::string formatColumnElem(const ListElemView &elem)
     std::ostringstream out;
     out << "[";
 
-    visitType4(elem.array->type_id(), [&](auto id)
+    visitType4(elem.array->type(), [&](auto id)
     {
         if(elem.length)
         {
@@ -355,15 +341,18 @@ std::string formatColumnElem(const std::optional<T> &elem)
 void uglyPrint(const arrow::Table &table)
 {
     auto cols = getColumns(table);
-    std::cout << "[i]\t";
+    std::cout << "\t| ";
     printList(cols, [](auto col){ return col->name(); });
+    std::cout << '\n';
+    for(int i = 0; i < 80; i++)
+        std::cout << "-";
     std::cout << '\n';
 
     int64_t partsSize = 5;
 
     auto printedElement = [&](const arrow::Column &col, int row)
     {
-        return visitType4(col.type()->id(), [&](auto id) -> std::string
+        return visitType4(col.type(), [&](auto id) -> std::string
         {
             const auto value = columnValueAt<id.value>(col, row);
             return formatColumnElem(value);
@@ -372,7 +361,7 @@ void uglyPrint(const arrow::Table &table)
 
     auto printRow = [&](int64_t row)
     {
-        std::cout << row << "\t";
+        std::cout << row << "\t| ";
         printList(cols, [&](const auto &col) -> std::string
         {
             return printedElement(*col, row);
@@ -444,14 +433,29 @@ BOOST_FIXTURE_TEST_CASE(GroupBy, DataGenerator)
 {
     auto id = std::vector<int64_t>{ 1, 1, 2, 3, 1, 2, 3, 4, 5, 4 };
     auto iota = iotaVector(10);
-    auto iotaNulls = std::vector<std::optional<int64_t>>{ 0, std::nullopt, 2, std::nullopt, 4, 6, 7, std::nullopt, std::nullopt, 9 };
+    auto iotaNulls = std::vector<std::optional<int64_t>>{ 0, std::nullopt, 2, std::nullopt, 4, 5, 6, std::nullopt, std::nullopt, 9 };
     auto idCol = toColumn(id, "id");
     auto iotaCol = toColumn(iota, "iota");
     auto iotaNullsCol = toColumn(iotaNulls, "iotaNulls");
     auto table = tableFromColumns({ idCol, iotaCol, iotaNullsCol });
 
     auto groupedTable = groupBy(table, idCol);
+    std::cout << "=== BEFORE ===\n";
+    uglyPrint(*table);
+    std::cout << "=== GROUPED ===\n";
     uglyPrint(*groupedTable);
+
+    auto groupedId = toVector<int64_t>(*groupedTable->column(0));
+    std::vector<int64_t> expectedGroupedId{ 1, 2, 3, 4, 5 };
+    BOOST_CHECK_EQUAL_RANGES(groupedId, expectedGroupedId);
+
+    auto groupedIota = toVector<std::vector<int64_t>>(*groupedTable->column(1));
+    std::vector<std::vector<int64_t>> expectedGroupedIota{{0, 1, 4}, {2, 5}, {3, 6}, {7, 9}, {8} };
+    BOOST_CHECK_EQUAL_RANGES(groupedIota, expectedGroupedIota);
+
+    auto groupedIotaNulls = toVector<std::vector<std::optional<int64_t>>>(*groupedTable->column(2));
+    std::vector<std::vector<std::optional<int64_t>>> expectedGroupedIotaNulls{ {0, std::nullopt, 4}, {2, 5}, {std::nullopt, 6}, {std::nullopt, 9}, {std::nullopt} };
+    BOOST_CHECK_EQUAL_RANGES(groupedIotaNulls, expectedGroupedIotaNulls);
 }
 
 

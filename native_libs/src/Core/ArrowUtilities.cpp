@@ -145,7 +145,7 @@ std::pair<std::shared_ptr<arrow::Array>, int32_t> locateChunk(const arrow::Chunk
     {
         const auto length = chunk->length(); // Note: having this assigned to variable greatly improves performance (MSVC)
         if(i < length)
-            return {chunk, i};
+            return {chunk, static_cast<int32_t>(i)};
 
         i -= length;
     }

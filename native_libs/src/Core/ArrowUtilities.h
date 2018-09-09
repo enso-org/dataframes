@@ -142,6 +142,19 @@ auto visitType(const arrow::DataType &type, F &&f)
     }
 }
 
+template<typename F>
+auto visitType4(const arrow::TypePtr &type, F &&f)
+{
+    switch(type->id())
+    {
+    case arrow::Type::INT64: return f(std::integral_constant<arrow::Type::type, arrow::Type::INT64 >{});
+    case arrow::Type::DOUBLE: return f(std::integral_constant<arrow::Type::type, arrow::Type::DOUBLE>{});
+    case arrow::Type::STRING: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
+    case arrow::Type::LIST: return f(std::integral_constant<arrow::Type::type, arrow::Type::LIST>{});
+    default: throw std::runtime_error("array type not supported to downcast: " + type->ToString());
+    }
+}
+
 template <typename Array>
 auto arrayValueAtTyped(const Array &array, int32_t index)
 {
@@ -182,24 +195,24 @@ auto tryArrayValueAt(const arrow::Array &array, int32_t index)
 template <arrow::Type::type type, typename ElementF, typename NullF>
 void iterateOver(const arrow::Array &array, ElementF &&handleElem, NullF &&handleNull)
 {
-    const auto N = array.length();
+    const auto N = static_cast<int32_t>(array.length());
     const auto nullCount = array.null_count();
     //const auto nullBitmapData = array.null_bitmap_data();
 
     // special fast paths when there are no nulls or array is all nulls
     if(nullCount == 0)
     {
-        for(int64_t row = 0; row < N; row++)
+        for(int32_t row = 0; row < N; row++)
             handleElem(arrayValueAt<type>(array, row));
     }
     else if(nullCount == N)
     {
-        for(int64_t row = 0; row < N; row++)
+        for(int32_t row = 0; row < N; row++)
             handleNull();
     }
     else
     {
-        for(int64_t row = 0; row < N; row++)
+        for(int32_t row = 0; row < N; row++)
         {
             if(!array.IsNull(row))
             {
@@ -232,7 +245,7 @@ void iterateOver(const arrow::Column &column, ElementF &&handleElem, NullF &&han
 template <typename ElementF, typename NullF>
 void iterateOverGeneric(const arrow::Array &array, ElementF &&handleElem, NullF &&handleNull)
 {
-    return visitType(*array.type(), [&] (auto id) { return iterateOver<id.value>(array, handleElem, handleNull); });
+    return visitType4(array.type(), [&] (auto id) { return iterateOver<id.value>(array, handleElem, handleNull); });
 }
 
 template <typename ElementF, typename NullF>
@@ -308,6 +321,27 @@ std::pair<std::shared_ptr<arrow::Buffer>, T*> allocateBuffer(size_t length)
     std::shared_ptr<arrow::Buffer> ret{};
     checkStatus(arrow::AllocateBuffer(length * sizeof(T), &ret));
     return { ret, reinterpret_cast<T*>(ret->mutable_data()) } ;
+}
+
+
+template<typename T>
+void toVector(std::vector<T> &out, const arrow::Array &array);
+
+template<typename T>
+void toVector(std::vector<std::vector<T>> &out, const arrow::Array &array)
+{
+    if(array.type_id() != arrow::Type::LIST)
+        throw std::runtime_error(std::string("Type mismatch: expected `list` got " + array.type()->ToString()));
+
+    iterateOver<arrow::Type::LIST>(array, [&](ListElemView elem)
+        {
+            std::vector<T> nestedOut;
+            nestedOut.reserve(elem.length);
+            toVector(nestedOut, *elem.array->Slice(elem.offset, elem.length));
+            out.push_back(std::move(nestedOut));
+        },
+        [&] { out.push_back({}); }
+    );
 }
 
 template<typename T>

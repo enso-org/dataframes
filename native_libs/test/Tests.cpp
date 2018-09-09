@@ -25,9 +25,6 @@
 
 using namespace std::literals;
 
-
-#define BOOST_CHECK_EQUAL_RANGES(a, b) BOOST_CHECK_EQUAL_COLLECTIONS(std::begin(a), std::end(a), std::begin(b), std::end(b))
-
 // TODO: fails now, because lquery interpreter was implemented without support for chunked arrays
 BOOST_FIXTURE_TEST_CASE(MappingChunked, ChunkedFixture, *boost::unit_test_framework::disabled())
 {
