@@ -114,7 +114,7 @@ DynamicJustVector toJustVector(const arrow::Column &column)
     return toJustVector(*column.data());
 }
 
-DynamicField arrayAt(const arrow::Array &array, int64_t index)
+DynamicField arrayAt(const arrow::Array &array, int32_t index)
 {
     return visitArray(array, [&](auto *array) -> DynamicField
     {
@@ -179,17 +179,33 @@ void validateIndex(const arrow::Column &column, int64_t index)
     validateIndex(column.length(), index);
 }
 
-std::shared_ptr<arrow::Array> makeNullsArray(arrow::Type::type id, int64_t length)
+template<typename SharedPtrToType>
+struct GetTypeS {};
+
+template<typename T>
+struct GetTypeS<std::shared_ptr<T>> { using type = T; };
+
+template<typename SharedPtrToType>
+using GetType = typename GetTypeS<std::decay_t<SharedPtrToType>>::type;
+
+std::shared_ptr<arrow::Array> makeNullsArray(arrow::TypePtr type, int64_t length)
 {
-    return visitType(id, [&](auto idConstant) { return makeNullsArray<idConstant.value>(length); });
+    return visitDataType(type, [&](auto &&typeDer)
+    {
+        using Type = GetType<decltype(typeDer)>;
+        static_assert(std::is_base_of_v<arrow::DataType, GetType<decltype(typeDer)>>);
+        auto builder = makeBuilder<Type>(typeDer);
+        for(int64_t i = 0; i < length; i++)
+            builder->AppendNull();
+        return finish(*builder);
+    });
 }
 
-std::unique_ptr<arrow::ArrayBuilder> makeBuilder(arrow::Type::type id)
+std::shared_ptr<arrow::ArrayBuilder> makeBuilder(const arrow::TypePtr &type)
 {
-    return visitType(id, [&](auto idConstant) -> std::unique_ptr<arrow::ArrayBuilder>
+    return visitDataType(type, [&](auto &&typeDer) -> std::shared_ptr<arrow::ArrayBuilder>
     {
-        using Builder = typename TypeDescription<idConstant.value>::BuilderType;
-        return std::make_unique<Builder>();
+        return makeBuilder(typeDer);
     });
 }
 

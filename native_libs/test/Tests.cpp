@@ -791,7 +791,7 @@ BOOST_AUTO_TEST_CASE(InterpolateNA)
 
 BOOST_AUTO_TEST_CASE(MakeNullsArray)
 {
-    auto nullInts = makeNullsArray<arrow::Type::INT64>(5);
+    auto nullInts = makeNullsArray(arrow::TypeTraits<arrow::Int64Type>::type_singleton(), 5);
     BOOST_CHECK_EQUAL(nullInts->type_id(), arrow::Type::INT64);
     BOOST_CHECK_EQUAL(nullInts->length(), 5);
     BOOST_CHECK_EQUAL(nullInts->null_count(), 5);

@@ -94,6 +94,28 @@ template<> struct TypeDescription<arrow::Type::LIST>
 template<typename Array>
 using ArrayTypeDescription = TypeDescription<std::decay_t<std::remove_pointer_t<Array>>::TypeClass::type_id>;
 
+template<arrow::Type::type id>
+using BuilderFor = typename TypeDescription<id>::BuilderType;
+
+template<typename T>
+constexpr arrow::Type::type getID(const std::shared_ptr<T> &)
+{
+    return T::type_id;
+}
+
+template<typename F>
+auto visitDataType(const std::shared_ptr<arrow::DataType> &type, F &&f)
+{
+    switch(type->id())
+    {
+    case arrow::Type::INT64: return f(std::static_pointer_cast<arrow::Int64Type>(type));
+    case arrow::Type::DOUBLE: return f(std::static_pointer_cast<arrow::DoubleType>(type));
+    case arrow::Type::STRING: return f(std::static_pointer_cast<arrow::StringType>(type));
+    case arrow::Type::LIST: return f(std::static_pointer_cast<arrow::ListType>(type));
+    default: throw std::runtime_error("type not supported to downcast: " + type->ToString());
+    }
+}
+
 template<typename F>
 auto visitType(const arrow::Type::type &id, F &&f)
 {
@@ -102,6 +124,7 @@ auto visitType(const arrow::Type::type &id, F &&f)
     case arrow::Type::INT64 : return f(std::integral_constant<arrow::Type::type, arrow::Type::INT64 >{});
     case arrow::Type::DOUBLE: return f(std::integral_constant<arrow::Type::type, arrow::Type::DOUBLE>{});
     case arrow::Type::STRING: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
+    //case arrow::Type::LIST: return f(std::integral_constant<arrow::Type::type, arrow::Type::LIST>{});
     default: throw std::runtime_error("array type not supported to downcast: " + std::to_string((int)id));
     }
 }
@@ -114,6 +137,7 @@ auto visitType(const arrow::DataType &type, F &&f)
     case arrow::Type::INT64 : return f(std::integral_constant<arrow::Type::type, arrow::Type::INT64 >{});
     case arrow::Type::DOUBLE: return f(std::integral_constant<arrow::Type::type, arrow::Type::DOUBLE>{});
     case arrow::Type::STRING: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
+    //case arrow::Type::LIST: return f(std::integral_constant<arrow::Type::type, arrow::Type::LIST>{});
     default: throw std::runtime_error("array type not supported to downcast: " + type.ToString());
     }
 }
@@ -441,9 +465,9 @@ std::shared_ptr<arrow::Table> tableFromVectors(const std::vector<Ts> & ...ts)
     return tableFromArrays({toArray(ts)...});
 }
 
-using DynamicField = std::variant<int64_t, double, std::string_view, std::string, std::nullopt_t>;
+using DynamicField = std::variant<int64_t, double, std::string_view, std::string, ListElemView,  std::nullopt_t>;
 
-using DynamicJustVector = std::variant<std::vector<int64_t>, std::vector<double>, std::vector<std::string_view>>;
+using DynamicJustVector = std::variant<std::vector<int64_t>, std::vector<double>, std::vector<std::string_view>, std::vector<ListElemView>>;
 DFH_EXPORT DynamicJustVector toJustVector(const arrow::ChunkedArray &chunkedArray);
 DFH_EXPORT DynamicJustVector toJustVector(const arrow::Column &column);
 
@@ -544,18 +568,31 @@ void iterateOverJustPairs(const arrow::Column &column1, const arrow::Column &col
     return iterateOverJustPairs<id1, id2>(*column1.data(), *column2.data(), f);
 }
 
-template<arrow::Type::type id>
-std::shared_ptr<arrow::Array> makeNullsArray(int64_t length)
-{
-    // TODO could be much faster if done by hand
-    typename TypeDescription<id>::BuilderType builder;
-    for(int64_t i = 0; i < length; i++)
-        builder.AppendNull();
-    return finish(builder);
-}
 
-DFH_EXPORT std::shared_ptr<arrow::Array> makeNullsArray(arrow::Type::type id, int64_t length);
-DFH_EXPORT std::unique_ptr<arrow::ArrayBuilder> makeBuilder(arrow::Type::type id);
+DFH_EXPORT std::shared_ptr<arrow::Array> makeNullsArray(arrow::TypePtr type, int64_t length);
+
+
+DFH_EXPORT std::shared_ptr<arrow::ArrayBuilder> makeBuilder(const arrow::TypePtr &type);
+
+template<typename TypeT>
+auto makeBuilder(const std::shared_ptr<TypeT> &type)
+{
+    using Builder = typename arrow::TypeTraits<TypeT>::BuilderType;
+    constexpr auto id = TypeT::type_id;
+    if constexpr(id != arrow::Type::LIST)
+    {
+        return std::make_shared<Builder>();
+    }
+    else
+    {
+        if(type->num_children() != 1)
+            throw std::runtime_error("list type must have a single child type");
+
+        // list builder must additionally take a nested builder for a value buffer
+        auto nestedBuilder = makeBuilder(type->child(0)->type());
+        return std::make_shared<Builder>(nullptr, nestedBuilder);
+    }
+}
 
 template<arrow::Type::type id, bool nullable>
 struct FixedSizeArrayBuilder

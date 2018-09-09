@@ -524,9 +524,9 @@ DFH_EXPORT std::shared_ptr<arrow::Column> shift(std::shared_ptr<arrow::Column> c
 
     const auto id = column->type()->id();
     if(std::abs(offset) >= column->length())
-        return std::make_shared<arrow::Column>(column->field(), makeNullsArray(id, column->length()));
+        return std::make_shared<arrow::Column>(column->field(), makeNullsArray(column->type(), column->length()));
 
-    auto nullsPart = makeNullsArray(id, std::abs(offset));
+    auto nullsPart = makeNullsArray(column->type(), std::abs(offset));
     auto remainingLength = column->length() - std::abs(offset);
 
     arrow::ArrayVector newChunks;
