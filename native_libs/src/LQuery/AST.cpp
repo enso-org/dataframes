@@ -172,6 +172,7 @@ namespace ast
             {"divide", ValueOperator::Divide},
             {"mod",    ValueOperator::Modulo},
             {"negate", ValueOperator::Negate},
+            {"mean",   ValueOperator::Mean  },
         };
 
         if(auto itr = map.find(name); itr != map.end())

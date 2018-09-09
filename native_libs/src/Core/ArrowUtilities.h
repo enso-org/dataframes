@@ -76,6 +76,11 @@ struct ListElemView
     ListElemView(arrow::Array *array, int32_t offset, int32_t length)
         : array(array), offset(offset), length(length)
     {}
+
+    auto toArray() const
+    {
+        return array->Slice(offset, length);
+    }
 };
 
 template<> struct TypeDescription<arrow::Type::LIST>
@@ -299,7 +304,7 @@ auto staticDowncastArray(const arrow::Array *array)
 template<typename Function>
 auto visitArray(const arrow::Array &array, Function &&f)
 {
-    return visitType(*array.type(), [&] (auto id)
+    return visitType4(array.type(), [&] (auto id)
     {
         return f(staticDowncastArray<id.value>(&array));
     });

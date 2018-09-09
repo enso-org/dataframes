@@ -456,6 +456,16 @@ BOOST_FIXTURE_TEST_CASE(GroupBy, DataGenerator)
     auto groupedIotaNulls = toVector<std::vector<std::optional<int64_t>>>(*groupedTable->column(2));
     std::vector<std::vector<std::optional<int64_t>>> expectedGroupedIotaNulls{ {0, std::nullopt, 4}, {2, 5}, {std::nullopt, 6}, {std::nullopt, 9}, {std::nullopt} };
     BOOST_CHECK_EQUAL_RANGES(groupedIotaNulls, expectedGroupedIotaNulls);
+
+    const auto jsonQuery = R"(
+		{
+			"operation": "mean", 
+			"arguments": 
+			[ 
+				{"column": "iota"}
+			] 
+		})";
+    each(groupedTable, jsonQuery);
 }
 
 

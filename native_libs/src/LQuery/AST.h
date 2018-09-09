@@ -45,6 +45,8 @@ namespace ast
     {
         Plus, Minus, Times, Divide, Modulo,
         Negate,
+        // list<> operations
+        Mean,
     };
 
     ValueOperator valueOperatorFromName(const std::string &name);

@@ -396,7 +396,6 @@ std::shared_ptr<arrow::Array> fillNATyped(const Array &array, DynamicField value
             [&] (auto &&s) { builder.Append(s.data(), s.size()); },
             [&] () { builder.Append(valueToFill.data(), valueToFill.size()); });
         return finish(builder);
-
     }
     else
     {

@@ -11,13 +11,25 @@
 
 using namespace std::literals;
 
+template<typename T> struct StorageToArrowType {};
+template<> struct StorageToArrowType<bool> { using type = arrow::BooleanType; };
+template<> struct StorageToArrowType<int64_t> { using type = arrow::Int64Type; };
+template<> struct StorageToArrowType<double> { using type = arrow::DoubleType; };
+template<> struct StorageToArrowType<std::string> { using type = arrow::StringType; };
+template<> struct StorageToArrowType<ListElemView> { using type = arrow::ListType; };
+
+template<typename T> using StorageToArrowType_t = typename StorageToArrowType<T>::type;
+
+
 //namespace
 //{
 
     // type-aware wrapper for buffer that is either owned or belongs to an external Column
-    template<typename T>
+    template<typename ArrowType>
     struct ArrayOperand 
     {
+        using T = typename TypeDescription<ArrowType::type_id>::StorageValueType;
+
         std::shared_ptr<arrow::Buffer> buffer;
 
         auto mutable_data() { return reinterpret_cast<T *>(buffer->mutable_data()); }
@@ -42,9 +54,32 @@ using namespace std::literals;
             mutable_data()[index] = value;
         }
     };
-
     template<>
-    struct ArrayOperand<std::string>
+    struct ArrayOperand<arrow::ListType>
+    {
+        const arrow::ListArray *array;
+
+        explicit ArrayOperand(const arrow::Array *array)
+            : array(static_cast<const arrow::ListArray *>(array))
+        {}
+        explicit ArrayOperand(size_t length)
+        {
+            throw std::runtime_error("not implemented: building list column in interpreter");
+        }
+
+        //T &operator[](size_t index) { return mutable_data()[index]; }
+
+        ListElemView load(size_t index) const
+        {
+            return arrayValueAt<arrow::Type::LIST>(*array, index);
+        }
+        void store(size_t index, ListElemView value)
+        {
+            throw std::runtime_error("not implemented: storing string in column view");
+        }
+    };
+    template<>
+    struct ArrayOperand<arrow::StringType>
     {
         const arrow::StringArray *array;
 //         std::shared_ptr<arrow::Buffer> bufferOffsets;
@@ -77,13 +112,12 @@ using namespace std::literals;
         {
             throw std::runtime_error("not implemented: storing string in column view");
         }
-
     };
     template<>
-    struct ArrayOperand<bool> : ArrayOperand<unsigned char>
+    struct ArrayOperand<arrow::BooleanType> : ArrayOperand<arrow::UInt8Type>
     {
         ArrayOperand(size_t length)
-            : ArrayOperand<unsigned char>(arrow::BitUtil::BytesForBits(length))
+            : ArrayOperand<arrow::UInt8Type>(arrow::BitUtil::BytesForBits(length))
         {}
 
         bool load(size_t index) const
@@ -163,9 +197,26 @@ using namespace std::literals;
             COMPLAIN_ABOUT_OPERAND_TYPES;                                                                \
     } 
 
-    struct GreaterThan { BINARY_REL_OPERATOR(>); FAIL_ON_STRING(bool); };
-    struct LessThan    { BINARY_REL_OPERATOR(<); FAIL_ON_STRING(bool); };
-    struct EqualTo     { BINARY_REL_OPERATOR(==);};
+#define FAIL_ON_LIST(ret)                                                                                \
+    static ret exec(const ListElemView &lhs, const ListElemView &rhs)                                    \
+    {                                                                                                    \
+            COMPLAIN_ABOUT_OPERAND_TYPES;                                                                \
+    }  
+    struct GreaterThan { BINARY_REL_OPERATOR(>); FAIL_ON_STRING(bool); FAIL_ON_LIST(bool); };
+    struct LessThan    { BINARY_REL_OPERATOR(<); FAIL_ON_STRING(bool); FAIL_ON_LIST(bool); };
+    struct EqualTo
+    {
+        BINARY_REL_OPERATOR(==);
+        static bool exec(const ListElemView &lhs, const ListElemView &rhs)
+        {
+            if(!lhs.array->type()->Equals(rhs.array->type()))
+                return false;
+            if(lhs.length != rhs.length)
+                return false;
+            
+            return lhs.toArray()->Equals(rhs.toArray());
+        }
+    };
     struct StartsWith
     {
         static bool exec(const std::string_view &lhs, const std::string_view &rhs)
@@ -194,10 +245,10 @@ using namespace std::literals;
             COMPLAIN_ABOUT_OPERAND_TYPES;
         }
     };
-    struct Plus        { BINARY_ARIT_OPERATOR(+); FAIL_ON_STRING(int64_t); };
-    struct Minus       { BINARY_ARIT_OPERATOR(-); FAIL_ON_STRING(int64_t); };
-    struct Times       { BINARY_ARIT_OPERATOR(*); FAIL_ON_STRING(int64_t); };
-    struct Divide      { BINARY_ARIT_OPERATOR(/); FAIL_ON_STRING(int64_t); };
+    struct Plus        { BINARY_ARIT_OPERATOR(+); FAIL_ON_STRING(int64_t); FAIL_ON_LIST(int64_t); };
+    struct Minus       { BINARY_ARIT_OPERATOR(-); FAIL_ON_STRING(int64_t); FAIL_ON_LIST(int64_t); };
+    struct Times       { BINARY_ARIT_OPERATOR(*); FAIL_ON_STRING(int64_t); FAIL_ON_LIST(int64_t); };
+    struct Divide      { BINARY_ARIT_OPERATOR(/); FAIL_ON_STRING(int64_t); FAIL_ON_LIST(int64_t); };
     struct Modulo      
     {
         static constexpr int64_t exec(const int64_t &lhs, const int64_t &rhs)
@@ -228,6 +279,14 @@ using namespace std::literals;
         static int64_t exec(const std::string_view &lhs)
         {
             throw std::runtime_error("negate does not support operand of type: "s + typeid(lhs).name());
+        }
+    };
+    struct Mean
+    {
+        template<typename Lhs>
+        static double exec(const Lhs &lhs)
+        {
+            throw std::runtime_error("not implemented");
         }
     };
     struct Condition
@@ -302,7 +361,7 @@ using namespace std::literals;
     auto exec(int64_t count, const Operands & ...operands)
     {
         using OperationResult = decltype(Operation::exec(getValue(operands, 0)...));
-
+        using ResultArrowType = StorageToArrowType_t<OperationResult>;
         // TODO: optimization opportunity: boolean constant support (remove the last part of if below and fix the build)
         constexpr bool arithmeticOperands = (std::is_arithmetic_v<Operands> && ...);
         if constexpr(arithmeticOperands && !std::is_same_v<bool, OperationResult>)
@@ -311,7 +370,7 @@ using namespace std::literals;
         }
         else
         {
-            ArrayOperand<OperationResult> ret{ (size_t)count };
+            ArrayOperand<ResultArrowType> ret{ (size_t)count };
             for(int64_t i = 0; i < count; i++)
             {
                 auto result = Operation::exec(getValue(operands, i)...);
@@ -333,7 +392,7 @@ struct Interpreter
     const arrow::Table &table;
     std::vector<std::shared_ptr<arrow::Column>> columns;
 
-    using Field = std::variant<int64_t, double, std::string, ArrayOperand<int64_t>, ArrayOperand<double>, ArrayOperand<std::string>>;
+    using Field = std::variant<int64_t, double, std::string, ArrayOperand<arrow::Int64Type>, ArrayOperand<arrow::DoubleType>, ArrayOperand<arrow::StringType>, ArrayOperand<arrow::ListType>>;
 
     Field fieldFromColumn(const arrow::Column &column)
     {
@@ -345,8 +404,7 @@ struct Interpreter
         return visitArray(*chunkPtr, [] (auto *array) -> Field
         {
             using ArrowType = typename std::remove_pointer_t<decltype(array)>::TypeClass;
-            using T = typename TypeDescription<ArrowType::type_id>::ValueType;
-            return ArrayOperand<T>(array);
+            return ArrayOperand<ArrowType>(array);
         });
     }
     std::vector<Field> evaluateOperands(const std::vector<ast::Value> &operands)
@@ -354,7 +412,7 @@ struct Interpreter
         return transformToVector(operands, 
             [this] (auto &&operand) { return evaluateValue(operand); });
     }
-    std::vector<ArrayOperand<bool>> evaluatePredicates(const std::vector<ast::Predicate> &operands)
+    std::vector<ArrayOperand<arrow::BooleanType>> evaluatePredicates(const std::vector<ast::Predicate> &operands)
     {
         return transformToVector(operands, 
             [this] (auto &&operand) { return evaluate(operand); });
@@ -397,6 +455,7 @@ struct Interpreter
                     VALUE_BINARY_OP(Divide);
                     VALUE_BINARY_OP(Modulo);
                     VALUE_UNARY_OP(Negate);
+                    VALUE_UNARY_OP(Mean);
                 default:
                     throw std::runtime_error("not implemented: value operator " + std::to_string((int)op.what));
                 }
@@ -419,10 +478,10 @@ struct Interpreter
             }, (const ast::ValueBase &) value);
     }
 
-    ArrayOperand<bool> evaluate(const ast::Predicate &p)
+    ArrayOperand<arrow::BooleanType> evaluate(const ast::Predicate &p)
     {
         return std::visit(overloaded{
-            [&] (const ast::PredicateFromValueOperation &elem) -> ArrayOperand<bool>
+            [&] (const ast::PredicateFromValueOperation &elem) -> ArrayOperand<arrow::BooleanType>
         {
             const auto operands = evaluateOperands(elem.operands);
             switch(elem.what)
@@ -451,7 +510,7 @@ struct Interpreter
                 throw std::runtime_error("not implemented: predicate operator " + std::to_string((int)elem.what));
             }
         },
-            [&] (const ast::PredicateOperation &op) -> ArrayOperand<bool> 
+            [&] (const ast::PredicateOperation &op) -> ArrayOperand<arrow::BooleanType> 
         {
             const auto operands = evaluatePredicates(op.operands);
             switch(op.what)
@@ -492,9 +551,10 @@ std::shared_ptr<arrow::Buffer> execute(const arrow::Table &table, const ast::Pre
     return ret.buffer;
 }
 
-template<typename T>
-auto arrayWith(const arrow::Table &table, const ArrayOperand<T> &arrayProto, std::shared_ptr<arrow::Buffer> nullBuffer)
+template<typename ArrowType>
+auto arrayWith(const arrow::Table &table, const ArrayOperand<ArrowType> &arrayProto, std::shared_ptr<arrow::Buffer> nullBuffer)
 {
+    using T = typename TypeDescription<ArrowType::type_id>::ValueType;
     const auto N = table.num_rows();
     constexpr auto id = ValueTypeToId<T>();
     if constexpr(std::is_arithmetic_v<T>)
