@@ -20,134 +20,65 @@ template<> struct StorageToArrowType<ListElemView> { using type = arrow::ListTyp
 
 template<typename T> using StorageToArrowType_t = typename StorageToArrowType<T>::type;
 
+template<typename ArrowType>
+struct Scalar
+{
+    static constexpr arrow::Type::type id = ArrowType::type_id;
+    using T = typename TypeDescription<id>::ValueType;
+
+    T value;
+    Scalar(T value) : value(value) {}
+};
+
+template<class T> 
+Scalar(T)  -> Scalar<StorageToArrowType_t<T>>;  // #4
+
+template<typename>
+struct is_scalar : std::false_type {};
+template<typename T>
+struct is_scalar<Scalar<T>> : std::true_type {};
+template<typename T>
+constexpr bool is_scalar_v = is_optional<T>::value;
+
+template<typename T>
+struct FixedSizeValueWriter
+{
+    std::shared_ptr<arrow::Buffer> buffer;
+
+    auto mutable_data() { return reinterpret_cast<T *>(buffer->mutable_data()); }
+    auto data() const { return reinterpret_cast<const T*>(buffer->data()); }
+
+    explicit FixedSizeValueWriter(std::shared_ptr<arrow::Buffer> buffer)
+        : buffer(std::move(buffer))
+    {}
+    explicit FixedSizeValueWriter(size_t length)
+        : FixedSizeValueWriter(allocateBuffer<T>(length).first)
+    {}
+    void store(size_t index, T value)
+    {
+        mutable_data()[index] = value;
+    }
+};
+template<>
+struct FixedSizeValueWriter<bool> : FixedSizeValueWriter<uint8_t>
+{
+    FixedSizeValueWriter(size_t length)
+        : FixedSizeValueWriter<uint8_t>(arrow::BitUtil::BytesForBits(length))
+    {}
+    explicit FixedSizeValueWriter(std::shared_ptr<arrow::Buffer> buffer)
+        : FixedSizeValueWriter<uint8_t>(std::move(buffer))
+    {}
+    void store(size_t index, bool value)
+    {
+        if(value)
+            arrow::BitUtil::SetBit(mutable_data(), index);
+        else
+            arrow::BitUtil::ClearBit(mutable_data(), index);
+    }
+};
 
 //namespace
 //{
-
-    // type-aware wrapper for buffer that is either owned or belongs to an external Column
-    template<typename ArrowType>
-    struct ArrayOperand 
-    {
-        using T = typename TypeDescription<ArrowType::type_id>::StorageValueType;
-
-        std::shared_ptr<arrow::Buffer> buffer;
-
-        auto mutable_data() { return reinterpret_cast<T *>(buffer->mutable_data()); }
-        auto data() const { return reinterpret_cast<const T*>(buffer->data()); }
-        
-        explicit ArrayOperand(const arrow::Array *array)
-            : buffer(array->data()->buffers.at(1))
-        {}
-        explicit ArrayOperand(size_t length)
-        {
-            buffer = allocateBuffer<T>(length).first;
-        }
-
-        //T &operator[](size_t index) { return mutable_data()[index]; }
-        
-        T load(size_t index) const
-        {
-            return data()[index];
-        }
-        void store(size_t index, T value)
-        {
-            mutable_data()[index] = value;
-        }
-    };
-    template<>
-    struct ArrayOperand<arrow::ListType>
-    {
-        const arrow::ListArray *array;
-
-        explicit ArrayOperand(const arrow::Array *array)
-            : array(static_cast<const arrow::ListArray *>(array))
-        {}
-        explicit ArrayOperand(size_t length)
-        {
-            throw std::runtime_error("not implemented: building list column in interpreter");
-        }
-
-        //T &operator[](size_t index) { return mutable_data()[index]; }
-
-        ListElemView load(size_t index) const
-        {
-            return arrayValueAt<arrow::Type::LIST>(*array, index);
-        }
-        void store(size_t index, ListElemView value)
-        {
-            throw std::runtime_error("not implemented: storing string in column view");
-        }
-    };
-    template<>
-    struct ArrayOperand<arrow::StringType>
-    {
-        const arrow::StringArray *array;
-//         std::shared_ptr<arrow::Buffer> bufferOffsets;
-//         std::shared_ptr<arrow::Buffer> bufferData;
-     
-        explicit ArrayOperand(const arrow::Array *array)
-            : array(static_cast<const arrow::StringArray *>(array))
-//             , bufferOffsets(array->value_offsets())
-//             , bufferData(array->value_data())
-        {
-//             const auto &arrayS = static_cast<const arrow::StringArray&>(array);
-//             bufferOffsets = arrayS.value_offsets();
-//             bufferData = arrayS.value_data();
-        }
-        explicit ArrayOperand(size_t length)
-        {
-            throw std::runtime_error("not implemented: building string column in interpreter");
-//             bufferOffsets = allocateBuffer<int32_t>(length);
-//             bufferData = allocateBuffer<uint8_t>(0);
-        }
-
-        std::string_view load(size_t index) const
-        {
-            int32_t length;
-            auto ptr = array->GetValue(index, &length);
-            return std::string_view(reinterpret_cast<const char*>(ptr), length);
-        }
-
-        void store(size_t index, const std::string &value)
-        {
-            throw std::runtime_error("not implemented: storing string in column view");
-        }
-    };
-    template<>
-    struct ArrayOperand<arrow::BooleanType> : ArrayOperand<arrow::UInt8Type>
-    {
-        ArrayOperand(size_t length)
-            : ArrayOperand<arrow::UInt8Type>(arrow::BitUtil::BytesForBits(length))
-        {}
-
-        bool load(size_t index) const
-        {
-            return arrow::BitUtil::GetBit(data(), index);
-        }
-
-        void store(size_t index, bool value)
-        {
-            if(value)
-                arrow::BitUtil::SetBit(mutable_data(), index);
-            else
-                arrow::BitUtil::ClearBit(mutable_data(), index);
-        }
-    };
-
-    template<typename T>
-    auto getValue(const ArrayOperand<T> &src, int64_t index)
-    {
-        return src.load(index);
-    }
-    template<typename T>
-    auto getValue(const T &src, int64_t index)
-    {
-        // so our functions get only string_view
-        if constexpr(std::is_same_v<T, std::string>)
-            return std::string_view(src);
-        else
-            return src;
-    }
 
 #define COMPLAIN_ABOUT_OPERAND_TYPES \
         throw std::runtime_error(__FUNCTION__ + ": not supported operand types: "s + typeid(lhs).name() + " and "s + typeid(rhs).name());
@@ -357,27 +288,53 @@ template<typename T> using StorageToArrowType_t = typename StorageToArrowType<T>
     };
 
 
+    template<typename T>
+    auto getValue(const Scalar<T> &src, int64_t)
+    {
+        return src.value;
+    }
+    template<typename T>
+    auto getValue(const T &src, int64_t index)
+    {
+        return arrayValueAtTyped(*src, static_cast<int32_t>(index)); // TODO to be checked when chunks are supported
+    }
+
     template<typename Operation, typename ... Operands>
     auto exec(int64_t count, const Operands & ...operands)
     {
-        using OperationResult = decltype(Operation::exec(getValue(operands, 0)...));
-        using ResultArrowType = StorageToArrowType_t<OperationResult>;
-        // TODO: optimization opportunity: boolean constant support (remove the last part of if below and fix the build)
-        constexpr bool arithmeticOperands = (std::is_arithmetic_v<Operands> && ...);
-        if constexpr(arithmeticOperands && !std::is_same_v<bool, OperationResult>)
+        // Operation between scalars shall yield a scalar
+        if constexpr((is_scalar_v<Operands> && ...))
         {
             return Operation::exec(operands...);
         }
         else
         {
-            ArrayOperand<ResultArrowType> ret{ (size_t)count };
-            for(int64_t i = 0; i < count; i++)
-            {
-                auto result = Operation::exec(getValue(operands, i)...);
-                ret.store(i, result);
-            }
+            using OperationResult = decltype(Operation::exec(getValue(operands, 0)...));
+            using ResultArrowType = StorageToArrowType_t<OperationResult>;
+            using Builder = typename arrow::TypeTraits<ResultArrowType>::BuilderType;
+
+            std::shared_ptr<arrow::Array> ret;
+
+            throw std::runtime_error("not implemented");
             return ret;
         }
+
+//         // TODO: optimization opportunity: boolean constant support (remove the last part of if below and fix the build)
+//         constexpr bool arithmeticOperands = (std::is_arithmetic_v<Operands> && ...);
+//         if constexpr(arithmeticOperands && !std::is_same_v<bool, OperationResult>)
+//         {
+//             return Operation::exec(operands...);
+//         }
+//         else
+//         {
+//             ArrayOperand<ResultArrowType> ret{ (size_t)count };
+//             for(int64_t i = 0; i < count; i++)
+//             {
+//                 auto result = Operation::exec(getValue(operands, i)...);
+//                 ret.store(i, result);
+//             }
+//             return ret;
+//         }
     }
 
 struct Interpreter
@@ -392,7 +349,12 @@ struct Interpreter
     const arrow::Table &table;
     std::vector<std::shared_ptr<arrow::Column>> columns;
 
-    using Field = std::variant<int64_t, double, std::string, ArrayOperand<arrow::Int64Type>, ArrayOperand<arrow::DoubleType>, ArrayOperand<arrow::StringType>, ArrayOperand<arrow::ListType>>;
+    using Field = std::variant
+        < Scalar<arrow::Int64Type>
+        , Scalar<arrow::DoubleType>
+        , Scalar<arrow::StringType>
+        , std::shared_ptr<arrow::Array>
+        >;
 
     Field fieldFromColumn(const arrow::Column &column)
     {
@@ -400,19 +362,20 @@ struct Interpreter
         if(data->num_chunks() != 1)
             throw std::runtime_error("not implemented: processing of chunked arrays");
 
-        const auto chunkPtr = data->chunk(0).get();
-        return visitArray(*chunkPtr, [] (auto *array) -> Field
-        {
-            using ArrowType = typename std::remove_pointer_t<decltype(array)>::TypeClass;
-            return ArrayOperand<ArrowType>(array);
-        });
+        const auto chunk = data->chunk(0);
+        return chunk;
+//         return visitArray(*chunkPtr, [] (auto *array) -> Field
+//         {
+//             using ArrowType = typename std::remove_pointer_t<decltype(array)>::TypeClass;
+//             return ArrayOperand<ArrowType>(array);
+//         });
     }
     std::vector<Field> evaluateOperands(const std::vector<ast::Value> &operands)
     {
         return transformToVector(operands, 
             [this] (auto &&operand) { return evaluateValue(operand); });
     }
-    std::vector<ArrayOperand<arrow::BooleanType>> evaluatePredicates(const std::vector<ast::Predicate> &operands)
+    std::vector<Field> evaluatePredicates(const std::vector<ast::Predicate> &operands)
     {
         return transformToVector(operands, 
             [this] (auto &&operand) { return evaluate(operand); });
@@ -460,9 +423,9 @@ struct Interpreter
                     throw std::runtime_error("not implemented: value operator " + std::to_string((int)op.what));
                 }
             },
-            [&] (const ast::Literal<int64_t> &l)     -> Field { return l.literal; },
-            [&] (const ast::Literal<double> &l)      -> Field { return l.literal; },
-            [&] (const ast::Literal<std::string> &l) -> Field { return l.literal; },
+            [&] (const ast::Literal<int64_t> &l)     -> Field { return Scalar(l.literal); },
+            [&] (const ast::Literal<double> &l)      -> Field { return Scalar(l.literal); },
+            [&] (const ast::Literal<std::string> &l) -> Field { return Scalar(l.literal); },
             [&] (const ast::Condition &condition)    -> Field 
             {
                 auto mask = this->evaluate(*condition.predicate);
@@ -478,10 +441,10 @@ struct Interpreter
             }, (const ast::ValueBase &) value);
     }
 
-    ArrayOperand<arrow::BooleanType> evaluate(const ast::Predicate &p)
+    Field evaluate(const ast::Predicate &p)
     {
         return std::visit(overloaded{
-            [&] (const ast::PredicateFromValueOperation &elem) -> ArrayOperand<arrow::BooleanType>
+            [&] (const ast::PredicateFromValueOperation &elem) -> Field
         {
             const auto operands = evaluateOperands(elem.operands);
             switch(elem.what)
@@ -510,17 +473,29 @@ struct Interpreter
                 throw std::runtime_error("not implemented: predicate operator " + std::to_string((int)elem.what));
             }
         },
-            [&] (const ast::PredicateOperation &op) -> ArrayOperand<arrow::BooleanType> 
+            [&] (const ast::PredicateOperation &op) -> Field
         {
             const auto operands = evaluatePredicates(op.operands);
             switch(op.what)
             {
             case ast::PredicateOperator::And:
-                return exec<And>(table.num_rows(), getOperand(operands, 0), getOperand(operands, 1));
+                return std::visit(
+                    [&](auto &&lhs, auto &&rhs) 
+                    { 
+                        return exec<And>(table.num_rows(), lhs, rhs); 
+                    },  getOperand(operands, 0), getOperand(operands, 1));
             case ast::PredicateOperator::Or:
-                return exec<Or>(table.num_rows(), getOperand(operands, 0), getOperand(operands, 1));
+                return std::visit(
+                    [&](auto &&lhs, auto &&rhs)
+                    {
+                        return exec<Or>(table.num_rows(), lhs, rhs);
+                    }, getOperand(operands, 0), getOperand(operands, 1));
             case ast::PredicateOperator::Not:
-                return exec<Not>(table.num_rows(), operands[0]);
+                return std::visit(
+                    [&](auto &&lhs) 
+                    { 
+                        return exec<Not>(table.num_rows(), lhs); 
+                    },  getOperand(operands, 0));
             default:
                 throw std::runtime_error("not implemented: predicate operator " + std::to_string((int)op.what));
             }
@@ -534,8 +509,11 @@ struct Interpreter
 std::shared_ptr<arrow::Buffer> execute(const arrow::Table &table, const ast::Predicate &predicate, ColumnMapping mapping)
 {
     Interpreter interpreter{table, mapping};
-    auto ret = interpreter.evaluate(predicate);
+    auto result = interpreter.evaluate(predicate);
+    auto array = std::get<std::shared_ptr<arrow::Array>>(result);
 
+    auto mask = std::dynamic_pointer_cast<arrow::BooleanArray>(array);
+    auto ret = FixedSizeValueWriter<bool>(mask->values()); // TODO: proper ownership passing, buffer should be unique or copied
     for(auto && [refid, columnIndex] : mapping)
     {
         const auto column = table.column(columnIndex);
@@ -551,83 +529,83 @@ std::shared_ptr<arrow::Buffer> execute(const arrow::Table &table, const ast::Pre
     return ret.buffer;
 }
 
-template<typename ArrowType>
-auto arrayWith(const arrow::Table &table, const ArrayOperand<ArrowType> &arrayProto, std::shared_ptr<arrow::Buffer> nullBuffer)
-{
-    using T = typename TypeDescription<ArrowType::type_id>::ValueType;
-    const auto N = table.num_rows();
-    constexpr auto id = ValueTypeToId<T>();
-    if constexpr(std::is_arithmetic_v<T>)
-    {
-        return std::make_shared<typename TypeDescription<id>::Array>(N, arrayProto.buffer, nullBuffer, -1);
-    }
-    else
-    {
-        arrow::StringBuilder builder;
-        checkStatus(builder.Reserve(N));
-
-        if(nullBuffer)
-        {
-            for(int i = 0; i < N; i++)
-            {
-                if(arrow::BitUtil::GetBit(nullBuffer->data(), i))
-                {
-                    const auto sv = arrayProto.load(i);
-                    checkStatus(builder.Append(sv.data(), (int)sv.size()));
-                }
-                else
-                    checkStatus(builder.AppendNull());
-            }
-        }
-        else
-        {
-            for(int i = 0; i < N; i++)
-            {
-                const auto sv = arrayProto.load(i);
-                checkStatus(builder.Append(sv.data(), (int)sv.size()));
-            }
-        }
-
-        return finish(builder);
-    }
-}
-
-template<typename T>
-auto arrayWith(const arrow::Table &table, const T &constant, std::shared_ptr<arrow::Buffer> nullBuffer)
-{
-    const auto N = table.num_rows();
-    constexpr auto id = ValueTypeToId<T>();
-    if constexpr(std::is_arithmetic_v<T>)
-    {
-        auto [buffer, raw] = allocateBuffer<T>(N);
-        std::fill_n(raw, N, constant);
-        return std::make_shared<typename TypeDescription<id>::Array>(N, buffer, nullBuffer, -1);
-    }
-    else
-    {
-        arrow::StringBuilder builder;
-        checkStatus(builder.Reserve(N));
-
-        const auto length = (int32_t)constant.size();
-        if(!nullBuffer)
-        {
-            for(int i = 0; i < N; i++)
-                checkStatus(builder.Append(constant.data(), length));
-        }
-        else
-        {
-            for(int i = 0; i < N; i++)
-            {
-                if(arrow::BitUtil::GetBit(nullBuffer->data(), i))
-                    checkStatus(builder.Append(constant.data(), length));
-                else
-                    checkStatus(builder.AppendNull());
-            }
-        }
-
-        return finish(builder);
-    }
-}
+// template<typename ArrowType>
+// auto arrayWith(const arrow::Table &table, const ArrayOperand<ArrowType> &arrayProto, std::shared_ptr<arrow::Buffer> nullBuffer)
+// {
+//     using T = typename TypeDescription<ArrowType::type_id>::ValueType;
+//     const auto N = table.num_rows();
+//     constexpr auto id = ValueTypeToId<T>();
+//     if constexpr(std::is_arithmetic_v<T>)
+//     {
+//         return std::make_shared<typename TypeDescription<id>::Array>(N, arrayProto.buffer, nullBuffer, -1);
+//     }
+//     else
+//     {
+//         arrow::StringBuilder builder;
+//         checkStatus(builder.Reserve(N));
+// 
+//         if(nullBuffer)
+//         {
+//             for(int i = 0; i < N; i++)
+//             {
+//                 if(arrow::BitUtil::GetBit(nullBuffer->data(), i))
+//                 {
+//                     const auto sv = arrayProto.load(i);
+//                     checkStatus(builder.Append(sv.data(), (int)sv.size()));
+//                 }
+//                 else
+//                     checkStatus(builder.AppendNull());
+//             }
+//         }
+//         else
+//         {
+//             for(int i = 0; i < N; i++)
+//             {
+//                 const auto sv = arrayProto.load(i);
+//                 checkStatus(builder.Append(sv.data(), (int)sv.size()));
+//             }
+//         }
+// 
+//         return finish(builder);
+//     }
+// }
+// 
+// template<typename T>
+// auto arrayWith(const arrow::Table &table, const T &constant, std::shared_ptr<arrow::Buffer> nullBuffer)
+// {
+//     const auto N = table.num_rows();
+//     constexpr auto id = ValueTypeToId<T>();
+//     if constexpr(std::is_arithmetic_v<T>)
+//     {
+//         auto [buffer, raw] = allocateBuffer<T>(N);
+//         std::fill_n(raw, N, constant);
+//         return std::make_shared<typename TypeDescription<id>::Array>(N, buffer, nullBuffer, -1);
+//     }
+//     else
+//     {
+//         arrow::StringBuilder builder;
+//         checkStatus(builder.Reserve(N));
+// 
+//         const auto length = (int32_t)constant.size();
+//         if(!nullBuffer)
+//         {
+//             for(int i = 0; i < N; i++)
+//                 checkStatus(builder.Append(constant.data(), length));
+//         }
+//         else
+//         {
+//             for(int i = 0; i < N; i++)
+//             {
+//                 if(arrow::BitUtil::GetBit(nullBuffer->data(), i))
+//                     checkStatus(builder.Append(constant.data(), length));
+//                 else
+//                     checkStatus(builder.AppendNull());
+//             }
+//         }
+// 
+//         return finish(builder);
+//     }
+// }
 
 std::shared_ptr<arrow::Array> execute(const arrow::Table &table, const ast::Value &value, ColumnMapping mapping)
 {
