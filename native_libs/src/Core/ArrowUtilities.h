@@ -511,7 +511,7 @@ std::shared_ptr<arrow::Table> tableFromVectors(const std::vector<Ts> & ...ts)
     return tableFromArrays({toArray(ts)...});
 }
 
-using DynamicField = std::variant<int64_t, double, std::string_view, std::string, ListElemView,  std::nullopt_t>;
+using DynamicField = std::variant<int64_t, double, std::string_view, std::string, ListElemView, std::nullopt_t>;
 
 using DynamicJustVector = std::variant<std::vector<int64_t>, std::vector<double>, std::vector<std::string_view>, std::vector<ListElemView>>;
 DFH_EXPORT DynamicJustVector toJustVector(const arrow::ChunkedArray &chunkedArray);
