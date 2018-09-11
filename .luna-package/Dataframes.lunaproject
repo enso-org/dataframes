@@ -25,13 +25,13 @@ modulesSettings:
         - []
       - - ! 'LunaVisualizer: base: table'
         - base/table/table.html
-    currentBreadcrumb: ''
+    currentBreadcrumb: twosigma
     breadcrumbsSettings:
     - - items: []
       - breadcrumbCameraSettings:
-          logicalToScreen: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[0.0,0.0,0.0,1.0]]'
-          screenToLogical: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[0.0,0.0,0.0,1.0]]'
-          lastInverse: 0
+          logicalToScreen: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[-968.0,0.0,0.0,1.0]]'
+          screenToLogical: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[968.0,0.0,0.0,1.0]]'
+          lastInverse: 2
     - - items:
         - demo
       - breadcrumbCameraSettings:
