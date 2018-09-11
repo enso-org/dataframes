@@ -64,6 +64,8 @@ std::shared_ptr<arrow::Table> buildTable(std::vector<std::string> names, std::ve
 
 std::ofstream openFileToWrite(const char *filepath)
 {
+    // what we care abour is mostly MSVC because on Windows paths are not utf-8 by default
+    // and fortunately MSVC implements C++17 filesystem library
 #if __cpp_lib_filesystem >= 201703
     std::ofstream out{ std::filesystem::u8path(filepath), std::ios::binary };
 #else
@@ -78,6 +80,7 @@ std::ofstream openFileToWrite(const char *filepath)
 
 std::ifstream openFileToRead(const char *filepath)
 {
+    // see comment in the function above
 #if __cpp_lib_filesystem >= 201703
     std::ifstream in{ std::filesystem::u8path(filepath), std::ios::binary };
 #else
@@ -94,8 +97,6 @@ std::string getFileContents(const char *filepath)
 {
     try
     {
-        // what we care abour is mostly MSVC because on Windows paths are not utf-8 by default
-        // and fortunately MSVC implements C++17 filesystem library
         auto input = openFileToRead(filepath);
 
         std::string contents;
