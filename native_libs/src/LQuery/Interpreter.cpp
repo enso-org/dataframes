@@ -40,6 +40,11 @@ struct is_scalar<Scalar<T>> : std::true_type {};
 template<typename T>
 constexpr bool is_scalar_v = is_optional<T>::value;
 
+template<typename>
+struct is_array_ptr : std::false_type {};
+template<typename T>
+struct is_array_ptr<std::shared_ptr<T>> : std::bool_constant<std::is_base_of_v<arrow::Array, T>> {};
+
 template<typename T>
 struct FixedSizeValueWriter
 {
@@ -182,8 +187,17 @@ struct FixedSizeValueWriter<bool> : FixedSizeValueWriter<uint8_t>
         template<typename Lhs, typename Rhs>
         static auto exec(const Lhs &lhs, const Rhs &rhs)
         {
-            if constexpr(std::is_same_v<Lhs, Rhs> || std::is_arithmetic_v<Lhs> && std::is_arithmetic_v<Rhs>)
+            if constexpr(std::is_arithmetic_v<Lhs> && std::is_arithmetic_v<Rhs>)
+            {
+                if constexpr(std::is_floating_point_v<Lhs> || std::is_floating_point_v<Rhs>)
+                    return double{lhs + rhs};
+                else
+                    return int64_t{lhs + rhs};
+            }
+            else if constexpr(std::is_same_v<Lhs, Rhs>)
+            {
                 return lhs + rhs;
+            }
             else
             {
                 COMPLAIN_ABOUT_OPERAND_TYPES;
@@ -325,7 +339,7 @@ struct FixedSizeValueWriter<bool> : FixedSizeValueWriter<uint8_t>
         }
         else
         {
-            using OperationResult = decltype(Operation::exec(getValue(operands, 0)...));
+
             using ResultArrowType = StorageToArrowType_t<OperationResult>;
             using Builder = typename arrow::TypeTraits<ResultArrowType>::BuilderType;
             using Array = typename arrow::TypeTraits<ResultArrowType>::ArrayType;
