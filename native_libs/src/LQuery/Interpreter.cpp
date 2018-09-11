@@ -176,7 +176,23 @@ struct FixedSizeValueWriter<bool> : FixedSizeValueWriter<uint8_t>
             COMPLAIN_ABOUT_OPERAND_TYPES;
         }
     };
-    struct Plus        { BINARY_ARIT_OPERATOR(+); FAIL_ON_STRING(int64_t); FAIL_ON_LIST(int64_t); };
+
+    struct Plus
+    {
+        template<typename Lhs, typename Rhs>
+        static auto exec(const Lhs &lhs, const Rhs &rhs)
+        {
+            if constexpr(std::is_same_v<Lhs, Rhs> || std::is_arithmetic_v<Lhs> && std::is_arithmetic_v<Rhs>)
+                return lhs + rhs;
+            else
+            {
+                COMPLAIN_ABOUT_OPERAND_TYPES;
+                return lhs; /* just for type inference  */
+            }
+        }
+    };
+
+    //struct Plus        { BINARY_ARIT_OPERATOR(+); FAIL_ON_STRING(int64_t); FAIL_ON_LIST(int64_t); };
     struct Minus       { BINARY_ARIT_OPERATOR(-); FAIL_ON_STRING(int64_t); FAIL_ON_LIST(int64_t); };
     struct Times       { BINARY_ARIT_OPERATOR(*); FAIL_ON_STRING(int64_t); FAIL_ON_LIST(int64_t); };
     struct Divide      { BINARY_ARIT_OPERATOR(/); FAIL_ON_STRING(int64_t); FAIL_ON_LIST(int64_t); };
@@ -293,8 +309,8 @@ struct FixedSizeValueWriter<bool> : FixedSizeValueWriter<uint8_t>
     {
         return src.value;
     }
-    template<typename T>
-    auto getValue(const T &src, int64_t index)
+    template<typename Array>
+    auto getValue(const std::shared_ptr<Array> &src, int64_t index)
     {
         return arrayValueAtTyped(*src, static_cast<int32_t>(index)); // TODO to be checked when chunks are supported
     }
@@ -312,21 +328,8 @@ struct FixedSizeValueWriter<bool> : FixedSizeValueWriter<uint8_t>
             using OperationResult = decltype(Operation::exec(getValue(operands, 0)...));
             using ResultArrowType = StorageToArrowType_t<OperationResult>;
             using Builder = typename arrow::TypeTraits<ResultArrowType>::BuilderType;
+            using Array = typename arrow::TypeTraits<ResultArrowType>::ArrayType;
 
-            std::shared_ptr<arrow::Array> ret;
-
-            throw std::runtime_error("not implemented");
-            return ret;
-        }
-
-//         // TODO: optimization opportunity: boolean constant support (remove the last part of if below and fix the build)
-//         constexpr bool arithmeticOperands = (std::is_arithmetic_v<Operands> && ...);
-//         if constexpr(arithmeticOperands && !std::is_same_v<bool, OperationResult>)
-//         {
-//             return Operation::exec(operands...);
-//         }
-//         else
-//         {
 //             ArrayOperand<ResultArrowType> ret{ (size_t)count };
 //             for(int64_t i = 0; i < count; i++)
 //             {
@@ -334,7 +337,16 @@ struct FixedSizeValueWriter<bool> : FixedSizeValueWriter<uint8_t>
 //                 ret.store(i, result);
 //             }
 //             return ret;
-//         }
+// 
+//             std::shared_ptr<arrow::Array> ret;
+// 
+//             throw std::runtime_error("not implemented");
+//             return ret;
+            Builder b;
+            auto ret = finish(b);
+            return staticDowncastArray<ResultArrowType::type_id>(ret);
+            //return std::shared_ptr<arrow::Int64Array>{};
+        }
     }
 
 struct Interpreter
@@ -353,8 +365,13 @@ struct Interpreter
         < Scalar<arrow::Int64Type>
         , Scalar<arrow::DoubleType>
         , Scalar<arrow::StringType>
-        , std::shared_ptr<arrow::Array>
+        , std::shared_ptr<arrow::BooleanArray>
+        , std::shared_ptr<arrow::Int64Array>
+        , std::shared_ptr<arrow::DoubleArray>
+        , std::shared_ptr<arrow::StringArray>
+        , std::shared_ptr<arrow::ListArray>
         >;
+
 
     Field fieldFromColumn(const arrow::Column &column)
     {
@@ -363,12 +380,10 @@ struct Interpreter
             throw std::runtime_error("not implemented: processing of chunked arrays");
 
         const auto chunk = data->chunk(0);
-        return chunk;
-//         return visitArray(*chunkPtr, [] (auto *array) -> Field
-//         {
-//             using ArrowType = typename std::remove_pointer_t<decltype(array)>::TypeClass;
-//             return ArrayOperand<ArrowType>(array);
-//         });
+        return visitArray(chunk, [&](auto &&array)
+        {
+            return Field(array);
+        });
     }
     std::vector<Field> evaluateOperands(const std::vector<ast::Value> &operands)
     {
@@ -378,7 +393,7 @@ struct Interpreter
     std::vector<Field> evaluatePredicates(const std::vector<ast::Predicate> &operands)
     {
         return transformToVector(operands, 
-            [this] (auto &&operand) { return evaluate(operand); });
+            [this] (auto &&operand) { return Field(evaluate(operand)); });
     }
 
     template<typename T>
@@ -413,12 +428,12 @@ struct Interpreter
                 switch(op.what)
                 {
                     VALUE_BINARY_OP(Plus);
-                    VALUE_BINARY_OP(Minus);
-                    VALUE_BINARY_OP(Times);
-                    VALUE_BINARY_OP(Divide);
-                    VALUE_BINARY_OP(Modulo);
-                    VALUE_UNARY_OP(Negate);
-                    VALUE_UNARY_OP(Mean);
+//                     VALUE_BINARY_OP(Minus);
+//                     VALUE_BINARY_OP(Times);
+//                     VALUE_BINARY_OP(Divide);
+//                     VALUE_BINARY_OP(Modulo);
+//                     VALUE_UNARY_OP(Negate);
+//                     VALUE_UNARY_OP(Mean);
                 default:
                     throw std::runtime_error("not implemented: value operator " + std::to_string((int)op.what));
                 }
@@ -441,10 +456,10 @@ struct Interpreter
             }, (const ast::ValueBase &) value);
     }
 
-    Field evaluate(const ast::Predicate &p)
+    std::shared_ptr<arrow::BooleanArray> evaluate(const ast::Predicate &p)
     {
         return std::visit(overloaded{
-            [&] (const ast::PredicateFromValueOperation &elem) -> Field
+            [&] (const ast::PredicateFromValueOperation &elem) -> std::shared_ptr<arrow::BooleanArray>
         {
             const auto operands = evaluateOperands(elem.operands);
             switch(elem.what)
@@ -473,7 +488,7 @@ struct Interpreter
                 throw std::runtime_error("not implemented: predicate operator " + std::to_string((int)elem.what));
             }
         },
-            [&] (const ast::PredicateOperation &op) -> Field
+            [&] (const ast::PredicateOperation &op) -> std::shared_ptr<arrow::BooleanArray>
         {
             const auto operands = evaluatePredicates(op.operands);
             switch(op.what)
@@ -510,10 +525,7 @@ std::shared_ptr<arrow::Buffer> execute(const arrow::Table &table, const ast::Pre
 {
     Interpreter interpreter{table, mapping};
     auto result = interpreter.evaluate(predicate);
-    auto array = std::get<std::shared_ptr<arrow::Array>>(result);
-
-    auto mask = std::dynamic_pointer_cast<arrow::BooleanArray>(array);
-    auto ret = FixedSizeValueWriter<bool>(mask->values()); // TODO: proper ownership passing, buffer should be unique or copied
+    auto ret = FixedSizeValueWriter<bool>(result->values()); // TODO: proper ownership passing, buffer should be unique or copied
     for(auto && [refid, columnIndex] : mapping)
     {
         const auto column = table.column(columnIndex);
@@ -530,7 +542,7 @@ std::shared_ptr<arrow::Buffer> execute(const arrow::Table &table, const ast::Pre
 }
 
 // template<typename ArrowType>
-// auto arrayWith(const arrow::Table &table, const ArrayOperand<ArrowType> &arrayProto, std::shared_ptr<arrow::Buffer> nullBuffer)
+// auto arrayWith(const arrow::Table &table, const Array &values, std::shared_ptr<arrow::Buffer> nullBuffer)
 // {
 //     using T = typename TypeDescription<ArrowType::type_id>::ValueType;
 //     const auto N = table.num_rows();
@@ -607,6 +619,56 @@ std::shared_ptr<arrow::Buffer> execute(const arrow::Table &table, const ast::Pre
 //     }
 // }
 
+constexpr bool fitsIntoChunk(int64_t value)
+{
+    return value < std::numeric_limits<int32_t>::max();
+}
+
+
+template<typename T>
+auto arrayWithConstant(int64_t length, T value, std::shared_ptr<arrow::Buffer> nulls = nullptr)
+{
+    assert(fitsIntoChunk(length));
+    if constexpr(std::is_arithmetic_v<T>)
+    {
+        using ArrowType = StorageToArrowType_t<T>;
+        using Array = typename arrow::TypeTraits<ArrowType>::ArrayType;
+
+        auto [buffer, ptr] = allocateBuffer<T>(length);
+        for(int i = 0; i < length; i++)
+            ptr[i] = value;
+
+        return std::make_shared<Array>(length, buffer, nulls, -1);
+    }
+}
+
+template<typename Array>
+std::shared_ptr<Array> arrayWithNulls(int64_t length, const std::shared_ptr<Array> &array, std::shared_ptr<arrow::Buffer> nulls = nullptr)
+{
+    // TODO if array had offset, than out nulls buffer should have offset as well
+    if(array->offset() == 0  &&  nulls)
+        throw std::runtime_error("not implemented: resulting array with offset and nulls");
+
+    return std::make_shared<Array>(array->length(), array->data(), nulls, -1, array->offset());
+}
+
+std::shared_ptr<arrow::Array> arrayFromField(int64_t length, const Interpreter::Field &field, std::shared_ptr<arrow::Buffer> nulls = nullptr)
+{
+    return std::visit([&](auto &&fieldValue) -> std::shared_ptr<arrow::Array>
+    {
+        using T = std::decay_t<decltype(fieldValue)>;
+        if constexpr(is_scalar<T>::value)
+        {
+            return arrayWithConstant(length, fieldValue.value, nulls);
+        }
+        else
+        {
+            static_assert(!is_scalar<T>::value);
+            return arrayWithNulls<typename T::element_type>(length, fieldValue, nulls);
+        }
+    }, field);
+}
+
 std::shared_ptr<arrow::Array> execute(const arrow::Table &table, const ast::Value &value, ColumnMapping mapping)
 {
     Interpreter interpreter{table, mapping};
@@ -632,9 +694,5 @@ std::shared_ptr<arrow::Array> execute(const arrow::Table &table, const ast::Valu
 
     const auto nullBufferToBeUsed = usedNullableColumns ? bitmask.buffer : nullptr;
 
-    return std::visit(
-        [&] (auto &&i) -> std::shared_ptr<arrow::Array>
-        {
-            return arrayWith(table, i, nullBufferToBeUsed);
-        }, field);
+    return arrayFromField(table.num_rows(), field, nullBufferToBeUsed);
 }

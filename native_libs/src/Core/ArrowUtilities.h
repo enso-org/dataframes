@@ -54,6 +54,19 @@ template<> struct TypeDescription<arrow::Type::INT64 > : NumericTypeDescription<
 template<> struct TypeDescription<arrow::Type::FLOAT > : NumericTypeDescription<arrow::FloatType>  {};
 template<> struct TypeDescription<arrow::Type::DOUBLE> : NumericTypeDescription<arrow::DoubleType> {};
 
+template<> struct TypeDescription<arrow::Type::BOOL>
+{
+    using ArrowType = arrow::BooleanType;
+    using BuilderType = arrow::BooleanBuilder;
+    using ValueType = bool;
+    using ObservedType = bool;
+    using CType = bool;
+    using Array = arrow::BooleanArray;
+    using StorageValueType = uint8_t;
+    using OffsetType = void;
+    static constexpr arrow::Type::type id = ArrowType::type_id;
+};
+
 template<> struct TypeDescription<arrow::Type::STRING>
 {
     using ArrowType = arrow::StringType;
@@ -294,11 +307,15 @@ auto throwingDowncastArray(arrow::Array *array)
     return throwingCast<typename TypeDescription<type>::Array *>(array);
 }
 
-// downcasts array to the relevant type, throwing if type mismatch
 template<arrow::Type::type type>
 auto staticDowncastArray(const arrow::Array *array)
 {
     return static_cast<const typename TypeDescription<type>::Array *>(array);
+}
+template<arrow::Type::type type>
+auto staticDowncastArray(const std::shared_ptr<arrow::Array> &array)
+{
+    return std::static_pointer_cast<typename TypeDescription<type>::Array>(array);
 }
 
 template<typename Function>
@@ -307,6 +324,15 @@ auto visitArray(const arrow::Array &array, Function &&f)
     return visitType4(array.type(), [&] (auto id)
     {
         return f(staticDowncastArray<id.value>(&array));
+    });
+}
+
+template<typename Function>
+auto visitArray(const std::shared_ptr<arrow::Array> &array, Function &&f)
+{
+    return visitType4(array->type(), [&](auto id)
+    {
+        return f(staticDowncastArray<id.value>(array));
     });
 }
 
