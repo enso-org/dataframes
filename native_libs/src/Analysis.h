@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -61,4 +62,10 @@ struct GroupedKeyInfo
     }
 };
 
-DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn, std::vector<std::shared_ptr<arrow::Column>> toAggregate);
+
+enum class Aggregate
+{
+    Min, Max, Mean, Length, Median, First, Last
+};
+
+DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn, std::map<std::shared_ptr<arrow::Column>, std::vector<Aggregate>> toAggregate);

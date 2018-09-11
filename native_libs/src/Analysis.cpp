@@ -50,8 +50,9 @@ template<typename T>
 struct Minimum
 {
     T accumulator = std::numeric_limits<T>::max();
-    std::string name = "min";
-    void operator() (T elem) {  accumulator = std::min<T>(accumulator, elem); }
+    static constexpr const char *name = "min";
+    void operator() (T elem) { accumulator = std::min<T>(accumulator, elem); }
+    void operator() () {}
     auto get() { return accumulator; }
 };
 
@@ -59,8 +60,9 @@ template<typename T>
 struct Maximum
 {
     T accumulator = std::numeric_limits<T>::min();
-    std::string name = "max";
-    void operator() (T elem) {  accumulator = std::max<T>(accumulator, elem); }
+    static constexpr const char *name = "max";
+    void operator() (T elem) { accumulator = std::max<T>(accumulator, elem); }
+    void operator() () {}
     auto get() { return accumulator; }
 };
 
@@ -70,8 +72,9 @@ struct Mean
 {
     int64_t count = 0;
     double accumulator = 0;
-    std::string name = "mean";
-    void operator() (T elem) {  accumulator += elem; count++; }
+    static constexpr const char *name = "mean";
+    void operator() (T elem) { accumulator += elem; count++; }
+    void operator() () {}
     auto get() { return accumulator / count; }
 };
 
@@ -80,8 +83,9 @@ struct Median
 {
     boost::accumulators::accumulator_set<T, boost::accumulators::features<boost::accumulators::tag::median>> accumulator;
 
-    std::string name = "median";
-    void operator() (T elem) {  accumulator(elem); }
+    static constexpr const char *name= "median";
+    void operator() (T elem) { accumulator(elem); }
+    void operator() () {}
     auto get() { return boost::accumulators::median(accumulator); }
 };
 
@@ -90,15 +94,16 @@ struct Variance
 {
     boost::accumulators::accumulator_set<T, boost::accumulators::features<boost::accumulators::tag::variance>> accumulator;
 
-    std::string name = "variance";
-    void operator() (T elem) {  accumulator(elem); }
+    static constexpr const char *name = "variance";
+    void operator() (T elem) { accumulator(elem); }
+    void operator() () {}
     auto get() { return boost::accumulators::variance(accumulator); }
 };
 
 template<typename T>
 struct StdDev : Variance<T>
 {
-    std::string name = "std dev";
+    static constexpr const char *name = "std dev";
     auto get() { return std::sqrt(Variance<T>::get()); }
 };
 
@@ -106,8 +111,9 @@ template<typename T>
 struct Sum : Variance<T>
 {
     T accumulator{};
-    std::string name = "sum";
-    void operator() (T elem) {  accumulator += elem; }
+    static constexpr const char *name = "sum";
+    void operator() (T elem) { accumulator += elem; }
+    void operator() () {}
     auto get() { return accumulator; }
 };
 
@@ -367,6 +373,7 @@ double autoCorrelation(const std::shared_ptr<arrow::Column> &column, int lag /*=
 struct Length
 {
     int64_t length = 0;
+    static constexpr const char *name = "Length";
 
     template<typename T>
     void operator()(T &&)
@@ -379,21 +386,6 @@ struct Length
     }
 
     auto get() { return length; }
-};
-
-struct Change
-{
-    std::optional<int64_t> first;
-    std::optional<int64_t> last;
-
-    template<typename T>
-    void operator()(T t)
-    {
-        if(!first)
-            first = t;
-
-        last = t;
-    }
 };
 
 template<typename T>
@@ -421,7 +413,82 @@ struct Aggregator
     }
 };
 
-DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn, std::vector<std::shared_ptr<arrow::Column>> toAggregate)
+template<typename T>
+struct AggregateBase
+{
+    virtual ~AggregateBase(){}
+
+    virtual void operator()(T t) = 0;
+    virtual void operator()() = 0;
+    virtual double get() = 0;
+    virtual std::string name() = 0;
+};
+
+template<typename T, typename Aggregator>
+struct AggregateBy : AggregateBase<T>
+{
+    Aggregator a;
+
+    virtual void operator()(T t) override
+    {
+        a(t);
+    }
+    virtual void operator()() override
+    {
+        a();
+    }
+    virtual double get() override
+    {
+        return a.get();
+    }
+    virtual std::string name() override
+    {
+        return Aggregator::name;
+    }
+};
+
+template<typename T>
+std::unique_ptr<AggregateBase<T>> makeAggregator(Aggregate a)
+{
+    switch(a)
+    {
+    case Aggregate::Min: return std::make_unique<AggregateBy<T, Minimum<T>>>();
+    case Aggregate::Max: return std::make_unique<AggregateBy<T, Maximum<T>>>();
+    case Aggregate::Mean: return std::make_unique<AggregateBy<T, Mean<T>>>();
+    case Aggregate::Length: return std::make_unique<AggregateBy<T, Length>>();
+    case Aggregate::Median: return std::make_unique<AggregateBy<T, Median<T>>>();
+//     case Aggregate::First: return std::make_unique<AggregateBy<T, First<T>>>();
+//     case Aggregate::Last: return std::make_unique<AggregateBy<T, Last<T>>>();
+    }
+}
+
+std::string aggregateName(Aggregate a)
+{
+    // not efficent, but should not be called that often
+    return makeAggregator<double>(a)->name();
+}
+
+template<typename T>
+struct Aggregators
+{
+    std::vector<std::unique_ptr<AggregateBase<T>>> aggregators;
+    Aggregators(const std::vector<Aggregate> &toAggregate)
+    {
+        aggregators = transformToVector(toAggregate, [](auto aggrEnum) { return makeAggregator<T>(aggrEnum); });
+    }
+    void operator()(T t)
+    {
+        for(auto &a : aggregators)
+            (*a)(t);
+    }
+    void operator()()
+    {
+        for(auto &a : aggregators)
+            (*a)();
+    }
+};
+
+DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn, std::map<std::shared_ptr<arrow::Column>, std::vector<Aggregate>> toAggregate)
 {
     std::vector<std::shared_ptr<arrow::Column>> newColumns;
 
@@ -433,14 +500,18 @@ DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_pt
         const auto hasNulls = groups.hasNulls;
         const auto afterLastGroup = groups.uniqueValues.size()+1;
 
-        for(auto column : toAggregate)
+        for(auto &colAggrs : toAggregate)
         {
-            visitType(column->type()->id(), [&](auto id)
+            visitType(colAggrs.first->type()->id(), [&](auto id)
             {
+                auto[column, aggregates] = colAggrs;
                 if constexpr(id != arrow::Type::STRING)
                 {
                     using T = typename TypeDescription<id.value>::ObservedType;
-                    std::vector<Aggregator<T>> aggregators(afterLastGroup);
+                    std::vector<Aggregators<T>> aggregators;
+                    aggregators.reserve(afterLastGroup);
+                    for(int i = 0; i < afterLastGroup; i++)
+                        aggregators.emplace_back(aggregates);
 
                     int64_t row = 0;
                     iterateOver<id.value>(*column, [&](auto value)
@@ -455,33 +526,27 @@ DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_pt
                     });
 
 
-                    std::vector<arrow::DoubleBuilder> newColumnBuilders(Aggregator<T>::count);
+                    std::vector<arrow::DoubleBuilder> newColumnBuilders(aggregates.size());
                     for(auto &&newColumnBuilder : newColumnBuilders)
                         newColumnBuilder.Reserve(groupCount);
 
                     for(int64_t groupItr = hasNulls; groupItr < afterLastGroup; ++groupItr)
                     {
                         auto &aggr = aggregators[groupItr];
-                        newColumnBuilders[0].Append(aggr.min.get());
-                        newColumnBuilders[1].Append(aggr.max.get());
-                        newColumnBuilders[2].Append(aggr.mean.get());
-                        newColumnBuilders[3].Append(aggr.length.get());
+                        for(int32_t i = 0; i < aggregates.size(); i++)
+                        {
+                            newColumnBuilders[i].Append(aggr.aggregators[i]->get());
+                        }
                     }
-                    
-                    auto produceColumn = [&] (std::string statName, int index)
+                    for(int32_t i = 0; i < aggregates.size(); i++)
                     {
-                        auto arr = finish(newColumnBuilders[index]);
-                        auto col = toColumn(arr, column->name() + "_"s + statName);
+                        auto arr = finish(newColumnBuilders[i]);
+                        auto col = toColumn(arr, column->name() + "_"s + aggregateName(aggregates[i]));
                         newColumns.push_back(col);
                     };
-
-                    produceColumn("min", 0);
-                    produceColumn("max", 1);
-                    produceColumn("mean", 2);
-                    produceColumn("length", 3);
                 }
                 else
-                    throw std::runtime_error("cannot aggregate string column!");
+                    throw std::runtime_error("cannot aggregate column `" + column->name() +  "` of type " + column->type()->ToString() + ": must be numeric type!");
             });
         }
     });
