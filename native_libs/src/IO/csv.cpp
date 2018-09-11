@@ -300,6 +300,7 @@ struct ColumnWriter
     ColumnWriter(const std::shared_ptr<arrow::ChunkedArray> &chunkedArray)
         : chunks(chunkedArray->chunks())
     {}
+    virtual ~ColumnWriter() {}
 
     virtual void consumeFromChunk(const arrow::Array &chunk, CsvGenerator &generator) = 0;
 
