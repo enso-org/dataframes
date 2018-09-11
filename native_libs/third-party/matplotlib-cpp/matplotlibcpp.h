@@ -1,5 +1,6 @@
 #pragma once
 
+#include <dlfcn.h> 
 #include <vector>
 #include <map>
 #include <numeric>
@@ -119,6 +120,7 @@ private:
         if (!pyplotname || !pylabname || !matplotlibname || !pyplotstylename || !ioname) {
             throw std::runtime_error("couldnt create string");
         }
+        dlopen("libpython3.6m.so", RTLD_LAZY | RTLD_GLOBAL);
 
         PyObject* matplotlib = PyImport_Import(matplotlibname);
         Py_DECREF(matplotlibname);

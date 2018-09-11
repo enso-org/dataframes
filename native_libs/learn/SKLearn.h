@@ -3,6 +3,7 @@
 #include <Python.h>
 #include <stdexcept>
 #include <numpy/arrayobject.h>
+#include <iostream>
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 
@@ -105,7 +106,15 @@ private:
 
 inline PyObject* newLogisticRegression(double c) {
   PyObject* kwargs = PyDict_New();
-  PyDict_SetItemString(kwargs, "C", PyFloat_FromDouble(c));
+  if (!kwargs) { std::cout << "Dupa nie dict" << std::endl << std::flush; }
+  
+  auto dubel = PyFloat_FromDouble(c);
+  if (!dubel) { std::cout << "Dupa nie dubel" << std::endl << std::flush; }
+  
+  auto str = PyUnicode_FromString("C");
+  if (!str) { std::cout << "Dupa nie str" << std::endl << std::flush; }
+  
+  PyDict_SetItem(kwargs, str, dubel);
   PyObject* model = PyObject_Call(interpreter::get().s_python_function_logistic_regression, interpreter::get().s_python_empty_tuple, kwargs);
   return model;
 }
