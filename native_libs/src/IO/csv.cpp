@@ -416,10 +416,7 @@ void generateCsv(std::ostream &out, const arrow::Table &table, GeneratorHeaderPo
 
 void generateCsv(const char *filepath, const arrow::Table &table, GeneratorHeaderPolicy headerPolicy, GeneratorQuotingPolicy quotingPolicy, char fieldSeparator /*= ','*/, char recordSeparator /*= '\n'*/, char quote /*= '"'*/)
 {
-    std::ofstream out{filepath};
-    if(!out)
-        throw std::runtime_error("Cannot write to file "s + filepath);
-
+    auto out = openFileToWrite(filepath);
     generateCsv(out, table, headerPolicy, quotingPolicy);
 }
 

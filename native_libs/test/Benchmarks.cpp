@@ -142,12 +142,10 @@ BOOST_AUTO_TEST_CASE(DropNABigFile)
 
 	auto row = rowAt(*table, 307'407);
 
-	{
-		std::ofstream out{ "trained_filtered_nasze.csv" };
-		if(!out)
-			throw std::runtime_error("Cannot write to file ");
-		generateCsv(out, *table2, GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy::QuoteWhenNeeded);
-	}
+// 	{
+// 		auto out = openFileToWrite("trained_filtered_nasze.csv");
+// 		generateCsv(out, *table2, GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy::QuoteWhenNeeded);
+// 	}
 
 	measure("drop NA from application_train", 5000, [&]
 	{
@@ -255,7 +253,7 @@ BOOST_AUTO_TEST_CASE(WriteBigFile)
 	{
 		measure("write big file", [&]
 		{
-			std::ofstream out{"ffffff.csv"};
+			auto out = openFileToWrite("ffffff.csv");
 			generateCsv(out, *table, GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy::QueteAllFields);
 		});
 	}

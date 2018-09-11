@@ -1307,10 +1307,7 @@ extern "C"
         return TRANSLATE_EXCEPTION(outError)
         {
             // NOTE: this will silently fail if the target directory does not exist
-            std::ofstream out{filename, std::ios::binary};
-            if(!out)
-                throw std::runtime_error("Cannot write to file "s + filename);
-
+            auto out = openFileToWrite(filename);
             writeXlsx(out, *table, headerPolicy);
         };
     }

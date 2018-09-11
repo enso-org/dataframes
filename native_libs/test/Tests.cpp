@@ -1,4 +1,4 @@
-#ifndef  _MSC_VER
+﻿#ifndef  _MSC_VER
 #define BOOST_TEST_DYN_LINK  // otherwise GCC gets undefined main error
 #endif // ! _MSC_VER
 
@@ -255,22 +255,6 @@ BOOST_AUTO_TEST_CASE(HelperConversionFunctions)
 	BOOST_CHECK(retS == numbersS);
 	BOOST_CHECK(retOD == numbersOD);
 	BOOST_CHECK(retOS == numbersOS);
-}
- 
-std::string get_file_contents(const char *filename)
-{
-	std::ifstream in(filename, std::ios::in);
-	if (in)
-	{
-		std::string contents;
-		in.seekg(0, std::ios::end);
-		contents.resize(in.tellg());
-		in.seekg(0, std::ios::beg);
-		in.read(&contents[0], contents.size());
-		in.close();
-		return(contents);
-	}
-	throw(errno);
 }
 
 struct FilteringFixture
@@ -796,6 +780,18 @@ BOOST_AUTO_TEST_CASE(MakeNullsArray)
     auto nullIntsV = toVector<std::optional<int64_t>>(*nullInts);
     std::vector<std::optional<int64_t>> nullIntsVExpected(5);
     BOOST_CHECK_EQUAL_RANGES(nullIntsV, nullIntsVExpected);
+}
+
+BOOST_AUTO_TEST_CASE(CsvWithUtf8Path)
+{
+    const auto utfPath = u8"temp-zażółć鵞鳥.csv";
+    std::vector<int64_t> nums = {1, 2, 3};
+    auto table = tableFromVectors(nums);
+    generateCsv(utfPath, *table);
+    auto table2 = loadTableFromCsvFile(utfPath);
+
+    auto [readInts] = toVectors<int64_t>(*table2);
+    BOOST_CHECK_EQUAL_RANGES(nums, readInts);
 }
 
 BOOST_AUTO_TEST_CASE(ColumnShift)

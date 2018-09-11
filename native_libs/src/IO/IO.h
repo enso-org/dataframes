@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <string>
+#include <iosfwd>
 #include <stdexcept>
 #include <vector>
 
@@ -69,4 +70,6 @@ inline constexpr auto defaultValue()
 std::vector<std::string> decideColumnNames(int count, const HeaderPolicy &policy, std::function<std::string(int)> readHeaderCell);
 std::shared_ptr<arrow::Table> buildTable(std::vector<std::string> names, std::vector<std::shared_ptr<arrow::Array>> arrays, std::vector<ColumnType> columnTypes);
 
+DFH_EXPORT std::ofstream openFileToWrite(const char *filepath);
+DFH_EXPORT std::ifstream openFileToRead(const char *filepath);
 DFH_EXPORT std::string getFileContents(const char *filepath);

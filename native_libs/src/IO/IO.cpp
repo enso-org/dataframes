@@ -1,5 +1,8 @@
 #include "IO.h"
 
+#if __cpp_lib_filesystem >= 201703
+#include <filesystem>
+#endif
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
@@ -59,13 +62,41 @@ std::shared_ptr<arrow::Table> buildTable(std::vector<std::string> names, std::ve
     return table;
 }
 
+std::ofstream openFileToWrite(const char *filepath)
+{
+#if __cpp_lib_filesystem >= 201703
+    std::ofstream out{ std::filesystem::u8path(filepath), std::ios::binary };
+#else
+    std::ofstream out{ filepath, std::ios::binary };
+#endif
+
+    if(!out)
+        throw std::runtime_error("Cannot open the file to write: "s + filepath);
+
+    return out;
+}
+
+std::ifstream openFileToRead(const char *filepath)
+{
+#if __cpp_lib_filesystem >= 201703
+    std::ifstream in{ std::filesystem::u8path(filepath), std::ios::binary };
+#else
+    std::ifstream in{ filepath, std::ios::binary };
+#endif
+
+    if(!in)
+        throw std::runtime_error("Cannot open the file to read: "s + filepath);
+
+    return in;
+}
+
 std::string getFileContents(const char *filepath)
 {
     try
     {
-        std::ifstream input{filepath, std::ios::binary};
-        if(!input)
-            throw std::runtime_error("Failed to open the file");
+        // what we care abour is mostly MSVC because on Windows paths are not utf-8 by default
+        // and fortunately MSVC implements C++17 filesystem library
+        auto input = openFileToRead(filepath);
 
         std::string contents;
         input.seekg(0, std::ios::end);
