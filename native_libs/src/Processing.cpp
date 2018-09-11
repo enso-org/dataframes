@@ -571,13 +571,14 @@ struct ConvertTo<arrow::Type::INT64>
 template<>
 struct ConvertTo<arrow::Type::DOUBLE>
 {
-    double operator() (int64_t value)            const { return (int64_t)value; }
+    double operator() (int64_t value)            const { return (double)value; }
     double operator() (double value)             const { return value; }
     double operator() (const std::string &value) const { return std::stod(value); }
     double operator() (std::string_view value)   const { return std::stod(std::string(value)); }
     template<typename T>
     double operator() (T)                        const { throw std::runtime_error(__FUNCTION__ + ": invalid conversion"s); }
 };
+
 DynamicField adjustTypeForFilling(DynamicField valueGivenByUser, const arrow::DataType &type)
 {
     return visitType(type, [&] (auto id) -> DynamicField

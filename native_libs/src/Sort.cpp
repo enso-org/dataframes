@@ -26,59 +26,84 @@ auto dispatch(NullPosition nullPosition, F &&f)
 
 namespace
 {
-std::shared_ptr<arrow::Array> permuteInnerToArray(std::shared_ptr<arrow::Column> column, const Permutation &indices)
+
+template<typename ArrowType, bool nullable>
+struct ColumnPermuter
 {
-    return visitType(*column->type(), [&](auto id)
+    static constexpr arrow::Type::type id = ArrowType::type_id;
+
+    std::shared_ptr<arrow::Column> column;
+    std::shared_ptr<ArrowType> type;
+    Permutation indices;
+
+    ColumnPermuter(std::shared_ptr<arrow::Column> column, std::shared_ptr<ArrowType> type, Permutation indices, std::bool_constant<nullable> n={})
+        : column(std::move(column))
+        , type(std::move(type))
+        , indices(std::move(indices))
+    {}
+
+    std::shared_ptr<arrow::Array> operator()() const
     {
-        using TD = TypeDescription<id.value>;
-        using T = typename TD::StorageValueType;
-        using Builder = typename TD::BuilderType;
+        if(column->length() > std::numeric_limits<int32_t>::max())
+            throw std::runtime_error("not implemented: too big array");
 
-        return dispatch(column->null_count() != 0, [&](auto nullable) -> std::shared_ptr<arrow::Array>
+        using T = typename TypeDescription<ArrowType::type_id>::StorageValueType;
+
+        const auto length = (int32_t)column->length();
+
+        const ChunkAccessor chunks{ *column->data() };
+        if constexpr(!nullable && (id == arrow::Type::INT64 || id == arrow::Type::DOUBLE))
         {
-            if(column->length() > std::numeric_limits<int32_t>::max())
-                throw std::runtime_error("not implemented: too big array");
-
-            const ChunkAccessor chunks{ *column->data() };
-            if constexpr(!nullable.value && (id.value == arrow::Type::INT64 || id.value == arrow::Type::DOUBLE))
+            FixedSizeArrayBuilder<id, nullable> b{ length };
             {
-                FixedSizeArrayBuilder<id.value, nullable.value> b{ (int32_t)column->length() };
-                {
-                    T * __restrict target = b.nextValueToWrite;
-                    for(auto index : indices)
-                    {
-                        const auto[chunk, indexInChunk] = chunks.locate(index);
-                        const auto value = arrayValueAt<id.value>(*chunk, indexInChunk);
-                        // unfortunately gives performance edge over b.Append(value)
-                        // TODO: can we have something nice and fast?
-                        *target++ = value;
-                    }
-                }
-                return b.Finish();
-            }
-            else
-            {
-                Builder b;
-                b.Reserve(indices.size());
+                T * __restrict target = b.nextValueToWrite;
                 for(auto index : indices)
                 {
                     const auto[chunk, indexInChunk] = chunks.locate(index);
-                    if constexpr(nullable.value)
+                    const auto value = arrayValueAt<id>(*chunk, indexInChunk);
+                    // unfortunately gives performance edge over b.Append(value)
+                    // TODO: can we have something nice and fast?
+                    *target++ = value;
+                }
+            }
+            return b.Finish();
+        }
+        else
+        {
+            auto b = makeBuilder(type);
+            b->Reserve(indices.size());
+            for(auto index : indices)
+            {
+                const auto[chunk, indexInChunk] = chunks.locate(index);
+                if constexpr(nullable)
+                {
+                    if(chunk->IsValid(indexInChunk))
                     {
-                        if(chunk->IsValid(indexInChunk))
-                        {
-                            const auto value = arrayValueAt<id.value>(*chunk, indexInChunk);
-                            append(b, value);
-                        }
-                        else
-                            b.AppendNull();
+                        const auto value = arrayValueAt<id>(*chunk, indexInChunk);
+                        append(*b, value);
                     }
                     else
-                        append(b, arrayValueAt<id.value>(*chunk, indexInChunk));
+                        b->AppendNull();
                 }
-
-                return finish(b);
+                else
+                    append(*b, arrayValueAt<id>(*chunk, indexInChunk));
             }
+
+            return finish(*b);
+        }
+    }
+};
+
+
+
+std::shared_ptr<arrow::Array> permuteInnerToArray(std::shared_ptr<arrow::Column> column, const Permutation &indices)
+{
+    return visitDataType3(column->type(), [&](auto &&datatype)
+    {
+        return dispatch(column->null_count() != 0, [&](auto nullable)
+        {
+            using ArrowType = typename std::decay_t<decltype(datatype)>::element_type;
+            return ColumnPermuter<ArrowType, nullable.value>(column, datatype, indices)();
         });
     });
 }

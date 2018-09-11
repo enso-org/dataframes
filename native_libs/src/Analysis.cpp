@@ -397,8 +397,7 @@ struct Aggregator
     Maximum<T> max;
     Mean<T> mean;
     Length length;
-    
-    template<typename T>
+
     void operator()(T t)
     {
         min(t);

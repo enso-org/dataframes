@@ -104,6 +104,18 @@ constexpr arrow::Type::type getID(const std::shared_ptr<T> &)
 }
 
 template<typename F>
+auto visitDataType3(const std::shared_ptr<arrow::DataType> &type, F &&f)
+{
+    switch(type->id())
+    {
+        case arrow::Type::INT64: return f(std::static_pointer_cast<arrow::Int64Type>(type));
+        case arrow::Type::DOUBLE: return f(std::static_pointer_cast<arrow::DoubleType>(type));
+        case arrow::Type::STRING: return f(std::static_pointer_cast<arrow::StringType>(type));
+        default: throw std::runtime_error("type not supported to downcast: " + type->ToString());
+    }
+}
+
+template<typename F>
 auto visitDataType(const std::shared_ptr<arrow::DataType> &type, F &&f)
 {
     switch(type->id())
@@ -499,7 +511,7 @@ std::shared_ptr<arrow::Table> tableFromVectors(const std::vector<Ts> & ...ts)
     return tableFromArrays({toArray(ts)...});
 }
 
-using DynamicField = std::variant<int64_t, double, std::string_view, std::string, ListElemView,  std::nullopt_t>;
+using DynamicField = std::variant<int64_t, double, std::string_view, std::string, ListElemView, std::nullopt_t>;
 
 using DynamicJustVector = std::variant<std::vector<int64_t>, std::vector<double>, std::vector<std::string_view>, std::vector<ListElemView>>;
 DFH_EXPORT DynamicJustVector toJustVector(const arrow::ChunkedArray &chunkedArray);
