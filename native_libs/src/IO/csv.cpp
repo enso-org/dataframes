@@ -222,6 +222,12 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
     return buildTable(names, arrays, columnTypes);
 }
 
+std::shared_ptr<arrow::Table> loadTableFromCsvFile(const char *filepath, std::vector<ColumnType> columnTypes)
+{
+    auto csv = parseCsvFile(filepath);
+    return csvToArrowTable(csv, TakeFirstRowAsHeaders{}, columnTypes);
+}
+
 ParsedCsv::ParsedCsv(std::unique_ptr<std::string> buffer, Table records_)
     : buffer(std::move(buffer))
     , records(std::move(records_))
@@ -435,6 +441,12 @@ std::string_view CsvParser::parseField()
             char c = *bufferIterator;
             if(c == fieldSeparator || c == recordSeparator)
                 break;
+            if(recordSeparator == '\n' && c == '\r') // treat CRLF as if LF
+            {
+                auto nextItr = bufferIterator+1;
+                if(nextItr != bufferEnd  &&  *nextItr == '\n')
+                    break;
+            }
         }
         return std::string_view(start, std::distance(start, bufferIterator));
     }
@@ -486,8 +498,18 @@ std::vector<std::string_view> CsvParser::parseRecord()
         if(bufferIterator >= bufferEnd)
             return ret;
 
-        if(*bufferIterator++ == recordSeparator)
+        const auto next = *bufferIterator++;
+        if(next == recordSeparator)
             return ret;
+        if(next == '\r' && recordSeparator == '\n')
+        {
+            if(bufferIterator >= bufferEnd)
+                return ret;
+
+            const auto next = *bufferIterator++;
+            if(next == '\n')
+                return ret;
+        }
     }
 }
 

@@ -19,39 +19,10 @@
 #include "Core/ArrowUtilities.h"
 #include "LQuery/AST.h"
 #include "LQuery/Interpreter.h"
+#include "Analysis.h"
+#include "Sort.h"
 
 using namespace std::literals;
-
-template<arrow::Type::type id, bool nullable>
-struct FixedSizeArrayBuilder
-{
-    using T = typename TypeDescription<id>::StorageValueType;
-    using Array = typename TypeDescription<id>::Array;
-
-    int64_t length;
-    std::shared_ptr<arrow::Buffer> valueBuffer;
-    T *nextValueToWrite{};
-
-
-    FixedSizeArrayBuilder(int32_t length)
-        : length(length)
-    {
-        std::tie(valueBuffer, nextValueToWrite) = allocateBuffer<T>(length);
-
-        static_assert(nullable == false); // would need null mask
-        static_assert(id == arrow::Type::INT64 || arrow::Type::DOUBLE); // would need another buffer
-    }
-
-    void Append(T value)
-    {
-        *nextValueToWrite++ = value;
-    }
-
-    auto Finish()
-    {
-        return std::make_shared<Array>(length, valueBuffer, nullptr, 0);
-    }
-};
 
 template<arrow::Type::type id_>
 struct FilteredArrayBuilder
@@ -553,9 +524,9 @@ DFH_EXPORT std::shared_ptr<arrow::Column> shift(std::shared_ptr<arrow::Column> c
 
     const auto id = column->type()->id();
     if(std::abs(offset) >= column->length())
-        return std::make_shared<arrow::Column>(column->field(), makeNullsArray(id, column->length()));
+        return std::make_shared<arrow::Column>(column->field(), makeNullsArray(column->type(), column->length()));
 
-    auto nullsPart = makeNullsArray(id, std::abs(offset));
+    auto nullsPart = makeNullsArray(column->type(), std::abs(offset));
     auto remainingLength = column->length() - std::abs(offset);
 
     arrow::ArrayVector newChunks;
@@ -612,5 +583,88 @@ DynamicField adjustTypeForFilling(DynamicField valueGivenByUser, const arrow::Da
     return visitType(type, [&] (auto id) -> DynamicField
     {
         return std::visit(ConvertTo<id.value>{}, valueGivenByUser);
+    });
+}
+
+DFH_EXPORT std::shared_ptr<arrow::Table> groupBy(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn)
+{
+    if(keyColumn->length() != table->num_rows())
+        throw std::runtime_error("mismatched row count");
+
+    return visitType(*keyColumn->type(), [&](auto keyTypeID)
+    {
+        const auto N = table->num_rows();
+
+        using TypeT = typename TypeDescription<keyTypeID.value>::ArrowType;
+        using KeyT = typename TypeDescription<keyTypeID.value>::ObservedType;
+        std::unordered_map<KeyT, std::vector<int64_t>> keyToRows;
+        std::vector<int64_t> nullRows;
+
+        int64_t row = 0;
+        iterateOver<keyTypeID.value>(*keyColumn, 
+            [&] (auto &&value)
+            {
+                keyToRows[value].push_back(row++);
+            },
+            [&] ()
+            {
+                nullRows.push_back(row++);
+            });
+
+        Permutation permutation(N);
+        auto target = permutation.begin();
+        target = std::copy(nullRows.begin(), nullRows.end(), target);
+        for(auto &[keyval, rows] : keyToRows)
+            target = std::copy(rows.begin(), rows.end(), target);
+
+        const auto groupCount = keyToRows.size() + !!nullRows.size();
+
+        // be smart: each column for a given group has same group size
+        // so we can create offsets buffer once and reuse it across all grouped columns
+        auto buffer = allocateBuffer<int32_t>(groupCount + 1);
+        *buffer.second++ = 0;
+        int64_t currentOffset = 0;
+        auto prepareForGroupOfSize = [&] (int64_t size)
+        {
+            currentOffset += size;
+            *buffer.second++ = currentOffset;
+        };
+        if(nullRows.size())
+            prepareForGroupOfSize(nullRows.size());
+        for(auto &[key, groupRows] : keyToRows)
+            prepareForGroupOfSize(groupRows.size());
+        // buffer is done
+
+
+        std::vector<std::shared_ptr<arrow::Column>> newColumns;
+
+        // first prepare key column
+        {
+            auto builder = makeBuilder(std::static_pointer_cast<TypeT>(keyColumn->type()));
+            if(nullRows.size() > 0)
+                builder->AppendNull();
+            for(auto &&[keyValue, rows] : keyToRows)
+                append(*builder, keyValue);
+
+            const auto arr = finish(*builder);
+            newColumns.push_back(std::make_shared<arrow::Column>(keyColumn->field(), arr));
+        }
+
+        for(auto column : getColumns(*table))
+        {
+            if(column == keyColumn)
+                continue;
+
+            visitType(column->type()->id(), [&](auto colType)
+            {
+                const auto listType = std::make_shared<arrow::ListType>(column->field());
+
+                auto permutedArray = permuteToArray(column, permutation);
+                auto groupedArray = std::make_shared<arrow::ListArray>(listType, groupCount, buffer.first, permutedArray, nullptr, 0);
+                newColumns.push_back(toColumn(groupedArray, column->name()));
+            });
+        }
+
+        return tableFromColumns(newColumns);
     });
 }

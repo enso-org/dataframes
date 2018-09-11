@@ -67,8 +67,54 @@ template<> struct TypeDescription<arrow::Type::STRING>
     static constexpr arrow::Type::type id = ArrowType::type_id;
 };
 
+struct ListElemView
+{
+    arrow::Array *array{};
+    int32_t offset{};
+    int32_t length{};
+
+    ListElemView(arrow::Array *array, int32_t offset, int32_t length)
+        : array(array), offset(offset), length(length)
+    {}
+};
+
+template<> struct TypeDescription<arrow::Type::LIST>
+{
+    using ArrowType = arrow::ListType;
+    using BuilderType = arrow::ListBuilder;
+    //using ValueType = std::string;
+    using ObservedType = ListElemView;
+    //using CType = const char *;
+    using Array = arrow::ListArray;
+    // using StorageValueType = uint8_t;
+    using OffsetType = int32_t;
+    static constexpr arrow::Type::type id = ArrowType::type_id;
+};
+
 template<typename Array>
 using ArrayTypeDescription = TypeDescription<std::decay_t<std::remove_pointer_t<Array>>::TypeClass::type_id>;
+
+template<arrow::Type::type id>
+using BuilderFor = typename TypeDescription<id>::BuilderType;
+
+template<typename T>
+constexpr arrow::Type::type getID(const std::shared_ptr<T> &)
+{
+    return T::type_id;
+}
+
+template<typename F>
+auto visitDataType(const std::shared_ptr<arrow::DataType> &type, F &&f)
+{
+    switch(type->id())
+    {
+    case arrow::Type::INT64: return f(std::static_pointer_cast<arrow::Int64Type>(type));
+    case arrow::Type::DOUBLE: return f(std::static_pointer_cast<arrow::DoubleType>(type));
+    case arrow::Type::STRING: return f(std::static_pointer_cast<arrow::StringType>(type));
+    case arrow::Type::LIST: return f(std::static_pointer_cast<arrow::ListType>(type));
+    default: throw std::runtime_error("type not supported to downcast: " + type->ToString());
+    }
+}
 
 template<typename F>
 auto visitType(const arrow::Type::type &id, F &&f)
@@ -78,6 +124,7 @@ auto visitType(const arrow::Type::type &id, F &&f)
     case arrow::Type::INT64 : return f(std::integral_constant<arrow::Type::type, arrow::Type::INT64 >{});
     case arrow::Type::DOUBLE: return f(std::integral_constant<arrow::Type::type, arrow::Type::DOUBLE>{});
     case arrow::Type::STRING: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
+    //case arrow::Type::LIST: return f(std::integral_constant<arrow::Type::type, arrow::Type::LIST>{});
     default: throw std::runtime_error("array type not supported to downcast: " + std::to_string((int)id));
     }
 }
@@ -90,12 +137,26 @@ auto visitType(const arrow::DataType &type, F &&f)
     case arrow::Type::INT64 : return f(std::integral_constant<arrow::Type::type, arrow::Type::INT64 >{});
     case arrow::Type::DOUBLE: return f(std::integral_constant<arrow::Type::type, arrow::Type::DOUBLE>{});
     case arrow::Type::STRING: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
+    //case arrow::Type::LIST: return f(std::integral_constant<arrow::Type::type, arrow::Type::LIST>{});
     default: throw std::runtime_error("array type not supported to downcast: " + type.ToString());
     }
 }
 
+template<typename F>
+auto visitType4(const arrow::TypePtr &type, F &&f)
+{
+    switch(type->id())
+    {
+    case arrow::Type::INT64: return f(std::integral_constant<arrow::Type::type, arrow::Type::INT64 >{});
+    case arrow::Type::DOUBLE: return f(std::integral_constant<arrow::Type::type, arrow::Type::DOUBLE>{});
+    case arrow::Type::STRING: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
+    case arrow::Type::LIST: return f(std::integral_constant<arrow::Type::type, arrow::Type::LIST>{});
+    default: throw std::runtime_error("array type not supported to downcast: " + type->ToString());
+    }
+}
+
 template <typename Array>
-auto arrayValueAtTyped(const Array &array, int64_t index)
+auto arrayValueAtTyped(const Array &array, int32_t index)
 {
     if constexpr(std::is_same_v<arrow::StringArray, Array>)
     {
@@ -103,38 +164,55 @@ auto arrayValueAtTyped(const Array &array, int64_t index)
         auto ptr = array.GetValue(index, &length);
         return std::string_view(reinterpret_cast<const char *>(ptr), length);
     }
+    else if constexpr(std::is_same_v<arrow::ListArray, Array>)
+    {
+        const auto length = array.value_length(index);
+        const auto offset = array.value_offset(index);
+        return ListElemView{ array.values().get(), offset, length };
+    }
     else
         return array.Value(index);
 }
 
 template <arrow::Type::type type>
-auto arrayValueAt(const arrow::Array &array, int64_t index)
+auto arrayValueAt(const arrow::Array &array, int32_t index)
 {
     using Array = typename TypeDescription<type>::Array;
     return arrayValueAtTyped(static_cast<const Array &>(array), index);
+}
+template <arrow::Type::type type>
+auto tryArrayValueAt(const arrow::Array &array, int32_t index)
+{
+    using T = typename TypeDescription<type>::ObservedType;
+    if(array.IsValid(index))
+    {
+        using Array = typename TypeDescription<type>::Array;
+        return std::optional<T>(arrayValueAtTyped(static_cast<const Array &>(array), index));
+    }
+    return std::optional<T>{};
 }
 
 template <arrow::Type::type type, typename ElementF, typename NullF>
 void iterateOver(const arrow::Array &array, ElementF &&handleElem, NullF &&handleNull)
 {
-    const auto N = array.length();
+    const auto N = static_cast<int32_t>(array.length());
     const auto nullCount = array.null_count();
     //const auto nullBitmapData = array.null_bitmap_data();
 
     // special fast paths when there are no nulls or array is all nulls
     if(nullCount == 0)
     {
-        for(int64_t row = 0; row < N; row++)
+        for(int32_t row = 0; row < N; row++)
             handleElem(arrayValueAt<type>(array, row));
     }
     else if(nullCount == N)
     {
-        for(int64_t row = 0; row < N; row++)
+        for(int32_t row = 0; row < N; row++)
             handleNull();
     }
     else
     {
-        for(int64_t row = 0; row < N; row++)
+        for(int32_t row = 0; row < N; row++)
         {
             if(!array.IsNull(row))
             {
@@ -167,7 +245,7 @@ void iterateOver(const arrow::Column &column, ElementF &&handleElem, NullF &&han
 template <typename ElementF, typename NullF>
 void iterateOverGeneric(const arrow::Array &array, ElementF &&handleElem, NullF &&handleNull)
 {
-    return visitType(*array.type(), [&] (auto id) { return iterateOver<id.value>(array, handleElem, handleNull); });
+    return visitType4(array.type(), [&] (auto id) { return iterateOver<id.value>(array, handleElem, handleNull); });
 }
 
 template <typename ElementF, typename NullF>
@@ -243,6 +321,27 @@ std::pair<std::shared_ptr<arrow::Buffer>, T*> allocateBuffer(size_t length)
     std::shared_ptr<arrow::Buffer> ret{};
     checkStatus(arrow::AllocateBuffer(length * sizeof(T), &ret));
     return { ret, reinterpret_cast<T*>(ret->mutable_data()) } ;
+}
+
+
+template<typename T>
+void toVector(std::vector<T> &out, const arrow::Array &array);
+
+template<typename T>
+void toVector(std::vector<std::vector<T>> &out, const arrow::Array &array)
+{
+    if(array.type_id() != arrow::Type::LIST)
+        throw std::runtime_error(std::string("Type mismatch: expected `list` got " + array.type()->ToString()));
+
+    iterateOver<arrow::Type::LIST>(array, [&](ListElemView elem)
+        {
+            std::vector<T> nestedOut;
+            nestedOut.reserve(elem.length);
+            toVector(nestedOut, *elem.array->Slice(elem.offset, elem.length));
+            out.push_back(std::move(nestedOut));
+        },
+        [&] { out.push_back({}); }
+    );
 }
 
 template<typename T>
@@ -337,6 +436,7 @@ auto toColumn(const std::vector<T> &elems, std::string name = "col")
 }
 
 DFH_EXPORT std::shared_ptr<arrow::Column> toColumn(std::shared_ptr<arrow::ChunkedArray> chunks, std::string name = "col");
+DFH_EXPORT std::shared_ptr<arrow::Column> toColumn(std::shared_ptr<arrow::Array> array, std::string name = "col");
 
 template<typename T>
 auto scalarToColumn(const T &elem, std::string name = "col")
@@ -399,9 +499,9 @@ std::shared_ptr<arrow::Table> tableFromVectors(const std::vector<Ts> & ...ts)
     return tableFromArrays({toArray(ts)...});
 }
 
-using DynamicField = std::variant<int64_t, double, std::string_view, std::string, std::nullopt_t>;
+using DynamicField = std::variant<int64_t, double, std::string_view, std::string, ListElemView,  std::nullopt_t>;
 
-using DynamicJustVector = std::variant<std::vector<int64_t>, std::vector<double>, std::vector<std::string_view>>;
+using DynamicJustVector = std::variant<std::vector<int64_t>, std::vector<double>, std::vector<std::string_view>, std::vector<ListElemView>>;
 DFH_EXPORT DynamicJustVector toJustVector(const arrow::ChunkedArray &chunkedArray);
 DFH_EXPORT DynamicJustVector toJustVector(const arrow::Column &column);
 
@@ -415,14 +515,17 @@ struct DFH_EXPORT ChunkAccessor
     std::vector<int64_t> chunkStartIndices;
 
     ChunkAccessor(const arrow::ChunkedArray &array);
+    ChunkAccessor(const arrow::Column &column);
     std::pair<const arrow::Array *, int32_t> locate(int64_t index) const;
 
     template <arrow::Type::type type>
-    auto valueAt(const arrow::Column &column, int64_t index) const
+    auto valueAt(int64_t index) const
     {
         auto [chunk, chunkIndex] = locate(index);
         return arrayValueAt<type>(*chunk, chunkIndex);
     }
+
+    bool isNull(int64_t index);
 };
 
 DFH_EXPORT std::pair<std::shared_ptr<arrow::Array>, int32_t> locateChunk(const arrow::ChunkedArray &chunkedArray, int64_t index);
@@ -433,21 +536,28 @@ auto columnValueAt(const arrow::Column &column, int64_t index)
 	auto [chunk, chunkIndex] = locateChunk(*column.data(), index);
 	return arrayValueAt<type>(*chunk, chunkIndex);
 }
+
+template <arrow::Type::type type>
+auto tryColumnValueAt(const arrow::Column &column, int64_t index)
+{
+    auto[chunk, chunkIndex] = locateChunk(*column.data(), index);
+    return tryArrayValueAt<type>(*chunk, chunkIndex);
+}
+
 DFH_EXPORT std::vector<DynamicField> rowAt(const arrow::Table &table, int64_t index);
 
 DFH_EXPORT void validateIndex(const arrow::Array &array, int64_t index);
 DFH_EXPORT void validateIndex(const arrow::ChunkedArray &array, int64_t index);
 DFH_EXPORT void validateIndex(const arrow::Column &column, int64_t index);
 
-inline void append(arrow::StringBuilder &sb, std::string_view sv)
+inline void append(arrow::StringBuilder &builder, std::string_view sv)
 {
-    sb.Append(sv.data(), static_cast<int32_t>(sv.length()));
+    builder.Append(sv.data(), static_cast<int32_t>(sv.length()));
 }
-
-template<typename Builder, typename T>
-void append(Builder &sb, T v)
+template<typename N, typename V>
+void append(arrow::NumericBuilder<N> &builder, const V &value)
 {
-    sb.Append(v);
+    builder.Append(value);
 }
 
 template<arrow::Type::type id1, arrow::Type::type id2, typename F>
@@ -492,17 +602,73 @@ void iterateOverJustPairs(const arrow::Column &column1, const arrow::Column &col
     return iterateOverJustPairs<id1, id2>(*column1.data(), *column2.data(), f);
 }
 
-template<arrow::Type::type id>
-std::shared_ptr<arrow::Array> makeNullsArray(int64_t length)
+
+DFH_EXPORT std::shared_ptr<arrow::Array> makeNullsArray(arrow::TypePtr type, int64_t length);
+
+
+DFH_EXPORT std::shared_ptr<arrow::ArrayBuilder> makeBuilder(const arrow::TypePtr &type);
+
+template<typename TypeT>
+auto makeBuilder(const std::shared_ptr<TypeT> &type)
 {
-    // TODO could be much faster if done by hand
-    typename TypeDescription<id>::BuilderType builder;
-    for(int64_t i = 0; i < length; i++)
-        builder.AppendNull();
-    return finish(builder);
+    using Builder = typename arrow::TypeTraits<TypeT>::BuilderType;
+    constexpr auto id = TypeT::type_id;
+    if constexpr(id != arrow::Type::LIST)
+    {
+        return std::make_shared<Builder>();
+    }
+    else
+    {
+        if(type->num_children() != 1)
+            throw std::runtime_error("list type must have a single child type");
+
+        // list builder must additionally take a nested builder for a value buffer
+        auto nestedBuilder = makeBuilder(type->child(0)->type());
+        return std::make_shared<Builder>(nullptr, nestedBuilder);
+    }
 }
 
-inline std::shared_ptr<arrow::Array> makeNullsArray(arrow::Type::type id, int64_t length)
+template<arrow::Type::type id, bool nullable>
+struct FixedSizeArrayBuilder
 {
-    return visitType(id, [&] (auto idConstant) { return makeNullsArray<idConstant.value>(length); });
+    using T = typename TypeDescription<id>::StorageValueType;
+    using Array = typename TypeDescription<id>::Array;
+
+    int64_t length;
+    std::shared_ptr<arrow::Buffer> valueBuffer;
+    T *nextValueToWrite{};
+
+
+    FixedSizeArrayBuilder(int32_t length)
+        : length(length)
+    {
+        std::tie(valueBuffer, nextValueToWrite) = allocateBuffer<T>(length);
+
+        static_assert(nullable == false); // would need null mask
+        static_assert(id == arrow::Type::INT64 || arrow::Type::DOUBLE); // would need another buffer
+    }
+
+    void Append(T value)
+    {
+        *nextValueToWrite++ = value;
+    }
+
+    auto Finish()
+    {
+        return std::make_shared<Array>(length, valueBuffer, nullptr, 0);
+    }
+};
+
+
+#define MAKE_INTEGRAL_CONSTANT(value) std::integral_constant<decltype(value), value>{} 
+#define CASE_DISPATCH(value) case value: return f(MAKE_INTEGRAL_CONSTANT(value));
+
+template<typename F>
+auto dispatch(bool value, F &&f)
+{
+    switch(value)
+    {
+        CASE_DISPATCH(false);
+        CASE_DISPATCH(true);
+    }
 }

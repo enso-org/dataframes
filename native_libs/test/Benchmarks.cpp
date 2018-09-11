@@ -276,4 +276,187 @@ BOOST_FIXTURE_TEST_CASE(InterpolateBigColumn, DataGenerator)
 //     });
 }
 
+template<typename Range, typename Reader>
+void printList(Range &&r, Reader &&f)
+{
+    auto end = std::end(r);
+    auto itr = std::begin(r);
+    if(itr != end)
+    {
+        std::cout << std::invoke(f, *itr++);
+    }
+
+    while(itr != end)
+    {
+        std::cout << "\t" << std::invoke(f, *itr++);
+    }
+}
+
+
+template<typename T>
+std::string formatColumnElem(const std::optional<T> &elem);
+
+template<typename T>
+std::string formatColumnElem(const T &elem)
+{
+    return std::to_string(elem);
+}
+std::string formatColumnElem(const std::string_view &elem)
+{
+    return std::string(elem);
+}
+std::string formatColumnElem(const ListElemView &elem)
+{
+    std::ostringstream out;
+    out << "[";
+
+    visitType4(elem.array->type(), [&](auto id)
+    {
+        if(elem.length)
+        {
+            auto value = tryArrayValueAt<id.value>(*elem.array, elem.offset + 0);
+            out << formatColumnElem(value);
+        }
+
+        for(int i = 1; i < elem.length; i++)
+        {
+            out << ", ";
+            auto value = tryArrayValueAt<id.value>(*elem.array, elem.offset + i);
+            out << formatColumnElem(value);
+        }
+    });
+
+    out << "]";
+    return out.str();
+}
+
+template<typename T>
+std::string formatColumnElem(const std::optional<T> &elem)
+{
+    if(elem)
+        return formatColumnElem(*elem);
+    return "null"s;
+}
+
+void uglyPrint(const arrow::Table &table)
+{
+    auto cols = getColumns(table);
+    std::cout << "\t| ";
+    printList(cols, [](auto col){ return col->name(); });
+    std::cout << '\n';
+    for(int i = 0; i < 80; i++)
+        std::cout << "-";
+    std::cout << '\n';
+
+    int64_t partsSize = 5;
+
+    auto printedElement = [&](const arrow::Column &col, int row)
+    {
+        return visitType4(col.type(), [&](auto id) -> std::string
+        {
+            const auto value = columnValueAt<id.value>(col, row);
+            return formatColumnElem(value);
+        });
+    };
+
+    auto printRow = [&](int64_t row)
+    {
+        std::cout << row << "\t| ";
+        printList(cols, [&](const auto &col) -> std::string
+        {
+            return printedElement(*col, row);
+        });
+        std::cout << '\n';
+    };
+
+    for(int64_t row = 0; row < partsSize && row < table.num_rows(); row++)
+        printRow(row);
+    if(table.num_rows() > partsSize*2)
+        std::cout << "... " << (table.num_rows() - partsSize * 2) << " more rows ...\n";
+    for(int64_t row = std::max<int64_t>(partsSize, std::max<int64_t>(0, table.num_rows() - partsSize)); row < table.num_rows(); row++)
+        printRow(row);
+
+    std::cout << "[" << table.num_rows() << " rows x " << table.num_columns() << " cols]" << std::endl;
+}
+
+BOOST_FIXTURE_TEST_CASE(GroupExperiments, DataGenerator)
+{
+    std::vector<ColumnType> types;
+    types.emplace_back(arrow::TypeTraits<arrow::Int64Type>::type_singleton(), true, false);
+    types.emplace_back(arrow::TypeTraits<arrow::Int64Type>::type_singleton(), true, false);
+    for(int i = 0; i < 108; i++)
+        types.emplace_back(arrow::TypeTraits<arrow::DoubleType>::type_singleton(), true, false);
+
+    //auto table = loadTableFromCsvFile("F:/dev/temp.csv", types);
+    //auto table = loadTableFromCsvFile("F:/dev/train.csv", types);
+    //uglyPrint(*table);
+    //std::cout << "table rows " << table->num_rows() << std::endl;
+    //auto table = loadTableFromCsvFile("F:/dev/train.csv", types);
+    //generateCsv("F:/dev/trainSel.csv", *tableFromColumns({table->column(0), table->column(1)}));
+    //saveTableToFeatherFile("F:/dev/train-nasze3.feather", *table);
+    auto table = loadTableFromFeatherFile("F:/dev/train-nasze3.feather");
+    auto grouped = abominableGroupAggregate(table, table->column(0), {table->column(1)});
+
+    const auto idCol = table->column(0);
+    const auto timestampCol = table->column(1);
+    const auto yCol = table->column(110);
+    auto tableSelected = tableFromColumns({ idCol, timestampCol, yCol });
+
+
+    int row = 0;
+    iterateOver<arrow::Type::INT64>(*timestampCol, [&](auto) {row++;}, [&] 
+    {
+        std::cout << "ALART " << row++ << std::endl;
+    });
+
+//     auto row1 = rowAt(*table, 1710755);
+//     auto row2 = rowAt(*table, 1710756);
+    //auto row3 = rowAt(*table, 1710757);
+    auto hlp = groupBy(tableSelected, table->column(0));
+    uglyPrint(*hlp);
+
+    MeasureAtLeast p{ 100, 15s };
+    measure("groupBy", p, [&]
+    {
+        return groupBy(tableSelected, table->column(0));
+    });
+
+    measure("interpolating doubles with 30% nulls", p, [&]
+    {
+        return abominableGroupAggregate(table, idCol, { timestampCol, yCol });
+    });
+
+    generateCsv("F:/dev/aggr.csv", *grouped);
+}
+
+BOOST_FIXTURE_TEST_CASE(GroupBy, DataGenerator)
+{
+    auto id = std::vector<int64_t>{ 1, 1, 2, 3, 1, 2, 3, 4, 5, 4 };
+    auto iota = iotaVector(10);
+    auto iotaNulls = std::vector<std::optional<int64_t>>{ 0, std::nullopt, 2, std::nullopt, 4, 5, 6, std::nullopt, std::nullopt, 9 };
+    auto idCol = toColumn(id, "id");
+    auto iotaCol = toColumn(iota, "iota");
+    auto iotaNullsCol = toColumn(iotaNulls, "iotaNulls");
+    auto table = tableFromColumns({ idCol, iotaCol, iotaNullsCol });
+
+    auto groupedTable = groupBy(table, idCol);
+    std::cout << "=== BEFORE ===\n";
+    uglyPrint(*table);
+    std::cout << "=== GROUPED ===\n";
+    uglyPrint(*groupedTable);
+
+    auto groupedId = toVector<int64_t>(*groupedTable->column(0));
+    std::vector<int64_t> expectedGroupedId{ 1, 2, 3, 4, 5 };
+    BOOST_CHECK_EQUAL_RANGES(groupedId, expectedGroupedId);
+
+    auto groupedIota = toVector<std::vector<int64_t>>(*groupedTable->column(1));
+    std::vector<std::vector<int64_t>> expectedGroupedIota{{0, 1, 4}, {2, 5}, {3, 6}, {7, 9}, {8} };
+    BOOST_CHECK_EQUAL_RANGES(groupedIota, expectedGroupedIota);
+
+    auto groupedIotaNulls = toVector<std::vector<std::optional<int64_t>>>(*groupedTable->column(2));
+    std::vector<std::vector<std::optional<int64_t>>> expectedGroupedIotaNulls{ {0, std::nullopt, 4}, {2, 5}, {std::nullopt, 6}, {std::nullopt, 9}, {std::nullopt} };
+    BOOST_CHECK_EQUAL_RANGES(groupedIotaNulls, expectedGroupedIotaNulls);
+}
+
+
 BOOST_AUTO_TEST_SUITE_END();

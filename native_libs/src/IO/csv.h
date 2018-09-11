@@ -68,6 +68,7 @@ struct DFH_EXPORT CsvParser
 DFH_EXPORT ParsedCsv parseCsvFile(const char *filepath, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');
 DFH_EXPORT ParsedCsv parseCsvData(std::string data, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');
 DFH_EXPORT std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy header, std::vector<ColumnType> columnTypes, int typeDeductionDepth = 50);
+DFH_EXPORT std::shared_ptr<arrow::Table> loadTableFromCsvFile(const char *filepath, std::vector<ColumnType> columnTypes = {});
 
 DFH_EXPORT void generateCsv(std::ostream &out, const arrow::Table &table, GeneratorHeaderPolicy headerPolicy, GeneratorQuotingPolicy quotingPolicy, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');
 DFH_EXPORT void generateCsv(const char *filepath, const arrow::Table &table, GeneratorHeaderPolicy headerPolicy = GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy quotingPolicy = GeneratorQuotingPolicy::QuoteWhenNeeded, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');

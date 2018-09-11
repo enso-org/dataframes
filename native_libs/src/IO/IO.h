@@ -47,12 +47,6 @@ enum class GeneratorQuotingPolicy : int8_t
     QueteAllFields
 };
 
-template<arrow::Type::type type> struct BuilderFor_                      {};
-template<>                       struct BuilderFor_<arrow::Type::INT64>  { using Builder = arrow::Int64Builder;  };
-template<>                       struct BuilderFor_<arrow::Type::DOUBLE> { using Builder = arrow::DoubleBuilder; };
-template<>                       struct BuilderFor_<arrow::Type::STRING> { using Builder = arrow::StringBuilder; };
-template<arrow::Type::type type> using  BuilderFor = typename BuilderFor_<type>::Builder;
-
 template<arrow::Type::type type>
 inline constexpr auto defaultValue()
 {
