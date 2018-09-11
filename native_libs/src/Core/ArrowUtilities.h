@@ -104,6 +104,18 @@ constexpr arrow::Type::type getID(const std::shared_ptr<T> &)
 }
 
 template<typename F>
+auto visitDataType3(const std::shared_ptr<arrow::DataType> &type, F &&f)
+{
+    switch(type->id())
+    {
+        case arrow::Type::INT64: return f(std::static_pointer_cast<arrow::Int64Type>(type));
+        case arrow::Type::DOUBLE: return f(std::static_pointer_cast<arrow::DoubleType>(type));
+        case arrow::Type::STRING: return f(std::static_pointer_cast<arrow::StringType>(type));
+        default: throw std::runtime_error("type not supported to downcast: " + type->ToString());
+    }
+}
+
+template<typename F>
 auto visitDataType(const std::shared_ptr<arrow::DataType> &type, F &&f)
 {
     switch(type->id())

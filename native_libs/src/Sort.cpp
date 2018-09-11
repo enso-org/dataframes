@@ -28,9 +28,11 @@ namespace
 {
 std::shared_ptr<arrow::Array> permuteInnerToArray(std::shared_ptr<arrow::Column> column, const Permutation &indices)
 {
-    return visitType(*column->type(), [&](auto id)
+    return visitDataType3(column->type(), [&](auto &&datatype)
     {
-        using TD = TypeDescription<id.value>;
+        using ArrowType = typename std::decay_t<decltype(datatype)>::element_type;
+        static constexpr auto id = ArrowType::type_id;
+        using TD = TypeDescription<id>;
         using T = typename TD::StorageValueType;
         using Builder = typename TD::BuilderType;
 
@@ -40,15 +42,15 @@ std::shared_ptr<arrow::Array> permuteInnerToArray(std::shared_ptr<arrow::Column>
                 throw std::runtime_error("not implemented: too big array");
 
             const ChunkAccessor chunks{ *column->data() };
-            if constexpr(!nullable.value && (id.value == arrow::Type::INT64 || id.value == arrow::Type::DOUBLE))
+            if constexpr(!nullable.value && (id == arrow::Type::INT64 || id == arrow::Type::DOUBLE))
             {
-                FixedSizeArrayBuilder<id.value, nullable.value> b{ (int32_t)column->length() };
+                FixedSizeArrayBuilder<id, nullable.value> b{ (int32_t)column->length() };
                 {
                     T * __restrict target = b.nextValueToWrite;
                     for(auto index : indices)
                     {
                         const auto[chunk, indexInChunk] = chunks.locate(index);
-                        const auto value = arrayValueAt<id.value>(*chunk, indexInChunk);
+                        const auto value = arrayValueAt<id>(*chunk, indexInChunk);
                         // unfortunately gives performance edge over b.Append(value)
                         // TODO: can we have something nice and fast?
                         *target++ = value;
@@ -67,14 +69,14 @@ std::shared_ptr<arrow::Array> permuteInnerToArray(std::shared_ptr<arrow::Column>
                     {
                         if(chunk->IsValid(indexInChunk))
                         {
-                            const auto value = arrayValueAt<id.value>(*chunk, indexInChunk);
+                            const auto value = arrayValueAt<id>(*chunk, indexInChunk);
                             append(b, value);
                         }
                         else
                             b.AppendNull();
                     }
                     else
-                        append(b, arrayValueAt<id.value>(*chunk, indexInChunk));
+                        append(b, arrayValueAt<id>(*chunk, indexInChunk));
                 }
 
                 return finish(b);
