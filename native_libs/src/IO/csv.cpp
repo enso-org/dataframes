@@ -60,13 +60,13 @@ struct ColumnPolicy
     MissingField missing;
 };
 
-template<arrow::Type::type type>
+template<arrow::Type::type id>
 struct ColumnBuilder
 {
-    using ArrowType = typename TypeDescription<type>::ArrowType;
+    using ArrowType = typename TypeDescription<id>::ArrowType;
 
     MissingField missingField;
-    std::shared_ptr<BuilderFor<type>> builder;
+    std::shared_ptr<BuilderFor<id>> builder;
 
     ColumnBuilder(MissingField missingField, const std::shared_ptr<ArrowType> &type)
         : missingField(missingField) 
@@ -75,7 +75,7 @@ struct ColumnBuilder
 
     NO_INLINE void addFromString(const std::string_view &field)
     {
-        if constexpr(type == arrow::Type::STRING)
+        if constexpr(id == arrow::Type::STRING)
         {
             if(field.size())
                 checkStatus(builder->Append(field.data(), (int32_t)field.size()));
@@ -94,7 +94,7 @@ struct ColumnBuilder
                     *fieldEnd = '\0';
                 }
 
-                if constexpr(type == arrow::Type::INT64)
+                if constexpr(id == arrow::Type::INT64)
                 {
                     if(auto v = Parser::as<int64_t>(field))
                     {
@@ -105,7 +105,7 @@ struct ColumnBuilder
                         addMissing();
                     }
                 }
-                else if constexpr(type == arrow::Type::DOUBLE)
+                else if constexpr(id == arrow::Type::DOUBLE)
                 {
                     if(auto v = Parser::as<double>(field))
                     {
@@ -130,7 +130,7 @@ struct ColumnBuilder
         if(missingField == MissingField::AsNull)
             checkStatus(builder->AppendNull());
         else
-            checkStatus(builder->Append(defaultValue<type>()));
+            checkStatus(builder->Append(defaultValue<id>()));
     }
     void reserve(int64_t count)
     {

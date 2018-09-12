@@ -54,7 +54,7 @@ struct ColumnPermuter
         const ChunkAccessor chunks{ *column->data() };
         if constexpr(!nullable && (id == arrow::Type::INT64 || id == arrow::Type::DOUBLE))
         {
-            FixedSizeArrayBuilder<id, nullable> b{ length };
+            FixedSizeArrayBuilder<id, nullable> b{ type, length };
             {
                 T * __restrict target = b.nextValueToWrite;
                 for(auto index : indices)

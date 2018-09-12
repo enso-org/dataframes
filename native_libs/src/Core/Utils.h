@@ -10,6 +10,7 @@
 #include "Common.h"
 #include "ArrowUtilities.h"
 
+std::optional<Timestamp> parseTimestamp(std::string_view text);
 
 struct OldStyleNumberParser
 {
@@ -21,20 +22,27 @@ struct OldStyleNumberParser
         if(text.empty())
             return {};
 
-        char *next = nullptr;
-        auto v = [&] 
+        if constexpr(std::is_same_v<Timestamp, T>)
         {
-            if constexpr(std::is_same_v<double, T>)
-                return std::strtod(text.data(), &next);
-            else if constexpr(std::is_same_v<int64_t, T>)
-                return std::strtoll(text.data(), &next, 10);
-            else
-                assert(0);
-        }();
-        if(next == text.data() + text.size())
-            return v;
+            return parseTimestamp(text);
+        }
         else
-            return {};
+        {
+            char* next = nullptr;
+            auto v = [&]
+            {
+                if constexpr(std::is_same_v<double, T>)
+                    return std::strtod(text.data(), &next);
+                else if constexpr(std::is_same_v<int64_t, T>)
+                    return std::strtoll(text.data(), &next, 10);
+                else
+                    assert(0);
+            }();
+            if (next==text.data()+text.size())
+                return v;
+            else
+                return {};
+        }
     }
 };
 
@@ -68,12 +76,7 @@ struct NewStyleNumberParser
         }
         else if constexpr (std::is_same_v<Timestamp, T>)
         {
-            std::istringstream input((std::string)text);
-
-            date::sys_days date;
-            input >> date::parse("%F", out);
-            if(input && input.rdbuf()->in_avail() == 0)
-                return out;
+            return parseTimestamp(text);
         }
         else
             static_assert(always_false_v<T>, "not supported target type");

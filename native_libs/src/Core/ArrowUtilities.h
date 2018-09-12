@@ -12,6 +12,10 @@
 #include <arrow/type.h>
 #include "Common.h"
 
+
+using TimestampDuration = std::chrono::duration<int64_t, std::nano>; // nanoseconds since epoch
+using Timestamp = std::chrono::time_point<std::chrono::system_clock, TimestampDuration>;
+
 template<typename T>
 constexpr auto ValueTypeToId()
 {
@@ -526,7 +530,7 @@ std::shared_ptr<arrow::Table> tableFromVectors(const std::vector<Ts> & ...ts)
     return tableFromArrays({toArray(ts)...});
 }
 
-using DynamicField = std::variant<int64_t, double, std::string_view, std::string, ListElemView, std::nullopt_t>;
+using DynamicField = std::variant<int64_t, double, std::string_view, std::string, ListElemView, Timestamp, std::nullopt_t>;
 
 using DynamicJustVector = std::variant<std::vector<int64_t>, std::vector<double>, std::vector<std::string_view>, std::vector<ListElemView>>;
 DFH_EXPORT DynamicJustVector toJustVector(const arrow::ChunkedArray &chunkedArray);
@@ -666,13 +670,15 @@ struct FixedSizeArrayBuilder
     using T = typename TypeDescription<id>::StorageValueType;
     using Array = typename TypeDescription<id>::Array;
 
+    std::shared_ptr<arrow::DataType> type;
     int64_t length;
     std::shared_ptr<arrow::Buffer> valueBuffer;
     T *nextValueToWrite{};
 
 
-    FixedSizeArrayBuilder(int32_t length)
-        : length(length)
+    FixedSizeArrayBuilder(std::shared_ptr<arrow::DataType> type, int32_t length)
+        : type(std::move(type))
+        , length(length)
     {
         std::tie(valueBuffer, nextValueToWrite) = allocateBuffer<T>(length);
 
@@ -687,7 +693,7 @@ struct FixedSizeArrayBuilder
 
     auto Finish()
     {
-        return std::make_shared<Array>(length, valueBuffer, nullptr, 0);
+        return std::make_shared<Array>(type, length, valueBuffer, nullptr, 0);
     }
 };
 
@@ -705,8 +711,6 @@ auto dispatch(bool value, F &&f)
     }
 }
 
-using TimestampDuration = std::chrono::duration<int64_t, std::nano>; // nanoseconds since epoch
-using Timestamp = std::chrono::time_point<std::chrono::system_clock, TimestampDuration>;
 
 // for now we just assume that all timestamps are nanoseconds based
 extern std::shared_ptr<arrow::TimestampType> timestampTypeSingleton;

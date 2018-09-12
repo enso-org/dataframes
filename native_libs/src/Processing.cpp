@@ -45,9 +45,10 @@ struct FilteredArrayBuilder
     std::shared_ptr<arrow::Buffer> bitmask;
     std::shared_ptr<arrow::Buffer> offsets;
     std::shared_ptr<arrow::Buffer> values;
+    std::shared_ptr<arrow::DataType> type;
 
     FilteredArrayBuilder(const unsigned char * const mask, int64_t length, const arrow::ChunkedArray &array)
-        : length(length), mask(mask)
+        : length(length), mask(mask), type(array.type())
     {
         if(length == 0)
             return;
@@ -255,7 +256,7 @@ struct FilteredArrayBuilder
         if constexpr(id == arrow::Type::STRING)
             return std::make_shared<Array>(length, offsets, values, bitmask, arrow::kUnknownNullCount);
         else
-            return std::make_shared<Array>(length, values, bitmask, arrow::kUnknownNullCount);
+            return std::make_shared<Array>(type, length, values, bitmask, arrow::kUnknownNullCount);
     }
 
     static std::shared_ptr<arrow::Column> makeFiltered(const unsigned char * const mask, int64_t length, const arrow::Column &column)
@@ -279,8 +280,8 @@ struct InterpolatedColumnBuilder
     T lastGoodValue{};
     int64_t nanCount = 0;
 
-    InterpolatedColumnBuilder(int64_t length)
-        : builder(length)
+    InterpolatedColumnBuilder(std::shared_ptr<arrow::DataType> type, int64_t length)
+        : builder(std::move(type), length)
     {}
 
     void operator()(T validValue)
@@ -337,7 +338,7 @@ std::shared_ptr<arrow::Column> interpolateNA(std::shared_ptr<arrow::Column> colu
         }
         else
         {
-            InterpolatedColumnBuilder<id.value> builder{ column->length() };
+            InterpolatedColumnBuilder<id.value> builder{ column->type(), column->length() };
             iterateOver<id.value>(*column, builder, builder);
             auto arr = builder.finish();
             return std::make_shared<arrow::Column>(setNullable(false, column->field()), arr);
@@ -416,7 +417,7 @@ std::shared_ptr<arrow::Array> fillNATyped(const Array &array, DynamicField value
             [&] (auto &&) { ++row; },
             [&] () { data[row++] = valueToFill; });
 
-        return std::make_shared<Array>(array.length(), buffer, nullptr);
+        return std::make_shared<Array>(array.type(), array.length(), buffer, nullptr);
     }
 }
 
@@ -577,6 +578,13 @@ struct ConvertTo<arrow::Type::DOUBLE>
     double operator() (std::string_view value)   const { return std::stod(std::string(value)); }
     template<typename T>
     double operator() (T)                        const { throw std::runtime_error(__FUNCTION__ + ": invalid conversion"s); }
+};
+template<>
+struct ConvertTo<arrow::Type::TIMESTAMP>
+{
+    Timestamp operator() (Timestamp value)            const { return value; }
+    template<typename T>
+    Timestamp operator() (T)                        const { throw std::runtime_error(__FUNCTION__ + ": invalid conversion"s); }
 };
 
 DynamicField adjustTypeForFilling(DynamicField valueGivenByUser, const arrow::DataType &type)
