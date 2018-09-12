@@ -1219,6 +1219,32 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
+
+    DFH_EXPORT arrow::Table *tableAggregateBy(arrow::Table *table, arrow::Column *keyColumn, int32_t aggregatedColumnsCount, arrow::Column **aggregatedColumns, int8_t *aggregateCountPerColumn, AggregateFunction **aggregatesPerColumn, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)table);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto tableManaged = LifetimeManager::instance().accessOwned(table);
+            auto keyColumnManaged = LifetimeManager::instance().accessOwned(keyColumn);
+            
+            auto columnsToAggregate = vectorFromC(aggregatedColumns, aggregatedColumnsCount);
+            auto columnsToAggregateManaged = transformToVector(columnsToAggregate, [] (auto *column) 
+                { return LifetimeManager::instance().accessOwned(column); });
+
+            std::vector<std::pair<std::shared_ptr<arrow::Column>, std::vector<AggregateFunction>>> aggregationMap;
+            for(int aggregatedColumnIndex = 0; aggregatedColumnIndex < aggregatedColumnsCount; ++aggregatedColumnIndex)
+            {
+                auto col = aggregatedColumns[aggregatedColumnIndex];
+                auto colManaged = LifetimeManager::instance().accessOwned(col);
+                auto aggregates = vectorFromC(aggregatesPerColumn[aggregatedColumnIndex], aggregateCountPerColumn[aggregatedColumnIndex]);
+                aggregationMap.emplace_back(colManaged, aggregates);
+            }
+
+            auto ret = abominableGroupAggregate(tableManaged, keyColumnManaged, aggregationMap);
+            return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
 }
 
 arrow::Table *readTableFromCSVFileContentsHelper(std::string data, const char **columnNames, int32_t columnNamesPolicy, int8_t *columnTypes, int8_t *columnIsNullableTypes, int32_t columnTypeInfoCount)

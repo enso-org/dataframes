@@ -588,7 +588,23 @@ class TestArrayBuilder:
         intCol = Column.fromList "a" Int64Type [5, 8, 3, 1, 5, 2, 8, 7]
         assertNoThrow "no throw" $ intCol.autoCorr 1
 
+    def testAggregateBy:
+        print "Testing aggregateBy"
+        idCol = Column.fromList "id" MaybeInt64Type [Nothing, Just 1, Just 2, Just 1, Nothing, Just 5, Just 2, Just 2, Just 4 ]
+        intCol = Column.fromList "a" MaybeInt64Type [Just 5 , Just 8, Just 3, Just 1, Just 5 , Just 2, Just 8, Just 7, Nothing]
+        table = Table.fromColumns [idCol, intCol]
+        tableAggregated = table.aggregateBy "id" [("a", [Minimum, Maximum, Mean, Length, Median, First, Last])]
+        assertEqual "id" (tableAggregated.column "id" . toList) [Nothing, Just 1, Just 2, Just 5, Just 4]
+        assertEqual "min" (tableAggregated.column "a_min" . toList) [Just 5.0, Just 1.0, Just 3.0, Just 2.0, Nothing]
+        assertEqual "max" (tableAggregated.column "a_max" . toList) [Just 5.0, Just 8.0, Just 8.0, Just 2.0, Nothing]
+        assertEqual "mean" (tableAggregated.column "a_mean" . toList) [Just 5.0, Just 4.5, Just 6.0, Just 2.0, Nothing]
+        assertEqual "length" (tableAggregated.column "a_length" . toList) [2.0, 2.0, 3.0, 1.0, 1.0]
+        assertEqual "median" (tableAggregated.column "a_median" . toList) [Just 5.0, Just 4.5, Just 7.0, Just 2.0, Nothing]
+        assertEqual "first" (tableAggregated.column "a_first" . toList) [Just 5.0, Just 8.0, Just 3.0, Just 2.0, Nothing]
+        assertEqual "last" (tableAggregated.column "a_last" . toList) [Just 5.0, Just 1.0, Just 7.0, Just 2.0, Nothing]
+
     def run:
+        self.testAggregateBy
         self.testAutoCorr
         self.testShift
         self.testInterpolate

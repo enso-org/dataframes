@@ -8,6 +8,35 @@
 #include <boost/accumulators/statistics.hpp>
 
 
+template<typename T>
+std::common_type_t<T, double> vectorNthElement(std::vector<T> &data, int32_t n)
+{
+    assert(n >= 0 && n < data.size());
+    std::nth_element(data.begin(), data.begin() + n, data.end());
+    return data[n];
+}
+
+template<typename T>
+std::common_type_t<T, double> vectorQuantile(std::vector<T> &data, double q = 0.5)
+{
+    assert(!data.empty());
+
+    if(q >= 1.0)
+        return *std::max_element(data.begin(), data.end());
+    if(q <= 0)
+        return *std::min_element(data.begin(), data.end());
+
+    q = std::clamp(q, 0.0, 1.0);
+    const double n = data.size() * q - 0.5;
+    const int n1 = std::floor(n);
+    const int n2 = std::ceil(n);
+    const auto t = n - n1;
+    std::nth_element(data.begin(), data.begin() + n1, data.end());
+    std::nth_element(data.begin() + n1, data.begin() + n2, data.end());
+    return lerp<double>(data[n1], data[n2], t);
+}
+
+
 template<arrow::Type::type id>
 std::shared_ptr<arrow::Table> countValueTyped(const arrow::Column &column)
 {
@@ -51,6 +80,7 @@ struct Minimum
 {
     T accumulator = std::numeric_limits<T>::max();
     static constexpr const char *name = "min";
+    static constexpr bool RequiresSample = true;
     void operator() (T elem) { accumulator = std::min<T>(accumulator, elem); }
     void operator() () {}
     auto get() { return accumulator; }
@@ -61,6 +91,7 @@ struct Maximum
 {
     T accumulator = std::numeric_limits<T>::min();
     static constexpr const char *name = "max";
+    static constexpr bool RequiresSample = true;
     void operator() (T elem) { accumulator = std::max<T>(accumulator, elem); }
     void operator() () {}
     auto get() { return accumulator; }
@@ -73,6 +104,7 @@ struct Mean
     int64_t count = 0;
     double accumulator = 0;
     static constexpr const char *name = "mean";
+    static constexpr bool RequiresSample = true;
     void operator() (T elem) { accumulator += elem; count++; }
     void operator() () {}
     auto get() { return accumulator / count; }
@@ -81,12 +113,13 @@ struct Mean
 template<typename T>
 struct Median
 {
-    boost::accumulators::accumulator_set<T, boost::accumulators::features<boost::accumulators::tag::median>> accumulator;
+    std::vector<T> values;
 
-    static constexpr const char *name= "median";
-    void operator() (T elem) { accumulator(elem); }
+    static constexpr const char *name = "median";
+    static constexpr bool RequiresSample = true;
+    void operator() (T elem) { values.push_back(elem); }
     void operator() () {}
-    auto get() { return boost::accumulators::median(accumulator); }
+    auto get() { return vectorQuantile(values, 0.5); }
 };
 
 template<typename T>
@@ -95,6 +128,7 @@ struct Variance
     boost::accumulators::accumulator_set<T, boost::accumulators::features<boost::accumulators::tag::variance>> accumulator;
 
     static constexpr const char *name = "variance";
+    static constexpr bool RequiresSample = true;
     void operator() (T elem) { accumulator(elem); }
     void operator() () {}
     auto get() { return boost::accumulators::variance(accumulator); }
@@ -112,6 +146,7 @@ struct Sum : Variance<T>
 {
     T accumulator{};
     static constexpr const char *name = "sum";
+    static constexpr bool RequiresSample = false;
     void operator() (T elem) { accumulator += elem; }
     void operator() () {}
     auto get() { return accumulator; }
@@ -148,34 +183,6 @@ std::shared_ptr<arrow::Column> calculateStat(const arrow::Column &column)
         else
             throw std::runtime_error("Operation not supported for type " + column.type()->ToString());
     });
-}
-
-template<typename T>
-std::common_type_t<T, double> vectorNthElement(std::vector<T> &data, int32_t n)
-{
-    assert(n >= 0 && n < data.size());
-    std::nth_element(data.begin(), data.begin() + n, data.end());
-    return data[n];
-}
-
-template<typename T>
-std::common_type_t<T, double> vectorQuantile(std::vector<T> &data, double q = 0.5)
-{
-    assert(!data.empty());
-
-    if(q >= 1.0)
-        return *std::max_element(data.begin(), data.end());
-    if(q <= 0)
-        return *std::min_element(data.begin(), data.end());
-
-    q = std::clamp(q, 0.0, 1.0);
-    const double n = data.size() * q - 0.5;
-    const int n1 = std::floor(n);
-    const int n2 = std::ceil(n);
-    const auto t = n - n1;
-    std::nth_element(data.begin(), data.begin() + n1, data.end());
-    std::nth_element(data.begin() + n1, data.begin() + n2, data.end());
-    return lerp<double>(data[n1], data[n2], t);
 }
 
 std::shared_ptr<arrow::Column> calculateQuantile(const arrow::Column &column, double q, std::string name)
@@ -373,7 +380,8 @@ double autoCorrelation(const std::shared_ptr<arrow::Column> &column, int lag /*=
 struct Length
 {
     int64_t length = 0;
-    static constexpr const char *name = "Length";
+    static constexpr const char *name = "length";
+    static constexpr bool RequiresSample = false;
 
     template<typename T>
     void operator()(T &&)
@@ -389,27 +397,37 @@ struct Length
 };
 
 template<typename T>
-struct Aggregator
+struct First
 {
-    static constexpr int count = 4;
+    std::optional<T> value;
+    static constexpr const char *name = "first";
+    static constexpr bool RequiresSample = true;
 
-    Minimum<T> min;
-    Maximum<T> max;
-    Mean<T> mean;
-    Length length;
-
-    void operator()(T t)
+    template<typename T>
+    void operator()(T &&t)
     {
-        min(t);
-        max(t);
-        mean(t);
-        length(t);
+        if(!value)
+            value = t;
     }
+    void operator() () {}
+    double get() { return value.value_or(T{}); }
+};
 
-    void operator()()
+template<typename T>
+struct Last
+{
+    std::optional<T> value;
+    static constexpr const char *name = "last";
+    static constexpr bool RequiresSample = true;
+
+    template<typename T>
+    void operator()(T &&t)
     {
-        length();
+        value = t;
     }
+    void operator() () {}
+    double get() { return value.value_or(T{}); }
+
 };
 
 template<typename T>
@@ -419,7 +437,7 @@ struct AggregateBase
 
     virtual void operator()(T t) = 0;
     virtual void operator()() = 0;
-    virtual double get() = 0;
+    virtual std::optional<double> get(bool hadValidValue) = 0;
     virtual std::string name() = 0;
 };
 
@@ -436,9 +454,11 @@ struct AggregateBy : AggregateBase<T>
     {
         a();
     }
-    virtual double get() override
+    virtual std::optional<double> get(bool hadValidValue) override
     {
-        return a.get();
+        if(hadValidValue || !Aggregator::RequiresSample)
+            return a.get();
+        return {};
     }
     virtual std::string name() override
     {
@@ -447,21 +467,22 @@ struct AggregateBy : AggregateBase<T>
 };
 
 template<typename T>
-std::unique_ptr<AggregateBase<T>> makeAggregator(Aggregate a)
+std::unique_ptr<AggregateBase<T>> makeAggregator(AggregateFunction a)
 {
     switch(a)
     {
-    case Aggregate::Min: return std::make_unique<AggregateBy<T, Minimum<T>>>();
-    case Aggregate::Max: return std::make_unique<AggregateBy<T, Maximum<T>>>();
-    case Aggregate::Mean: return std::make_unique<AggregateBy<T, Mean<T>>>();
-    case Aggregate::Length: return std::make_unique<AggregateBy<T, Length>>();
-    case Aggregate::Median: return std::make_unique<AggregateBy<T, Median<T>>>();
-//     case Aggregate::First: return std::make_unique<AggregateBy<T, First<T>>>();
-//     case Aggregate::Last: return std::make_unique<AggregateBy<T, Last<T>>>();
+    case AggregateFunction::Minimum: return std::make_unique<AggregateBy<T, Minimum<T>>>();
+    case AggregateFunction::Maximum: return std::make_unique<AggregateBy<T, Maximum<T>>>();
+    case AggregateFunction::Mean: return std::make_unique<AggregateBy<T, Mean<T>>>();
+    case AggregateFunction::Length: return std::make_unique<AggregateBy<T, Length>>();
+    case AggregateFunction::Median: return std::make_unique<AggregateBy<T, Median<T>>>();
+    case AggregateFunction::First: return std::make_unique<AggregateBy<T, First<T>>>();
+    case AggregateFunction::Last: return std::make_unique<AggregateBy<T, Last<T>>>();
     }
+    throw std::runtime_error("not handled aggregate function id: " + std::to_string((int)a));
 }
 
-std::string aggregateName(Aggregate a)
+std::string aggregateName(AggregateFunction a)
 {
     // not efficent, but should not be called that often
     return makeAggregator<double>(a)->name();
@@ -470,13 +491,15 @@ std::string aggregateName(Aggregate a)
 template<typename T>
 struct Aggregators
 {
+    bool hadValidValue = false;
     std::vector<std::unique_ptr<AggregateBase<T>>> aggregators;
-    Aggregators(const std::vector<Aggregate> &toAggregate)
+    Aggregators(const std::vector<AggregateFunction> &toAggregate)
     {
         aggregators = transformToVector(toAggregate, [](auto aggrEnum) { return makeAggregator<T>(aggrEnum); });
     }
     void operator()(T t)
     {
+        hadValidValue = true;
         for(auto &a : aggregators)
             (*a)(t);
     }
@@ -487,18 +510,36 @@ struct Aggregators
     }
 };
 
-DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn, std::map<std::shared_ptr<arrow::Column>, std::vector<Aggregate>> toAggregate)
+DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn, std::vector<std::pair<std::shared_ptr<arrow::Column>, std::vector<AggregateFunction>>> toAggregate)
 {
     std::vector<std::shared_ptr<arrow::Column>> newColumns;
 
     visitType(*keyColumn->type(), [&](auto keyTypeID)
     {
+        using KeyT = typename TypeDescription<keyTypeID.value>::ObservedType;
         GroupedKeyInfo<keyTypeID.value> groups{*keyColumn};
 
         const auto groupCount = groups.groupCount();
         const auto hasNulls = groups.hasNulls;
         const auto afterLastGroup = groups.uniqueValues.size()+1;
 
+        std::vector<KeyT> keyValues(afterLastGroup);
+        for(auto [keyValue, groupId] : groups.uniqueValues)
+            keyValues[groupId] = keyValue;
+        
+        // build column with unique key values
+        {
+            BuilderFor<keyTypeID.value> builder;
+            if(hasNulls)
+                builder.AppendNull();
+            for(int group = 1; group < keyValues.size(); ++group)
+                append(builder, keyValues[group]);
+
+            auto arr = finish(builder);
+            newColumns.push_back(std::make_shared<arrow::Column>(keyColumn->field(), arr));
+        }
+
+        // build column for each (column, aggregate function) pair
         for(auto &colAggrs : toAggregate)
         {
             visitType(colAggrs.first->type()->id(), [&](auto id)
@@ -514,27 +555,29 @@ DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_pt
 
                     int64_t row = 0;
                     iterateOver<id.value>(*column, [&](auto value)
-                    {
-                        const auto groupId = groups.groupIds[row++];
-                        aggregators[groupId](value);
-                    },
+                        {
+                            const auto groupId = groups.groupIds[row++];
+                            aggregators[groupId](value);
+                        },
                         [&]()
-                    {
-                        const auto groupId = groups.groupIds[row++];
-                        aggregators[groupId]();
-                    });
-
+                        {
+                            const auto groupId = groups.groupIds[row++];
+                            aggregators[groupId]();
+                        });
 
                     std::vector<arrow::DoubleBuilder> newColumnBuilders(aggregates.size());
                     for(auto &&newColumnBuilder : newColumnBuilders)
                         newColumnBuilder.Reserve(groupCount);
 
-                    for(int64_t groupItr = hasNulls; groupItr < afterLastGroup; ++groupItr)
+                    for(int64_t groupItr = !hasNulls; groupItr < afterLastGroup; ++groupItr)
                     {
                         auto &aggr = aggregators[groupItr];
                         for(int32_t i = 0; i < aggregates.size(); i++)
                         {
-                            newColumnBuilders[i].Append(aggr.aggregators[i]->get());
+                            if(auto result = aggr.aggregators[i]->get(aggr.hadValidValue))
+                                newColumnBuilders[i].Append(*result);
+                            else
+                                newColumnBuilders[i].AppendNull();
                         }
                     }
                     for(int32_t i = 0; i < aggregates.size(); i++)
