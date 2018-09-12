@@ -512,10 +512,11 @@ DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_pt
 {
     std::vector<std::shared_ptr<arrow::Column>> newColumns;
 
-    visitType(*keyColumn->type(), [&](auto keyTypeID)
+    visitDataType(keyColumn->type(), [&](auto type)
     {
-        using KeyT = typename TypeDescription<keyTypeID.value>::ObservedType;
-        GroupedKeyInfo<keyTypeID.value> groups{*keyColumn};
+        constexpr auto keyTypeID = idFromDataPointer<decltype(type)>;
+        using KeyT = typename TypeDescription<keyTypeID>::ObservedType;
+        GroupedKeyInfo<keyTypeID> groups{*keyColumn};
 
         const auto groupCount = groups.groupCount();
         const auto hasNulls = groups.hasNulls;
@@ -527,13 +528,13 @@ DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_pt
         
         // build column with unique key values
         {
-            BuilderFor<keyTypeID.value> builder;
+            auto builder = makeBuilder(type);
             if(hasNulls)
-                builder.AppendNull();
+                builder->AppendNull();
             for(int group = 1; group < keyValues.size(); ++group)
-                append(builder, keyValues[group]);
+                append(*builder, keyValues[group]);
 
-            auto arr = finish(builder);
+            auto arr = finish(*builder);
             newColumns.push_back(std::make_shared<arrow::Column>(keyColumn->field(), arr));
         }
 

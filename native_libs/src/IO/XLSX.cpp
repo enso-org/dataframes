@@ -43,20 +43,23 @@ namespace
     struct ColumnBuilder : ColumnBuilderBase
     {
         bool nullable{};
-        BuilderFor<type> builder;
+        std::shared_ptr<BuilderFor<type>> builder;
 
-        ColumnBuilder(bool nullable) : nullable(nullable) {}
+        ColumnBuilder(bool nullable)
+            : nullable(nullable) 
+            , builder(makeBuilder(getTypeSingleton<type>()))
+        {}
 
         virtual void addFromCell(const xlnt::cell &field) override
         {
             if(field.has_value())
             {
                 if constexpr(type == arrow::Type::STRING)
-                    checkStatus(builder.Append(field.to_string()));
+                    checkStatus(builder->Append(field.to_string()));
                 else if constexpr(type == arrow::Type::INT64)
-                    checkStatus(builder.Append(field.value<long long int>())); // NOTE: cannot be int64_t -- no such overload, fails on GCC
+                    checkStatus(builder->Append(field.value<long long int>())); // NOTE: cannot be int64_t -- no such overload, fails on GCC
                 else if constexpr(type == arrow::Type::DOUBLE)
-                    checkStatus(builder.Append(field.value<double>()));
+                    checkStatus(builder->Append(field.value<double>()));
                 else
                     throw std::runtime_error("wrong type");
             }
@@ -66,18 +69,18 @@ namespace
         virtual void addMissing() override
         {
             if(nullable)
-                checkStatus(builder.AppendNull());
+                checkStatus(builder->AppendNull());
             else
-                checkStatus(builder.Append(defaultValue<type>()));
+                checkStatus(builder->Append(defaultValue<type>()));
         }
         virtual void reserve(int64_t count) override
         {
-            checkStatus(builder.Reserve(count));
+            checkStatus(builder->Reserve(count));
         }
 
         virtual std::shared_ptr<arrow::Array> finish() override
         {
-            return ::finish(builder);
+            return ::finish(*builder);
         }
     };
 }
@@ -119,7 +122,9 @@ std::shared_ptr<arrow::Table> readXlsxFile(const char *filepath, HeaderPolicy he
             columnBuilders.push_back(std::move(ptr));
         }
         for(auto i = columnBuilders.size(); i < columnCount; i++)
+        {
             columnBuilders.push_back(std::make_unique<ColumnBuilder<arrow::Type::STRING>>(false));
+        }
     
         for(int column = 0; column < columnCount; column++)
         {

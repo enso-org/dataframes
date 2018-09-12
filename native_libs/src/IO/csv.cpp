@@ -21,6 +21,7 @@
 
 using namespace std::literals;
 
+
 arrow::Type::type deduceType(std::string_view text)
 {
     if(text.empty())
@@ -62,17 +63,22 @@ struct ColumnPolicy
 template<arrow::Type::type type>
 struct ColumnBuilder
 {
-    MissingField missingField;
-    BuilderFor<type> builder;
+    using ArrowType = typename TypeDescription<type>::ArrowType;
 
-    ColumnBuilder(MissingField missingField) : missingField(missingField) {}
+    MissingField missingField;
+    std::shared_ptr<BuilderFor<type>> builder;
+
+    ColumnBuilder(MissingField missingField, const std::shared_ptr<ArrowType> &type)
+        : missingField(missingField) 
+        , builder(makeBuilder(type))
+    {}
 
     NO_INLINE void addFromString(const std::string_view &field)
     {
         if constexpr(type == arrow::Type::STRING)
         {
             if(field.size())
-                checkStatus(builder.Append(field.data(), (int32_t)field.size()));
+                checkStatus(builder->Append(field.data(), (int32_t)field.size()));
             else
                addMissing(); 
         }
@@ -92,7 +98,7 @@ struct ColumnBuilder
                 {
                     if(auto v = Parser::as<int64_t>(field))
                     {
-                        checkStatus(builder.Append(*v));
+                        checkStatus(builder->Append(*v));
                     }
                     else
                     {
@@ -103,7 +109,7 @@ struct ColumnBuilder
                 {
                     if(auto v = Parser::as<double>(field))
                     {
-                        checkStatus(builder.Append(*v));
+                        checkStatus(builder->Append(*v));
                     }
                     else
                     {
@@ -122,13 +128,13 @@ struct ColumnBuilder
     void addMissing()
     {
         if(missingField == MissingField::AsNull)
-            checkStatus(builder.AppendNull());
+            checkStatus(builder->AppendNull());
         else
-            checkStatus(builder.Append(defaultValue<type>()));
+            checkStatus(builder->Append(defaultValue<type>()));
     }
     void reserve(int64_t count)
     {
-        checkStatus(builder.Reserve(count));
+        checkStatus(builder->Reserve(count));
     }
 };
 
@@ -210,12 +216,16 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
                     builder.addMissing();
                 }
             }
-            arrays.push_back(finish(builder.builder));
+            arrays.push_back(finish(*builder.builder));
         };
 
-        visitType(*typeInfo.type, [&] (auto id)
+        visitDataType(typeInfo.type, [&] (auto type)
         {
-            processColumn(ColumnBuilder<id.value>{missingFieldsPolicy});
+            constexpr auto id = idFromDataPointer<decltype(type)>;
+            if constexpr(id != arrow::Type::LIST)
+                processColumn(ColumnBuilder<id>{missingFieldsPolicy, type});
+            else
+                throw std::runtime_error("not supported: list embedded within CSV field");
         });
     }
 
@@ -371,6 +381,25 @@ struct ColumnWriterFor<arrow::Type::DOUBLE> : ColumnWriter
     {
         auto value = static_cast<const arrow::DoubleArray&>(chunk).Value(usedFromChunk);
         auto n = std::snprintf(buffer, std::size(buffer), "%lf", value);
+        generator.writeField(buffer, n);
+
+    }
+};
+
+template<>
+struct ColumnWriterFor<arrow::Type::TIMESTAMP> : ColumnWriter
+{
+    using ColumnWriter::ColumnWriter;
+    virtual void consumeFromChunk(const arrow::Array &chunk, CsvGenerator &generator)
+    {
+        // TODO support other timestamp units 
+        assert(std::dynamic_pointer_cast<arrow::TimestampType>(chunk.type())->unit() == arrow::TimeUnit::NANO);
+        auto ticksCount = static_cast<const arrow::TimestampArray&>(chunk).Value(usedFromChunk);
+        TimestampDuration nanosecondTicks(ticksCount);
+        Timestamp timestamp(nanosecondTicks);
+        auto timet = std::chrono::system_clock::to_time_t(std::chrono::time_point_cast<std::chrono::system_clock::duration>(timestamp));
+        auto tm = std::gmtime(&timet);
+        auto n = std::strftime(buffer, std::size(buffer), "%F", tm);
         generator.writeField(buffer, n);
 
     }

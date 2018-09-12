@@ -78,6 +78,19 @@ struct ListElemView
     {}
 };
 
+template<> struct TypeDescription<arrow::Type::TIMESTAMP>
+{
+    using ArrowType = arrow::TimestampType;
+    using BuilderType = arrow::TimestampBuilder;
+    using ValueType = typename BuilderType::value_type;
+    using ObservedType = ValueType;
+    using CType = typename BuilderType::value_type;
+    using Array = arrow::TimestampArray;
+    using StorageValueType = ValueType;
+    using OffsetType = void;
+    static constexpr arrow::Type::type id = ArrowType::type_id;
+};
+
 template<> struct TypeDescription<arrow::Type::LIST>
 {
     using ArrowType = arrow::ListType;
@@ -123,6 +136,7 @@ auto visitDataType(const std::shared_ptr<arrow::DataType> &type, F &&f)
     case arrow::Type::INT64: return f(std::static_pointer_cast<arrow::Int64Type>(type));
     case arrow::Type::DOUBLE: return f(std::static_pointer_cast<arrow::DoubleType>(type));
     case arrow::Type::STRING: return f(std::static_pointer_cast<arrow::StringType>(type));
+    case arrow::Type::TIMESTAMP: return f(std::static_pointer_cast<arrow::TimestampType>(type));
     case arrow::Type::LIST: return f(std::static_pointer_cast<arrow::ListType>(type));
     default: throw std::runtime_error("type not supported to downcast: " + type->ToString());
     }
@@ -149,6 +163,7 @@ auto visitType(const arrow::DataType &type, F &&f)
     case arrow::Type::INT64 : return f(std::integral_constant<arrow::Type::type, arrow::Type::INT64 >{});
     case arrow::Type::DOUBLE: return f(std::integral_constant<arrow::Type::type, arrow::Type::DOUBLE>{});
     case arrow::Type::STRING: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
+    case arrow::Type::TIMESTAMP: return f(std::integral_constant<arrow::Type::type, arrow::Type::TIMESTAMP>{});
     //case arrow::Type::LIST: return f(std::integral_constant<arrow::Type::type, arrow::Type::LIST>{});
     default: throw std::runtime_error("array type not supported to downcast: " + type.ToString());
     }
@@ -623,13 +638,10 @@ DFH_EXPORT std::shared_ptr<arrow::ArrayBuilder> makeBuilder(const arrow::TypePtr
 template<typename TypeT>
 auto makeBuilder(const std::shared_ptr<TypeT> &type)
 {
-    using Builder = typename arrow::TypeTraits<TypeT>::BuilderType;
+    using TT = arrow::TypeTraits<TypeT>;
+    using Builder = typename TT::BuilderType;
     constexpr auto id = TypeT::type_id;
-    if constexpr(id != arrow::Type::LIST)
-    {
-        return std::make_shared<Builder>();
-    }
-    else
+    if constexpr(id == arrow::Type::LIST)
     {
         if(type->num_children() != 1)
             throw std::runtime_error("list type must have a single child type");
@@ -637,6 +649,14 @@ auto makeBuilder(const std::shared_ptr<TypeT> &type)
         // list builder must additionally take a nested builder for a value buffer
         auto nestedBuilder = makeBuilder(type->child(0)->type());
         return std::make_shared<Builder>(nullptr, nestedBuilder);
+    }
+    else if constexpr(TT::is_parameter_free)
+    {
+        return std::make_shared<Builder>();
+    }
+    else
+    {
+        return std::make_shared<Builder>(type, arrow::default_memory_pool());
     }
 }
 
@@ -690,3 +710,19 @@ using Timestamp = std::chrono::time_point<std::chrono::system_clock, TimestampDu
 
 // for now we just assume that all timestamps are nanoseconds based
 extern std::shared_ptr<arrow::TimestampType> timestampTypeSingleton;
+
+template<arrow::Type::type id>
+auto getTypeSingleton()
+{
+    using ArrowType = typename TypeDescription<id>::ArrowType;
+    if constexpr(id == arrow::Type::TIMESTAMP)
+    {
+        // TODO: be smarter
+        return timestampTypeSingleton;
+    }
+    else
+        return std::static_pointer_cast<ArrowType>(arrow::TypeTraits<ArrowType>::type_singleton());
+}
+
+template<typename ArrowDataTypePtr>
+constexpr arrow::Type::type idFromDataPointer = std::decay_t<ArrowDataTypePtr>::element_type::type_id;

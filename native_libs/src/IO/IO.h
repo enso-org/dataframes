@@ -55,7 +55,7 @@ inline constexpr auto defaultValue()
     {
         return "";
     }
-    else if constexpr(type == arrow::Type::INT64)
+    else if constexpr(type == arrow::Type::INT64 || type == arrow::Type::TIMESTAMP)
     {
         return std::int64_t(0);
     }
