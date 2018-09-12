@@ -185,6 +185,13 @@ class Table:
         quart3 = col.quantile 0.75
         Table.fromColumns [mean, std, min, quart1, median, quart3, max]
 
+    def describeAll:
+        cols = self.toList
+        names = cols . each .name
+        descriptionsList = names.each describe
+        describeAll = descriptionsList.concat
+        describeAll
+
     def countValues columnName:
         self.at columnName . toColumn . countValues
 
