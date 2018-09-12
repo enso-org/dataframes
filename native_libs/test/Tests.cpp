@@ -687,7 +687,8 @@ BOOST_AUTO_TEST_CASE(TypeDeducing)
 {
     BOOST_CHECK_EQUAL(deduceType("5.0"), arrow::Type::DOUBLE);
     BOOST_CHECK_EQUAL(deduceType("-1.060828e-39"), arrow::Type::DOUBLE);
-	BOOST_CHECK_EQUAL(deduceType("5"), arrow::Type::INT64);
+    BOOST_CHECK_EQUAL(deduceType("5"), arrow::Type::INT64);
+    BOOST_CHECK_EQUAL(deduceType("2005-10-11"), arrow::Type::TIMESTAMP);
 	BOOST_CHECK_EQUAL(deduceType("five"), arrow::Type::STRING);
 	BOOST_CHECK_EQUAL(deduceType(""), arrow::Type::NA);
 
