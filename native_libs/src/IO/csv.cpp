@@ -25,6 +25,8 @@ arrow::Type::type deduceType(std::string_view text)
 {
     if(text.empty())
         return arrow::Type::NA;
+    if(Parser::as<Timestamp>(text))
+        return arrow::Type::TIMESTAMP;
     if(Parser::as<int64_t>(text))
         return arrow::Type::INT64;
     if(Parser::as<double>(text))

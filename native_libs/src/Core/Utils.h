@@ -5,8 +5,10 @@
 #include "optional.h"
 #include <string_view>
 #include <type_traits>
+#include <date/date.h>
 
 #include "Common.h"
+#include "ArrowUtilities.h"
 
 
 struct OldStyleNumberParser
@@ -62,6 +64,15 @@ struct NewStyleNumberParser
         {
             auto result = std::from_chars(text.data(), text.data() + text.size(), out, 10);
             if(result.ptr == text.data() + text.size())
+                return out;
+        }
+        else if constexpr (std::is_same_v<Timestamp, T>)
+        {
+            std::istringstream input((std::string)text);
+
+            date::sys_days date;
+            input >> date::parse("%F", out);
+            if(input && input.rdbuf()->in_avail() == 0)
                 return out;
         }
         else

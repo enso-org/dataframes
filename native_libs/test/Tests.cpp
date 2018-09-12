@@ -22,6 +22,7 @@
 #include "Analysis.h"
 
 #include "Fixture.h"
+#include "Core/Utils.h"
 
 using namespace std::literals;
 
@@ -198,6 +199,14 @@ void testCsvParser(std::string input, std::vector<std::vector<std::string>> expe
             performTest();
         }
     }
+}
+
+BOOST_AUTO_TEST_CASE(ParseTimespamp)
+{
+    using namespace date::literals;
+    BOOST_CHECK(date::sys_days(2005_y / mar / 16) == Parser::as<Timestamp>("2005-03-16"));
+    BOOST_CHECK(std::nullopt == Parser::as<Timestamp>("2005-03-16 ghdiohgbrodizhbgfro"));
+    BOOST_CHECK(std::nullopt == Parser::as<Timestamp>("2005"));
 }
 
 BOOST_AUTO_TEST_CASE(ParseCsv)

@@ -15,7 +15,7 @@ using namespace std::chrono_literals;
 
 // returns pair [f(args...), elapsed time]
 template<typename F, typename ...Args>
-static auto duration(F&& func, Args&&... args)
+static auto callDuration(F&& func, Args&&... args)
 {
     const auto start = std::chrono::steady_clock::now();
     if constexpr(std::is_same_v<void, std::invoke_result_t<F, Args...>>)
@@ -62,7 +62,7 @@ struct MeasureAtLeast
 template<typename F, typename ...Args>
 static auto measure(std::string text, F&& func, Args&&... args)
 {
-    const auto results = duration(std::forward<F>(func), std::forward<Args>(args)...);
+    const auto results = callDuration(std::forward<F>(func), std::forward<Args>(args)...);
     const auto t = std::chrono::duration_cast<std::chrono::microseconds>(results.second).count();
     std::cout << text << " took " << t / 1000.0 << " ms" << std::endl;
     return results;
@@ -107,7 +107,7 @@ static auto measure(std::string text, Policy &&p, F&& func, Args&&... args)
     const auto startTime = system_clock::now();
     while(true)
     {
-        auto [value, tn] = ::duration(func, args...);
+        auto [value, tn] = callDuration(func, args...);
         const auto t = duration_cast<microseconds>(tn);
         
         measures.add(t);

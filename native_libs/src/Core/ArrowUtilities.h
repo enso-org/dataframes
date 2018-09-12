@@ -684,3 +684,6 @@ auto dispatch(bool value, F &&f)
         CASE_DISPATCH(true);
     }
 }
+
+using TimestampDuration = std::chrono::duration<int64_t, std::nano>; // nanoseconds since epoch
+using Timestamp = std::chrono::time_point<std::chrono::system_clock, TimestampDuration>;
