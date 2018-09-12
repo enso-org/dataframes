@@ -2,6 +2,8 @@
 
 using namespace std::literals;
 
+std::shared_ptr<arrow::TimestampType> timestampTypeSingleton = std::make_shared<arrow::TimestampType>(arrow::TimeUnit::NANO);
+
 std::shared_ptr<arrow::Column> toColumn(std::shared_ptr<arrow::ChunkedArray> chunks, std::string name /*= "col"*/)
 {
 	auto field = arrow::field(name, chunks->type(), chunks->null_count() != 0);

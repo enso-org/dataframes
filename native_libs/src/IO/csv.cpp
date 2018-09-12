@@ -147,8 +147,15 @@ ColumnType deduceType(const ParsedCsv &csv, size_t columnIndex, size_t startRow,
         }
     }
 
-    auto typePtr = [&]
+    auto typePtr = [&] () -> arrow::TypePtr
     {
+        if(encounteredTypes.count(arrow::Type::TIMESTAMP))
+        {
+            // string if there are timestamps and types other than timestamps (excluding nulls)
+            if(encounteredTypes.size() > 1 + encounteredTypes.count(arrow::Type::NA))
+                return arrow::TypeTraits<arrow::StringType>::type_singleton();
+            return timestampTypeSingleton;
+        }
         if(encounteredTypes.count(arrow::Type::STRING))
             return arrow::TypeTraits<arrow::StringType>::type_singleton();
         if(encounteredTypes.count(arrow::Type::DOUBLE))

@@ -694,12 +694,14 @@ BOOST_AUTO_TEST_CASE(TypeDeducing)
 
 	auto csv = parseCsvFile("data/variedColumn.csv"); 
 	auto table = csvToArrowTable(csv, GenerateColumnNames{}, {});
-	BOOST_REQUIRE_BITWISE_EQUAL(table->num_columns(), 5);
-	BOOST_CHECK_EQUAL(table->column(0)->type()->id(), arrow::Type::INT64);
-	BOOST_CHECK_EQUAL(table->column(1)->type()->id(), arrow::Type::INT64);
-	BOOST_CHECK_EQUAL(table->column(2)->type()->id(), arrow::Type::DOUBLE);
-	BOOST_CHECK_EQUAL(table->column(3)->type()->id(), arrow::Type::STRING);
-	BOOST_CHECK_EQUAL(table->column(4)->type()->id(), arrow::Type::STRING);
+    BOOST_REQUIRE_EQUAL(table->num_columns(), 7);
+    BOOST_CHECK_EQUAL(table->column(0)->type()->id(), arrow::Type::STRING);
+    BOOST_CHECK_EQUAL(table->column(1)->type()->id(), arrow::Type::TIMESTAMP);
+	BOOST_CHECK_EQUAL(table->column(2)->type()->id(), arrow::Type::INT64);
+	BOOST_CHECK_EQUAL(table->column(3)->type()->id(), arrow::Type::INT64);
+	BOOST_CHECK_EQUAL(table->column(4)->type()->id(), arrow::Type::DOUBLE);
+	BOOST_CHECK_EQUAL(table->column(5)->type()->id(), arrow::Type::STRING);
+	BOOST_CHECK_EQUAL(table->column(6)->type()->id(), arrow::Type::STRING);
 }
 
 BOOST_AUTO_TEST_CASE(FillingNAInts)

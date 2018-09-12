@@ -687,3 +687,6 @@ auto dispatch(bool value, F &&f)
 
 using TimestampDuration = std::chrono::duration<int64_t, std::nano>; // nanoseconds since epoch
 using Timestamp = std::chrono::time_point<std::chrono::system_clock, TimestampDuration>;
+
+// for now we just assume that all timestamps are nanoseconds based
+extern std::shared_ptr<arrow::TimestampType> timestampTypeSingleton;
