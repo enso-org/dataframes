@@ -403,8 +403,7 @@ struct First
     static constexpr const char *name = "first";
     static constexpr bool RequiresSample = true;
 
-    template<typename T>
-    void operator()(T &&t)
+    void operator()(T t)
     {
         if(!value)
             value = t;
@@ -420,8 +419,7 @@ struct Last
     static constexpr const char *name = "last";
     static constexpr bool RequiresSample = true;
 
-    template<typename T>
-    void operator()(T &&t)
+    void operator()(T t)
     {
         value = t;
     }
