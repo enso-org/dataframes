@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <chrono>
 #include <ctime>
 #include <iomanip>
 #include <sstream>
@@ -144,7 +145,7 @@ template<> struct TypeDescription<arrow::Type::TIMESTAMP>
     using ObservedType = Timestamp;
     using CType = typename BuilderType::value_type;
     using Array = arrow::TimestampArray;
-    using StorageValueType = ValueType;
+    using StorageValueType = int64_t;
     using OffsetType = void;
     static constexpr arrow::Type::type id = ArrowType::type_id;
 };
