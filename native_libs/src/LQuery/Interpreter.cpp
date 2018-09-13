@@ -7,6 +7,7 @@
 
 #include "Core/ArrowUtilities.h"
 #include "AST.h"
+#include "Functions.h"
 #include "Core/Common.h"
 
 using namespace std::literals;
@@ -129,189 +130,6 @@ using namespace std::literals;
         else
             return src;
     }
-
-#define COMPLAIN_ABOUT_OPERAND_TYPES \
-        throw std::runtime_error(__FUNCTION__ + ": not supported operand types: "s + typeid(lhs).name() + " and "s + typeid(rhs).name());
-
-#define BINARY_REL_OPERATOR(op)                                                                          \
-    template<typename Lhs, typename Rhs>                                                                 \
-    static bool exec(const Lhs &lhs, const Rhs &rhs)                                                     \
-    { /* below we protect against mixed types like int/string (eg. for ==)  */                           \
-        if constexpr(std::is_same_v<Lhs, Rhs> || std::is_arithmetic_v<Lhs> && std::is_arithmetic_v<Rhs>) \
-            return lhs op rhs;                                                                           \
-        else                                                                                             \
-        {                                                                                                \
-            COMPLAIN_ABOUT_OPERAND_TYPES;                                                                \
-            return {}; /* just for type inference  */                                                    \
-        }                                                                                                \
-    }
-
-#define BINARY_ARIT_OPERATOR(op)                                                                         \
-    template<typename Lhs, typename Rhs>                                                                 \
-    static auto exec(const Lhs &lhs, const Rhs &rhs)                                                     \
-    {                                                                                                    \
-        if constexpr(std::is_same_v<Lhs, Rhs> || std::is_arithmetic_v<Lhs> && std::is_arithmetic_v<Rhs>) \
-            return lhs op rhs;                                                                           \
-        else                                                                                             \
-        {                                                                                                \
-    COMPLAIN_ABOUT_OPERAND_TYPES;                                                                        \
-        return lhs; /* just for type inference  */                                                       \
-        }                                                                                                \
-    }
-#define FAIL_ON_STRING(ret)                                                                              \
-    static ret exec(const std::string &lhs, const std::string &rhs)                                      \
-    {                                                                                                    \
-            COMPLAIN_ABOUT_OPERAND_TYPES;                                                                \
-    }                                                                                                    \
-    static ret exec(const std::string_view &lhs, const std::string_view &rhs)                            \
-    {                                                                                                    \
-            COMPLAIN_ABOUT_OPERAND_TYPES;                                                                \
-    }                                                                                                    \
-    template<typename Rhs>                                                                               \
-    static ret exec(const std::string_view &lhs, const Rhs &rhs)                                         \
-    {                                                                                                    \
-            COMPLAIN_ABOUT_OPERAND_TYPES;                                                                \
-    }                                                                                                    \
-    template<typename Lhs>                                                                               \
-    static ret exec(const Lhs &lhs, const std::string_view &rhs)                                         \
-    {                                                                                                    \
-            COMPLAIN_ABOUT_OPERAND_TYPES;                                                                \
-    } 
-
-    struct GreaterThan { BINARY_REL_OPERATOR(>); FAIL_ON_STRING(bool); };
-    struct LessThan    { BINARY_REL_OPERATOR(<); FAIL_ON_STRING(bool); };
-    struct EqualTo     { BINARY_REL_OPERATOR(==);};
-    struct StartsWith
-    {
-        static bool exec(const std::string_view &lhs, const std::string_view &rhs)
-        {
-            return lhs.length() >= rhs.length()
-                && std::memcmp(lhs.data(), rhs.data(), rhs.length()) == 0;
-        }
-
-        template<typename Lhs, typename Rhs>
-        static bool exec(const Lhs &lhs, const Rhs &rhs)
-        {
-            COMPLAIN_ABOUT_OPERAND_TYPES;
-        }
-    };
-    struct Matches
-    {
-        static bool exec(const std::string_view &lhs, const std::string_view &rhs)
-        {
-            std::regex regex{std::string(rhs)};
-            return std::regex_match(lhs.begin(), lhs.end(), regex);
-        }
-
-        template<typename Lhs, typename Rhs>
-        static bool exec(const Lhs &lhs, const Rhs &rhs)
-        {
-            COMPLAIN_ABOUT_OPERAND_TYPES;
-        }
-    };
-    struct Plus        { BINARY_ARIT_OPERATOR(+); FAIL_ON_STRING(int64_t); };
-    struct Minus       { BINARY_ARIT_OPERATOR(-); FAIL_ON_STRING(int64_t); };
-    struct Times       { BINARY_ARIT_OPERATOR(*); FAIL_ON_STRING(int64_t); };
-    struct Divide      { BINARY_ARIT_OPERATOR(/); FAIL_ON_STRING(int64_t); };
-    struct Modulo      
-    {
-        static constexpr int64_t exec(const int64_t &lhs, const int64_t &rhs)
-        {
-            return lhs % rhs;
-        }
-        static double exec(const double &lhs, const double &rhs)
-        {
-            return std::fmod(lhs, rhs);
-        }
-        template<typename Lhs, typename Rhs>
-        static int64_t exec(const Lhs &lhs, const Rhs &rhs)
-        {
-            COMPLAIN_ABOUT_OPERAND_TYPES;
-        }
-    };
-    struct Negate
-    {
-        template<typename Lhs>
-        static constexpr Lhs exec(const Lhs &lhs)
-        {
-            if constexpr(std::is_arithmetic_v<Lhs>)
-                return -lhs;
-            else
-                throw std::runtime_error("negate does not support operand of type: "s + typeid(lhs).name());
-        }
-
-        static int64_t exec(const std::string_view &lhs)
-        {
-            throw std::runtime_error("negate does not support operand of type: "s + typeid(lhs).name());
-        }
-    };
-    struct Condition
-    {
-        template<typename A, typename B>
-        using Ret = std::conditional_t<std::is_arithmetic_v<A> && std::is_arithmetic_v<B>,
-            std::common_type_t<A, B>,
-            A>;
-
-        template<typename Lhs, typename Rhs>
-        static auto exec(const bool &mask, const Lhs &lhs, const Rhs &rhs)
-        {
-            if constexpr(std::is_arithmetic_v<Lhs> && std::is_arithmetic_v<Rhs>)
-                return mask ? lhs : rhs;
-            else if constexpr(std::is_same_v<Lhs, Rhs> && std::is_same_v<Lhs, std::string_view>)
-                return std::string(mask ? lhs : rhs);
-            else
-            {
-                COMPLAIN_ABOUT_OPERAND_TYPES;
-                return int64_t{}; // to deduct type
-            }
-        }
-
-        // template<typename Mask, typename Lhs, typename Rhs>
-        // static Ret<Lhs, Rhs> exec(const Mask &mask, const Lhs &lhs, const Rhs &rhs)
-        // {
-        //     throw std::runtime_error("condition operator got unexpected condition type: "s + typeid(Mask).name());
-        // }
-    };
-    struct And
-    {
-        static bool exec(const bool &lhs, const bool &rhs)
-        {
-            return lhs && rhs;
-        }
-
-        template<typename Lhs, typename Rhs>
-        static bool exec(const Lhs &lhs, const Rhs &rhs)
-        {
-            COMPLAIN_ABOUT_OPERAND_TYPES;
-        }
-    };
-    struct Or
-    {
-        static bool exec(const bool &lhs, const bool &rhs)
-        {
-            return lhs || rhs;
-        }
-
-        template<typename Lhs, typename Rhs>
-        static bool exec(const Lhs &lhs, const Rhs &rhs)
-        {
-            COMPLAIN_ABOUT_OPERAND_TYPES;
-        }
-    };
-    struct Not
-    {
-        static bool exec(const bool &lhs)
-        {
-            return !lhs;
-        }
-
-        template<typename Lhs>
-        static bool exec(const Lhs &lhs)
-        {
-            throw std::runtime_error("Not: wrong operand type "s + typeid(Lhs).name());
-        }
-    };
-
 
     template<typename Operation, typename ... Operands>
     auto exec(int64_t count, const Operands & ...operands)
@@ -508,22 +326,21 @@ std::shared_ptr<arrow::Buffer> execute(const arrow::Table &table, const ast::Pre
 }
 
 template<typename T>
-auto arrayWith(const arrow::Table &table, const ArrayOperand<T> &arrayProto, std::shared_ptr<arrow::Buffer> nullBuffer)
+auto arrayFrom(const int64_t &length, const ArrayOperand<T> &arrayProto, std::shared_ptr<arrow::Buffer> nullBuffer)
 {
-    const auto N = table.num_rows();
     constexpr auto id = ValueTypeToId<T>();
     if constexpr(std::is_arithmetic_v<T>)
     {
-        return std::make_shared<typename TypeDescription<id>::Array>(N, arrayProto.buffer, nullBuffer, -1);
+        return std::make_shared<typename TypeDescription<id>::Array>(length, arrayProto.buffer, nullBuffer, -1);
     }
     else
     {
         arrow::StringBuilder builder;
-        checkStatus(builder.Reserve(N));
+        checkStatus(builder.Reserve(length));
 
         if(nullBuffer)
         {
-            for(int i = 0; i < N; i++)
+            for(int i = 0; i < length; i++)
             {
                 if(arrow::BitUtil::GetBit(nullBuffer->data(), i))
                 {
@@ -536,7 +353,7 @@ auto arrayWith(const arrow::Table &table, const ArrayOperand<T> &arrayProto, std
         }
         else
         {
-            for(int i = 0; i < N; i++)
+            for(int i = 0; i < length; i++)
             {
                 const auto sv = arrayProto.load(i);
                 checkStatus(builder.Append(sv.data(), (int)sv.size()));
@@ -548,33 +365,35 @@ auto arrayWith(const arrow::Table &table, const ArrayOperand<T> &arrayProto, std
 }
 
 template<typename T>
-auto arrayWith(const arrow::Table &table, const T &constant, std::shared_ptr<arrow::Buffer> nullBuffer)
+auto arrayFrom(const int64_t &length, const T &constant, std::shared_ptr<arrow::Buffer> nullBuffer)
 {
-    const auto N = table.num_rows();
     constexpr auto id = ValueTypeToId<T>();
-    if constexpr(std::is_arithmetic_v<T>)
+    if constexpr(std::is_arithmetic_v<T> || std::is_same_v<Timestamp, T>)
     {
-        auto [buffer, raw] = allocateBuffer<T>(N);
-        std::fill_n(raw, N, constant);
-        return std::make_shared<typename TypeDescription<id>::Array>(N, buffer, nullBuffer, -1);
+        using StorageType = typename TypeDescription<id>::StorageValueType;
+        using ArrayType = typename TypeDescription<id>::Array;
+
+        auto [buffer, raw] = allocateBuffer<StorageType>(length);
+        std::fill_n(raw, length, toStorage(constant));
+        return std::make_shared<ArrayType>(getTypeSingleton<id>(), length, buffer, nullBuffer, -1);
     }
     else
     {
         arrow::StringBuilder builder;
-        checkStatus(builder.Reserve(N));
+        checkStatus(builder.Reserve(length));
 
-        const auto length = (int32_t)constant.size();
+        const auto stringSize = (int32_t)constant.size();
         if(!nullBuffer)
         {
-            for(int i = 0; i < N; i++)
-                checkStatus(builder.Append(constant.data(), length));
+            for(int i = 0; i < length; i++)
+                checkStatus(builder.Append(constant.data(), stringSize));
         }
         else
         {
-            for(int i = 0; i < N; i++)
+            for(int i = 0; i < length; i++)
             {
                 if(arrow::BitUtil::GetBit(nullBuffer->data(), i))
-                    checkStatus(builder.Append(constant.data(), length));
+                    checkStatus(builder.Append(constant.data(), stringSize));
                 else
                     checkStatus(builder.AppendNull());
             }
@@ -612,6 +431,6 @@ std::shared_ptr<arrow::Array> execute(const arrow::Table &table, const ast::Valu
     return std::visit(
         [&] (auto &&i) -> std::shared_ptr<arrow::Array>
         {
-            return arrayWith(table, i, nullBufferToBeUsed);
+            return arrayFrom(table.num_rows(), i, nullBufferToBeUsed);
         }, field);
 }

@@ -100,6 +100,7 @@
     <ClCompile Include="IO\XLSX.cpp" />
     <ClCompile Include="LifetimeManager.cpp" />
     <ClCompile Include="LQuery\AST.cpp" />
+    <ClCompile Include="LQuery\Functions.cpp" />
     <ClCompile Include="LQuery\Interpreter.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Processing.cpp" />
@@ -119,6 +120,7 @@
     <ClInclude Include="IO\XLSX.h" />
     <ClInclude Include="LifetimeManager.h" />
     <ClInclude Include="LQuery\AST.h" />
+    <ClInclude Include="LQuery\Functions.h" />
     <ClInclude Include="LQuery\Interpreter.h" />
     <ClInclude Include="Processing.h" />
     <ClInclude Include="Sort.h" />
