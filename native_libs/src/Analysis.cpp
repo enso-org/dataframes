@@ -171,7 +171,7 @@ std::shared_ptr<arrow::Column> calculateStat(const arrow::Column &column)
     {
         if constexpr(id.value != arrow::Type::STRING)
         {
-            using T = typename TypeDescription<id.value>::ValueType;
+            using T = typename TypeDescription<id.value>::StorageValueType;
             Processor<T> p;
             using ResultT = decltype(p.get());
 
