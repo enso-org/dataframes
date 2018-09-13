@@ -26,6 +26,25 @@ class NullPosition:
             NullsAfter: 1
         CInt8.fromInt i
 
+# Note: keep in sync with C++ enum with the same name
+class AggregateFunction:
+    Minimum
+    Maximum
+    Mean
+    Length
+    Median
+    First
+    Last
+
+    def toInt: case self of
+        Minimum: 0
+        Maximum: 1
+        Mean: 2
+        Length: 3
+        Median: 4
+        First: 5
+        Last: 6
+
 class Table:
     Table
     TableVal (TableWrapper)
@@ -194,6 +213,12 @@ class Table:
 
     def countValues columnName:
         self.at columnName . toColumn . countValues
+
+    # aggregateBy :: Text -> [(Text, [AggregateFunction])] -> Table
+    def aggregateBy keyColumnName aggregations:
+        keyColumnWrapper = self.column keyColumnName . ptr
+        aggregationWithWrappers = aggregations.each (colname, aggrs): (self.column colname . ptr, aggrs.each .toInt)
+        self.fromWrapper $ self.ptr.aggregateBy keyColumnWrapper aggregationWithWrappers
 
     def chart: ChartBuilder self
 

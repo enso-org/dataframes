@@ -6,9 +6,9 @@
 
 namespace arrow
 {
+    class Array;
     class Column;
     class Table;
-
 }
 
 
@@ -22,8 +22,9 @@ enum class NullPosition : uint8_t
     Before, After
 };
 
-using Permutation = std::vector<int64_t>; // [index] -> old index
+using Permutation = std::vector<int64_t>; // [new index] -> old index
 
+DFH_EXPORT std::shared_ptr<arrow::Array> permuteToArray(const std::shared_ptr<arrow::Column> &column, const Permutation &indices);
 DFH_EXPORT std::shared_ptr<arrow::Column> permute(const std::shared_ptr<arrow::Column> &column, const Permutation &indices);
 DFH_EXPORT std::shared_ptr<arrow::Table> permute(const std::shared_ptr<arrow::Table> &table, const Permutation &indices);
 

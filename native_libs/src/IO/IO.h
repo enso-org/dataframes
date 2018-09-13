@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <string>
+#include <iosfwd>
 #include <stdexcept>
 #include <vector>
 
@@ -47,12 +48,6 @@ enum class GeneratorQuotingPolicy : int8_t
     QueteAllFields
 };
 
-template<arrow::Type::type type> struct BuilderFor_                      {};
-template<>                       struct BuilderFor_<arrow::Type::INT64>  { using Builder = arrow::Int64Builder;  };
-template<>                       struct BuilderFor_<arrow::Type::DOUBLE> { using Builder = arrow::DoubleBuilder; };
-template<>                       struct BuilderFor_<arrow::Type::STRING> { using Builder = arrow::StringBuilder; };
-template<arrow::Type::type type> using  BuilderFor = typename BuilderFor_<type>::Builder;
-
 template<arrow::Type::type type>
 inline constexpr auto defaultValue()
 {
@@ -75,4 +70,6 @@ inline constexpr auto defaultValue()
 std::vector<std::string> decideColumnNames(int count, const HeaderPolicy &policy, std::function<std::string(int)> readHeaderCell);
 std::shared_ptr<arrow::Table> buildTable(std::vector<std::string> names, std::vector<std::shared_ptr<arrow::Array>> arrays, std::vector<ColumnType> columnTypes);
 
+DFH_EXPORT std::ofstream openFileToWrite(const char *filepath);
+DFH_EXPORT std::ifstream openFileToRead(const char *filepath);
 DFH_EXPORT std::string getFileContents(const char *filepath);

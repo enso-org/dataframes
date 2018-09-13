@@ -717,6 +717,24 @@ extern "C"
             return LifetimeManager::instance().addOwnership(std::move(ret));
         };
     }
+    DFH_EXPORT arrow::Column *columnNewInt64Sequence(const char *name, int64_t from, int64_t to, int64_t step, const char **outError) noexcept
+    {
+        LOG("[{}, {}), step={}", from, to, step);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            const auto length = (to-from) / step;
+            if(length >= std::numeric_limits<int32_t>::max())
+                throw std::runtime_error("not implemented: element count exceeding a single chunk");
+
+            FixedSizeArrayBuilder<arrow::Type::INT64, false> builder{static_cast<int32_t>(length)};
+            for(int64_t i = from; i < to; i += step)
+                builder.Append(i);
+
+            auto arr = builder.Finish();
+            auto col = toColumn(arr, name);
+            return LifetimeManager::instance().addOwnership(std::move(col));
+        };
+    }
     DFH_EXPORT int64_t columnLength(arrow::Column *column) noexcept
     {
         LOG("@{}", (void*)column);
@@ -1219,6 +1237,32 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
+
+    DFH_EXPORT arrow::Table *tableAggregateBy(arrow::Table *table, arrow::Column *keyColumn, int32_t aggregatedColumnsCount, arrow::Column **aggregatedColumns, int8_t *aggregateCountPerColumn, AggregateFunction **aggregatesPerColumn, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)table);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto tableManaged = LifetimeManager::instance().accessOwned(table);
+            auto keyColumnManaged = LifetimeManager::instance().accessOwned(keyColumn);
+            
+            auto columnsToAggregate = vectorFromC(aggregatedColumns, aggregatedColumnsCount);
+            auto columnsToAggregateManaged = transformToVector(columnsToAggregate, [] (auto *column) 
+                { return LifetimeManager::instance().accessOwned(column); });
+
+            std::vector<std::pair<std::shared_ptr<arrow::Column>, std::vector<AggregateFunction>>> aggregationMap;
+            for(int aggregatedColumnIndex = 0; aggregatedColumnIndex < aggregatedColumnsCount; ++aggregatedColumnIndex)
+            {
+                auto col = aggregatedColumns[aggregatedColumnIndex];
+                auto colManaged = LifetimeManager::instance().accessOwned(col);
+                auto aggregates = vectorFromC(aggregatesPerColumn[aggregatedColumnIndex], aggregateCountPerColumn[aggregatedColumnIndex]);
+                aggregationMap.emplace_back(colManaged, aggregates);
+            }
+
+            auto ret = abominableGroupAggregate(tableManaged, keyColumnManaged, aggregationMap);
+            return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
 }
 
 arrow::Table *readTableFromCSVFileContentsHelper(std::string data, const char **columnNames, int32_t columnNamesPolicy, int8_t *columnTypes, int8_t *columnIsNullableTypes, int32_t columnTypeInfoCount)
@@ -1307,10 +1351,7 @@ extern "C"
         return TRANSLATE_EXCEPTION(outError)
         {
             // NOTE: this will silently fail if the target directory does not exist
-            std::ofstream out{filename, std::ios::binary};
-            if(!out)
-                throw std::runtime_error("Cannot write to file "s + filename);
-
+            auto out = openFileToWrite(filename);
             writeXlsx(out, *table, headerPolicy);
         };
     }

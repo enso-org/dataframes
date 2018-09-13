@@ -234,6 +234,11 @@ class ColumnWrapper:
     def autoCorr lag:
         callHandlingError "columnAutoCorrelation" (CDouble) [self.ptr.toCArg, CInt64.fromInt lag . toCArg] . toReal
 
+def createIntSequenceColumnWrapper name from to step:
+    ptr = CString.with name nameC:
+        callHandlingError "columnNewInt64Sequence" (Pointer None) [nameC.toCArg, CInt64.fromInt from . toCArg, CInt64.fromInt to . toCArg, CInt64.fromInt step . toCArg]
+    wrapReleasableResouce ColumnWrapper ptr
+
 def createColumnWrapper field chunks:
     ptr = callHandlingError "columnNew" (Pointer None) [field.ptr.toCArg, chunks.ptr.toCArg]
     wrapReleasableResouce ColumnWrapper ptr
@@ -354,6 +359,19 @@ class TableWrapper:
         wrapReleasableResouce TableWrapper ptr
     def interpolate:
         ptr = callHandlingError "tableInterpolateNa" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce TableWrapper ptr
+    
+    # aggregateBy :: ColumnWrapper -> [(ColumnWrapper, [Int])]
+    def aggregateBy keyColumn aggregation:
+        aggregatedColumnWrapperManagedPtrs = aggregation.each (col, _): col.ptr
+        aggregatedColumnWrapperPtrs = aggregatedColumnWrapperManagedPtrs.each .ptr
+        aggregationFunctionIds = aggregation.each (_, aggs): aggs.each CInt8.fromInt
+        aggregationFunctionCounts = aggregationFunctionIds.each (CInt8.fromInt _.length)
+        ptr = Array (Pointer None) . with aggregatedColumnWrapperPtrs aggregatedColumnsC:
+            Array CInt32 . with aggregationFunctionCounts aggregateFunctionCountsC:
+                bracket (aggregationFunctionIds.each (Array CInt8 . fromList _)) (_.each .free) listOfAggregatedFunctionCArrays:
+                    Array (Pointer CInt8) . with (listOfAggregatedFunctionCArrays.each .ptr) arrayOfArraysWithIds:
+                        callHandlingError "tableAggregateBy" (Pointer None) [self.ptr.toCArg, keyColumn.ptr.toCArg, CInt32.fromInt aggregation.length . toCArg, aggregatedColumnsC.toCArg, aggregateFunctionCountsC.toCArg, arrayOfArraysWithIds.toCArg]
         wrapReleasableResouce TableWrapper ptr
 
 def createTableWrapper schemaWrapper columnWrappers:

@@ -131,6 +131,10 @@ class Column:
         typedCol = TypedColumn typeTag . fromChunks field.ptr chunks.ptr
         typeTag.makeColumn typedCol
 
+    def createIndex n:
+        wrapper = createIntSequenceColumnWrapper "index" 0 n 1
+        self.fromColumnWrapper wrapper
+
     def nullCount: self.ptr.nullCount
     def countMissing: self.ptr.nullCount
     def length: self.ptr.length

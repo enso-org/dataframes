@@ -8,6 +8,12 @@ std::shared_ptr<arrow::Column> toColumn(std::shared_ptr<arrow::ChunkedArray> chu
 	return std::make_shared<arrow::Column>(field, std::move(chunks));
 }
 
+std::shared_ptr<arrow::Column> toColumn(std::shared_ptr<arrow::Array> array, std::string name /*= "col"*/)
+{
+    auto field = arrow::field(name, array->type(), array->null_count() != 0);
+    return std::make_shared<arrow::Column>(field, std::move(array));
+}
+
 std::vector<std::shared_ptr<arrow::Column>> getColumns(const arrow::Table &table)
 {
     std::vector<std::shared_ptr<arrow::Column>> columns;
@@ -108,7 +114,7 @@ DynamicJustVector toJustVector(const arrow::Column &column)
     return toJustVector(*column.data());
 }
 
-DynamicField arrayAt(const arrow::Array &array, int64_t index)
+DynamicField arrayAt(const arrow::Array &array, int32_t index)
 {
     return visitArray(array, [&](auto *array) -> DynamicField
     {
@@ -139,7 +145,7 @@ std::pair<std::shared_ptr<arrow::Array>, int32_t> locateChunk(const arrow::Chunk
     {
         const auto length = chunk->length(); // Note: having this assigned to variable greatly improves performance (MSVC)
         if(i < length)
-            return {chunk, i};
+            return {chunk, static_cast<int32_t>(i)};
 
         i -= length;
     }
@@ -171,6 +177,36 @@ void validateIndex(const arrow::ChunkedArray &array, int64_t index)
 void validateIndex(const arrow::Column &column, int64_t index)
 {
     validateIndex(column.length(), index);
+}
+
+template<typename SharedPtrToType>
+struct GetTypeS {};
+
+template<typename T>
+struct GetTypeS<std::shared_ptr<T>> { using type = T; };
+
+template<typename SharedPtrToType>
+using GetType = typename GetTypeS<std::decay_t<SharedPtrToType>>::type;
+
+std::shared_ptr<arrow::Array> makeNullsArray(arrow::TypePtr type, int64_t length)
+{
+    return visitDataType(type, [&](auto &&typeDer)
+    {
+        using Type = GetType<decltype(typeDer)>;
+        static_assert(std::is_base_of_v<arrow::DataType, GetType<decltype(typeDer)>>);
+        auto builder = makeBuilder<Type>(typeDer);
+        for(int64_t i = 0; i < length; i++)
+            builder->AppendNull();
+        return finish(*builder);
+    });
+}
+
+std::shared_ptr<arrow::ArrayBuilder> makeBuilder(const arrow::TypePtr &type)
+{
+    return visitDataType(type, [&](auto &&typeDer) -> std::shared_ptr<arrow::ArrayBuilder>
+    {
+        return makeBuilder(typeDer);
+    });
 }
 
 BitmaskGenerator::BitmaskGenerator(int64_t length, bool initialValue) : length(length)
@@ -207,6 +243,10 @@ ChunkAccessor::ChunkAccessor(const arrow::ChunkedArray &array)
     }
 }
 
+ChunkAccessor::ChunkAccessor(const arrow::Column &column)
+    : ChunkAccessor(*column.data())
+{}
+
 std::pair<const arrow::Array *, int32_t> ChunkAccessor::locate(int64_t index) const
 {
     auto itr = std::upper_bound(chunkStartIndices.begin(), chunkStartIndices.end(), index);
@@ -218,4 +258,10 @@ std::pair<const arrow::Array *, int32_t> ChunkAccessor::locate(int64_t index) co
     }
     else
         throw std::runtime_error("wrong index");
+}
+
+bool ChunkAccessor::isNull(int64_t index)
+{
+    auto[chunk, chunkIndex] = locate(index);
+    return chunk->IsNull(chunkIndex);
 }

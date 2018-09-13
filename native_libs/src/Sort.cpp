@@ -3,58 +3,114 @@
 #include <numeric>
 #include "Core/ArrowUtilities.h"
 
+template<typename F>
+auto dispatch(SortOrder order, F &&f)
+{
+    switch(order)
+    {
+        CASE_DISPATCH(SortOrder::Ascending);
+        CASE_DISPATCH(SortOrder::Descending);
+    default: throw std::runtime_error(__FUNCTION__ + ": invalid value"s);
+    }
+}
+template<typename F>
+auto dispatch(NullPosition nullPosition, F &&f)
+{
+    switch(nullPosition)
+    {
+        CASE_DISPATCH(NullPosition::Before);
+        CASE_DISPATCH(NullPosition::After);
+    default: throw std::runtime_error(__FUNCTION__ + ": invalid value"s);
+    }
+}
+
 namespace
 {
-std::shared_ptr<arrow::Column> permuteInner(std::shared_ptr<arrow::Column> column, const Permutation &indices)
+
+template<typename ArrowType, bool nullable>
+struct ColumnPermuter
 {
-    ChunkAccessor chunks{ *column->data() };
+    static constexpr arrow::Type::type id = ArrowType::type_id;
 
-    return visitType(*column->type(), [&] (auto id)
+    std::shared_ptr<arrow::Column> column;
+    std::shared_ptr<ArrowType> type;
+    Permutation indices;
+
+    ColumnPermuter(std::shared_ptr<arrow::Column> column, std::shared_ptr<ArrowType> type, Permutation indices, std::bool_constant<nullable> n={})
+        : column(std::move(column))
+        , type(std::move(type))
+        , indices(std::move(indices))
+    {}
+
+    std::shared_ptr<arrow::Array> operator()() const
     {
-        using TD = TypeDescription<id.value>;
-        using T = typename TD::StorageValueType;
-        using Builder = typename TD::BuilderType;
+        if(column->length() > std::numeric_limits<int32_t>::max())
+            throw std::runtime_error("not implemented: too big array");
 
-        Builder b;
-        for(auto index : indices)
+        using T = typename TypeDescription<ArrowType::type_id>::StorageValueType;
+
+        const auto length = (int32_t)column->length();
+
+        const ChunkAccessor chunks{ *column->data() };
+        if constexpr(!nullable && (id == arrow::Type::INT64 || id == arrow::Type::DOUBLE))
         {
-            auto [chunk, indexInChunk] = chunks.locate(index);
-            auto &array = static_cast<const typename TD::Array&>(*chunk);
-            if(chunk->IsValid(indexInChunk))
+            FixedSizeArrayBuilder<id, nullable> b{ length };
             {
-                if constexpr(id == arrow::Type::STRING)
+                T * __restrict target = b.nextValueToWrite;
+                for(auto index : indices)
                 {
-                    int32_t entryLength;
-                    auto entryData = array.GetValue(indexInChunk, &entryLength);
-                    b.Append(entryData, entryLength);
-                }
-                else
-                {
-                    b.Append(array.Value(indexInChunk));
+                    const auto[chunk, indexInChunk] = chunks.locate(index);
+                    const auto value = arrayValueAt<id>(*chunk, indexInChunk);
+                    // unfortunately gives performance edge over b.Append(value)
+                    // TODO: can we have something nice and fast?
+                    *target++ = value;
                 }
             }
-            else
-                b.AppendNull();
+            return b.Finish();
         }
+        else
+        {
+            auto b = makeBuilder(type);
+            b->Reserve(indices.size());
+            for(auto index : indices)
+            {
+                const auto[chunk, indexInChunk] = chunks.locate(index);
+                if constexpr(nullable)
+                {
+                    if(chunk->IsValid(indexInChunk))
+                    {
+                        const auto value = arrayValueAt<id>(*chunk, indexInChunk);
+                        append(*b, value);
+                    }
+                    else
+                        b->AppendNull();
+                }
+                else
+                    append(*b, arrayValueAt<id>(*chunk, indexInChunk));
+            }
 
-        auto sortedArray = finish(b);
-        return std::make_shared<arrow::Column>(column->field(), sortedArray);
+            return finish(*b);
+        }
+    }
+};
+
+
+
+std::shared_ptr<arrow::Array> permuteInnerToArray(std::shared_ptr<arrow::Column> column, const Permutation &indices)
+{
+    return visitDataType3(column->type(), [&](auto &&datatype)
+    {
+        return dispatch(column->null_count() != 0, [&](auto nullable)
+        {
+            using ArrowType = typename std::decay_t<decltype(datatype)>::element_type;
+            return ColumnPermuter<ArrowType, nullable.value>(column, datatype, indices)();
+        });
     });
+}
 
-    //     // for fixed width
-    //     if(id == arrow::Type::DOUBLE || id == arrow::Type::INT64) // fixed width types
-    //     {
-    //         using T = typename TypeDescription<id>::StorageValueType;
-    //         auto [buffer, values] = allocateBuffer<T>(column->length());
-    // 
-    //         int64_t row = 0;
-    //         for(auto &chunk : column->data()->chunks())
-    //         {
-    //             auto &array = dynamic_cast<typename TypeDescription<id>::Array&>(*chunk);
-    //             T *values = array.raw_values;
-    // 
-    //         }
-    //     }
+std::shared_ptr<arrow::Column> permuteInner(std::shared_ptr<arrow::Column> column, const Permutation &indices)
+{
+    return std::make_shared<arrow::Column>(column->field(), permuteInnerToArray(column, indices));
 }
 
 std::shared_ptr<arrow::Table> permuteInner(std::shared_ptr<arrow::Table> table, const Permutation &indices)
@@ -70,40 +126,6 @@ bool isPermuteId(const Permutation &indices)
         if(indices[i] != i)
             return false;
     return true;
-}
-
-#define MAKE_INTEGRAL_CONSTANT(value) std::integral_constant<decltype(value), value>{} 
-#define CASE_DISPATCH(value) case value: f(MAKE_INTEGRAL_CONSTANT(value)); break
-
-template<typename F>
-auto dispatch(SortOrder order, F &&f)
-{
-    switch(order)
-    {
-    CASE_DISPATCH(SortOrder::Ascending);
-    CASE_DISPATCH(SortOrder::Descending);
-    default: throw std::runtime_error(__FUNCTION__ + ": invalid value"s);
-    }
-}
-template<typename F>
-auto dispatch(NullPosition nullPosition, F &&f)
-{
-    switch(nullPosition)
-    {
-    CASE_DISPATCH(NullPosition::Before);
-    CASE_DISPATCH(NullPosition::After);
-    default: throw std::runtime_error(__FUNCTION__ + ": invalid value"s);
-    }
-}
-
-template<typename F>
-auto dispatch(bool value, F &&f)
-{
-    switch(value)
-    {
-    CASE_DISPATCH(false);
-    CASE_DISPATCH(true);
-    }
 }
 
 template<arrow::Type::type id, bool nullable, SortOrder order, NullPosition nulls>
@@ -195,6 +217,14 @@ std::vector<int64_t> sortPermutation(std::vector<SortBy> sortBy)
 
 }
 
+
+std::shared_ptr<arrow::Array> permuteToArray(const std::shared_ptr<arrow::Column> &column, const Permutation &indices)
+{
+    if(isPermuteId(indices) && column->data()->num_chunks() == 1)
+        return column->data()->chunk(0);
+
+    return permuteInnerToArray(column, indices);
+}
 
 std::shared_ptr<arrow::Column> permute(const std::shared_ptr<arrow::Column> &column, const Permutation &indices)
 {

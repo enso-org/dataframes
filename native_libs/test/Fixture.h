@@ -70,3 +70,5 @@ struct DataGenerator
     std::shared_ptr<arrow::Table> generateNumericTable(int N);
 };
 
+
+#define BOOST_CHECK_EQUAL_RANGES(a, b) BOOST_CHECK_EQUAL_COLLECTIONS(std::begin(a), std::end(a), std::begin(b), std::end(b))

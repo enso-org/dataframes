@@ -1,9 +1,10 @@
-#ifndef  _MSC_VER
+﻿#ifndef  _MSC_VER
 #define BOOST_TEST_DYN_LINK  // otherwise GCC gets undefined main error
 #endif // ! _MSC_VER
 
 #define BOOST_TEST_MODULE DataframeHelperTests
 #include <boost/test/unit_test.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <chrono>
 #include <fstream>
@@ -23,9 +24,6 @@
 #include "Fixture.h"
 
 using namespace std::literals;
-
-
-#define BOOST_CHECK_EQUAL_RANGES(a, b) BOOST_CHECK_EQUAL_COLLECTIONS(std::begin(a), std::end(a), std::begin(b), std::end(b))
 
 // TODO: fails now, because lquery interpreter was implemented without support for chunked arrays
 BOOST_FIXTURE_TEST_CASE(MappingChunked, ChunkedFixture, *boost::unit_test_framework::disabled())
@@ -162,29 +160,52 @@ BOOST_AUTO_TEST_CASE(ParseRecord)
 
 void testCsvParser(std::string input, std::vector<std::vector<std::string>> expectedContents)
 {
-	CsvParser parser{input};
-	auto rows = parser.parseCsvTable();
-
-	BOOST_TEST_CONTEXT("Parsing `" << input << "`")
+    auto performTest = [&]
+    {
+        CsvParser parser{ input };
+        auto rows = parser.parseCsvTable();
+        BOOST_REQUIRE_EQUAL(rows.size(), expectedContents.size());
+        for(int i = 0; i < expectedContents.size(); i++)
+        {
+            BOOST_TEST_CONTEXT("row " << i)
+            {
+                auto &readRow = rows.at(i);
+                auto &expectedRow = expectedContents.at(i);
+                BOOST_REQUIRE_EQUAL(readRow.size(), expectedRow.size());
+                for(int j = 0; j < readRow.size(); j++)
+                    BOOST_CHECK_EQUAL(readRow.at(j), expectedRow.at(j));
+            }
+        }
+    };
+	BOOST_TEST_CONTEXT("Parsing `" << input << "` with default line endings")
 	{
-		BOOST_REQUIRE_EQUAL(rows.size(), expectedContents.size());
-		for(int i = 0; i < expectedContents.size(); i++)
-		{
-			BOOST_TEST_CONTEXT("row " << i)
-			{
-				auto &readRow = rows.at(i);
-				auto &expectedRow = expectedContents.at(i);
-				BOOST_REQUIRE_EQUAL(readRow.size(), expectedRow.size());
-				for(int j = 0; j < readRow.size(); j++)
-					BOOST_CHECK_EQUAL(readRow.at(j), expectedRow.at(j));
-			}
-		}
+        performTest();
 	}
+
+    if(boost::algorithm::contains(input, "\n") && !boost::algorithm::contains(input, "\r\n"))
+    {
+        boost::algorithm::replace_all(input, "\n", "\r\n");
+        BOOST_TEST_CONTEXT("Parsing `" << input << "` with CRLF")
+        {
+            performTest();
+        }
+    }
+    else if(boost::algorithm::contains(input, "\r\n"))
+    {
+        boost::algorithm::replace_all(input, "\r\n", "\n");
+        BOOST_TEST_CONTEXT("Parsing `" << input << "` with LF")
+        {
+            performTest();
+        }
+    }
 }
 
 BOOST_AUTO_TEST_CASE(ParseCsv)
 {
-	testCsvParser("foo\nbar\nbaz", {{"foo"}, {"bar"}, {"baz"}});
+    testCsvParser("foo\nbar\nbaz", { {"foo"}, {"bar"}, {"baz"} });
+    testCsvParser("\"\"\n10", { {""}, {"10"} });
+    testCsvParser("\"\"\n10\n", { {""}, {"10"} });
+    testCsvParser("a,v\n10,20\n", { {"a", "v"}, {"10", "20"} });
 }
 
 BOOST_AUTO_TEST_CASE(ParseFile)
@@ -234,22 +255,6 @@ BOOST_AUTO_TEST_CASE(HelperConversionFunctions)
 	BOOST_CHECK(retS == numbersS);
 	BOOST_CHECK(retOD == numbersOD);
 	BOOST_CHECK(retOS == numbersOS);
-}
- 
-std::string get_file_contents(const char *filename)
-{
-	std::ifstream in(filename, std::ios::in);
-	if (in)
-	{
-		std::string contents;
-		in.seekg(0, std::ios::end);
-		contents.resize(in.tellg());
-		in.seekg(0, std::ios::beg);
-		in.read(&contents[0], contents.size());
-		in.close();
-		return(contents);
-	}
-	throw(errno);
 }
 
 struct FilteringFixture
@@ -671,7 +676,8 @@ BOOST_AUTO_TEST_CASE(FilterWithNulls)
 
 BOOST_AUTO_TEST_CASE(TypeDeducing)
 {
-	BOOST_CHECK_EQUAL(deduceType("5.0"), arrow::Type::DOUBLE);
+    BOOST_CHECK_EQUAL(deduceType("5.0"), arrow::Type::DOUBLE);
+    BOOST_CHECK_EQUAL(deduceType("-1.060828e-39"), arrow::Type::DOUBLE);
 	BOOST_CHECK_EQUAL(deduceType("5"), arrow::Type::INT64);
 	BOOST_CHECK_EQUAL(deduceType("five"), arrow::Type::STRING);
 	BOOST_CHECK_EQUAL(deduceType(""), arrow::Type::NA);
@@ -766,7 +772,7 @@ BOOST_AUTO_TEST_CASE(InterpolateNA)
 
 BOOST_AUTO_TEST_CASE(MakeNullsArray)
 {
-    auto nullInts = makeNullsArray<arrow::Type::INT64>(5);
+    auto nullInts = makeNullsArray(arrow::TypeTraits<arrow::Int64Type>::type_singleton(), 5);
     BOOST_CHECK_EQUAL(nullInts->type_id(), arrow::Type::INT64);
     BOOST_CHECK_EQUAL(nullInts->length(), 5);
     BOOST_CHECK_EQUAL(nullInts->null_count(), 5);
@@ -774,6 +780,18 @@ BOOST_AUTO_TEST_CASE(MakeNullsArray)
     auto nullIntsV = toVector<std::optional<int64_t>>(*nullInts);
     std::vector<std::optional<int64_t>> nullIntsVExpected(5);
     BOOST_CHECK_EQUAL_RANGES(nullIntsV, nullIntsVExpected);
+}
+
+BOOST_AUTO_TEST_CASE(CsvWithUtf8Path)
+{
+    const auto utfPath = u8"temp-zażółć鵞鳥.csv";
+    std::vector<int64_t> nums = {1, 2, 3};
+    auto table = tableFromVectors(nums);
+    generateCsv(utfPath, *table);
+    auto table2 = loadTableFromCsvFile(utfPath);
+
+    auto [readInts] = toVectors<int64_t>(*table2);
+    BOOST_CHECK_EQUAL_RANGES(nums, readInts);
 }
 
 BOOST_AUTO_TEST_CASE(ColumnShift)
