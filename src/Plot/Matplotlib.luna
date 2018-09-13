@@ -1,5 +1,6 @@
 import Std.Foreign.C.Value
 import Std.Foreign
+import Std.Base
 
 import Dataframes.Column
 import Dataframes.Table
@@ -49,6 +50,16 @@ class Matplotlib:
 
 class Chart:
     render :: None
+    
+    def appendVertical list:
+        plotsList = list.map (x: x.toChart) 
+        n = plotsList.length
+        elems = 1.upto n
+        zipped = plotsList.zip elems
+        seqRend = zipped.map (x: 
+            Matplotlib.subplot n 1 (x.second) 
+            x.first . render)
+        Chart seqRend.sequence
 
     def + that:
         def seqRend:
