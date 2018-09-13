@@ -205,11 +205,10 @@ class Table:
         Table.fromColumns [mean, std, min, quart1, median, quart3, max]
 
     def describeAll:
-        cols = self.toList
-        names = cols . each .name
-        descriptionsList = names.each describe
-        describeAll = descriptionsList.concat
-        describeAll
+        numerics = self.filterColumns .isNumeric
+        names = numerics.columnNames
+        descriptionsList = names.each numerics.describe
+        descriptionsList
 
     def countValues columnName:
         self.at columnName . toColumn . countValues
@@ -228,7 +227,7 @@ class ChartBuilder:
     def plot cname1 cname2:
         c1 = self.table.at cname1 . toColumn
         c2 = self.table.at cname2 . toColumn
-        Plot c1 c2 "o"
+        Plot c1 c2 "o" Nothing
 
     def histogram cname:
         c = self.table.at cname . toColumn

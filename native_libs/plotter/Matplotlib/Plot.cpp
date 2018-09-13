@@ -105,7 +105,7 @@ PyObject* tableToPyObj(const arrow::Table &table)
 
 extern "C"
 {
-    void plot(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, const char *style) {
+    void plot(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* label, const char *style) {
         std::string st(style);
         auto xsarray = chunkedArrayToPyObj(*xs);
         std::cout << "XS " << xsarray << std::endl;
@@ -113,7 +113,7 @@ extern "C"
         std::cout << "YS " << ysarray << std::endl;
         try {
             std::cout << "PLOT BEG" << std::endl;
-            plt::plot(xsarray, ysarray, st);
+            plt::plot(xsarray, ysarray, label, st);
             std::cout << "PLOT END" << std::endl;
         } catch (const runtime_error& e) {
           std::cout << e.what() << std::endl;

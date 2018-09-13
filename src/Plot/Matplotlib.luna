@@ -12,9 +12,12 @@ class Matplotlib:
     def histogram data bins params:
         self.call "histogram" None [data.toCArg, CInt.fromInt bins . toCArg]
 
-    def plot s1 s2 style:
+    def plot s1 s2 style label:
         cstr = CString.fromText style
-        self.call "plot" None [s1.toCArg, s2.toCArg, cstr.toCArg]
+        lbl = case label of 
+            Nothing: CString.null 
+            Just t: CString.fromText t
+        self.call "plot" None [s1.toCArg, s2.toCArg, lbl.toCArg, cstr.toCArg]
 
     def kdeplot2 s1 s2 style:
         cstr = CString.fromText style
@@ -50,7 +53,7 @@ class Matplotlib:
 
 class Chart:
     render :: None
-    
+
     def appendVertical list:
         plotsList = list.map (x: x.toChart) 
         n = plotsList.length
@@ -100,9 +103,10 @@ class Plot:
     series1 :: Column
     series2 :: Column
     style :: Text
+    label :: Maybe Text
 
     def render:
-        Matplotlib.plot self.series1.ptr.data.ptr self.series2.ptr.data.ptr self.style
+        Matplotlib.plot self.series1.ptr.data.ptr self.series2.ptr.data.ptr self.style self.label
 
     def toChart: Chart self.render
 
@@ -112,6 +116,8 @@ class Plot:
     def toJSON: self.toChart.toJSON
 
     def setStyle s: self.style = s
+
+    def setLabel l: self.label = (Just l)
 
 class KDE2:
     series1 :: Column

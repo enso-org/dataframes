@@ -10,7 +10,7 @@ namespace arrow
 
 extern "C"
 {
-	EXPORT void plot(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, const char *style);
+	EXPORT void plot(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* label, const char *style);
 	EXPORT void kdeplot2(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* colormap);
 	EXPORT void kdeplot(arrow::ChunkedArray *xs, char* label);
 	EXPORT void heatmap(arrow::Table* xs, char* cmap, char* annot);
