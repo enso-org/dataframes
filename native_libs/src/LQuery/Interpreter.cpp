@@ -42,6 +42,21 @@ using namespace std::literals;
             mutable_data()[index] = value;
         }
     };
+    template<>
+    struct ArrayOperand<Timestamp> : ArrayOperand<int64_t>
+    {
+        using ArrayOperand<int64_t>::ArrayOperand;
+
+        Timestamp load(size_t index) const
+        {
+            return Timestamp{ this->data()[index] };
+        }
+
+        void store(size_t index, Timestamp value)
+        {
+            this->mutable_data()[index] = value.toStorage();
+        }
+    };
 
     template<>
     struct ArrayOperand<std::string>
@@ -333,7 +348,7 @@ struct Interpreter
     const arrow::Table &table;
     std::vector<std::shared_ptr<arrow::Column>> columns;
 
-    using Field = std::variant<int64_t, double, std::string, ArrayOperand<int64_t>, ArrayOperand<double>, ArrayOperand<std::string>>;
+    using Field = std::variant<int64_t, double, std::string, Timestamp, ArrayOperand<int64_t>, ArrayOperand<double>, ArrayOperand<std::string>>;
 
     Field fieldFromColumn(const arrow::Column &column)
     {

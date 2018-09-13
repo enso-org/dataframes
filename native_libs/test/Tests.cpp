@@ -11,6 +11,8 @@
 #include <numeric>
 #include <random>
 
+#include <date/date.h>
+
 #include "IO/csv.h"
 #include "IO/IO.h"
 #include "IO/Feather.h"
@@ -25,6 +27,7 @@
 #include "Core/Utils.h"
 
 using namespace std::literals;
+using namespace date::literals;
 
 // TODO: fails now, because lquery interpreter was implemented without support for chunked arrays
 BOOST_FIXTURE_TEST_CASE(MappingChunked, ChunkedFixture, *boost::unit_test_framework::disabled())
@@ -41,6 +44,13 @@ BOOST_FIXTURE_TEST_CASE(MappingChunked, ChunkedFixture, *boost::unit_test_framew
 		})";
 	each(table, jsonQuery);
 }
+
+BOOST_AUTO_TEST_CASE(LoadCsvWithTimestamp, *boost::unit_test_framework::disabled())
+{
+    auto table = loadTableFromCsvFile("F:/usa.us.txt");
+    uglyPrint(*table);
+}
+
 
 BOOST_FIXTURE_TEST_CASE(SortChunked, ChunkedFixture, *boost::unit_test_framework::disabled())
 {
@@ -271,9 +281,10 @@ struct FilteringFixture
 	std::vector<int64_t> a = {-1, 2, 3, -4, 5};
 	std::vector<double> b = {5, 10, 0, -10, -5};
 	std::vector<std::string> c = {"foo", "bar", "baz", "", "1"};
-	std::vector<std::optional<double>> d = {1.0, 2.0, std::nullopt, 4.0, std::nullopt};
+    std::vector<std::optional<double>> d = { 1.0, 2.0, std::nullopt, 4.0, std::nullopt };
+    std::vector<std::optional<Timestamp>> e = { 2018_y/sep/01, 2018_y/sep/02, std::nullopt, 2018_y/sep/04, std::nullopt };
 
-	std::shared_ptr<arrow::Table> table = tableFromArrays({toArray(a), toArray(b), toArray(c), toArray(d)}, {"a", "b", "c", "d"});
+	std::shared_ptr<arrow::Table> table = tableFromArrays({toArray(a), toArray(b), toArray(c), toArray(d), toArray(e)}, {"a", "b", "c", "d", "e"});
 
 	void testQuery(const char *jsonQuery, std::vector<int> expectedIndices)
 	{
@@ -288,14 +299,16 @@ struct FilteringFixture
 		auto expectedA = expected(a);
 		auto expectedB = expected(b);
 		auto expectedC = expected(c);
-		auto expectedD = expected(d);
+        auto expectedD = expected(d);
+        auto expectedE = expected(e);
 
 		const auto filteredTable = filter(table, jsonQuery);
-		auto[a2, b2, c2, d2] = toVectors<int64_t, double, std::string, std::optional<double>>(*filteredTable);
+		auto[a2, b2, c2, d2, e2] = toVectors<int64_t, double, std::string, std::optional<double>, std::optional<Timestamp>>(*filteredTable);
 		BOOST_CHECK_EQUAL_COLLECTIONS(a2.begin(), a2.end(), expectedA.begin(), expectedA.end());
 		BOOST_CHECK_EQUAL_COLLECTIONS(b2.begin(), b2.end(), expectedB.begin(), expectedB.end());
 		BOOST_CHECK_EQUAL_COLLECTIONS(c2.begin(), c2.end(), expectedC.begin(), expectedC.end());
-		BOOST_CHECK_EQUAL_COLLECTIONS(d2.begin(), d2.end(), expectedD.begin(), expectedD.end());
+        BOOST_CHECK_EQUAL_COLLECTIONS(d2.begin(), d2.end(), expectedD.begin(), expectedD.end());
+        BOOST_CHECK_EQUAL_COLLECTIONS(e2.begin(), e2.end(), expectedE.begin(), expectedE.end());
 	}
 
 	template<typename T>
@@ -593,6 +606,24 @@ BOOST_FIXTURE_TEST_CASE(FilterInvalidLQuery, FilteringFixture)
 		})";
 
 	BOOST_CHECK_THROW(filter(table, jsonQuery), std::exception);
+}
+
+BOOST_FIXTURE_TEST_CASE(FilterTimestampGreater, FilteringFixture)
+{
+    int64_t ttt = 1535846400; // 2018-09-02
+
+    // (e > 0)
+    const auto jsonQuery = R"(
+		{
+			"predicate": "gt", 
+			"arguments": 
+				[ 
+					{"column": "e"},
+                    1535846400
+				] 
+		})";
+
+    testQuery(jsonQuery, { 3 });
 }
 
 BOOST_AUTO_TEST_CASE(FilterWithNulls)
