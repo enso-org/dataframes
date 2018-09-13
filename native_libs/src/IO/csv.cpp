@@ -22,6 +22,11 @@
 using namespace std::literals;
 
 
+
+// to allow conditional static_asserts 
+template<arrow::Type::type id> struct always_false2 : std::false_type {};
+template<arrow::Type::type id> constexpr bool always_false2_v = always_false2<id>::value;
+
 arrow::Type::type deduceType(std::string_view text)
 {
     if(text.empty())
@@ -116,8 +121,19 @@ struct ColumnBuilder
                         addMissing();
                     }
                 }
+                else if constexpr(id == arrow::Type::TIMESTAMP)
+                {
+                    if(auto v = Parser::as<Timestamp>(field))
+                    {
+                        checkStatus(append(*builder, *v));
+                    }
+                    else
+                    {
+                        addMissing();
+                    }
+                }
                 else
-                    throw std::runtime_error("wrong type");
+                    static_assert(always_false2_v<id>, "wrong type");
             }
             else
             {

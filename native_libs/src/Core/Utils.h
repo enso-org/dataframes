@@ -10,7 +10,7 @@
 #include "Common.h"
 #include "ArrowUtilities.h"
 
-std::optional<Timestamp> parseTimestamp(std::string_view text);
+DFH_EXPORT std::optional<Timestamp> parseTimestamp(std::string_view text);
 
 struct OldStyleNumberParser
 {

@@ -584,14 +584,21 @@ DFH_EXPORT void validateIndex(const arrow::Array &array, int64_t index);
 DFH_EXPORT void validateIndex(const arrow::ChunkedArray &array, int64_t index);
 DFH_EXPORT void validateIndex(const arrow::Column &column, int64_t index);
 
-inline void append(arrow::StringBuilder &builder, std::string_view sv)
+inline auto append(arrow::StringBuilder &builder, std::string_view sv)
 {
-    builder.Append(sv.data(), static_cast<int32_t>(sv.length()));
+    return builder.Append(sv.data(), static_cast<int32_t>(sv.length()));
 }
 template<typename N, typename V>
-void append(arrow::NumericBuilder<N> &builder, const V &value)
+auto append(arrow::NumericBuilder<N> &builder, const V &value)
 {
-    builder.Append(value);
+    return builder.Append(value);
+}
+inline auto append(arrow::TimestampBuilder &builder, const Timestamp &value)
+{
+    // TODO support other units than nanoseconds
+    assert(std::dynamic_pointer_cast<arrow::TimestampType>(builder.type())->unit() == arrow::TimeUnit::NANO);
+    static_assert(std::is_same_v<Timestamp::period, std::nano>);
+    return builder.Append(value.time_since_epoch().count());
 }
 
 template<arrow::Type::type id1, arrow::Type::type id2, typename F>
@@ -716,7 +723,7 @@ auto dispatch(bool value, F &&f)
 
 
 // for now we just assume that all timestamps are nanoseconds based
-extern std::shared_ptr<arrow::TimestampType> timestampTypeSingleton;
+DFH_EXPORT extern std::shared_ptr<arrow::TimestampType> timestampTypeSingleton;
 
 template<arrow::Type::type id>
 auto getTypeSingleton()
