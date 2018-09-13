@@ -133,3 +133,39 @@ class MaybeDoubleType:
         case column of
             ColumnMaybeReal tc: f tc
             _: throw ("wrong column type, expected " + self.typename)
+
+class TimestampType:
+    def append bw value:
+        self.withValueAsC value bw.append
+    def withValueAsC value f:
+        f (CInt64.fromInt value)
+    def typename: "TimestampTag"
+    def ctype: CInt64
+    def fromC isNull val:
+        val.toInt
+    def nullable: False
+    def makeColumn typedColumn: ColumnTimestamp typedColumn
+    def useColumn column f: 
+        case column of
+            ColumnTimestamp tc: f tc
+            _: throw ("wrong column type, expected " + self.typename)
+
+class MaybeTimestampType:
+    def append bw value:
+        case value of
+            Just justValue: self.withValueAsC justValue bw.append
+            Nothing: bw.appendNull
+    def withValueAsC value f:
+        f (CInt64.fromInt value)
+    def typename: "TimestampTag"
+    def ctype: CInt64
+    def fromC isNull val:
+        case isNull of
+            True: Nothing
+            False: Just val.toInt
+    def nullable: True
+    def makeColumn typedColumn: ColumnMaybeTimestamp typedColumn
+    def useColumn column f: 
+        case column of
+            ColumnMaybeTimestamp tc: f tc
+            _: throw ("wrong column type, expected Maybe " + self.typename)

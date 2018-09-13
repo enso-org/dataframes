@@ -54,38 +54,47 @@ class TypedColumn a:
 
 class Column:
     Column
-    ColumnInt       (TypedColumn Int64Type      )
-    ColumnMaybeInt  (TypedColumn MaybeInt64Type )
-    ColumnReal      (TypedColumn DoubleType     )
-    ColumnMaybeReal (TypedColumn MaybeDoubleType)
-    ColumnText      (TypedColumn StringType     )
-    ColumnMaybeText (TypedColumn MaybeStringType)
+    ColumnInt            (TypedColumn Int64Type         )
+    ColumnMaybeInt       (TypedColumn MaybeInt64Type    )
+    ColumnReal           (TypedColumn DoubleType        )
+    ColumnMaybeReal      (TypedColumn MaybeDoubleType   )
+    ColumnText           (TypedColumn StringType        )
+    ColumnMaybeText      (TypedColumn MaybeStringType   )
+    ColumnTimestamp      (TypedColumn TimestampType     )
+    ColumnMaybeTimestamp (TypedColumn MaybeTimestampType)
+
 
     def ptr:
         case self of
-            ColumnInt       tc: tc.ptr
-            ColumnMaybeInt  tc: tc.ptr
-            ColumnReal      tc: tc.ptr
-            ColumnMaybeReal tc: tc.ptr
-            ColumnText      tc: tc.ptr
-            ColumnMaybeText tc: tc.ptr
+            ColumnInt            tc: tc.ptr
+            ColumnMaybeInt       tc: tc.ptr
+            ColumnReal           tc: tc.ptr
+            ColumnMaybeReal      tc: tc.ptr
+            ColumnText           tc: tc.ptr
+            ColumnMaybeText      tc: tc.ptr
+            ColumnTimestamp      tc: tc.ptr
+            ColumnMaybeTimestamp tc: tc.ptr
     def toList:
         case self of
-            ColumnInt       tc: tc.toList
-            ColumnMaybeInt  tc: tc.toList
-            ColumnReal      tc: tc.toList
-            ColumnMaybeReal tc: tc.toList
-            ColumnText      tc: tc.toList
-            ColumnMaybeText tc: tc.toList
+            ColumnInt            tc: tc.toList
+            ColumnMaybeInt       tc: tc.toList
+            ColumnReal           tc: tc.toList
+            ColumnMaybeReal      tc: tc.toList
+            ColumnText           tc: tc.toList
+            ColumnMaybeText      tc: tc.toList
+            ColumnTimestamp      tc: tc.toList
+            ColumnMaybeTimestamp tc: tc.toList
 
     def slice fromIndex length:
         case self of
-            ColumnInt       tc: ntc = ColumnInt       (tc.slice fromIndex length)
-            ColumnMaybeInt  tc: ntc = ColumnMaybeInt  (tc.slice fromIndex length)
-            ColumnReal      tc: ntc = ColumnReal      (tc.slice fromIndex length)
-            ColumnMaybeReal tc: ntc = ColumnMaybeReal (tc.slice fromIndex length)
-            ColumnText      tc: ntc = ColumnText      (tc.slice fromIndex length)
-            ColumnMaybeText tc: ntc = ColumnMaybeText (tc.slice fromIndex length)
+            ColumnInt            tc: ntc = ColumnInt            (tc.slice fromIndex length)
+            ColumnMaybeInt       tc: ntc = ColumnMaybeInt       (tc.slice fromIndex length)
+            ColumnReal           tc: ntc = ColumnReal           (tc.slice fromIndex length)
+            ColumnMaybeReal      tc: ntc = ColumnMaybeReal      (tc.slice fromIndex length)
+            ColumnText           tc: ntc = ColumnText           (tc.slice fromIndex length)
+            ColumnMaybeText      tc: ntc = ColumnMaybeText      (tc.slice fromIndex length)
+            ColumnTimestamp      tc: ntc = ColumnTimestamp      (tc.slice fromIndex length)
+            ColumnMaybeTimestamp tc: ntc = ColumnMaybeTimestamp (tc.slice fromIndex length)
 
     def toText: self.toList.toText
 
@@ -93,20 +102,24 @@ class Column:
         JSON.empty . insert "header" [self.name] . insert "data" [self.slice 0 1000 . toList]
 
     def isNumeric: case self of
-        ColumnInt       tc: True
-        ColumnMaybeInt  tc: True
-        ColumnReal      tc: True
-        ColumnMaybeReal tc: True
-        ColumnText      tc: False
-        ColumnMaybeText tc: False
+        ColumnInt            tc: True
+        ColumnMaybeInt       tc: True
+        ColumnReal           tc: True
+        ColumnMaybeReal      tc: True
+        ColumnText           tc: False
+        ColumnMaybeText      tc: False
+        ColumnTimestamp      tc: False
+        ColumnMaybeTimestamp tc: False
 
     def isText: case self of
-        ColumnInt       tc: False
-        ColumnMaybeInt  tc: False
-        ColumnReal      tc: False
-        ColumnMaybeReal tc: False
-        ColumnText      tc: True
-        ColumnMaybeText tc: True
+        ColumnInt            tc: False
+        ColumnMaybeInt       tc: False
+        ColumnReal           tc: False
+        ColumnMaybeReal      tc: False
+        ColumnText           tc: True
+        ColumnMaybeText      tc: True
+        ColumnTimestamp      tc: False
+        ColumnMaybeTimestamp tc: False
 
     def map fromTypeTag toTypeTag newName f:
         tc = fromTypeTag.useColumn self (_.map toTypeTag newName f)
@@ -116,13 +129,17 @@ class Column:
         fw = columnWrapper.field
         case fw.nullable of
             True: case fw.type.name of
-                "int64":  ColumnMaybeInt  (TypedColumn MaybeInt64Type  . fromWrapper columnWrapper)
-                "double": ColumnMaybeReal (TypedColumn MaybeDoubleType . fromWrapper columnWrapper)
-                "utf8":   ColumnMaybeText (TypedColumn MaybeStringType . fromWrapper columnWrapper)
+                "int64":     ColumnMaybeInt       (TypedColumn MaybeInt64Type     . fromWrapper columnWrapper)
+                "double":    ColumnMaybeReal      (TypedColumn MaybeDoubleType    . fromWrapper columnWrapper)
+                "utf8":      ColumnMaybeText      (TypedColumn MaybeStringType    . fromWrapper columnWrapper)
+                "timestamp": ColumnMaybeTimestamp (TypedColumn MaybeTimestampType . fromWrapper columnWrapper)
+                _:           throw $ "not supported type " + fw.type.name + " in column " + columnWrapper.name
             False: case fw.type.name of
-                "int64":  ColumnInt  (TypedColumn Int64Type  . fromWrapper columnWrapper)
-                "double": ColumnReal (TypedColumn DoubleType . fromWrapper columnWrapper)
-                "utf8":   ColumnText (TypedColumn StringType . fromWrapper columnWrapper)
+                "int64":     ColumnInt       (TypedColumn Int64Type     . fromWrapper columnWrapper)
+                "double":    ColumnReal      (TypedColumn DoubleType    . fromWrapper columnWrapper)
+                "utf8":      ColumnText      (TypedColumn StringType    . fromWrapper columnWrapper)
+                "timestamp": ColumnTimestamp (TypedColumn TimestampType . fromWrapper columnWrapper)
+                _:        throw $ "not supported type " + fw.type.name + " in column " + columnWrapper.name
 
     def fromList name typeTag list:
         array = Array typeTag . fromList list

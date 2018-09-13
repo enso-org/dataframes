@@ -55,6 +55,7 @@ struct Int64  { static constexpr arrow::Type::type id = arrow::Type::INT64;  };
 struct Float  { static constexpr arrow::Type::type id = arrow::Type::FLOAT;  };
 struct Double { static constexpr arrow::Type::type id = arrow::Type::DOUBLE; };
 struct String { static constexpr arrow::Type::type id = arrow::Type::STRING; };
+struct TimestampTag { static constexpr arrow::Type::type id = arrow::Type::TIMESTAMP; };
 
 template<typename Tag>
 using TypeDescriptionForTag = TypeDescription<Tag::id>;
@@ -481,6 +482,7 @@ extern "C"
     NUMERIC_ARRAY_METHODS(Int64);
     NUMERIC_ARRAY_METHODS(Float);
     NUMERIC_ARRAY_METHODS(Double);
+    NUMERIC_ARRAY_METHODS(TimestampTag);
 
     // string array uses somewhat different interface than numeric -- and needs a special method thereof
     // TODO should an actual array subtype be required? generally speaking having right data in array should be enough

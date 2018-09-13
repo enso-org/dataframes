@@ -604,6 +604,11 @@ class TestArrayBuilder:
         assertEqual "last" (tableAggregated.column "a_last" . toList) [Just 5.0, Just 1.0, Just 7.0, Just 2.0, Nothing]
 
     def run:
+        t4 = CSVParser . readFile "data/variedColumn.csv"
+        print t4.toList
+
+
+        throw "stop"
         self.testAggregateBy
         self.testAutoCorr
         self.testShift
