@@ -1,6 +1,7 @@
 #pragma once
 
 
+#include <cmath>
 #include <regex>
 #include <string>
 #include <string_view>
