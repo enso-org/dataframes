@@ -166,7 +166,7 @@ struct Interpreter
     const arrow::Table &table;
     std::vector<std::shared_ptr<arrow::Column>> columns;
 
-    using Field = std::variant<int64_t, double, std::string, Timestamp, ArrayOperand<int64_t>, ArrayOperand<double>, ArrayOperand<std::string>>;
+    using Field = std::variant<int64_t, double, std::string, Timestamp, ArrayOperand<int64_t>, ArrayOperand<double>, ArrayOperand<std::string>, ArrayOperand<Timestamp>>;
 
     Field fieldFromColumn(const arrow::Column &column)
     {
@@ -329,9 +329,10 @@ template<typename T>
 auto arrayFrom(const int64_t &length, const ArrayOperand<T> &arrayProto, std::shared_ptr<arrow::Buffer> nullBuffer)
 {
     constexpr auto id = ValueTypeToId<T>();
-    if constexpr(std::is_arithmetic_v<T>)
+    if constexpr(std::is_arithmetic_v<T> || std::is_same_v<Timestamp, T>)
     {
-        return std::make_shared<typename TypeDescription<id>::Array>(length, arrayProto.buffer, nullBuffer, -1);
+        const auto type = getTypeSingleton<id>();
+        return std::make_shared<typename TypeDescription<id>::Array>(type, length, arrayProto.buffer, nullBuffer, -1);
     }
     else
     {
