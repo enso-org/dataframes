@@ -796,14 +796,18 @@ BOOST_AUTO_TEST_CASE(MakeNullsArray)
 
 BOOST_AUTO_TEST_CASE(CsvWithUtf8Path)
 {
+    using namespace date;
+
     const auto utfPath = u8"temp-zażółć鵞鳥.csv";
-    std::vector<int64_t> nums = {1, 2, 3};
-    auto table = tableFromVectors(nums);
+    std::vector<int64_t> nums = { 1, 2, 3 };
+    std::vector<Timestamp> dates = { 2018_y/sep/13, 2018_y/sep/14, 2018_y/sep/15 };
+    auto table = tableFromVectors(nums, dates);
     generateCsv(utfPath, *table);
     auto table2 = loadTableFromCsvFile(utfPath);
 
-    auto [readInts] = toVectors<int64_t>(*table2);
+    auto [readInts, readDates] = toVectors<int64_t, Timestamp>(*table2);
     BOOST_CHECK_EQUAL_RANGES(nums, readInts);
+    BOOST_CHECK_EQUAL_RANGES(dates, readDates);
 }
 
 BOOST_AUTO_TEST_CASE(ColumnShift)

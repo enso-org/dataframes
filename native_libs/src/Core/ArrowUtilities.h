@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cassert>
+#include <ctime>
+#include <iomanip>
 #include <sstream>
 #include <stdexcept>
 #include <tuple>
@@ -12,17 +14,40 @@
 #include <arrow/type.h>
 #include "Common.h"
 
+namespace date
+{
+    class year_month_day;
+}
+
 using TimestampDuration = std::chrono::duration<int64_t, std::nano>; // nanoseconds since epoch
 
+struct Timestamp;
 
-struct Timestamp : std::chrono::time_point<std::chrono::system_clock, TimestampDuration>
+namespace std
+{
+    DFH_EXPORT std::string to_string(const Timestamp &t);
+}
+
+struct DFH_EXPORT Timestamp : std::chrono::time_point<std::chrono::system_clock, TimestampDuration>
 {
     using Base = std::chrono::time_point<std::chrono::system_clock, TimestampDuration>;
     explicit Timestamp(int64_t nanoticks) : Base(TimestampDuration(nanoticks)) {}
+    Timestamp(date::year_month_day ymd);
     using Base::time_point;
 
     int64_t toStorage() const { return time_since_epoch().count(); }
+    time_t toTimeT() const 
+    {
+        using namespace std::chrono;
+        return system_clock::to_time_t(time_point_cast<system_clock::duration>(*this)); 
+    }
+
+    friend std::ostream &operator<<(std::ostream &out, const Timestamp &t)
+    {
+        return out << std::to_string(t);
+    }
 };
+
 
 template<typename T>
 inline auto toStorage(const T &t) { return t; }
@@ -52,6 +77,8 @@ constexpr auto ValueTypeToId()
         return arrow::Type::DOUBLE;
     else if constexpr(std::is_same_v<T, std::string>)
         return arrow::Type::STRING;
+    else if constexpr(std::is_same_v<T, Timestamp>)
+        return arrow::Type::TIMESTAMP;
     else
         static_assert(always_false_v<T>);
 }
@@ -158,6 +185,7 @@ auto visitDataType3(const std::shared_ptr<arrow::DataType> &type, F &&f)
         case arrow::Type::INT64: return f(std::static_pointer_cast<arrow::Int64Type>(type));
         case arrow::Type::DOUBLE: return f(std::static_pointer_cast<arrow::DoubleType>(type));
         case arrow::Type::STRING: return f(std::static_pointer_cast<arrow::StringType>(type));
+        case arrow::Type::TIMESTAMP: return f(std::static_pointer_cast<arrow::TimestampType>(type));
         default: throw std::runtime_error("type not supported to downcast: " + type->ToString());
     }
 }
@@ -184,6 +212,7 @@ auto visitType(const arrow::Type::type &id, F &&f)
     case arrow::Type::INT64 : return f(std::integral_constant<arrow::Type::type, arrow::Type::INT64 >{});
     case arrow::Type::DOUBLE: return f(std::integral_constant<arrow::Type::type, arrow::Type::DOUBLE>{});
     case arrow::Type::STRING: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
+    case arrow::Type::TIMESTAMP: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
     //case arrow::Type::LIST: return f(std::integral_constant<arrow::Type::type, arrow::Type::LIST>{});
     default: throw std::runtime_error("array type not supported to downcast: " + std::to_string((int)id));
     }
@@ -211,6 +240,7 @@ auto visitType4(const arrow::TypePtr &type, F &&f)
     case arrow::Type::INT64: return f(std::integral_constant<arrow::Type::type, arrow::Type::INT64 >{});
     case arrow::Type::DOUBLE: return f(std::integral_constant<arrow::Type::type, arrow::Type::DOUBLE>{});
     case arrow::Type::STRING: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
+    case arrow::Type::TIMESTAMP: return f(std::integral_constant<arrow::Type::type, arrow::Type::TIMESTAMP>{});
     case arrow::Type::LIST: return f(std::integral_constant<arrow::Type::type, arrow::Type::LIST>{});
     default: throw std::runtime_error("array type not supported to downcast: " + type->ToString());
     }
@@ -238,6 +268,75 @@ auto arrayValueAtTyped(const Array &array, int32_t index)
     else
         return array.Value(index);
 }
+
+//////////////////////////////////////////////////////////////////////////
+
+
+// for now we just assume that all timestamps are nanoseconds based
+//DFH_EXPORT extern std::shared_ptr<arrow::TimestampType> timestampTypeSingleton;
+
+template<arrow::Type::type id>
+auto getTypeSingleton()
+{
+    using ArrowType = typename TypeDescription<id>::ArrowType;
+    if constexpr(id == arrow::Type::TIMESTAMP)
+    {
+        // TODO: be smarter
+        return std::make_shared<arrow::TimestampType>(arrow::TimeUnit::NANO);
+    }
+    else
+        return std::static_pointer_cast<ArrowType>(arrow::TypeTraits<ArrowType>::type_singleton());
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+DFH_EXPORT std::shared_ptr<arrow::ArrayBuilder> makeBuilder(const arrow::TypePtr &type);
+
+template<typename TypeT>
+auto makeBuilder(const std::shared_ptr<TypeT> &type)
+{
+    using TT = arrow::TypeTraits<TypeT>;
+    using Builder = typename TT::BuilderType;
+    constexpr auto id = TypeT::type_id;
+    if constexpr(id == arrow::Type::LIST)
+    {
+        if(type->num_children() != 1)
+            throw std::runtime_error("list type must have a single child type");
+
+        // list builder must additionally take a nested builder for a value buffer
+        auto nestedBuilder = makeBuilder(type->child(0)->type());
+        return std::make_shared<Builder>(nullptr, nestedBuilder);
+    }
+    else if constexpr(TT::is_parameter_free)
+    {
+        return std::make_shared<Builder>();
+    }
+    else
+    {
+        return std::make_shared<Builder>(type, arrow::default_memory_pool());
+    }
+}
+
+inline auto append(arrow::StringBuilder &builder, std::string_view sv)
+{
+    return builder.Append(sv.data(), static_cast<int32_t>(sv.length()));
+}
+
+template<typename N, typename V>
+auto append(arrow::NumericBuilder<N> &builder, const V &value)
+{
+    return builder.Append(value);
+}
+
+inline auto append(arrow::TimestampBuilder &builder, const Timestamp &value)
+{
+    // TODO support other units than nanoseconds
+    assert(std::dynamic_pointer_cast<arrow::TimestampType>(builder.type())->unit() == arrow::TimeUnit::NANO);
+    static_assert(std::is_same_v<Timestamp::period, std::nano>);
+    return builder.Append(value.time_since_epoch().count());
+}
+
+//////////////////////////////////////////////////////////////////////////
 
 template <arrow::Type::type type>
 auto arrayValueAt(const arrow::Array &array, int32_t index)
@@ -472,24 +571,24 @@ template<typename T>
 std::shared_ptr<arrow::Array> toArray(const std::vector<T> &elems)
 {
     using ValueT = strip_optional_t<T>;
-
-    using BuilderT = typename TypeDescription<ValueTypeToId<ValueT>()>::BuilderType;
-    BuilderT builder;
-    builder.Reserve(elems.size());
+    using TD = TypeDescription<ValueTypeToId<ValueT>()>;
+    using BuilderT = typename TD::BuilderType;
+    auto builder = makeBuilder(getTypeSingleton<TD::id>());
+    builder->Reserve(elems.size());
     for(auto &&elem : elems)
     {
         if constexpr(is_optional_v<T>)
         {
             if(elem)
-                builder.Append(*elem);
+                append(*builder, *elem);
             else
-                builder.AppendNull();
+                builder->AppendNull();
         }
         else
-            builder.Append(elem);
+            append(*builder, elem);
     }
 
-    return finish(builder);
+    return finish(*builder);
 }
 
 template<typename T>
@@ -615,23 +714,6 @@ DFH_EXPORT void validateIndex(const arrow::Array &array, int64_t index);
 DFH_EXPORT void validateIndex(const arrow::ChunkedArray &array, int64_t index);
 DFH_EXPORT void validateIndex(const arrow::Column &column, int64_t index);
 
-inline auto append(arrow::StringBuilder &builder, std::string_view sv)
-{
-    return builder.Append(sv.data(), static_cast<int32_t>(sv.length()));
-}
-template<typename N, typename V>
-auto append(arrow::NumericBuilder<N> &builder, const V &value)
-{
-    return builder.Append(value);
-}
-inline auto append(arrow::TimestampBuilder &builder, const Timestamp &value)
-{
-    // TODO support other units than nanoseconds
-    assert(std::dynamic_pointer_cast<arrow::TimestampType>(builder.type())->unit() == arrow::TimeUnit::NANO);
-    static_assert(std::is_same_v<Timestamp::period, std::nano>);
-    return builder.Append(value.time_since_epoch().count());
-}
-
 template<arrow::Type::type id1, arrow::Type::type id2, typename F>
 void iterateOverJustPairs(const arrow::ChunkedArray &array1, const arrow::ChunkedArray &array2, F &&f)
 {
@@ -677,33 +759,6 @@ void iterateOverJustPairs(const arrow::Column &column1, const arrow::Column &col
 
 DFH_EXPORT std::shared_ptr<arrow::Array> makeNullsArray(arrow::TypePtr type, int64_t length);
 
-
-DFH_EXPORT std::shared_ptr<arrow::ArrayBuilder> makeBuilder(const arrow::TypePtr &type);
-
-template<typename TypeT>
-auto makeBuilder(const std::shared_ptr<TypeT> &type)
-{
-    using TT = arrow::TypeTraits<TypeT>;
-    using Builder = typename TT::BuilderType;
-    constexpr auto id = TypeT::type_id;
-    if constexpr(id == arrow::Type::LIST)
-    {
-        if(type->num_children() != 1)
-            throw std::runtime_error("list type must have a single child type");
-
-        // list builder must additionally take a nested builder for a value buffer
-        auto nestedBuilder = makeBuilder(type->child(0)->type());
-        return std::make_shared<Builder>(nullptr, nestedBuilder);
-    }
-    else if constexpr(TT::is_parameter_free)
-    {
-        return std::make_shared<Builder>();
-    }
-    else
-    {
-        return std::make_shared<Builder>(type, arrow::default_memory_pool());
-    }
-}
 
 template<arrow::Type::type id, bool nullable>
 struct FixedSizeArrayBuilder
@@ -752,22 +807,6 @@ auto dispatch(bool value, F &&f)
     }
 }
 
-
-// for now we just assume that all timestamps are nanoseconds based
-DFH_EXPORT extern std::shared_ptr<arrow::TimestampType> timestampTypeSingleton;
-
-template<arrow::Type::type id>
-auto getTypeSingleton()
-{
-    using ArrowType = typename TypeDescription<id>::ArrowType;
-    if constexpr(id == arrow::Type::TIMESTAMP)
-    {
-        // TODO: be smarter
-        return timestampTypeSingleton;
-    }
-    else
-        return std::static_pointer_cast<ArrowType>(arrow::TypeTraits<ArrowType>::type_singleton());
-}
 
 template<typename ArrowDataTypePtr>
 using ArrowTypeFromPtr = typename std::decay_t<ArrowDataTypePtr>::element_type;

@@ -176,7 +176,7 @@ ColumnType deduceType(const ParsedCsv &csv, size_t columnIndex, size_t startRow,
             // string if there are timestamps and types other than timestamps (excluding nulls)
             if(encounteredTypes.size() > 1 + encounteredTypes.count(arrow::Type::NA))
                 return arrow::TypeTraits<arrow::StringType>::type_singleton();
-            return timestampTypeSingleton;
+            return getTypeSingleton<arrow::Type::TIMESTAMP>();
         }
         if(encounteredTypes.count(arrow::Type::STRING))
             return arrow::TypeTraits<arrow::StringType>::type_singleton();
@@ -413,7 +413,7 @@ struct ColumnWriterFor<arrow::Type::TIMESTAMP> : ColumnWriter
         auto ticksCount = static_cast<const arrow::TimestampArray&>(chunk).Value(usedFromChunk);
         TimestampDuration nanosecondTicks(ticksCount);
         Timestamp timestamp(nanosecondTicks);
-        auto timet = std::chrono::system_clock::to_time_t(std::chrono::time_point_cast<std::chrono::system_clock::duration>(timestamp));
+        auto timet = timestamp.toTimeT();
         auto tm = std::gmtime(&timet);
         auto n = std::strftime(buffer, std::size(buffer), "%F", tm);
         generator.writeField(buffer, n);

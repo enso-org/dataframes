@@ -88,3 +88,5 @@ using Parser = NewStyleNumberParser;
 #else
 using Parser = OldStyleNumberParser;
 #endif
+
+DFH_EXPORT void uglyPrint(const arrow::Table &table, std::ostream &out = std::cout, int rows = 20);

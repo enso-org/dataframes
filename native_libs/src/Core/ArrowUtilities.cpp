@@ -1,8 +1,9 @@
 #include "ArrowUtilities.h"
+#include <date/date.h>
 
 using namespace std::literals;
 
-std::shared_ptr<arrow::TimestampType> timestampTypeSingleton = std::make_shared<arrow::TimestampType>(arrow::TimeUnit::NANO);
+//DFH_EXPORT std::shared_ptr<arrow::TimestampType> timestampTypeSingleton = std::make_shared<arrow::TimestampType>(arrow::TimeUnit::NANO);
 
 std::shared_ptr<arrow::Column> toColumn(std::shared_ptr<arrow::ChunkedArray> chunks, std::string name /*= "col"*/)
 {
@@ -266,4 +267,16 @@ bool ChunkAccessor::isNull(int64_t index)
 {
     auto[chunk, chunkIndex] = locate(index);
     return chunk->IsNull(chunkIndex);
+}
+
+std::string std::to_string(const Timestamp &t)
+{
+    std::ostringstream out;
+    out << date::format("%F", t);
+    return out.str();
+}
+
+Timestamp::Timestamp(date::year_month_day ymd)
+    : Base(date::sys_days(ymd))
+{
 }
