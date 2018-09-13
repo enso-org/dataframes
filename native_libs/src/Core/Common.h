@@ -25,8 +25,9 @@ using namespace std::chrono_literals;
 #define NO_INLINE __attribute__((noinline))
 #endif 
 
-#ifdef _MSC_VER
-#define EXPORT _declspec(dllexport)
+// intellisense is checked because of MSVC bug: https://developercommunity.visualstudio.com/content/problem/335672/c-intellisense-stops-working-with-given-code.html
+#if defined(_MSC_VER) && !defined(__INTELLISENSE__)
+#define EXPORT __declspec(dllexport)
 #else
 #define EXPORT
 #endif
