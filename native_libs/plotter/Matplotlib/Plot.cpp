@@ -71,6 +71,12 @@ public:
         append(PyString_FromString(std::string(s).c_str()));
     }
 
+    // TODO: use date2num or sth???
+    void append(const Timestamp &t)
+    {
+        append(PyLong_FromLongLong(t.toStorage()));
+    }
+
     void appendNull()
     {
         append(PyFloat_FromDouble(nan(" ")));
