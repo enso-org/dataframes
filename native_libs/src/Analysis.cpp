@@ -515,6 +515,7 @@ DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_pt
 
     visitDataType(keyColumn->type(), [&](auto type)
     {
+        using ArrowType = ArrowTypeFromPtr<decltype(type)>;
         constexpr auto keyTypeID = idFromDataPointer<decltype(type)>;
         using KeyT = typename TypeDescription<keyTypeID>::ObservedType;
         if constexpr(keyTypeID == arrow::Type::LIST)
@@ -523,7 +524,7 @@ DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_pt
         }
         else
         {
-            GroupedKeyInfo<keyTypeID> groups{*keyColumn};
+            GroupedKeyInfo<ArrowType> groups{*keyColumn};
 
             const auto groupCount = groups.groupCount();
             const auto hasNulls = groups.hasNulls;

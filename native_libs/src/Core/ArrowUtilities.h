@@ -111,6 +111,9 @@ template<> struct TypeDescription<arrow::Type::LIST>
 template<typename Array>
 using ArrayTypeDescription = TypeDescription<std::decay_t<std::remove_pointer_t<Array>>::TypeClass::type_id>;
 
+template<typename ArrowType>
+using ArrowTypeDescription = TypeDescription<ArrowType::type_id>;
+
 template<arrow::Type::type id>
 using BuilderFor = typename TypeDescription<id>::BuilderType;
 
@@ -727,6 +730,9 @@ auto getTypeSingleton()
     else
         return std::static_pointer_cast<ArrowType>(arrow::TypeTraits<ArrowType>::type_singleton());
 }
+
+template<typename ArrowDataTypePtr>
+using ArrowTypeFromPtr = typename std::decay_t<ArrowDataTypePtr>::element_type;
 
 template<typename ArrowDataTypePtr>
 constexpr arrow::Type::type idFromDataPointer = std::decay_t<ArrowDataTypePtr>::element_type::type_id;
