@@ -234,6 +234,11 @@ class ColumnWrapper:
     def autoCorr lag:
         callHandlingError "columnAutoCorrelation" (CDouble) [self.ptr.toCArg, CInt64.fromInt lag . toCArg] . toReal
 
+def createIntSequenceColumnWrapper name from to step:
+    ptr = CString.with name nameC:
+        callHandlingError "columnNewInt64Sequence" (Pointer None) [nameC.toCArg, CInt64.fromInt from . toCArg, CInt64.fromInt to . toCArg, CInt64.fromInt step . toCArg]
+    wrapReleasableResouce ColumnWrapper ptr
+
 def createColumnWrapper field chunks:
     ptr = callHandlingError "columnNew" (Pointer None) [field.ptr.toCArg, chunks.ptr.toCArg]
     wrapReleasableResouce ColumnWrapper ptr

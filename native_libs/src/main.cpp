@@ -717,6 +717,24 @@ extern "C"
             return LifetimeManager::instance().addOwnership(std::move(ret));
         };
     }
+    DFH_EXPORT arrow::Column *columnNewInt64Sequence(const char *name, int64_t from, int64_t to, int64_t step, const char **outError) noexcept
+    {
+        LOG("[{}, {}), step={}", from, to, step);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            const auto length = (to-from) / step;
+            if(length >= std::numeric_limits<int32_t>::max())
+                throw std::runtime_error("not implemented: element count exceeding a single chunk");
+
+            FixedSizeArrayBuilder<arrow::Type::INT64, false> builder{static_cast<int32_t>(length)};
+            for(int64_t i = from; i < to; i += step)
+                builder.Append(i);
+
+            auto arr = builder.Finish();
+            auto col = toColumn(arr, name);
+            return LifetimeManager::instance().addOwnership(std::move(col));
+        };
+    }
     DFH_EXPORT int64_t columnLength(arrow::Column *column) noexcept
     {
         LOG("@{}", (void*)column);

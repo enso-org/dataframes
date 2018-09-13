@@ -238,6 +238,11 @@ class TestArrayBuilder:
         assertEqual "maybe int contents" colMappedMaybeInt.toList [Just 8, Just 9, Just 10]
         colMappedMaybeReal = colMappedMaybeInt.map MaybeInt64Type MaybeDoubleType "maybe strings" (maybeNum: Just (maybeNum.get.toReal + 0.5))
         assertEqual "maybe real contents" colMappedMaybeReal.toList [Just 8.5, Just 9.5, Just 10.5]
+        
+        print "=== Creating index"
+        colIndex = Column.createIndex 5
+        assertEqual "index name" colIndex.name "index"
+        assertEqual "indices" colIndex.toList [0, 1, 2, 3, 4]
 
     def testSchema:
         print "=== Testing Schema ==="
