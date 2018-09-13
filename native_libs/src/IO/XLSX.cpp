@@ -175,6 +175,10 @@ void writeXlsx(std::ostream &out, const arrow::Table &table, GeneratorHeaderPoli
                 cell.value((long long)field);
             else if constexpr(std::is_same_v<std::string_view, FieldType>)
                 cell.value(std::string(field));
+            else if constexpr(std::is_same_v<Timestamp, FieldType>)
+            {
+
+            }
             else
                 cell.value(field);
             ++row;

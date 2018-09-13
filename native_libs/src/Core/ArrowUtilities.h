@@ -12,9 +12,36 @@
 #include <arrow/type.h>
 #include "Common.h"
 
-
 using TimestampDuration = std::chrono::duration<int64_t, std::nano>; // nanoseconds since epoch
-using Timestamp = std::chrono::time_point<std::chrono::system_clock, TimestampDuration>;
+
+
+struct Timestamp : std::chrono::time_point<std::chrono::system_clock, TimestampDuration>
+{
+    using Base = std::chrono::time_point<std::chrono::system_clock, TimestampDuration>;
+    explicit Timestamp(int64_t nanoticks) : Base(TimestampDuration(nanoticks)) {}
+    using Base::time_point;
+
+    int64_t toStorage() const { return time_since_epoch().count(); }
+};
+
+template<typename T>
+inline auto toStorage(const T &t) { return t; }
+inline auto toStorage(const Timestamp &t) { return t.toStorage(); }
+
+namespace std
+{
+    template <>
+    struct hash<Timestamp>
+    {
+        using argument_type = Timestamp;
+        using result_type = std::size_t;
+
+        result_type operator()(const argument_type &value) const noexcept
+        {
+            return value.time_since_epoch().count();
+        }
+    };
+}
 
 template<typename T>
 constexpr auto ValueTypeToId()
@@ -87,7 +114,7 @@ template<> struct TypeDescription<arrow::Type::TIMESTAMP>
     using ArrowType = arrow::TimestampType;
     using BuilderType = arrow::TimestampBuilder;
     using ValueType = typename BuilderType::value_type;
-    using ObservedType = ValueType;
+    using ObservedType = Timestamp;
     using CType = typename BuilderType::value_type;
     using Array = arrow::TimestampArray;
     using StorageValueType = ValueType;
@@ -203,6 +230,10 @@ auto arrayValueAtTyped(const Array &array, int32_t index)
         const auto length = array.value_length(index);
         const auto offset = array.value_offset(index);
         return ListElemView{ array.values().get(), offset, length };
+    }
+    else if constexpr(std::is_same_v<arrow::TimestampArray, Array>)
+    {
+        return Timestamp(TimestampDuration(array.Value(index)));
     }
     else
         return array.Value(index);
@@ -535,7 +566,7 @@ std::shared_ptr<arrow::Table> tableFromVectors(const std::vector<Ts> & ...ts)
 
 using DynamicField = std::variant<int64_t, double, std::string_view, std::string, ListElemView, Timestamp, std::nullopt_t>;
 
-using DynamicJustVector = std::variant<std::vector<int64_t>, std::vector<double>, std::vector<std::string_view>, std::vector<ListElemView>>;
+using DynamicJustVector = std::variant<std::vector<int64_t>, std::vector<double>, std::vector<std::string_view>, std::vector<ListElemView>, std::vector<Timestamp>>;
 DFH_EXPORT DynamicJustVector toJustVector(const arrow::ChunkedArray &chunkedArray);
 DFH_EXPORT DynamicJustVector toJustVector(const arrow::Column &column);
 

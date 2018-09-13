@@ -284,8 +284,10 @@ struct InterpolatedColumnBuilder
         : builder(std::move(type), length)
     {}
 
-    void operator()(T validValue)
+    template<typename U>
+    void operator()(U validValueObserved)
     {
+        auto validValue = toStorage(validValueObserved);
         if(nanCount)
         {
             if(!hadGoodValue)

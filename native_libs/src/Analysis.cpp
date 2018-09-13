@@ -158,7 +158,7 @@ template<arrow::Type::type id, typename Processor>
 auto calculateStatScalar(const arrow::Column &column, Processor &p)
 {
     iterateOver<id>(column,
-        [&] (auto elem) { p(elem); },
+        [&] (auto elem) { p(toStorage(elem)); },
         [] {});
 
     return p.get();
@@ -305,9 +305,9 @@ double calculateCorrelation(const arrow::Column &xCol, const arrow::Column &yCol
             {
                 CorrelationStats stats;
                 iterateOverJustPairs<id1.value, id2.value>(xCol, yCol,
-                    [&] (double xVal, double yVal)
+                    [&] (auto xVal, auto yVal)
                 {
-                    stats.addPair(xVal, yVal);
+                    stats.addPair(toStorage(xVal), toStorage(yVal));
                 });
                 return stats;
             }
