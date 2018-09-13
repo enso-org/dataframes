@@ -483,7 +483,7 @@ std::unique_ptr<AggregateBase<T>> makeAggregator(AggregateFunction a)
 
 std::string aggregateName(AggregateFunction a)
 {
-    // not efficent, but should not be called that often
+    // inefficient, but should not be called that often
     return makeAggregator<double>(a)->name();
 }
 
