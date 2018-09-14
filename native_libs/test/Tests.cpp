@@ -805,6 +805,18 @@ BOOST_AUTO_TEST_CASE(TimestampParsingFromCsv)
     BOOST_CHECK(table->Equals(*tableXlsx));
 }
 
+BOOST_AUTO_TEST_CASE(TimestampInterpolation)
+{
+    std::vector<std::optional<Timestamp>> times{ 2018_y/sep/1, std::nullopt, std::nullopt, 2018_y/sep/10 };
+    auto interpolatedTimes = toVector<std::optional<Timestamp>>(*interpolateNA(toColumn(times)));
+    std::vector<std::optional<Timestamp>> expectedInterpolatedTimes
+    {
+        2018_y/sep/1, 2018_y/sep/4, 2018_y/sep/7, 2018_y/sep/10 
+    };
+
+    BOOST_CHECK_EQUAL_RANGES(interpolatedTimes, expectedInterpolatedTimes);
+}
+
 BOOST_AUTO_TEST_CASE(TypeDeducing)
 {
     BOOST_CHECK_EQUAL(deduceType("5.0"), arrow::Type::DOUBLE);
