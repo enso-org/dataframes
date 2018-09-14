@@ -288,27 +288,30 @@ struct FilteringFixture
 
 	void testQuery(const char *jsonQuery, std::vector<int> expectedIndices)
 	{
-		auto expected = [&](auto &&v)
-		{
-			std::decay_t<decltype(v)> ret;
-			for(auto index : expectedIndices)
-				ret.push_back(v.at(index));
-			return ret;
-		};
+        BOOST_TEST_CONTEXT("tesing query: " << jsonQuery)
+        {
+            auto expected = [&](auto &&v)
+            {
+                std::decay_t<decltype(v)> ret;
+                for(auto index : expectedIndices)
+                    ret.push_back(v.at(index));
+                return ret;
+            };
 
-		auto expectedA = expected(a);
-		auto expectedB = expected(b);
-		auto expectedC = expected(c);
-        auto expectedD = expected(d);
-        auto expectedE = expected(e);
+            auto expectedA = expected(a);
+            auto expectedB = expected(b);
+            auto expectedC = expected(c);
+            auto expectedD = expected(d);
+            auto expectedE = expected(e);
 
-		const auto filteredTable = filter(table, jsonQuery);
-		auto[a2, b2, c2, d2, e2] = toVectors<int64_t, double, std::string, std::optional<double>, std::optional<Timestamp>>(*filteredTable);
-		BOOST_CHECK_EQUAL_COLLECTIONS(a2.begin(), a2.end(), expectedA.begin(), expectedA.end());
-		BOOST_CHECK_EQUAL_COLLECTIONS(b2.begin(), b2.end(), expectedB.begin(), expectedB.end());
-		BOOST_CHECK_EQUAL_COLLECTIONS(c2.begin(), c2.end(), expectedC.begin(), expectedC.end());
-        BOOST_CHECK_EQUAL_COLLECTIONS(d2.begin(), d2.end(), expectedD.begin(), expectedD.end());
-        BOOST_CHECK_EQUAL_COLLECTIONS(e2.begin(), e2.end(), expectedE.begin(), expectedE.end());
+            const auto filteredTable = filter(table, jsonQuery);
+            auto[a2, b2, c2, d2, e2] = toVectors<int64_t, double, std::string, std::optional<double>, std::optional<Timestamp>>(*filteredTable);
+            BOOST_CHECK_EQUAL_COLLECTIONS(a2.begin(), a2.end(), expectedA.begin(), expectedA.end());
+            BOOST_CHECK_EQUAL_COLLECTIONS(b2.begin(), b2.end(), expectedB.begin(), expectedB.end());
+            BOOST_CHECK_EQUAL_COLLECTIONS(c2.begin(), c2.end(), expectedC.begin(), expectedC.end());
+            BOOST_CHECK_EQUAL_COLLECTIONS(d2.begin(), d2.end(), expectedD.begin(), expectedD.end());
+            BOOST_CHECK_EQUAL_COLLECTIONS(e2.begin(), e2.end(), expectedE.begin(), expectedE.end());
+        }
 	}
 
 	template<typename T>
@@ -608,13 +611,12 @@ BOOST_FIXTURE_TEST_CASE(FilterInvalidLQuery, FilteringFixture)
 	BOOST_CHECK_THROW(filter(table, jsonQuery), std::exception);
 }
 
-BOOST_FIXTURE_TEST_CASE(FilterTimestampGreater, FilteringFixture)
+BOOST_FIXTURE_TEST_CASE(FilterTimestampRelationalOps, FilteringFixture)
 {
-    auto ttt1 = Timestamp(2018_y/sep/2).toStorage();
-    int64_t ttt = 1535846400; // 2018-09-02
+    BOOST_CHECK_EQUAL(Timestamp(2018_y/sep/2).toStorage(), 1535846400000000000);
 
-    // (e > 0)
-    const auto jsonQuery = R"(
+    // (e > 2018-09-02)
+    const auto jsonQueryGt = R"(
 		{
 			"predicate": "gt", 
 			"arguments": 
@@ -623,8 +625,32 @@ BOOST_FIXTURE_TEST_CASE(FilterTimestampGreater, FilteringFixture)
                     {"timestampNs" : 1535846400000000000 }
 				] 
 		})";
+    testQuery(jsonQueryGt, { 3 });
 
-    testQuery(jsonQuery, { 3 });
+    // (e < 2018-09-02)
+    const auto jsonQueryLt = R"(
+		{
+			"predicate": "lt", 
+			"arguments": 
+				[ 
+					{"column": "e"},
+                    {"timestampNs" : 1535846400000000000 }
+				] 
+		})";
+    testQuery(jsonQueryLt, { 0 });
+
+
+    // (e == 2018-09-02)
+    const auto jsonQueryEq = R"(
+		{
+			"predicate": "eq", 
+			"arguments": 
+				[ 
+					{"column": "e"},
+                    {"timestampNs" : 1535846400000000000 }
+				] 
+		})";
+    testQuery(jsonQueryEq, { 1 });
 }
 
 BOOST_AUTO_TEST_CASE(FilterWithNulls)
