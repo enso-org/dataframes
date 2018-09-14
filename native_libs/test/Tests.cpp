@@ -25,6 +25,7 @@
 
 #include "Fixture.h"
 #include "Core/Utils.h"
+#include "IO/XLSX.h"
 
 using namespace std::literals;
 using namespace date::literals;
@@ -797,6 +798,11 @@ BOOST_AUTO_TEST_CASE(TimestampParsingFromCsv)
     generateCsv("_Temp.csv", *table);
     auto table2 = loadTableFromCsvFile("_Temp.csv");
     BOOST_CHECK(table->Equals(*table2));
+
+    writeXlsx("_Temp.xlsx", *table);
+    auto tableXlsx = readXlsxFile("_Temp.xlsx", TakeFirstRowAsHeaders{}, transformToVector(getColumns(*table), [](auto col) 
+        { return ColumnType{*col, false}; }));
+    BOOST_CHECK(table->Equals(*tableXlsx));
 }
 
 BOOST_AUTO_TEST_CASE(TypeDeducing)
