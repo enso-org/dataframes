@@ -79,6 +79,12 @@ struct DslParser
                     return ast::ColumnReference{referenceIndex};
                 }
             }
+            else if(obj.HasMember("timestampNs") && obj["timestampNs"].IsInt64())
+            {
+                const auto tickCount = obj["timestampNs"].GetInt64();
+                const Timestamp timestamp{ tickCount };
+                return ast::Literal<Timestamp>{timestamp};
+            }
             else if(obj.HasMember("operation") && obj["operation"].IsString() 
                 && obj.HasMember("arguments") && obj["arguments"].IsArray())
             {

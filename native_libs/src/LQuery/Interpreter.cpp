@@ -237,6 +237,7 @@ struct Interpreter
             [&] (const ast::Literal<int64_t> &l)     -> Field { return l.literal; },
             [&] (const ast::Literal<double> &l)      -> Field { return l.literal; },
             [&] (const ast::Literal<std::string> &l) -> Field { return l.literal; },
+            [&] (const ast::Literal<Timestamp> &l)   -> Field { return l.literal; },
             [&] (const ast::Condition &condition)    -> Field 
             {
                 auto mask = this->evaluate(*condition.predicate);

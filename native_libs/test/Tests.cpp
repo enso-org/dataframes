@@ -620,7 +620,7 @@ BOOST_FIXTURE_TEST_CASE(FilterTimestampGreater, FilteringFixture)
 			"arguments": 
 				[ 
 					{"column": "e"},
-                    1535846400
+                    {"timestampNs" : 1535846400000000000 }
 				] 
 		})";
 
