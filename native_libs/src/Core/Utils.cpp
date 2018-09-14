@@ -39,7 +39,7 @@ std::string formatColumnElem(const T &elem)
 }
 std::string formatColumnElem(const std::string_view &elem)
 {
-    return std::string(elem);
+    return '"' + std::string(elem) + '"';
 }
 std::string formatColumnElem(const ListElemView &elem)
 {
@@ -64,6 +64,11 @@ std::string formatColumnElem(const ListElemView &elem)
 
     out << "]";
     return out.str();
+}
+
+std::string formatColumnElem(const std::nullopt_t &)
+{
+    return "null"s;
 }
 
 template<typename T>
@@ -91,8 +96,14 @@ void uglyPrint(const arrow::Table &table, std::ostream &out, int rows /*= 20*/)
     {
         return visitType4(col.type(), [&](auto id) -> std::string
         {
-            const auto value = columnValueAt<id.value>(col, row);
-            return formatColumnElem(value);
+            auto [chunk, chunkIndex] = locateChunk(*col.data(), row);
+            if(chunk->IsValid(chunkIndex))
+            {
+                const auto value = arrayValueAt<id.value>(*chunk, row);
+                return formatColumnElem(value);
+            }
+            else
+                return formatColumnElem(std::nullopt);
         });
     };
 
