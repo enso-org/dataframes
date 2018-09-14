@@ -231,6 +231,8 @@ struct Interpreter
                     VALUE_BINARY_OP(Modulo);
                     VALUE_UNARY_OP(Negate);
                     VALUE_UNARY_OP(Day);
+                    VALUE_UNARY_OP(Month);
+                    VALUE_UNARY_OP(Year);
                 default:
                     throw std::runtime_error("not implemented: value operator " + std::to_string((int)op.what));
                 }

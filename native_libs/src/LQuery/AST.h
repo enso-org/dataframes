@@ -48,7 +48,7 @@ namespace ast
         Negate,
 
         // timestamp operations
-        Day, Month, Year, TimeT
+        Day, Month, Year
     };
 
     ValueOperator valueOperatorFromName(const std::string &name);
