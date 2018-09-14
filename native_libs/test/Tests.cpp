@@ -610,6 +610,7 @@ BOOST_FIXTURE_TEST_CASE(FilterInvalidLQuery, FilteringFixture)
 
 BOOST_FIXTURE_TEST_CASE(FilterTimestampGreater, FilteringFixture)
 {
+    auto ttt1 = Timestamp(2018_y/sep/2).toStorage();
     int64_t ttt = 1535846400; // 2018-09-02
 
     // (e > 0)
@@ -712,6 +713,22 @@ BOOST_AUTO_TEST_CASE(FilterWithNulls)
 	auto [filtered2I, filtered2S, filtered2AI] = toVectors<std::optional<int64_t>, std::optional<std::string>, std::optional<int64_t>>(*filter(table2, jsonQuery));
 
 	BOOST_CHECK_EQUAL_COLLECTIONS(expectedI.begin(), expectedI.end(), filtered2AI.begin(), filtered2AI.end());
+}
+
+BOOST_AUTO_TEST_CASE(TimestampParsingFromCsv)
+{
+    auto csv = parseCsvFile("data/variedColumn.csv");
+    auto table = csvToArrowTable(csv, GenerateColumnNames{}, {});
+    auto col = table->column(1);
+    BOOST_CHECK_EQUAL(col->type()->id(), arrow::Type::TIMESTAMP);
+    BOOST_CHECK_EQUAL(col->null_count(), 1);
+    auto t0 = columnValueAt<arrow::Type::TIMESTAMP>(*col, 0);
+    BOOST_CHECK_EQUAL(t0, Timestamp(2005_y/feb/25));
+
+    // check that table with timestamps roundtrips
+    generateCsv("_Temp.csv", *table);
+    auto table2 = loadTableFromCsvFile("_Temp.csv");
+    BOOST_CHECK(table->Equals(*table2));
 }
 
 BOOST_AUTO_TEST_CASE(TypeDeducing)
