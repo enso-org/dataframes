@@ -406,6 +406,21 @@ BOOST_FIXTURE_TEST_CASE(MapToAbsByCondition, FilteringFixture)
 	testMap<double>(jsonQuery, {1, 2, 3, 4, 5});
 }
 
+BOOST_FIXTURE_TEST_CASE(MapTimestamp, FilteringFixture)
+{
+    // days(e)
+    const auto jsonQuery = R"(
+ 		{
+			"operation": "days", 
+			"arguments": 
+			[ 
+				{"column": "e"}
+			] 
+ 		})";
+
+    testMap<int64_t>(jsonQuery, { 1, 2, 3, 4, 5 });
+}
+
 BOOST_FIXTURE_TEST_CASE(FilterGreaterThanLiteral, FilteringFixture)
 {
 	// a > 0

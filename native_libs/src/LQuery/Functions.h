@@ -8,6 +8,9 @@
 #include <type_traits>
 #include <typeinfo>
 
+#include <date/date.h>
+#include "Core/ArrowUtilities.h"
+
 using namespace std::literals;
 
 #define COMPLAIN_ABOUT_OPERAND_TYPES \
@@ -130,6 +133,19 @@ struct Negate
     static int64_t exec(const std::string_view &lhs)
     {
         throw std::runtime_error("negate does not support operand of type: "s + typeid(lhs).name());
+    }
+};
+struct Day
+{
+    template<typename Lhs>
+    static constexpr Lhs exec(const Lhs &lhs)
+    {
+        throw std::runtime_error("negate does not support operand of type: "s + typeid(lhs).name());
+    }
+
+    static int64_t exec(const Timestamp &lhs)
+    {
+        return (unsigned) date::year_month_day(date::floor<date::days>(lhs)).day();
     }
 };
 

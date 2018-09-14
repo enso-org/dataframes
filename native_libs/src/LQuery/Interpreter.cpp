@@ -230,6 +230,7 @@ struct Interpreter
                     VALUE_BINARY_OP(Divide);
                     VALUE_BINARY_OP(Modulo);
                     VALUE_UNARY_OP(Negate);
+                    VALUE_UNARY_OP(Day);
                 default:
                     throw std::runtime_error("not implemented: value operator " + std::to_string((int)op.what));
                 }

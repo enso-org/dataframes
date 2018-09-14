@@ -176,8 +176,12 @@ namespace ast
             {"minus" , ValueOperator::Minus },
             {"times" , ValueOperator::Times },
             {"divide", ValueOperator::Divide},
-            {"mod",    ValueOperator::Modulo},
+            {"mod"   , ValueOperator::Modulo},
             {"negate", ValueOperator::Negate},
+            {"day"   , ValueOperator::Day   },
+            {"month" , ValueOperator::Month },
+            {"year"  , ValueOperator::Year  },
+            {"time_t", ValueOperator::TimeT },
         };
 
         if(auto itr = map.find(name); itr != map.end())

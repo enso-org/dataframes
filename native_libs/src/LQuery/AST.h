@@ -46,6 +46,9 @@ namespace ast
     {
         Plus, Minus, Times, Divide, Modulo,
         Negate,
+
+        // timestamp operations
+        Day, Month, Year, TimeT
     };
 
     ValueOperator valueOperatorFromName(const std::string &name);
