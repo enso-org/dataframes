@@ -1,4 +1,5 @@
 import Std.Foreign.C.Value
+import Std.Time
 
 import Dataframes.Internal.Utils
 import Dataframes.Column
@@ -138,11 +139,11 @@ class TimestampType:
     def append bw value:
         self.withValueAsC value bw.append
     def withValueAsC value f:
-        f (CInt64.fromInt value)
+        f (CInt64.fromInt $ value.toEpoch.toInt * 1000000000)
     def typename: "TimestampTag"
     def ctype: CInt64
     def fromC isNull val:
-        val.toInt
+        Time.fromEpoch (val.toInt / 1000000000)
     def nullable: False
     def makeColumn typedColumn: ColumnTimestamp typedColumn
     def useColumn column f: 
@@ -156,13 +157,13 @@ class MaybeTimestampType:
             Just justValue: self.withValueAsC justValue bw.append
             Nothing: bw.appendNull
     def withValueAsC value f:
-        f (CInt64.fromInt value)
+        f (CInt64.fromInt $ value.toEpoch.toInt * 1000000000)
     def typename: "TimestampTag"
     def ctype: CInt64
     def fromC isNull val:
         case isNull of
             True: Nothing
-            False: Just val.toInt
+            False: Just $ Time.fromEpoch (val.toInt / 1000000000)
     def nullable: True
     def makeColumn typedColumn: ColumnMaybeTimestamp typedColumn
     def useColumn column f: 
