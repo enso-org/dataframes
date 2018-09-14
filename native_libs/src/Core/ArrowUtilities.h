@@ -143,7 +143,7 @@ template<> struct TypeDescription<arrow::Type::TIMESTAMP>
     using BuilderType = arrow::TimestampBuilder;
     using ValueType = Timestamp;
     using ObservedType = Timestamp;
-    using CType = typename BuilderType::value_type;
+    using CType = int64_t;
     using Array = arrow::TimestampArray;
     using StorageValueType = int64_t;
     using OffsetType = void;
