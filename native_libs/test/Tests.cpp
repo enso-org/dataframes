@@ -817,6 +817,20 @@ BOOST_AUTO_TEST_CASE(TimestampInterpolation)
     BOOST_CHECK_EQUAL_RANGES(interpolatedTimes, expectedInterpolatedTimes);
 }
 
+BOOST_AUTO_TEST_CASE(TimestampStats, *boost::unit_test_framework::disabled())
+{
+    std::vector<std::optional<Timestamp>> times{ 2018_y/sep/1, std::nullopt, std::nullopt, 2018_y/sep/10 };
+    auto col = toColumn(times);
+
+    std::vector<std::optional<Timestamp>> expectedMin{ 2018_y / sep / 1 };
+    auto minCol = calculateMin(*col);
+    auto minColV = toVector<Timestamp>(*minCol);
+    BOOST_CHECK_EQUAL(minCol->type()->id(), col->type()->id());
+    BOOST_CHECK_EQUAL_RANGES(minColV, expectedMin);
+
+    // TODO other stats
+}
+
 BOOST_AUTO_TEST_CASE(TypeDeducing)
 {
     BOOST_CHECK_EQUAL(deduceType("5.0"), arrow::Type::DOUBLE);
