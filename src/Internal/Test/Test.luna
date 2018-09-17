@@ -140,9 +140,9 @@ class TestArrayBuilder:
 
     def testTimestampBuilder:
         print "=== Testing for Timestamp ==="
-        el0 = Time.fromTimeOfYear 2018 09 16 Nothing
-        el1 = Time.fromTimeOfYear 2018 09 17 Nothing
-        el2 = Time.fromTimeOfYear 2018 09 18 Nothing
+        el0 = Time.fromTimeOfYear 2018 09 16 $ Just TimeZone.utc
+        el1 = Time.fromTimeOfYear 2018 09 17 $ Just TimeZone.utc
+        el2 = Time.fromTimeOfYear 2018 09 18 $ Just TimeZone.utc
         builder = ArrayBuilder TimestampType . create
         type = builder.type
         assertEqual "initial capacity" builder.capacity 0
@@ -159,12 +159,16 @@ class TestArrayBuilder:
         assertThrow ("invalid index -1 throws") (builtArray.valueAt -1)
         assertThrow ("invalid index 3 throws") (builtArray.valueAt 3)
         assertEqual "built single elem array" builtArray.toList [el0, el1, el2]
+        gotEl0 = builtArray.valueAt 0
+        assertEqual "element [0]" el0 gotEl0
+        assertEqual "element [0] epoch" el0.toEpoch gotEl0.toEpoch
+        assertEqual "element [0] text" el0.toText gotEl0.toText
         
     def testMaybeTimestampBuilder:
         print "=== Testing for (Maybe Timestamp) ==="
-        el0 = Just $ Time.fromTimeOfYear 2018 09 16 Nothing
+        el0 = Just $ (Time.fromTimeOfYear 2018 09 16 $ Just TimeZone.utc)
         el1 = Nothing
-        el2 = Just $ Time.fromTimeOfYear 2018 09 18 Nothing
+        el2 = Just $ (Time.fromTimeOfYear 2018 09 18 $ Just TimeZone.utc)
         builder = ArrayBuilder MaybeTimestampType . create
         type = builder.type
         assertEqual "initial capacity" builder.capacity 0
@@ -409,7 +413,7 @@ class TestArrayBuilder:
         assertEqual "row count" t4.rowCount 4
         assertEqual "column 0" (t4.columnAt 0 . toList) [1,4,7,10]
         assertEqual "column 1" (t4.columnAt 1 . toList) [Just 2, Nothing, Just 8, Just 11]
-        assertEqual "column 2" (t4.columnAt 2 . toList) ["3", "6", "9", "12"]
+        assertEqual "column 2" (t4.columnAt 2 . toList) [3, 6, 9, 12]
 
         print "Generate case 1"
         assertEqual "generated" (CSVGenerator.generateText t1) 'x,y,z\n1,2,3'
@@ -446,7 +450,18 @@ class TestArrayBuilder:
         assertEqual "numbers < 4: doubles" (maybeIntFiltered.columnAt 2 . toList) [Nothing, Just 3.0]
         assertEqual "numbers < 4: doubles null count" (maybeIntFiltered.columnAt 2 . nullCount) 1
 
-
+        print "=== Testing filtering with timestamp ==="
+        t0 = Time.fromTimeOfYear 2018 09 16 $ Just TimeZone.utc
+        t1 = Time.fromTimeOfYear 2018 09 17 $ Just TimeZone.utc
+        t2 = Time.fromTimeOfYear 2018 09 18 $ Just TimeZone.utc
+        timeCol = Column.fromList "time" TimestampType [t0, t1, t2]
+        timeTable = Table.fromColumns [timeCol]
+        timeTableLater = timeTable.filter row: row.at "time" > t1
+        assertEqual "timestamp >" (timeTableLater.columnAt 0 . toList) [t2]
+        timeTableLater = timeTable.filter row: row.at "time" < t1
+        assertEqual "timestamp <" (timeTableLater.columnAt 0 . toList) [t0]
+        timeTableLater = timeTable.filter row: row.at "time" == t1
+        assertEqual "timestamp ==" (timeTableLater.columnAt 0 . toList) [t1]
     
     def testMapping:
 
@@ -473,6 +488,19 @@ class TestArrayBuilder:
         assertEqual "ints*2" mappedCol3.toList [2, 4, 6, 8, 10]
         mappedCol4 = intsTable.each (row: (row.at "ints") * (row.at "ints"))
         assertEqual "ints*ints" mappedCol4.toList [1, 4, 9, 16, 25]
+        
+        print "=== Testing mapping with timestamp ==="
+        t0 = Time.fromTimeOfYear 2018 10 16 $ Just TimeZone.utc
+        t1 = Time.fromTimeOfYear 2017 11 17 $ Just TimeZone.utc
+        t2 = Time.fromTimeOfYear 2016 09 18 $ Just TimeZone.utc
+        timeCol = Column.fromList "time" TimestampType [t0, t1, t2]
+        timeTable = Table.fromColumns [timeCol]
+        dayCol = timeTable.each row: row.at "time" . day
+        assertEqual "time.day" dayCol.toList [16, 17, 18]
+        monthCol = timeTable.each row: row.at "time" . month
+        assertEqual "time.month" monthCol.toList [10, 11, 09]
+        yearCol = timeTable.each row: row.at "time" . year
+        assertEqual "time.year" yearCol.toList [2018, 2017, 2016]
 
     def testDropping:
         intCol  = Column.fromList "a" MaybeInt64Type  [Just 0,   Nothing,  Just 2,   Just 3,   Just 4  ]
