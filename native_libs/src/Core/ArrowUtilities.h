@@ -44,7 +44,7 @@ struct DFH_EXPORT Timestamp : std::chrono::time_point<std::chrono::system_clock,
         using namespace std::chrono;
         return system_clock::to_time_t(time_point_cast<system_clock::duration>(*this)); 
     }
-    date::year_month_day ymd() const
+    constexpr date::year_month_day ymd() const
     {
         return  { date::floor<date::days>(*this) };
     }
