@@ -169,9 +169,9 @@ std::shared_ptr<arrow::Column> calculateStat(const arrow::Column &column)
 {
     return visitType(*column.type(), [&](auto id) -> std::shared_ptr<arrow::Column>
     {
-        if constexpr(id.value != arrow::Type::STRING)
+        if constexpr(id.value != arrow::Type::STRING && id.value != arrow::Type::TIMESTAMP)
         {
-            using T = typename TypeDescription<id.value>::StorageValueType;
+            using T = typename TypeDescription<id.value>::ValueType;
             Processor<T> p;
             using ResultT = decltype(p.get());
 
@@ -552,7 +552,7 @@ DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_pt
                 visitType(colAggrs.first->type()->id(), [&](auto id)
                 {
                     auto[column, aggregates] = colAggrs;
-                    if constexpr(id != arrow::Type::STRING)
+                    if constexpr(id != arrow::Type::STRING && id != arrow::Type::TIMESTAMP)
                     {
                         using T = typename TypeDescription<id.value>::ObservedType;
                         std::vector<Aggregators<T>> aggregators;

@@ -1,4 +1,5 @@
 import Std.Test
+import Std.Time
 
 import Dataframes.Internal.ArrayBuilder
 import Dataframes.Array
@@ -136,6 +137,50 @@ class TestArrayBuilder:
             case elem of 
                 Just val: Just (val + "-suffix")
                 Nothing: Nothing)
+
+    def testTimestampBuilder:
+        print "=== Testing for Timestamp ==="
+        el0 = Time.fromTimeOfYear 2018 09 16 Nothing
+        el1 = Time.fromTimeOfYear 2018 09 17 Nothing
+        el2 = Time.fromTimeOfYear 2018 09 18 Nothing
+        builder = ArrayBuilder TimestampType . create
+        type = builder.type
+        assertEqual "initial capacity" builder.capacity 0
+        assertEqual "initial length" builder.length 0
+        assertEqual "type width" type.bitWidth 64
+        assertEqual "type name" type.name "timestamp"
+        assertEqual "type as text" type.toText "timestamp[ns]"
+        builder.append el0
+        builder.appendMany [el1, el2]
+        assertGE "builder.capacity" builder.capacity 3
+        assertEqual "builder.length" builder.length 3
+        builtArrayWrapper = builder.finish
+        builtArray = ArrayVal builder.typeTag builtArrayWrapper
+        assertThrow ("invalid index -1 throws") (builtArray.valueAt -1)
+        assertThrow ("invalid index 3 throws") (builtArray.valueAt 3)
+        assertEqual "built single elem array" builtArray.toList [el0, el1, el2]
+        
+    def testMaybeTimestampBuilder:
+        print "=== Testing for (Maybe Timestamp) ==="
+        el0 = Just $ Time.fromTimeOfYear 2018 09 16 Nothing
+        el1 = Nothing
+        el2 = Just $ Time.fromTimeOfYear 2018 09 18 Nothing
+        builder = ArrayBuilder MaybeTimestampType . create
+        type = builder.type
+        assertEqual "initial capacity" builder.capacity 0
+        assertEqual "initial length" builder.length 0
+        assertEqual "type width" type.bitWidth 64
+        assertEqual "type name" type.name "timestamp"
+        assertEqual "type as text" type.toText "timestamp[ns]"
+        builder.append el0
+        builder.appendMany [el1, el2]
+        assertGE "builder.capacity" builder.capacity 3
+        assertEqual "builder.length" builder.length 3
+        builtArrayWrapper = builder.finish
+        builtArray = ArrayVal builder.typeTag builtArrayWrapper
+        assertThrow ("invalid index -1 throws") (builtArray.valueAt -1)
+        assertThrow ("invalid index 3 throws") (builtArray.valueAt 3)
+        assertEqual "built single elem array" builtArray.toList [el0, el1, el2]
 
     def testRoundTrip msg typeTag list:
         arr = Array typeTag . fromList list
@@ -604,11 +649,6 @@ class TestArrayBuilder:
         assertEqual "last" (tableAggregated.column "a_last" . toList) [Just 5.0, Just 1.0, Just 7.0, Just 2.0, Nothing]
 
     def run:
-        t4 = CSVParser . readFile "data/variedColumn.csv"
-        print t4.toList
-
-
-        throw "stop"
         self.testAggregateBy
         self.testAutoCorr
         self.testShift
@@ -634,3 +674,5 @@ class TestArrayBuilder:
         self.testMaybeStringBuilder
         self.testInt64Builder
         self.testMaybeInt64Builder
+        self.testTimestampBuilder
+        self.testMaybeTimestampBuilder

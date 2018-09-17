@@ -219,7 +219,7 @@ auto visitType(const arrow::Type::type &id, F &&f)
     case arrow::Type::INT64 : return f(std::integral_constant<arrow::Type::type, arrow::Type::INT64 >{});
     case arrow::Type::DOUBLE: return f(std::integral_constant<arrow::Type::type, arrow::Type::DOUBLE>{});
     case arrow::Type::STRING: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
-    case arrow::Type::TIMESTAMP: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
+    case arrow::Type::TIMESTAMP: return f(std::integral_constant<arrow::Type::type, arrow::Type::TIMESTAMP>{});
     //case arrow::Type::LIST: return f(std::integral_constant<arrow::Type::type, arrow::Type::LIST>{});
     default: throw std::runtime_error("array type not supported to downcast: " + std::to_string((int)id));
     }
