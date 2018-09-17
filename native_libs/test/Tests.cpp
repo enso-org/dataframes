@@ -25,6 +25,7 @@
 
 #include "Fixture.h"
 #include "Core/Utils.h"
+#include "IO/XLSX.h"
 
 using namespace std::literals;
 using namespace date::literals;
@@ -282,7 +283,7 @@ struct FilteringFixture
 	std::vector<double> b = {5, 10, 0, -10, -5};
 	std::vector<std::string> c = {"foo", "bar", "baz", "", "1"};
     std::vector<std::optional<double>> d = { 1.0, 2.0, std::nullopt, 4.0, std::nullopt };
-    std::vector<std::optional<Timestamp>> e = { 2018_y/sep/01, 2018_y/sep/02, std::nullopt, 2018_y/sep/04, std::nullopt };
+    std::vector<std::optional<Timestamp>> e = { 2018_y/sep/01, 2018_y/sep/02, std::nullopt, 2020_y/nov/04, std::nullopt };
 
 	std::shared_ptr<arrow::Table> table = tableFromArrays({toArray(a), toArray(b), toArray(c), toArray(d), toArray(e)}, {"a", "b", "c", "d", "e"});
 
@@ -319,7 +320,7 @@ struct FilteringFixture
 	{
 		const auto column = each(table, jsonQuery);
 		const auto result = toVector<T>(*column);
-		BOOST_CHECK(result == expectedValues);
+        BOOST_CHECK_EQUAL_RANGES(result, expectedValues);
 	}
 };
 
@@ -406,19 +407,46 @@ BOOST_FIXTURE_TEST_CASE(MapToAbsByCondition, FilteringFixture)
 	testMap<double>(jsonQuery, {1, 2, 3, 4, 5});
 }
 
-BOOST_FIXTURE_TEST_CASE(MapTimestamp, FilteringFixture)
+BOOST_FIXTURE_TEST_CASE(MapTimestampDay, FilteringFixture)
 {
-    // days(e)
+    // day(e)
     const auto jsonQuery = R"(
  		{
-			"operation": "days", 
+			"operation": "day", 
 			"arguments": 
 			[ 
 				{"column": "e"}
 			] 
  		})";
+    testMap<std::optional<int64_t>>(jsonQuery, { 1, 2, std::nullopt, 4, std::nullopt });
+}
 
-    testMap<int64_t>(jsonQuery, { 1, 2, 3, 4, 5 });
+BOOST_FIXTURE_TEST_CASE(MapTimestampMonth, FilteringFixture)
+{
+    // month(e)
+    const auto jsonQuery = R"(
+ 		{
+			"operation": "month", 
+			"arguments": 
+			[ 
+				{"column": "e"}
+			] 
+ 		})";
+    testMap<std::optional<int64_t>>(jsonQuery, { 9, 9, std::nullopt, 11, std::nullopt });
+}
+
+BOOST_FIXTURE_TEST_CASE(MapTimestampYear, FilteringFixture)
+{
+    // year(e)
+    const auto jsonQuery = R"(
+ 		{
+			"operation": "year", 
+			"arguments": 
+			[ 
+				{"column": "e"}
+			] 
+ 		})";
+    testMap<std::optional<int64_t>>(jsonQuery, { 2018, 2018, std::nullopt, 2020, std::nullopt });
 }
 
 BOOST_FIXTURE_TEST_CASE(FilterGreaterThanLiteral, FilteringFixture)
@@ -770,6 +798,37 @@ BOOST_AUTO_TEST_CASE(TimestampParsingFromCsv)
     generateCsv("_Temp.csv", *table);
     auto table2 = loadTableFromCsvFile("_Temp.csv");
     BOOST_CHECK(table->Equals(*table2));
+
+    writeXlsx("_Temp.xlsx", *table);
+    auto tableXlsx = readXlsxFile("_Temp.xlsx", TakeFirstRowAsHeaders{}, transformToVector(getColumns(*table), [](auto col) 
+        { return ColumnType{*col, false}; }));
+    BOOST_CHECK(table->Equals(*tableXlsx));
+}
+
+BOOST_AUTO_TEST_CASE(TimestampInterpolation)
+{
+    std::vector<std::optional<Timestamp>> times{ 2018_y/sep/1, std::nullopt, std::nullopt, 2018_y/sep/10 };
+    auto interpolatedTimes = toVector<std::optional<Timestamp>>(*interpolateNA(toColumn(times)));
+    std::vector<std::optional<Timestamp>> expectedInterpolatedTimes
+    {
+        2018_y/sep/1, 2018_y/sep/4, 2018_y/sep/7, 2018_y/sep/10 
+    };
+
+    BOOST_CHECK_EQUAL_RANGES(interpolatedTimes, expectedInterpolatedTimes);
+}
+
+BOOST_AUTO_TEST_CASE(TimestampStats, *boost::unit_test_framework::disabled())
+{
+    std::vector<std::optional<Timestamp>> times{ 2018_y/sep/1, std::nullopt, std::nullopt, 2018_y/sep/10 };
+    auto col = toColumn(times);
+
+    std::vector<std::optional<Timestamp>> expectedMin{ 2018_y / sep / 1 };
+    auto minCol = calculateMin(*col);
+    auto minColV = toVector<Timestamp>(*minCol);
+    BOOST_CHECK_EQUAL(minCol->type()->id(), col->type()->id());
+    BOOST_CHECK_EQUAL_RANGES(minColV, expectedMin);
+
+    // TODO other stats
 }
 
 BOOST_AUTO_TEST_CASE(TypeDeducing)

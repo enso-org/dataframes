@@ -181,7 +181,6 @@ namespace ast
             {"day"   , ValueOperator::Day   },
             {"month" , ValueOperator::Month },
             {"year"  , ValueOperator::Year  },
-            {"time_t", ValueOperator::TimeT },
         };
 
         if(auto itr = map.find(name); itr != map.end())

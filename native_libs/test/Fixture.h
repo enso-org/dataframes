@@ -42,25 +42,25 @@ struct DataGenerator
         std::bernoulli_distribution nullDistribution{ nullShare };
         auto arr = visitType(id, [&](auto id)
         {
-            typename TypeDescription<id.value>::BuilderType b;
-            b.Reserve(N);
+            auto builder = makeBuilder(getTypeSingleton<id.value>());
+            builder->Reserve(N);
             for(int64_t i = 0; i < N; i++)
             {
                 if(nullDistribution(generator))
                 {
-                    b.AppendNull();
+                    builder->AppendNull();
                 }
                 else
                 {
                     const auto value = distribution(generator);
                     if constexpr(id.value != arrow::Type::STRING)
-                        b.Append(value);
+                        builder->Append(value);
                     else
-                        b.Append(std::to_string(value));
+                        builder->Append(std::to_string(value));
                 }
             }
 
-            return finish(b);
+            return finish(*builder);
         });
 
         return std::make_shared<arrow::Column>(arrow::field(name, arr->type(), arr->null_count()), arr);

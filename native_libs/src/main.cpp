@@ -82,13 +82,15 @@ std::shared_ptr<arrow::DataType> idToDataType(arrow::Type::type id)
     switch(id)
     {
     case arrow::Type::INT32:
-        return std::make_shared<arrow::Int32Type>();
+        return getTypeSingleton<arrow::Type::INT32>();
     case arrow::Type::INT64:
-        return std::make_shared<arrow::Int64Type>();
+        return getTypeSingleton<arrow::Type::INT64>();
     case arrow::Type::DOUBLE:
-        return std::make_shared<arrow::DoubleType>();
+        return getTypeSingleton<arrow::Type::DOUBLE>();
     case arrow::Type::STRING:
-        return std::make_shared<arrow::StringType>();
+        return getTypeSingleton<arrow::Type::STRING>();
+    case arrow::Type::TIMESTAMP:
+        return getTypeSingleton<arrow::Type::TIMESTAMP>();
     default:
     {
         std::ostringstream out;
@@ -215,7 +217,9 @@ extern "C"
         /* NOTE: needs release */                                                                                                                           \
         return TRANSLATE_EXCEPTION(outError)                                                                                                               \
         {                                                                                                                                                   \
-            return LifetimeManager::instance().addOwnership(std::make_shared<TypeDescriptionForTag<TYPENAME>::BuilderType>());                                       \
+            auto type = getTypeSingleton<TYPENAME::id>(); \
+            auto builder = makeBuilder(type); \
+            return LifetimeManager::instance().addOwnership(builder);                                       \
         };                                                                                                                                                   \
     }                                                                                                                                                       \
     DFH_EXPORT void builder##TYPENAME##Reserve(TypeDescriptionForTag<TYPENAME>::BuilderType *builder, int64_t count, const char **outError) noexcept                           \
@@ -273,6 +277,7 @@ extern "C"
     COMMON_BUILDER(Float);
     COMMON_BUILDER(Double);
     COMMON_BUILDER(String);
+    COMMON_BUILDER(TimestampTag);
 
     // TODO current string append needlessly allocates std::string for BinaryBuilder::Append argument
 

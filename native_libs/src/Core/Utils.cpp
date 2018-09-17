@@ -126,3 +126,9 @@ void uglyPrint(const arrow::Table &table, std::ostream &out, int rows /*= 20*/)
 
     out << "[" << table.num_rows() << " rows x " << table.num_columns() << " cols]" << std::endl;
 }
+
+void uglyPrint(const std::shared_ptr<arrow::Column> &column, std::ostream &out /*= std::cout*/, int rows /*= 20*/)
+{
+    auto table = tableFromColumns({column});
+    uglyPrint(*table, out, rows);
+}

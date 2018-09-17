@@ -9,6 +9,8 @@
 #include <tuple>
 #include "variant.h"
 
+#include <date/date.h>
+
 #include <arrow/array.h>
 #include <arrow/builder.h>
 #include <arrow/table.h>
@@ -41,6 +43,10 @@ struct DFH_EXPORT Timestamp : std::chrono::time_point<std::chrono::system_clock,
     {
         using namespace std::chrono;
         return system_clock::to_time_t(time_point_cast<system_clock::duration>(*this)); 
+    }
+    constexpr date::year_month_day ymd() const
+    {
+        return  { date::floor<date::days>(*this) };
     }
 
     friend std::ostream &operator<<(std::ostream &out, const Timestamp &t)
@@ -213,7 +219,7 @@ auto visitType(const arrow::Type::type &id, F &&f)
     case arrow::Type::INT64 : return f(std::integral_constant<arrow::Type::type, arrow::Type::INT64 >{});
     case arrow::Type::DOUBLE: return f(std::integral_constant<arrow::Type::type, arrow::Type::DOUBLE>{});
     case arrow::Type::STRING: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
-    case arrow::Type::TIMESTAMP: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
+    case arrow::Type::TIMESTAMP: return f(std::integral_constant<arrow::Type::type, arrow::Type::TIMESTAMP>{});
     //case arrow::Type::LIST: return f(std::integral_constant<arrow::Type::type, arrow::Type::LIST>{});
     default: throw std::runtime_error("array type not supported to downcast: " + std::to_string((int)id));
     }
