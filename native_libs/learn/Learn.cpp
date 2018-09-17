@@ -27,9 +27,12 @@ struct NPArrayBuilder {
     if (row == 0) std::cout << (double) i << std::endl;
     data[row*cols + col] = (double) i;
   }
-  void setAt(int64_t row, int64_t col, std::string_view &s) {
+  void setAt(int64_t row, int64_t col, const std::string_view &s) {
     throw std::runtime_error("Cannot use strings with numpy array.");
   }
+    void setAt(int64_t row, int64_t col, const Timestamp &) {
+        throw std::runtime_error("Cannot use timestamps with numpy array.");
+    }
   void setNaAt(int64_t row, int64_t col) {
     data[row*cols + col] = nan(" ");
   }
