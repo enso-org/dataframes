@@ -1,0 +1,10 @@
+import Dataframes.Learn.Model
+import Dataframes.Learn.SKLearnWrapper
+
+
+class LinearRegression:
+
+    def fit xs y:
+        mod = SKLearnWrapper . newLinearRegression
+        mod . fit xs y
+        mod

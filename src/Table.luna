@@ -95,8 +95,12 @@ class Table:
     def columns names:
         columns = names.each self.column
         self.fromColumns columns
+    
+    # removeColumn :: Int -> Table
     def removeColumn index:
         self.fromWrapper $ self.ptr.removeColumn index
+
+    # remove :: Text -> Table
     def remove name:
         self.removeColumn $ self.schema.getFieldIndexByName name
     def toList:
@@ -180,6 +184,7 @@ class Table:
     def corr:
         self.fromWrapper $ self.ptr.corr
 
+    # corrWith :: Text -> Table 
     def corrWith columnName:
         column = self.at columnName . toColumn
         corrCol = Column.fromColumnWrapper $ self.ptr.corrWith column.ptr
@@ -214,6 +219,7 @@ class Table:
         aggregationWithWrappers = aggregations.each (colname, aggrs): (self.column colname . ptr, aggrs.each .toInt)
         self.fromWrapper $ self.ptr.aggregateBy keyColumnWrapper aggregationWithWrappers
 
+    # describe returns informations about whole table like standard deviation, minium, maximum, mean, median qunatile 0.25 and 0.75 for each column
     def describe:
         numerics = self.filterColumns .isNumeric
         names = numerics.columnNames 

@@ -117,6 +117,11 @@ extern "C" {
     return skl::newLogisticRegression(C);
   }
 
+  EXPORT PyObject* newLinearRegression() {
+    skl::interpreter::get();
+    return skl::newLinearRegression();
+  }
+
   EXPORT void fit(PyObject* model, arrow::Table *xs, arrow::Column *y) {
     skl::interpreter::get();
     PyObject* xsO = tableToNpMatrix(*xs);

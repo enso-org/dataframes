@@ -1,6 +1,7 @@
+import Dataframes.Learn.LogisticRegression
 import Dataframes.Learn.SKLearnWrapper
 import Dataframes.Column
-import Dataframes.Learn.LogisticRegression
+import Dataframes.Learn.LinearRegression
 import Dataframes.Learn.Coach
 import Dataframes.Table
 import Dataframes.Main
@@ -16,151 +17,33 @@ import Dataframes.Internal.Test.Test
 
 import Dataframes.Plot.Matplotlib
 
-«67»def foo:
-    «69»fr = CSVParser . readFile "./data/kaggle.csv"
-    «75»columns1 = fr . columns ["TARGET", "DAYS_BIRTH", "EXT_SOURCE_1", "EXT_SOURCE_2", "EXT_SOURCE_3"]
-    «76»dropNa1 = columns1 . fillNa 0.0
-    «78»columns2 = dropNa1 . columns ["EXT_SOURCE_1", "EXT_SOURCE_2", "EXT_SOURCE_3", "TARGET"]
-    «77»tgt = dropNa1 . at "TARGET"
-    «79»logisticregression1 = LogisticRegression . setC 0.001
-    «89»histogram1 = tgt . chart . histogram "TARGET"
-    «80»train1 = logisticregression1 . fit columns2 tgt
-    «81»score1 = train1 . score columns2 tgt
-    «82»pred = train1.predict columns2
-    «91»histogram2 = Histogram pred 2 Map.empty
+«195»
+
+«357»def isSmoking x:
+    «358»a = x.at "smoker" == "yes"
+    «359»b = a . switch 1 0 
+    b
+
+«371»def func1 readFile1:
+    «372»dropNa1 = readFile1 . dropNa
+    «373»filter1 = dropNa1 . filter (x: «368»x.at "bmi" < 250)
+    «374»filter2 = filter1 . filter (x: «376»x.at "sex" == "female")
+    filter2
+
+«344»def main:
+    «360»readFile1 = CSVParser.readFile "./data/insurance.csv"
+    «361»describeNa1 = readFile1 . describeNa
+    «375»filter2 = func1 readFile1
+    «377»filterSmokers = filter2 . eachTo "isSmoker" (x: «378»isSmoking x)
+    «379»corr1 = filterSmokers . filterColumns .isNumeric
+    «385»at2 = corr1 . columns ["bmi", "children"]
+    «384»at1 = corr1 . at "charges"
+    «380»corr2 = corr1 . corr
+    «383»heatmap1 = corr2 . chart.heatmap
+    «386»fit1 = LinearRegression.fit at2 at1
+    «387»score1 = fit1 . score at2 at1
     None
-
-«127»def func1 readFile1:
-    «128»filterColumns2 = readFile1 . filterColumns .isText
-    «129»filterColumns1 = readFile1 . filterColumns .isNumeric
-    «130»toList1 = filterColumns2 . toList
-    «131»each1 = toList1 . each Coach.oneHotEncode
-    «132»concat1 = Table.concat each1
-    «133»sum1 = filterColumns1 + concat1
-    sum1
-
-«150»def func2 columns1 colName:
-    «151»filter2 = columns1 . filter (_.at "TARGET" == 0)
-    «152»filter1 = columns1 . filter (_.at "TARGET" == 1)
-    «153»kde2 = filter2 . chart . kde colName
-    «154»kde1 = filter1 . chart . kde colName
-    «155»setLabel2 = kde2 . setLabel "TARGET = 1"
-    «156»setLabel1 = kde1 . setLabel "TARGET = 1"
-    «157»sum1 = setLabel1 + setLabel2
-    sum1
-
-«195»def func3 readFile1:
-    «196»eachTo1 = readFile1 . eachTo "AGE" t: «192»(t.at "DAYS_BIRTH")/(-365)
-    eachTo1
-
-«175»def new:
-    «176»readFile1 = CSVParser . readFile "./data/kaggle.csv"
-    «180»describe1 = readFile1 . describe "DAYS_BIRTH"
-    «197»eachTo1 = func3 readFile1
-    «200»filter2 = eachTo1 . filter (x: «206»x.at "TARGET" == 0)
-    «193»filter1 = eachTo1 . filter (x: «194»x.at "TARGET" == 1)
-    «177»columnNames1 = readFile1 . columnNames
-    «203»setLabel2 = filter2 . chart.kde "AGE" . setLabel "target 0"
-    «202»setLabel1 = filter1 . chart.kde "AGE" . setLabel "target 1"
-    «205»expr1 = setLabel2.+ setLabel1
-    None
-
-«181»def new:
-    «182»readFile1 = CSVParser . readFile "./data/kaggle.csv"
-    «185»eachTo1 = readFile1 . eachTo "AGE" t:«186»(t.at "DAYS_BIRTH")/(-365)
-    «189»filter1 = eachTo1 . filter (x: «190»x.at "TARGET"==1)
-    «183»columnNames1 = readFile1 . columnNames
-    None
-
-«68»def demo2:
-    «71»fr = CSVParser . readFile "data/kaggle.csv" . columns ["DAYS_BIRTH", "EXT_SOURCE_1", "EXT_SOURCE_2", "EXT_SOURCE_3", "TARGET"] . dropNa
-    «72»print fr.rowCount
-    «73»fr.trainAndScoreLR ["DAYS_BIRTH", "EXT_SOURCE_1", "EXT_SOURCE_2", "EXT_SOURCE_3"] "TARGET"
-
-«96»def encode:
-    «97»readFile1 = CSVParser . readFile "data/kaggle.csv"
-    «104»filterColumns2 = readFile1 . filterColumns .isNumeric
-    «100»filterColumns1 = readFile1 . filterColumns .isText
-    «101»toList1 = filterColumns1 . toList
-    «102»each1 = toList1 . each SKLearnWrapper.oneHotEncode
-    «103»concat1 = Table.concat each1
-    «105»sum1 = filterColumns2 + concat1
-    «106»nona = sum1.fillNa 0
-    «113»drop1 = nona . drop 40000
-    «112»take1 = nona . take 40000
-    «115»testTgt = drop1 . at "TARGET"
-    «114»testVars = drop1 . remove "TARGET"
-    «107»vars = take1 . remove "TARGET"
-    «108»tgt = take1 . at "TARGET"
-    «109»log = LogisticRegression . setC 0.01
-    «110»mod = log.fit vars tgt
-    «116»score1 = mod . predict testVars
-    «117»countValues1 = score1 . countValues
-    None
-
-
-
-
-«7»def main:
-    «17»fr = CSVParser . readFile "data/kaggle.csv"
-    «93»at1 = fr . filterColumns .isNumeric
-    «94»corr1 = at1 . corr
-    «250»kde2 = at1 . chart.kde "AMT_GOODS_PRICE"
-    «251»kde1 = at1 . chart.kde "AMT_INCOME_TOTAL"
-    «95»heatmap1 = corr1 . chart . heatmap
-    «253»appendVertical1 = Chart None . appendVertical [kde1,kde2, kde1]
     
-    None
+«295»
 
-«47»def demo:
-    «48»readFile1 = CSVParser.readFile "data/kaggle.csv"
-    «65»eachTo1 = readFile1 . eachTo "AGE" t: «66»(t.at "DAYS_BIRTH") / (-365.0)
-    «174»rowsCount1 = readFile1 . rowCount
-    «173»describe1 = readFile1 . describeNa
-    «59»filter2 = eachTo1 . filter (x: «60»x.at "TARGET" == 0)
-    «57»filter1 = eachTo1 . filter (x: «58»x.at "TARGET" == 1)
-    «54»histogram1 = eachTo1 . chart . histogram "AGE" . setBins 25
-    «63»setLabel1 = filter2 . chart.kde "AGE" . setLabel "target = 0"
-    «62»kde1 = filter1 . chart . kde "AGE" . setLabel "target = 1"
-    «64»sum1 = kde1 + setLabel1
-    None
-
-«169»def twosigma:
-    «208»each1 = 0.upto 1 . each (x: «209»IntElement )
-    «210»each2 = 0.upto 108 . each (x: «220»MaybeRealElement )
-    «212»expr1 = each1.+ each2   
-    «214»readFile1 = CSVParser.setTypes expr1 . readFile "./data/filtered.csv"
-    «215»countValues1 = readFile1 . countValues "id"
-    «260»eachTo2 = readFile1 . rowCount
-    «240»describeNa1 = readFile1 . describeNa
-    «225»interpolate1 = readFile1 . interpolate
-    «216»histogram1 = countValues1 . chart.histogram "count" . setBins 121
-    «226»remove1 = interpolate1 . remove "id"
-    «227»remove2 = remove1 . remove "timestamp"
-    «241»setBins1 = describeNa1 . chart.histogram "ratio" . setBins 112
-    «228»corrWith1 = remove2 . corrWith "y"
-    «230»take1 = corrWith1 . take 109
-    «235»eachTo1 = take1 . eachTo "abs" (x: «236»abs (x.at "CORR_WITH_y"))
-    «229»histogram2 = take1.chart.histogram "CORR_WITH_y"
-    «238»sort1 = eachTo1 . sort [("abs", Descending , NullsAfter )]
-    «239»take2 = sort1 . take 4
-    «242»toList1 = take2 . column "column"
-    «243»toList2 = toList1 . toList
-    «270»setLabel1 = interpolate1.chart.plot "timestamp" "technical_20"
-    «246»columns1 = interpolate1 . columns toList2
-    «266»each3 = toList2 . each (x: «273»interpolate1 . chart.plot "timestamp" x . setLabel x)
-    «247»corr1 = columns1 . corr
-    «272»setLabel2 = setLabel1 . setLabel "a"
-    «268»appendVertical1 = Chart None . appendVertical each3
-    «248»heatmap1 = corr1 . chart.heatmap
-    None
-
-«232»def abs x:
-    «233»operator1 = x < 0
-    «234»switch1 = operator1 . switch (-x) (x)
-    switch1
-
-«259»def twosigmafilter:
-    None
-
-### META {"metas":[{"marker":176,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":-272}}}},{"marker":180,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":112}}}},{"marker":197,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":192,"_vector2_x":112}}}},{"marker":200,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":192,"_vector2_x":288}}}},{"marker":206,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":193,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":48,"_vector2_x":432}}}},{"marker":194,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":177,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":-384,"_vector2_x":432}}}},{"marker":203,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":192,"_vector2_x":464}}}},{"marker":202,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":48,"_vector2_x":608}}}},{"marker":205,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":192,"_vector2_x":640}}}},{"marker":97,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":0}}}},{"marker":104,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":704}}}},{"marker":100,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":176}}}},{"marker":101,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":352}}}},{"marker":102,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":528}}}},{"marker":103,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":704}}}},{"marker":105,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":880}}}},{"marker":106,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":1056}}}},{"marker":113,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":1232}}}},{"marker":112,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":1232}}}},{"marker":115,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":1408}}}},{"marker":114,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":1584}}}},{"marker":107,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":1408}}}},{"marker":108,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":1408}}}},{"marker":109,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1408}}}},{"marker":110,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1584}}}},{"marker":116,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1760}}}},{"marker":117,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1936}}}},{"marker":128,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":0}}}},{"marker":129,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":528}}}},{"marker":130,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":176}}}},{"marker":131,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":352}}}},{"marker":132,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":528}}}},{"marker":133,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":704}}}},{"marker":48,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":65,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":176}}}},{"marker":66,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":174,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":96,"_vector2_x":-384}}}},{"marker":173,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-176,"_vector2_x":944}}}},{"marker":59,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":352}}}},{"marker":60,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":57,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":352}}}},{"marker":58,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":54,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":352}}}},{"marker":63,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":528}}}},{"marker":62,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":544}}}},{"marker":64,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":704}}}},{"marker":233,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":96,"_vector2_x":-544}}}},{"marker":234,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":96,"_vector2_x":-368}}}},{"marker":182,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-288,"_vector2_x":-416}}}},{"marker":185,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-288,"_vector2_x":-240}}}},{"marker":186,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":189,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":-288,"_vector2_x":-64}}}},{"marker":190,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":183,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":-576,"_vector2_x":-48}}}},{"marker":208,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":-304,"_vector2_x":-448}}}},{"marker":209,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":210,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":-96,"_vector2_x":-432}}}},{"marker":220,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":212,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":-304,"_vector2_x":-272}}}},{"marker":214,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-304,"_vector2_x":-64}}}},{"marker":215,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-304,"_vector2_x":112}}}},{"marker":260,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":-16,"_vector2_x":-272}}}},{"marker":240,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-720,"_vector2_x":368}}}},{"marker":225,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":48,"_vector2_x":144}}}},{"marker":216,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-320,"_vector2_x":544}}}},{"marker":226,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":48,"_vector2_x":320}}}},{"marker":227,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":48,"_vector2_x":496}}}},{"marker":241,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-720,"_vector2_x":800}}}},{"marker":228,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":48,"_vector2_x":672}}}},{"marker":230,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":48,"_vector2_x":848}}}},{"marker":235,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":48,"_vector2_x":1184}}}},{"marker":236,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":229,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-176,"_vector2_x":1344}}}},{"marker":238,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":48,"_vector2_x":1360}}}},{"marker":239,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":48,"_vector2_x":1536}}}},{"marker":242,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":48,"_vector2_x":1792}}}},{"marker":243,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":48,"_vector2_x":1968}}}},{"marker":270,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-192,"_vector2_x":1984}}}},{"marker":246,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":320,"_vector2_x":2032}}}},{"marker":266,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":48,"_vector2_x":2144}}}},{"marker":273,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":247,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":272,"_vector2_x":2160}}}},{"marker":272,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-192,"_vector2_x":2160}}}},{"marker":268,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-160,"_vector2_x":2720}}}},{"marker":248,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":272,"_vector2_x":2336}}}},{"marker":71,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":72,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":176}}}},{"marker":73,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":176}}}},{"marker":151,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":0}}}},{"marker":152,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":153,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":176}}}},{"marker":154,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":176}}}},{"marker":155,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":352}}}},{"marker":156,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":352}}}},{"marker":157,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":528}}}},{"marker":196,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":192,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":69,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":0}}}},{"marker":75,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":176}}}},{"marker":76,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":528}}}},{"marker":78,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":704}}}},{"marker":77,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":704}}}},{"marker":79,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":704}}}},{"marker":89,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":880}}}},{"marker":80,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":880}}}},{"marker":81,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1056}}}},{"marker":82,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":1056}}}},{"marker":91,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":176,"_vector2_x":1232}}}},{"marker":17,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":93,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":176}}}},{"marker":94,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":352}}}},{"marker":250,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":416,"_vector2_x":512}}}},{"marker":251,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":64,"_vector2_x":832}}}},{"marker":95,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":528}}}},{"marker":253,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":112,"_vector2_x":1008}}}}]}
+### META {"metas":[{"marker":360,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-352,"_vector2_x":-368}}}},{"marker":361,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-352,"_vector2_x":-192}}}},{"marker":375,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-176,"_vector2_x":-192}}}},{"marker":377,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-176,"_vector2_x":-16}}}},{"marker":378,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":379,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-176,"_vector2_x":160}}}},{"marker":385,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-64,"_vector2_x":560}}}},{"marker":384,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-176,"_vector2_x":576}}}},{"marker":380,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-272,"_vector2_x":352}}}},{"marker":383,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-272,"_vector2_x":576}}}},{"marker":386,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":-112,"_vector2_x":752}}}},{"marker":387,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":-112,"_vector2_x":928}}}},{"marker":372,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":373,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":176}}}},{"marker":368,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":374,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":352}}}},{"marker":376,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":358,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":359,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":176}}}}]}
