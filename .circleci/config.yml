@@ -1,0 +1,23 @@
+version: 2
+jobs:
+  build:
+    docker: # use the docker executor type; machine and macos executors are also supported
+      - image: murbanczyk/dataframesci:1.0.0 # the primary container, where your job's commands are run
+    steps:
+      - checkout # check out the code in the project directory
+      - run:
+          name: Configure CMake
+          command: |
+            mkdir build
+            cd build
+            cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ../native_libs/src
+      - run:
+          name: Build Dataframes C++ parts
+          command: |
+            cd build
+            make -j 2
+      - run:
+          name: Test C++ parts
+          command: |
+            build/DataframeHelperTests -r detailed
+
