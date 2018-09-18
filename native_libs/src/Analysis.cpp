@@ -509,6 +509,33 @@ struct Aggregators
     }
 };
 
+// Cannot be just lambda because of GCC-8 bug
+// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=86740
+template<typename ArrowType, typename T>
+struct AbominableGroupingIterator
+{
+    int64_t row = 0;
+
+    GroupedKeyInfo<ArrowType> &groups;
+    std::vector<Aggregators<T>> &aggregators;
+
+    AbominableGroupingIterator(GroupedKeyInfo<ArrowType> &groups, std::vector<Aggregators<T>> &aggregators)
+            : groups(groups), aggregators(aggregators)
+    {}
+
+    template <typename U>
+    void operator()(U value)
+    {
+        const auto groupId = groups.groupIds[row++];
+        aggregators[groupId](value);
+    }
+    void operator()()
+    {
+        const auto groupId = groups.groupIds[row++];
+        aggregators[groupId]();
+    }
+};
+
 DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn, std::vector<std::pair<std::shared_ptr<arrow::Column>, std::vector<AggregateFunction>>> toAggregate)
 {
     std::vector<std::shared_ptr<arrow::Column>> newColumns;
@@ -560,17 +587,8 @@ DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_pt
                         for(int i = 0; i < afterLastGroup; i++)
                             aggregators.emplace_back(aggregates);
 
-                        int64_t row = 0;
-                        iterateOver<id.value>(*column, [&](auto value)
-                            {
-                                const auto groupId = groups.groupIds[row++];
-                                aggregators[groupId](value);
-                            },
-                            [&]()
-                            {
-                                const auto groupId = groups.groupIds[row++];
-                                aggregators[groupId]();
-                            });
+                        AbominableGroupingIterator<ArrowType, T> iterator{groups, aggregators};
+                        iterateOver<id.value>(*column, iterator, iterator);
 
                         std::vector<arrow::DoubleBuilder> newColumnBuilders(aggregates.size());
                         for(auto &&newColumnBuilder : newColumnBuilders)
