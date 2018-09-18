@@ -1,7 +1,7 @@
 FROM ubuntu:18.04 AS DataframesCI
 
 RUN apt-get update
-RUN apt-get install -y cmake g++ git libboost-all-dev libcurl4-openssl-dev libfmt-dev python3-pip rapidjson-dev unzip wget
+RUN apt-get install -y cmake g++ g++-8 git libboost-all-dev libcurl4-openssl-dev libfmt-dev python3-pip rapidjson-dev unzip wget
 RUN pip3 install numpy
 
 # XLNT
