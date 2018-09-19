@@ -1019,8 +1019,8 @@ BOOST_AUTO_TEST_CASE(Rolling)
     auto numCol = toColumn(std::vector<std::optional<double>>{0.0, 1.0, 2.0, std::nullopt, 4.0});
     auto table = tableFromColumns({tsCol, numCol});
 
-    auto ttt = collectRollingWindowPositions(tsCol, 2s);
-    auto ttt2 = rollingInterval(table, table->column(0), 2s, AggregateFunction::Mean);
+    auto ttt = collectRollingIntervalSizes(tsCol, 2s);
+    auto ttt2 = rollingInterval(table->column(0), 2s, AggregateFunction::Mean);
     auto expectedSizes = std::vector<int>{1, 1, 2, 1, 2};
     BOOST_CHECK_EQUAL_RANGES(ttt, expectedSizes);
 }

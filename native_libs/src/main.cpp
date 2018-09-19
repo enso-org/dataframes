@@ -1229,10 +1229,10 @@ extern "C"
 
     DFH_EXPORT arrow::Table *tableAggregateBy(arrow::Table *table, arrow::Column *keyColumn, int32_t aggregatedColumnsCount, arrow::Column **aggregatedColumns, int8_t *aggregateCountPerColumn, AggregateFunction **aggregatesPerColumn, const char **outError) noexcept
     {
+        // TODO: remove table
         LOG("@{}", (void*)table);
         return TRANSLATE_EXCEPTION(outError)
         {
-            auto tableManaged = LifetimeManager::instance().accessOwned(table);
             auto keyColumnManaged = LifetimeManager::instance().accessOwned(keyColumn);
             
             auto columnsToAggregate = vectorFromC(aggregatedColumns, aggregatedColumnsCount);
@@ -1248,7 +1248,7 @@ extern "C"
                 aggregationMap.emplace_back(colManaged, aggregates);
             }
 
-            auto ret = abominableGroupAggregate(tableManaged, keyColumnManaged, aggregationMap);
+            auto ret = abominableGroupAggregate(keyColumnManaged, aggregationMap);
             return LifetimeManager::instance().addOwnership(ret);
         };
     }

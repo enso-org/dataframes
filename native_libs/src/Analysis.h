@@ -84,7 +84,7 @@ auto dispatchAggregateByEnum(AggregateFunction aggregateEnum, Function &&f)
     }
 }
 
-DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn, std::vector<std::pair<std::shared_ptr<arrow::Column>, std::vector<AggregateFunction>>> toAggregate);
+DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_ptr<arrow::Column> keyColumn, std::vector<std::pair<std::shared_ptr<arrow::Column>, std::vector<AggregateFunction>>> toAggregate);
 
-DFH_EXPORT std::vector<int64_t> collectRollingWindowPositions(std::shared_ptr<arrow::Column> keyColumn, DynamicField interval);
-DFH_EXPORT std::shared_ptr<arrow::Table> rollingInterval(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn, DynamicField interval, AggregateFunction function);
+DFH_EXPORT std::vector<int64_t> collectRollingIntervalSizes(std::shared_ptr<arrow::Column> keyColumn, DynamicField interval);
+DFH_EXPORT std::shared_ptr<arrow::Table> rollingInterval(std::shared_ptr<arrow::Column> keyColumn, DynamicField interval, std::vector<std::pair<std::shared_ptr<arrow::Column>, std::vector<AggregateFunction>>> toAggregate);

@@ -153,6 +153,67 @@ struct Sum : Variance<T>
     auto get() { return accumulator; }
 };
 
+struct Length
+{
+    int64_t length = 0;
+    static constexpr const char *name = "length";
+    static constexpr bool RequiresSample = false;
+
+    template<typename T>
+    void operator()(T &&)
+    {
+        length++;
+    }
+    void operator()()
+    {
+        length++;
+    }
+
+    auto get() { return length; }
+};
+
+template<typename T>
+struct First
+{
+    std::optional<T> value;
+    static constexpr const char *name = "first";
+    static constexpr bool RequiresSample = true;
+
+    void operator()(T t)
+    {
+        if(!value)
+            value = t;
+    }
+    void operator() () {}
+    double get() { return value.value_or(T{}); }
+};
+
+template<typename T>
+struct Last
+{
+    std::optional<T> value;
+    static constexpr const char *name = "last";
+    static constexpr bool RequiresSample = true;
+
+    void operator()(T t)
+    {
+        value = t;
+    }
+    void operator() () {}
+    double get() { return value.value_or(T{}); }
+
+};
+
+template<AggregateFunction aggr, typename T>
+struct AggregatorFor {};
+
+template<typename T> struct AggregatorFor<AggregateFunction::Minimum, T> { using type = Minimum<T>; };
+template<typename T> struct AggregatorFor<AggregateFunction::Maximum, T> { using type = Maximum<T>; };
+template<typename T> struct AggregatorFor<AggregateFunction::Mean, T> { using type = Mean<T>; };
+template<typename T> struct AggregatorFor<AggregateFunction::Length, T> { using type = Length; };
+template<typename T> struct AggregatorFor<AggregateFunction::Median, T> { using type = Median<T>; };
+template<typename T> struct AggregatorFor<AggregateFunction::First, T> { using type = First<T>; };
+template<typename T> struct AggregatorFor<AggregateFunction::Last, T> { using type = Last<T>; };
 
 template<arrow::Type::type id, typename Processor>
 auto calculateStatScalar(const arrow::Column &column, Processor &p)
@@ -378,57 +439,6 @@ double autoCorrelation(const std::shared_ptr<arrow::Column> &column, int lag /*=
     return calculateCorrelation(*column, *shiftedColumn);
 }
 
-struct Length
-{
-    int64_t length = 0;
-    static constexpr const char *name = "length";
-    static constexpr bool RequiresSample = false;
-
-    template<typename T>
-    void operator()(T &&)
-    {
-        length++;
-    }
-    void operator()()
-    {
-        length++;
-    }
-
-    auto get() { return length; }
-};
-
-template<typename T>
-struct First
-{
-    std::optional<T> value;
-    static constexpr const char *name = "first";
-    static constexpr bool RequiresSample = true;
-
-    void operator()(T t)
-    {
-        if(!value)
-            value = t;
-    }
-    void operator() () {}
-    double get() { return value.value_or(T{}); }
-};
-
-template<typename T>
-struct Last
-{
-    std::optional<T> value;
-    static constexpr const char *name = "last";
-    static constexpr bool RequiresSample = true;
-
-    void operator()(T t)
-    {
-        value = t;
-    }
-    void operator() () {}
-    double get() { return value.value_or(T{}); }
-
-};
-
 template<typename T>
 struct AggregateBase
 {
@@ -464,17 +474,6 @@ struct AggregateBy : AggregateBase<T>
         return Aggregator::name;
     }
 };
-
-template<AggregateFunction aggr, typename T> 
-struct AggregatorFor {};
-
-template<typename T> struct AggregatorFor<AggregateFunction::Minimum, T> { using type = Minimum<T>; };
-template<typename T> struct AggregatorFor<AggregateFunction::Maximum, T> { using type = Maximum<T>; };
-template<typename T> struct AggregatorFor<AggregateFunction::Mean   , T> { using type = Mean<T>   ; };
-template<typename T> struct AggregatorFor<AggregateFunction::Length , T> { using type = Length    ; };
-template<typename T> struct AggregatorFor<AggregateFunction::Median , T> { using type = Median<T> ; };
-template<typename T> struct AggregatorFor<AggregateFunction::First  , T> { using type = First<T>  ; };
-template<typename T> struct AggregatorFor<AggregateFunction::Last   , T> { using type = Last<T>   ; };
 
 template<AggregateFunction aggr, typename T>
 using AggregatorFor_t = typename AggregatorFor<aggr, T>::type;
@@ -544,7 +543,7 @@ struct AbominableGroupingIterator
     }
 };
 
-DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn, std::vector<std::pair<std::shared_ptr<arrow::Column>, std::vector<AggregateFunction>>> toAggregate)
+DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_ptr<arrow::Column> keyColumn, std::vector<std::pair<std::shared_ptr<arrow::Column>, std::vector<AggregateFunction>>> toAggregate)
 {
     std::vector<std::shared_ptr<arrow::Column>> newColumns;
 
@@ -722,30 +721,33 @@ std::vector<int64_t> collectRollingWindowPositionsT(const Indexable &indexable, 
 }
 
 template<typename Indexable>
-auto calculateFunctionOnWindow(const Indexable &indexable, int64_t startIndex, int64_t windowsWidth, AggregateFunction f)
+double calculateFunctionOnWindow(const Indexable &indexable, int64_t startIndex, int64_t windowsWidth, AggregateFunction f)
 {
     return visitType4(indexable.type(), [&] (auto id) -> double
     {
         if constexpr(id.value == arrow::Type::INT64 || id.value == arrow::Type::DOUBLE)
         {
-            using T = typename TypeDescription<id.value>::ValueType;
-            Sum<T> s;
-            for(int64_t row = startIndex - windowsWidth + 1; row <= startIndex; ++row)
+            return dispatchAggregateByEnum(f, [&] (auto aggrC) -> double
             {
-                const auto value = getMaybeValue<id.value>(indexable, row);
-                if(value)
-                    s(*value);
-                else
-                    s();
-            }
-            return s.get();
+                using T = typename TypeDescription<id.value>::ValueType;
+                AggregatorFor_t<aggrC.value, T> aggregator;
+                for(int64_t row = startIndex - windowsWidth + 1; row <= startIndex; ++row)
+                {
+                    const auto value = getMaybeValue<id.value>(indexable, row);
+                    if(value)
+                        aggregator(*value);
+                    else
+                        aggregator();
+                }
+                return aggregator.get();
+            });
         }
         else
-            return 0.0;
+            throw std::runtime_error("rolling statistics not supported for type " + indexable.type()->ToString());
     });
 }
 
-std::vector<int64_t> collectRollingWindowPositions(std::shared_ptr<arrow::Column> keyColumn, DynamicField interval)
+std::vector<int64_t> collectRollingIntervalSizes(std::shared_ptr<arrow::Column> keyColumn, DynamicField interval)
 {
     if(keyColumn->data()->num_chunks() == 1)
         return collectRollingWindowPositionsT(*keyColumn->data()->chunk(0), interval);
@@ -753,19 +755,19 @@ std::vector<int64_t> collectRollingWindowPositions(std::shared_ptr<arrow::Column
         return collectRollingWindowPositionsT(*keyColumn, interval);
 }
 
-std::shared_ptr<arrow::Table> rollingInterval(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn, DynamicField interval, AggregateFunction function)
+std::shared_ptr<arrow::Table> rollingInterval(std::shared_ptr<arrow::Column> keyColumn, DynamicField interval, std::vector<std::pair<std::shared_ptr<arrow::Column>, std::vector<AggregateFunction>>> toAggregate)
 {
-    auto dddd = collectRollingWindowPositions(keyColumn, interval);
+    auto dddd = collectRollingIntervalSizes(keyColumn, interval);
 
-
-    auto c1 = table->column(1);
-
-    int64_t N = keyColumn->length();
-    std::vector<double> ret(N);
-    for(int i = 0; i < N; ++i)
-    {
-        ret[i] = calculateFunctionOnWindow(*c1, i, dddd[i], function);
-    }
+// 
+//     auto c1 = table->column(1);
+// 
+//     int64_t N = keyColumn->length();
+//     std::vector<double> ret(N);
+//     for(int i = 0; i < N; ++i)
+//     {
+//         ret[i] = calculateFunctionOnWindow(*c1, i, dddd[i], function);
+//     }
 
     return nullptr;
 }
