@@ -68,4 +68,23 @@ enum class AggregateFunction : int8_t
     Minimum, Maximum, Mean, Length, Median, First, Last
 };
 
+template<typename Function>
+auto dispatchAggregateByEnum(AggregateFunction aggregateEnum, Function &&f)
+{
+    switch(aggregateEnum)
+    {
+    CASE_DISPATCH(AggregateFunction::Minimum)
+    CASE_DISPATCH(AggregateFunction::Maximum)
+    CASE_DISPATCH(AggregateFunction::Mean)
+    CASE_DISPATCH(AggregateFunction::Length)
+    CASE_DISPATCH(AggregateFunction::Median)
+    CASE_DISPATCH(AggregateFunction::First)
+    CASE_DISPATCH(AggregateFunction::Last)
+    default: throw std::runtime_error("not supported aggregate function " + std::to_string((int)aggregateEnum));
+    }
+}
+
 DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn, std::vector<std::pair<std::shared_ptr<arrow::Column>, std::vector<AggregateFunction>>> toAggregate);
+
+DFH_EXPORT std::vector<int64_t> collectRollingWindowPositions(std::shared_ptr<arrow::Column> keyColumn, DynamicField interval);
+DFH_EXPORT std::shared_ptr<arrow::Table> rollingInterval(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn, DynamicField interval, AggregateFunction function);

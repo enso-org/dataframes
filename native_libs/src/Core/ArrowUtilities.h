@@ -22,7 +22,7 @@ namespace date
     class year_month_day;
 }
 
-using TimestampDuration = std::chrono::duration<int64_t, std::nano>; // nanoseconds since epoch
+using TimestampDuration = std::chrono::duration<int64_t, std::nano>; // nanoseconds
 
 struct Timestamp;
 
@@ -31,6 +31,7 @@ namespace std
     DFH_EXPORT std::string to_string(const Timestamp &t);
 }
 
+// timestamp represents nanoseconds since unix epoch
 struct DFH_EXPORT Timestamp : std::chrono::time_point<std::chrono::system_clock, TimestampDuration>
 {
     using Base = std::chrono::time_point<std::chrono::system_clock, TimestampDuration>;
@@ -105,6 +106,7 @@ struct NumericTypeDescription
     using Array = arrow::NumericArray<T>;
     using StorageValueType = ValueType;
     using OffsetType = void;
+    using IntervalType = ValueType;
     static constexpr arrow::Type::type id = ArrowType::type_id;
 };
 
@@ -153,6 +155,7 @@ template<> struct TypeDescription<arrow::Type::TIMESTAMP>
     using Array = arrow::TimestampArray;
     using StorageValueType = int64_t;
     using OffsetType = void;
+    using IntervalType = TimestampDuration;
     static constexpr arrow::Type::type id = ArrowType::type_id;
 };
 
@@ -670,7 +673,7 @@ std::shared_ptr<arrow::Table> tableFromVectors(const std::vector<Ts> & ...ts)
     return tableFromArrays({toArray(ts)...});
 }
 
-using DynamicField = std::variant<int64_t, double, std::string_view, std::string, ListElemView, Timestamp, std::nullopt_t>;
+using DynamicField = std::variant<int64_t, double, std::string_view, std::string, ListElemView, Timestamp, TimestampDuration, std::nullopt_t>;
 
 using DynamicJustVector = std::variant<std::vector<int64_t>, std::vector<double>, std::vector<std::string_view>, std::vector<ListElemView>, std::vector<Timestamp>>;
 DFH_EXPORT DynamicJustVector toJustVector(const arrow::ChunkedArray &chunkedArray);

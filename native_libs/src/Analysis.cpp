@@ -465,20 +465,28 @@ struct AggregateBy : AggregateBase<T>
     }
 };
 
+template<AggregateFunction aggr, typename T> 
+struct AggregatorFor {};
+
+template<typename T> struct AggregatorFor<AggregateFunction::Minimum, T> { using type = Minimum<T>; };
+template<typename T> struct AggregatorFor<AggregateFunction::Maximum, T> { using type = Maximum<T>; };
+template<typename T> struct AggregatorFor<AggregateFunction::Mean   , T> { using type = Mean<T>   ; };
+template<typename T> struct AggregatorFor<AggregateFunction::Length , T> { using type = Length    ; };
+template<typename T> struct AggregatorFor<AggregateFunction::Median , T> { using type = Median<T> ; };
+template<typename T> struct AggregatorFor<AggregateFunction::First  , T> { using type = First<T>  ; };
+template<typename T> struct AggregatorFor<AggregateFunction::Last   , T> { using type = Last<T>   ; };
+
+template<AggregateFunction aggr, typename T>
+using AggregatorFor_t = typename AggregatorFor<aggr, T>::type;
+
 template<typename T>
 std::unique_ptr<AggregateBase<T>> makeAggregator(AggregateFunction a)
 {
-    switch(a)
+    return dispatchAggregateByEnum(a, [] (auto aggrC) -> std::unique_ptr<AggregateBase<T>>
     {
-    case AggregateFunction::Minimum: return std::make_unique<AggregateBy<T, Minimum<T>>>();
-    case AggregateFunction::Maximum: return std::make_unique<AggregateBy<T, Maximum<T>>>();
-    case AggregateFunction::Mean: return std::make_unique<AggregateBy<T, Mean<T>>>();
-    case AggregateFunction::Length: return std::make_unique<AggregateBy<T, Length>>();
-    case AggregateFunction::Median: return std::make_unique<AggregateBy<T, Median<T>>>();
-    case AggregateFunction::First: return std::make_unique<AggregateBy<T, First<T>>>();
-    case AggregateFunction::Last: return std::make_unique<AggregateBy<T, Last<T>>>();
-    }
-    throw std::runtime_error("not handled aggregate function id: " + std::to_string((int)a));
+        using Aggregator = AggregatorFor_t<aggrC.value, T>;
+        return std::make_unique<AggregateBy<T, Aggregator>>();
+    });
 }
 
 std::string aggregateName(AggregateFunction a)
@@ -606,3 +614,140 @@ DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_pt
     return tableFromColumns(newColumns);
 }
 
+namespace detail
+{
+    template <template <class...> class Trait, class Enabler, class... Args>
+    struct is_detected : std::false_type{};
+
+    template <template <class...> class Trait, class... Args>
+    struct is_detected<Trait, std::void_t<Trait<Args...>>, Args...> : std::true_type{};
+}
+
+template <template <class...> class Trait, class... Args>
+using is_detected = typename detail::is_detected<Trait, void, Args...>::type;
+
+template <template <class...> class Trait, class... Args>
+constexpr bool is_detected_v = is_detected<Trait, Args...>::value;
+
+
+template<class TD>
+using IntervalType = typename TD::IntervalType;
+
+template<arrow::Type::type id, typename Indexable, typename Index>
+std::optional<typename TypeDescription<id>::ObservedType> getMaybeValue(const Indexable &indexable, Index index)
+{
+    if constexpr(std::is_same_v<Indexable, arrow::Column>)
+    {
+        return getMaybeValue<id>(*indexable.data(), index);
+    }
+    else if constexpr(std::is_same_v<Indexable, arrow::ChunkedArray>)
+    {
+        auto [chunk, chunkIndex] = locateChunk(indexable, index);
+        return getMaybeValue<id>(*chunk, index);
+    }
+    else if constexpr(std::is_same_v<Indexable, arrow::Array>)
+    {
+        if(indexable.IsValid(index))
+            return arrayValueAt<id>(indexable, index);
+        else
+            return std::nullopt;
+    }
+    else
+        static_assert(always_false<indexable>);
+}
+
+template<arrow::Type::type id, typename Indexable>
+auto getJustValue(const Indexable &indexable, int64_t index)
+{
+    if constexpr(std::is_same_v<Indexable, arrow::Column>)
+        return columnValueAt<id>(indexable, index);
+    else if constexpr(std::is_same_v<Indexable, arrow::Array>)
+        return arrayValueAt<id>(indexable, index);
+    else
+        static_assert(always_false<indexable>);
+}
+
+template<typename Indexable>
+std::vector<int64_t> collectRollingWindowPositionsT(const Indexable &indexable, DynamicField interval)
+{
+    const auto N = indexable.length();
+    std::vector<int64_t> ret(N);
+
+    visitType4(indexable.type(), [&](auto id)
+    {
+        if constexpr(is_detected_v<IntervalType, TypeDescription<id.value>>)
+        {
+            using TD = TypeDescription<id.value>;
+            using Array = typename TD::Array;
+            using IntervalType = IntervalType<TD>;
+
+            const auto intervalT = std::get<IntervalType>(interval);
+
+            int64_t left = 0;
+
+            for(int64_t right = 0; right < N; ++right)
+            {
+                const auto rightValue = getJustValue<id.value>(indexable, right);
+                const auto leftValue = rightValue - intervalT;
+
+                while(left < right && getJustValue<id.value>(indexable, left) <= leftValue)
+                    left++;
+
+                ret[right] = 1 + right - left;
+            }
+        }
+        else
+            throw std::runtime_error("interval windows not supported for type " + indexable.type()->ToString());
+    });
+
+    return ret;
+}
+
+template<typename Indexable>
+auto calculateFunctionOnWindow(const Indexable &indexable, int64_t startIndex, int64_t windowsWidth, AggregateFunction f)
+{
+    return visitType4(indexable.type(), [&] (auto id) -> double
+    {
+        if constexpr(id.value == arrow::Type::INT64 || id.value == arrow::Type::DOUBLE)
+        {
+            using T = typename TypeDescription<id.value>::ValueType;
+            Sum<T> s;
+            for(int64_t row = startIndex - windowsWidth + 1; row <= startIndex; ++row)
+            {
+                const auto value = getMaybeValue<id.value>(indexable, row);
+                if(value)
+                    s(*value);
+                else
+                    s();
+            }
+            return s.get();
+        }
+        else
+            return 0.0;
+    });
+}
+
+std::vector<int64_t> collectRollingWindowPositions(std::shared_ptr<arrow::Column> keyColumn, DynamicField interval)
+{
+    if(keyColumn->data()->num_chunks() == 1)
+        return collectRollingWindowPositionsT(*keyColumn->data()->chunk(0), interval);
+    else
+        return collectRollingWindowPositionsT(*keyColumn, interval);
+}
+
+std::shared_ptr<arrow::Table> rollingInterval(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn, DynamicField interval, AggregateFunction function)
+{
+    auto dddd = collectRollingWindowPositions(keyColumn, interval);
+
+
+    auto c1 = table->column(1);
+
+    int64_t N = keyColumn->length();
+    std::vector<double> ret(N);
+    for(int i = 0; i < N; ++i)
+    {
+        ret[i] = calculateFunctionOnWindow(*c1, i, dddd[i], function);
+    }
+
+    return nullptr;
+}
