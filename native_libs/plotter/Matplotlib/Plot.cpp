@@ -45,7 +45,13 @@ protected:
 public:
     PyListBuilder(size_t length)
         : list(PyList_New(length))
-    {}
+    {
+        // TODO: move to some kind of general purpose initialization procedure
+        if(PyDateTimeAPI == nullptr)
+        {
+            PyDateTime_IMPORT;
+        }
+    }
     ~PyListBuilder()
     {
         if(list)
