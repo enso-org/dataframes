@@ -17,6 +17,8 @@
 #include <arrow/type.h>
 #include "Common.h"
 
+using TypePtr = std::shared_ptr<arrow::DataType>;
+
 namespace date
 {
     class year_month_day;
@@ -243,7 +245,7 @@ auto visitType(const arrow::DataType &type, F &&f)
 }
 
 template<typename F>
-auto visitType4(const arrow::TypePtr &type, F &&f)
+auto visitType4(const TypePtr &type, F &&f)
 {
     switch(type->id())
     {
@@ -300,7 +302,7 @@ auto getTypeSingleton()
 
 //////////////////////////////////////////////////////////////////////////
 
-DFH_EXPORT std::shared_ptr<arrow::ArrayBuilder> makeBuilder(const arrow::TypePtr &type);
+DFH_EXPORT std::shared_ptr<arrow::ArrayBuilder> makeBuilder(const TypePtr &type);
 
 template<typename TypeT>
 auto makeBuilder(const std::shared_ptr<TypeT> &type)
@@ -767,7 +769,7 @@ void iterateOverJustPairs(const arrow::Column &column1, const arrow::Column &col
 }
 
 
-DFH_EXPORT std::shared_ptr<arrow::Array> makeNullsArray(arrow::TypePtr type, int64_t length);
+DFH_EXPORT std::shared_ptr<arrow::Array> makeNullsArray(TypePtr type, int64_t length);
 
 
 template<arrow::Type::type id, bool nullable>

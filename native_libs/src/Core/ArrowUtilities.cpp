@@ -191,7 +191,7 @@ struct GetTypeS<std::shared_ptr<T>> { using type = T; };
 template<typename SharedPtrToType>
 using GetType = typename GetTypeS<std::decay_t<SharedPtrToType>>::type;
 
-std::shared_ptr<arrow::Array> makeNullsArray(arrow::TypePtr type, int64_t length)
+std::shared_ptr<arrow::Array> makeNullsArray(TypePtr type, int64_t length)
 {
     return visitDataType(type, [&](auto &&typeDer)
     {
@@ -204,7 +204,7 @@ std::shared_ptr<arrow::Array> makeNullsArray(arrow::TypePtr type, int64_t length
     });
 }
 
-std::shared_ptr<arrow::ArrayBuilder> makeBuilder(const arrow::TypePtr &type)
+std::shared_ptr<arrow::ArrayBuilder> makeBuilder(const TypePtr &type)
 {
     return visitDataType(type, [&](auto &&typeDer) -> std::shared_ptr<arrow::ArrayBuilder>
     {

@@ -169,7 +169,7 @@ ColumnType deduceType(const ParsedCsv &csv, size_t columnIndex, size_t startRow,
         }
     }
 
-    auto typePtr = [&] () -> arrow::TypePtr
+    auto typePtr = [&] () -> TypePtr
     {
         if(encounteredTypes.count(arrow::Type::TIMESTAMP))
         {
