@@ -140,6 +140,21 @@ extern "C"
         }
     }
 
+    void plot_date(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys) {
+
+        auto xsarray = chunkedArrayToPyObj(*xs);
+        std::cout << "XS " << xsarray << std::endl;
+        auto ysarray = chunkedArrayToPyObj(*ys);
+        std::cout << "YS " << ysarray << std::endl;
+        try {
+            std::cout << "PLOT BEG" << std::endl;
+            plt::plot_date(xsarray, ysarray);
+            std::cout << "PLOT END" << std::endl;
+        } catch (const runtime_error& e) {
+          std::cout << e.what() << std::endl;
+        }
+    }
+
     void kdeplot2(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* colormap) {
         auto xsarray = chunkedArrayToPyObj(*xs);
         std::cout << "XS " << xsarray << std::endl;

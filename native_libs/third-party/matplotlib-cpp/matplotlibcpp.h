@@ -1,8 +1,6 @@
 #pragma once
 
-#ifdef __linux__
 #include <dlfcn.h> 
-#endif
 
 #include <vector>
 #include <map>
@@ -41,6 +39,7 @@ struct _interpreter {
     PyObject *s_python_function_save;
     PyObject *s_python_function_figure;
     PyObject *s_python_function_plot;
+    PyObject *s_python_function_plot_date;
     PyObject *s_python_function_kdeplot;
     PyObject *s_python_function_heatmap;
     PyObject *s_python_function_semilogx;
@@ -124,9 +123,7 @@ private:
             throw std::runtime_error("couldnt create string");
         }
 
-#ifdef __linux__
         dlopen("libpython3.6m.so", RTLD_LAZY | RTLD_GLOBAL);
-#endif
 
         PyObject* matplotlib = PyImport_Import(matplotlibname);
         Py_DECREF(matplotlibname);
@@ -180,6 +177,7 @@ private:
         s_python_function_pause = PyObject_GetAttrString(pymod, "pause");
         s_python_function_figure = PyObject_GetAttrString(pymod, "figure");
         s_python_function_plot = PyObject_GetAttrString(pymod, "plot");
+        s_python_function_plot = PyObject_GetAttrString(pymod, "plot_date");
         s_python_function_kdeplot = PyObject_GetAttrString(seabornmod, "kdeplot");
         s_python_function_heatmap = PyObject_GetAttrString(seabornmod, "heatmap");
         s_python_function_semilogx = PyObject_GetAttrString(pymod, "semilogx");
@@ -222,6 +220,7 @@ private:
             || !s_python_function_pause
             || !s_python_function_figure
             || !s_python_function_plot
+            || !s_python_function_plot_date
             || !s_python_function_kdeplot
             || !s_python_function_heatmap
             || !s_python_function_semilogx
@@ -256,6 +255,7 @@ private:
             || !PyFunction_Check(s_python_function_pause)
             || !PyFunction_Check(s_python_function_figure)
             || !PyFunction_Check(s_python_function_plot)
+            || !PyFunction_Check(s_python_function_plot_date)
             || !PyFunction_Check(s_python_function_kdeplot)
             || !PyFunction_Check(s_python_function_heatmap)
             || !PyFunction_Check(s_python_function_semilogx)
@@ -392,6 +392,29 @@ bool plot(const std::vector<Numeric> &x, const std::vector<Numeric> &y, const st
     }
 
     PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_plot, args, kwargs);
+
+    Py_DECREF(args);
+    Py_DECREF(kwargs);
+    if(res) Py_DECREF(res);
+
+    return res;
+}
+
+
+bool plot_date(PyObject* xarray, PyObject* yarray)
+{
+
+
+    // construct positional args
+    PyObject* args = PyTuple_New(2);
+    PyTuple_SetItem(args, 0, xarray);
+    PyTuple_SetItem(args, 1, yarray);
+
+    // construct keyword args
+    PyObject* kwargs = PyDict_New();
+    
+
+    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_plot_date, args, kwargs);
 
     Py_DECREF(args);
     Py_DECREF(kwargs);
