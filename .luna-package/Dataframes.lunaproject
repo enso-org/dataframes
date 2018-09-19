@@ -22,7 +22,7 @@ modulesSettings:
         - []
       - - ! 'LunaVisualizer: base: table'
         - base/table/table.html
-    currentBreadcrumb: main
+    currentBreadcrumb: test
     breadcrumbsSettings:
     - - items: []
       - breadcrumbCameraSettings:
