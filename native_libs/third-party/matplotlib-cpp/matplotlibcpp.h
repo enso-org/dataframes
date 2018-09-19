@@ -181,7 +181,7 @@ private:
         s_python_function_pause = PyObject_GetAttrString(pymod, "pause");
         s_python_function_figure = PyObject_GetAttrString(pymod, "figure");
         s_python_function_plot = PyObject_GetAttrString(pymod, "plot");
-        s_python_function_plot = PyObject_GetAttrString(pymod, "plot_date");
+        s_python_function_plot_date = PyObject_GetAttrString(pymod, "plot_date");
         s_python_function_kdeplot = PyObject_GetAttrString(seabornmod, "kdeplot");
         s_python_function_heatmap = PyObject_GetAttrString(seabornmod, "heatmap");
         s_python_function_semilogx = PyObject_GetAttrString(pymod, "semilogx");

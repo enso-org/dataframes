@@ -10,14 +10,10 @@ import Dataframes.Types
 import Dataframes.Internal.Test.Test
 
 
-«0»def main:
-    «1»setHelperVerbosity False
-    «2»benchmark "running tests" TestArrayBuilder.run
 
-«3»def test:
+«3»def main:
     «4»readFile1 = CSVParser . readFile "./data/epc.us.txt"
-    «5»histogram1 = readFile1 . chart . histogram "Open"
-    
+    «5»histogram1 = readFile1 . chart . plotDate "Date" "Open"
     None
 
-### META {"metas":[{"marker":1,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":320,"_vector2_x":0}}}},{"marker":2,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":320,"_vector2_x":320}}}},{"marker":4,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-48,"_vector2_x":-272}}}},{"marker":5,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":-48,"_vector2_x":48}}}}]}
+### META {"metas":[{"marker":4,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-48,"_vector2_x":-272}}}},{"marker":5,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":-48,"_vector2_x":48}}}}]}
