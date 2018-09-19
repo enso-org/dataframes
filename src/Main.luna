@@ -14,6 +14,9 @@ import Dataframes.Internal.Test.Test
 «3»def main:
     «4»readFile1 = CSVParser . readFile "./data/epc.us.txt"
     «5»histogram1 = readFile1 . chart . plotDate "Date" "Open"
+    print histogram1
+    Matplotlib.init 400 400
+    print "foo"
     None
 
 ### META {"metas":[{"marker":4,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-48,"_vector2_x":-272}}}},{"marker":5,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":-48,"_vector2_x":48}}}}]}
