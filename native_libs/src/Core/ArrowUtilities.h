@@ -335,7 +335,7 @@ inline auto append(arrow::StringBuilder &builder, std::string_view sv)
 }
 
 template<typename N, typename V>
-auto append(arrow::NumericBuilder<N> &builder, const V &value)
+auto append(arrow::NumericBuilder<N> &builder, const V &value, std::enable_if_t<std::is_arithmetic_v<V>> * = nullptr)
 {
     return builder.Append(value);
 }
@@ -347,6 +347,16 @@ inline auto append(arrow::TimestampBuilder &builder, const Timestamp &value)
     static_assert(std::is_same_v<Timestamp::period, std::nano>);
     return builder.Append(value.time_since_epoch().count());
 }
+
+template<typename Builder, typename T>
+inline auto append(Builder &builder, const std::optional<T> &value)
+{
+    if(value)
+        append(builder, *value);
+    else
+        builder.AppendNull();
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -645,6 +655,7 @@ std::tuple<std::vector<Ts>...> toVectors(const arrow::Table &table)
     return detail::toVectorsHlp<Ts...>(table, std::index_sequence_for<Ts...>{});
 }
 
+DFH_EXPORT std::shared_ptr<arrow::Column> getColumn(const arrow::Table &table, std::string_view name);
 DFH_EXPORT std::vector<std::shared_ptr<arrow::Column>> getColumns(const arrow::Table &table);
 DFH_EXPORT std::unordered_map<std::string, std::shared_ptr<arrow::Column>> getColumnMap(const arrow::Table &table);
 

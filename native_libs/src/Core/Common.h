@@ -8,6 +8,9 @@
 
 #include "optional.h"
 
+#include <fmt/format.h>
+#include <fmt/ostream.h> // needed for fmt to use user-provided operator<<
+
 using namespace std::literals;
 using namespace std::chrono_literals;
 
@@ -90,9 +93,19 @@ constexpr bool is_optional_v = is_optional<T>::value;
 
 namespace std
 {
+    inline std::ostream &operator<<(std::ostream &out, const std::exception &e)
+    {
+        return out << e.what();
+    }
+
     inline std::ostream &operator<<(std::ostream &out, std::nullopt_t)
     {
         return out << "[none]";
+    }
+
+    inline std::ostream &operator<<(std::ostream &out, std::chrono::duration<int64_t, std::nano> d)
+    {
+        return out << d.count() << "ns";
     }
 
     template<typename T>
@@ -144,3 +157,12 @@ std::vector<T> iotaVector(size_t N, T from = T{})
         elem = from++;
     return ret;
 }
+
+
+#define THROW(message, ...)  do {                                         \
+	auto msg_ =  fmt::format(message, __VA_ARGS__);                       \
+	std::cerr << __FILE__ << " " << __LINE__ << " " << msg_ << std::endl; \
+	std::runtime_error e_to_throw{fmt::format(message, __VA_ARGS__)};     \
+	throw e_to_throw;                                                     \
+} while(0)
+

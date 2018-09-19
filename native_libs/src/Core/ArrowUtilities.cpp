@@ -27,6 +27,18 @@ std::vector<std::shared_ptr<arrow::Column>> getColumns(const arrow::Table &table
     return columns;
 }
 
+std::shared_ptr<arrow::Column> getColumn(const arrow::Table &table, std::string_view name)
+{
+    auto columns = getColumns(table);
+    for(auto &col : columns)
+        if(col->name() == name)
+            return col;
+
+    auto names = transformToVector(columns, [](auto &col) { return col->name(); });
+    THROW("Failed to found column by name `{}`. Available columns: `{}`", 
+        name, names);
+}
+
 std::unordered_map<std::string, std::shared_ptr<arrow::Column>> getColumnMap(const arrow::Table &table)
 {
     std::unordered_map<std::string, std::shared_ptr<arrow::Column>> ret;
@@ -257,7 +269,8 @@ std::pair<const arrow::Array *, int32_t> ChunkAccessor::locate(int64_t index) co
     {
         auto chunkStart = itr - 1;
         auto chunkIndex = std::distance(chunkStartIndices.begin(), chunkStart);
-        return { chunks[chunkIndex].get(), index - *chunkStart };
+        auto indexWithinChunk = (int32_t)index - *chunkStart;
+        return { chunks[chunkIndex].get(), indexWithinChunk };
     }
     else
         throw std::runtime_error("wrong index");

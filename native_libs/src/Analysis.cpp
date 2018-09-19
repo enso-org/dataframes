@@ -81,7 +81,7 @@ struct Minimum
 {
     T accumulator = std::numeric_limits<T>::max();
     static constexpr const char *name = "min";
-    static constexpr bool RequiresSample = true;
+    static constexpr bool RequiredSampleCount = 1;
     void operator() (T elem) { accumulator = std::min<T>(accumulator, elem); }
     void operator() () {}
     auto get() { return accumulator; }
@@ -92,7 +92,7 @@ struct Maximum
 {
     T accumulator = std::numeric_limits<T>::min();
     static constexpr const char *name = "max";
-    static constexpr bool RequiresSample = true;
+    static constexpr bool RequiredSampleCount = 1;
     void operator() (T elem) { accumulator = std::max<T>(accumulator, elem); }
     void operator() () {}
     auto get() { return accumulator; }
@@ -105,7 +105,7 @@ struct Mean
     int64_t count = 0;
     double accumulator = 0;
     static constexpr const char *name = "mean";
-    static constexpr bool RequiresSample = true;
+    static constexpr bool RequiredSampleCount = 1;
     void operator() (T elem) { accumulator += elem; count++; }
     void operator() () {}
     auto get() { return accumulator / count; }
@@ -117,7 +117,7 @@ struct Median
     std::vector<T> values;
 
     static constexpr const char *name = "median";
-    static constexpr bool RequiresSample = true;
+    static constexpr bool RequiredSampleCount = 1;
     void operator() (T elem) { values.push_back(elem); }
     void operator() () {}
     auto get() { return vectorQuantile(values, 0.5); }
@@ -129,7 +129,7 @@ struct Variance
     boost::accumulators::accumulator_set<T, boost::accumulators::features<boost::accumulators::tag::variance>> accumulator;
 
     static constexpr const char *name = "variance";
-    static constexpr bool RequiresSample = true;
+    static constexpr bool RequiredSampleCount = 2;
     void operator() (T elem) { accumulator(elem); }
     void operator() () {}
     auto get() { return boost::accumulators::variance(accumulator); }
@@ -147,17 +147,17 @@ struct Sum : Variance<T>
 {
     T accumulator{};
     static constexpr const char *name = "sum";
-    static constexpr bool RequiresSample = false;
+    static constexpr bool RequiredSampleCount = 0;
     void operator() (T elem) { accumulator += elem; }
     void operator() () {}
-    auto get() { return accumulator; }
+    T get() { return accumulator; }
 };
 
 struct Length
 {
     int64_t length = 0;
     static constexpr const char *name = "length";
-    static constexpr bool RequiresSample = false;
+    static constexpr bool RequiredSampleCount = 0;
 
     template<typename T>
     void operator()(T &&)
@@ -169,7 +169,7 @@ struct Length
         length++;
     }
 
-    auto get() { return length; }
+    int64_t get() { return length; }
 };
 
 template<typename T>
@@ -177,7 +177,7 @@ struct First
 {
     std::optional<T> value;
     static constexpr const char *name = "first";
-    static constexpr bool RequiresSample = true;
+    static constexpr bool RequiredSampleCount = 1;
 
     void operator()(T t)
     {
@@ -185,22 +185,22 @@ struct First
             value = t;
     }
     void operator() () {}
-    double get() { return value.value_or(T{}); }
+    T get() { return value.value_or(T{}); }
 };
 
 template<typename T>
 struct Last
 {
-    std::optional<T> value;
+    T value{};
     static constexpr const char *name = "last";
-    static constexpr bool RequiresSample = true;
+    static constexpr bool RequiredSampleCount = 1;
 
     void operator()(T t)
     {
         value = t;
     }
     void operator() () {}
-    double get() { return value.value_or(T{}); }
+    T get() { return value; }
 
 };
 
@@ -209,11 +209,11 @@ struct AggregatorFor {};
 
 template<typename T> struct AggregatorFor<AggregateFunction::Minimum, T> { using type = Minimum<T>; };
 template<typename T> struct AggregatorFor<AggregateFunction::Maximum, T> { using type = Maximum<T>; };
-template<typename T> struct AggregatorFor<AggregateFunction::Mean, T> { using type = Mean<T>; };
-template<typename T> struct AggregatorFor<AggregateFunction::Length, T> { using type = Length; };
-template<typename T> struct AggregatorFor<AggregateFunction::Median, T> { using type = Median<T>; };
-template<typename T> struct AggregatorFor<AggregateFunction::First, T> { using type = First<T>; };
-template<typename T> struct AggregatorFor<AggregateFunction::Last, T> { using type = Last<T>; };
+template<typename T> struct AggregatorFor<AggregateFunction::Mean   , T> { using type = Mean<T>   ; };
+template<typename T> struct AggregatorFor<AggregateFunction::Length , T> { using type = Length    ; };
+template<typename T> struct AggregatorFor<AggregateFunction::Median , T> { using type = Median<T> ; };
+template<typename T> struct AggregatorFor<AggregateFunction::First  , T> { using type = First<T>  ; };
+template<typename T> struct AggregatorFor<AggregateFunction::Last   , T> { using type = Last<T>   ; };
 
 template<arrow::Type::type id, typename Processor>
 auto calculateStatScalar(const arrow::Column &column, Processor &p)
@@ -243,7 +243,7 @@ std::shared_ptr<arrow::Column> calculateStat(const arrow::Column &column)
             return toColumn(std::vector<ResultT>{result}, { p.name });
         }
         else
-            throw std::runtime_error("Operation not supported for type " + column.type()->ToString());
+            THROW("Operation {} not supported for type {}", Processor<double>::name, column.type()->ToString());
     });
 }
 
@@ -465,7 +465,7 @@ struct AggregateBy : AggregateBase<T>
     }
     virtual std::optional<double> get(bool hadValidValue) override
     {
-        if(hadValidValue || !Aggregator::RequiresSample)
+        if(hadValidValue || !Aggregator::RequiredSampleCount)
             return a.get();
         return {};
     }
@@ -542,6 +542,11 @@ struct AbominableGroupingIterator
         aggregators[groupId]();
     }
 };
+
+std::string to_string(AggregateFunction a)
+{
+    return dispatchAggregateByEnum(a, [] (auto aggrC) { return AggregatorFor_t<aggrC.value, double>::name; });
+}
 
 DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_ptr<arrow::Column> keyColumn, std::vector<std::pair<std::shared_ptr<arrow::Column>, std::vector<AggregateFunction>>> toAggregate)
 {
@@ -721,25 +726,34 @@ std::vector<int64_t> collectRollingWindowPositionsT(const Indexable &indexable, 
 }
 
 template<typename Indexable>
-double calculateFunctionOnWindow(const Indexable &indexable, int64_t startIndex, int64_t windowsWidth, AggregateFunction f)
+std::optional<double> calculateFunctionOnWindow(const Indexable &indexable, int64_t startIndex, int64_t windowsWidth, AggregateFunction f)
 {
-    return visitType4(indexable.type(), [&] (auto id) -> double
+    return visitType4(indexable.type(), [&] (auto id) -> std::optional<double>
     {
         if constexpr(id.value == arrow::Type::INT64 || id.value == arrow::Type::DOUBLE)
         {
-            return dispatchAggregateByEnum(f, [&] (auto aggrC) -> double
+            return dispatchAggregateByEnum(f, [&] (auto aggrC) -> std::optional<double>
             {
                 using T = typename TypeDescription<id.value>::ValueType;
-                AggregatorFor_t<aggrC.value, T> aggregator;
+                using Aggregator = AggregatorFor_t<aggrC.value, T>;
+                Aggregator aggregator;
+
+                auto validCount = 0;
                 for(int64_t row = startIndex - windowsWidth + 1; row <= startIndex; ++row)
                 {
                     const auto value = getMaybeValue<id.value>(indexable, row);
                     if(value)
+                    {
+                        ++validCount;
                         aggregator(*value);
+                    }
                     else
                         aggregator();
                 }
-                return aggregator.get();
+                if(validCount >= Aggregator::RequiredSampleCount)
+                    return aggregator.get();
+                else 
+                    return std::nullopt;
             });
         }
         else
@@ -755,19 +769,60 @@ std::vector<int64_t> collectRollingIntervalSizes(std::shared_ptr<arrow::Column> 
         return collectRollingWindowPositionsT(*keyColumn, interval);
 }
 
+void requireSameSize(const arrow::Column &lhs, const arrow::Column &rhs)
+{
+    auto lhsN = lhs.length();
+    auto rhsN = rhs.length();
+
+    if(lhsN != rhsN)
+        THROW("Column length mismatch: `{}` has {} rows, `{}` has {} rows", lhs.name(), lhsN, rhs.name(), rhsN);
+}
+
+// Helper for providing fast path for single-chunked column index accessing
+template<typename F>
+auto optimizeIndexable(const std::shared_ptr<arrow::Column> &column, F &&f)
+{
+    if(column->data()->num_chunks() == 1)
+        return f(column->data()->chunk(0));
+    else
+        return f(column);
+}
+
 std::shared_ptr<arrow::Table> rollingInterval(std::shared_ptr<arrow::Column> keyColumn, DynamicField interval, std::vector<std::pair<std::shared_ptr<arrow::Column>, std::vector<AggregateFunction>>> toAggregate)
 {
-    auto dddd = collectRollingIntervalSizes(keyColumn, interval);
+    std::vector<std::shared_ptr<arrow::Column>> newColumns{ keyColumn };
 
-// 
-//     auto c1 = table->column(1);
-// 
-//     int64_t N = keyColumn->length();
-//     std::vector<double> ret(N);
-//     for(int i = 0; i < N; ++i)
-//     {
-//         ret[i] = calculateFunctionOnWindow(*c1, i, dddd[i], function);
-//     }
+    const auto N = keyColumn->length();
+    const auto windowWidths = collectRollingIntervalSizes(keyColumn, interval);
+    for(auto && [col, funcs] : toAggregate)
+    {
+        requireSameSize(*keyColumn, *col);
+        optimizeIndexable(col, [&](auto &&indexable)
+        {
+            const auto &name = col->name();
+            for(auto fun : funcs)
+            {
+                try
+                {
+                    arrow::DoubleBuilder builder;
+                    builder.Reserve(N);
 
-    return nullptr;
+                    for(int64_t row = 0; row < N; ++row)
+                    {
+                        auto value = calculateFunctionOnWindow(*indexable, row, windowWidths[row], fun);
+                        append(builder, value);
+                    }
+
+                    auto arr = finish(builder);
+                    newColumns.push_back(toColumn(arr, name + "_" + to_string(fun)));  // TODO pretty name
+                }
+                catch(std::exception &e)
+                {
+                    THROW("failed to calculate `{}` on column `{}`: {}", to_string(fun), name, e);
+                }
+            }
+        });
+    }
+
+    return tableFromColumns(newColumns);
 }

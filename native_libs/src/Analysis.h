@@ -84,6 +84,8 @@ auto dispatchAggregateByEnum(AggregateFunction aggregateEnum, Function &&f)
     }
 }
 
+DFH_EXPORT std::string to_string(AggregateFunction a);
+
 DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_ptr<arrow::Column> keyColumn, std::vector<std::pair<std::shared_ptr<arrow::Column>, std::vector<AggregateFunction>>> toAggregate);
 
 DFH_EXPORT std::vector<int64_t> collectRollingIntervalSizes(std::shared_ptr<arrow::Column> keyColumn, DynamicField interval);

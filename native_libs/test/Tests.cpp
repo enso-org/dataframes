@@ -1005,23 +1005,45 @@ BOOST_AUTO_TEST_CASE(AutoCorrelation)
 
 BOOST_AUTO_TEST_CASE(Rolling)
 {
-    date::sys_days day = 2013_y/jan/01;
-    std::vector<Timestamp> ts
+    auto table = loadTableFromCsvFile("F:/usa.us.txt");
+    uglyPrint(*table);
+    auto Date = getColumn(*table, "Date");
+    auto Open = getColumn(*table, "Open");
+
+    auto meanForEachColumn = transformToVector(getColumns(*table), [](auto col)
     {
-        day + 9h + 0s,
-        day + 9h + 2s,
-        day + 9h + 3s,
-        day + 9h + 5s,
-        day + 9h + 6s,
-    };
+        return std::pair(col, std::vector<AggregateFunction>{AggregateFunction::Mean});
+    });
+    meanForEachColumn.erase(meanForEachColumn.begin());
 
-    auto tsCol = toColumn(ts);
-    auto numCol = toColumn(std::vector<std::optional<double>>{0.0, 1.0, 2.0, std::nullopt, 4.0});
-    auto table = tableFromColumns({tsCol, numCol});
 
-    auto ttt = collectRollingIntervalSizes(tsCol, 2s);
-    auto ttt2 = rollingInterval(table->column(0), 2s, AggregateFunction::Mean);
-    auto expectedSizes = std::vector<int>{1, 1, 2, 1, 2};
-    BOOST_CHECK_EQUAL_RANGES(ttt, expectedSizes);
+    MeasureAtLeast p{ 100, 15s };
+    measure("rolling", p, [&]
+    {
+        return rollingInterval(Date, TimestampDuration(date::days(7)), meanForEachColumn); 
+    });
+    //auto ttt2 = rollingInterval(Date, TimestampDuration(date::days(7)), meanForEachColumn); //  {{Open, {AggregateFunction::Mean}}}
+
+    //uglyPrint(*ttt2);
+//     date::sys_days day = 2013_y/jan/01;
+//     std::vector<Timestamp> ts
+//     {
+//         day + 9h + 0s,
+//         day + 9h + 2s,
+//         day + 9h + 3s,
+//         day + 9h + 5s,
+//         day + 9h + 6s,
+//     };
+// 
+//  
+//     auto tsCol = toColumn(ts);
+//     auto numCol = toColumn(std::vector<std::optional<double>>{0.0, 1.0, 2.0, std::nullopt, 4.0});
+//     auto table = tableFromColumns({tsCol, numCol});
+// 
+//     auto ttt = collectRollingIntervalSizes(tsCol, 2s);
+//     auto ttt2 = rollingInterval(tsCol, 2s, {{numCol, {AggregateFunction::Mean}}});
+//     uglyPrint(*ttt2);
+//     auto expectedSizes = std::vector<int>{1, 1, 2, 1, 2};
+//     BOOST_CHECK_EQUAL_RANGES(ttt, expectedSizes);
 }
 

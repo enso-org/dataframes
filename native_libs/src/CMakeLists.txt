@@ -28,12 +28,17 @@ project(DataframeHelper)
 
 find_package(Boost 1.62.0 REQUIRED COMPONENTS unit_test_framework)
 if(NOT Boost_FOUND)
-    message(WARNING "Cannot find Boost library headers")
+    message(WARNING "Cannot find Boost libraries")
 endif()
 
 find_path(RAPIDJSON_INCLUDE rapidjson/document.h)
 if(NOT RAPIDJSON_INCLUDE)
     message(WARNING "Cannot find rapidjson include dir with rapidjson/document.h. If it is present, consider setting CMAKE_PREFIX_PATH or CMAKE_INCLUDE_PATH.")
+endif()
+
+find_path(FMT_INCLUDE fmt/format.h)
+if(NOT FMT_INCLUDE)
+    message(WARNING "Cannot find {fmt} include dir with fmt/format.h. If it is present, consider setting CMAKE_PREFIX_PATH or CMAKE_INCLUDE_PATH.")
 endif()
 
 find_path(XLNT_INCLUDE xlnt/xlnt.hpp)
@@ -82,7 +87,8 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE BUILDING_DATAFRAME_HELPER)
 target_compile_definitions(${PROJECT_NAME} PUBLIC _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS) # rapidjson is so deprecated)
 
 # Includes path: project root, arrow, third-party any-lite
-target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR} ${ARROW_INCLUDE} ${PROJECT_SOURCE_DIR}/../third-party/any-lite ${PROJECT_SOURCE_DIR}/../third-party/optional-lite ${PROJECT_SOURCE_DIR}/../third-party/variant ${RAPIDJSON_INCLUDE} ${DATE_INCLUDE})
+target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR} ${ARROW_INCLUDE} ${PROJECT_SOURCE_DIR}/../third-party/any-lite ${PROJECT_SOURCE_DIR}/../third-party/optional-lite ${PROJECT_SOURCE_DIR}/../third-party/variant ${RAPIDJSON_INCLUDE} ${DATE_INCLUDE} ${FMT_INCLUDE})
+target_compile_definitions(${PROJECT_NAME} PUBLIC FMT_HEADER_ONLY)
 target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
 
 if(XLNT_LIBRARY AND XLNT_INCLUDE)
@@ -128,8 +134,6 @@ file(GLOB_RECURSE LEARN_HEADER_FILES ${PROJECT_SOURCE_DIR}/../learn/*.h)
 file(GLOB_RECURSE LEARN_SRC_FILES    ${PROJECT_SOURCE_DIR}/../learn/*.cpp)
 
 add_library(Learn SHARED ${LEARN_HEADER_FILES} ${LEARN_SRC_FILES})
-
-find_package(PythonLibs 3.6)
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR};${CMAKE_MODULE_PATH}")
 find_package(NumPy)
 target_include_directories(Learn PRIVATE ${PYTHON_INCLUDE_DIRS} ${PYTHON_NUMPY_INCLUDE_DIR})
