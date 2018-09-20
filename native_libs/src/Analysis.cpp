@@ -723,6 +723,41 @@ std::vector<int64_t> collectRollingWindowPositionsT(const Indexable &indexable, 
     return ret;
 }
 
+// because of GCC-8 bug this cannot be lambda
+// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=86740
+template <typename Indexable, arrow::Type::type id>
+struct FunctionOverWindowCalculator
+{
+    const Indexable &indexable;
+    int64_t startIndex;
+    int64_t windowsWidth;
+
+    template <AggregateFunction f>
+    std::optional<double> operator()(std::integral_constant<AggregateFunction, f> aggrC) const
+    {
+        using T = typename TypeDescription<id>::ValueType;
+        using Aggregator = AggregatorFor_t<aggrC.value, T>;
+        Aggregator aggregator;
+
+        auto validCount = 0;
+        for(int64_t row = startIndex - windowsWidth + 1; row <= startIndex; ++row)
+        {
+            const auto value = getMaybeValue<id>(indexable, row);
+            if(value)
+            {
+                ++validCount;
+                aggregator(*value);
+            }
+            else
+                aggregator();
+        }
+        if(validCount >= Aggregator::RequiredSampleCount)
+            return aggregator.get();
+        else
+            return std::nullopt;
+    }
+};
+
 template<typename Indexable>
 std::optional<double> calculateFunctionOnWindow(const Indexable &indexable, int64_t startIndex, int64_t windowsWidth, AggregateFunction f)
 {
@@ -730,29 +765,8 @@ std::optional<double> calculateFunctionOnWindow(const Indexable &indexable, int6
     {
         if constexpr(id.value == arrow::Type::INT64 || id.value == arrow::Type::DOUBLE)
         {
-            return dispatchAggregateByEnum(f, [&] (auto aggrC) -> std::optional<double>
-            {
-                using T = typename TypeDescription<id.value>::ValueType;
-                using Aggregator = AggregatorFor_t<aggrC.value, T>;
-                Aggregator aggregator;
-
-                auto validCount = 0;
-                for(int64_t row = startIndex - windowsWidth + 1; row <= startIndex; ++row)
-                {
-                    const auto value = getMaybeValue<id.value>(indexable, row);
-                    if(value)
-                    {
-                        ++validCount;
-                        aggregator(*value);
-                    }
-                    else
-                        aggregator();
-                }
-                if(validCount >= Aggregator::RequiredSampleCount)
-                    return aggregator.get();
-                else 
-                    return std::nullopt;
-            });
+            FunctionOverWindowCalculator<Indexable, id.value> calculator{indexable, startIndex, windowsWidth};
+            return dispatchAggregateByEnum(f, calculator);
         }
         else
             throw std::runtime_error("rolling statistics not supported for type " + indexable.type()->ToString());
