@@ -283,7 +283,7 @@ struct FilteringFixture
 	std::vector<double> b = {5, 10, 0, -10, -5};
 	std::vector<std::string> c = {"foo", "bar", "baz", "", "1"};
     std::vector<std::optional<double>> d = { 1.0, 2.0, std::nullopt, 4.0, std::nullopt };
-    std::vector<std::optional<Timestamp>> e = { 2018_y/sep/01, 2018_y/sep/02, std::nullopt, 2020_y/nov/04, std::nullopt };
+    std::vector<std::optional<Timestamp>> e = { {2018_y/sep/01}, {2018_y/sep/02}, std::nullopt, {2020_y/nov/04}, std::nullopt };
 
 	std::shared_ptr<arrow::Table> table = tableFromArrays({toArray(a), toArray(b), toArray(c), toArray(d), toArray(e)}, {"a", "b", "c", "d", "e"});
 
@@ -807,11 +807,11 @@ BOOST_AUTO_TEST_CASE(TimestampParsingFromCsv)
 
 BOOST_AUTO_TEST_CASE(TimestampInterpolation)
 {
-    std::vector<std::optional<Timestamp>> times{ 2018_y/sep/1, std::nullopt, std::nullopt, 2018_y/sep/10 };
+    std::vector<std::optional<Timestamp>> times{ {2018_y/sep/1}, std::nullopt, std::nullopt, {2018_y/sep/10} };
     auto interpolatedTimes = toVector<std::optional<Timestamp>>(*interpolateNA(toColumn(times)));
     std::vector<std::optional<Timestamp>> expectedInterpolatedTimes
     {
-        2018_y/sep/1, 2018_y/sep/4, 2018_y/sep/7, 2018_y/sep/10 
+        {2018_y/sep/1}, {2018_y/sep/4}, {2018_y/sep/7}, {2018_y/sep/10} 
     };
 
     BOOST_CHECK_EQUAL_RANGES(interpolatedTimes, expectedInterpolatedTimes);
@@ -819,10 +819,10 @@ BOOST_AUTO_TEST_CASE(TimestampInterpolation)
 
 BOOST_AUTO_TEST_CASE(TimestampStats, *boost::unit_test_framework::disabled())
 {
-    std::vector<std::optional<Timestamp>> times{ 2018_y/sep/1, std::nullopt, std::nullopt, 2018_y/sep/10 };
+    std::vector<std::optional<Timestamp>> times{ {2018_y/sep/1}, std::nullopt, std::nullopt, {2018_y/sep/10} };
     auto col = toColumn(times);
 
-    std::vector<std::optional<Timestamp>> expectedMin{ 2018_y / sep / 1 };
+    std::vector<std::optional<Timestamp>> expectedMin{{ 2018_y / sep / 1 }};
     auto minCol = calculateMin(*col);
     auto minColV = toVector<Timestamp>(*minCol);
     BOOST_CHECK_EQUAL(minCol->type()->id(), col->type()->id());
