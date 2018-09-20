@@ -108,6 +108,11 @@ namespace std
         return out << d.count() << "ns";
     }
 
+    inline std::ostream &operator<<(std::ostream &out, const std::type_info &info)
+    {
+        return out << info.name();
+    }
+
     template<typename T>
     inline std::ostream &operator<<(std::ostream &out, const std::optional<T> &opt)
     {
@@ -166,3 +171,17 @@ std::vector<T> iotaVector(size_t N, T from = T{})
 	throw e_to_throw;                                                     \
 } while(0)
 
+namespace detail
+{
+    template <template <class...> class Trait, class Enabler, class... Args>
+    struct is_detected : std::false_type{};
+
+    template <template <class...> class Trait, class... Args>
+    struct is_detected<Trait, std::void_t<Trait<Args...>>, Args...> : std::true_type{};
+}
+
+template <template <class...> class Trait, class... Args>
+using is_detected = typename detail::is_detected<Trait, void, Args...>::type;
+
+template <template <class...> class Trait, class... Args>
+constexpr bool is_detected_v = is_detected<Trait, Args...>::value;

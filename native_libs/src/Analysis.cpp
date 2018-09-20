@@ -81,7 +81,7 @@ struct Minimum
 {
     T accumulator = std::numeric_limits<T>::max();
     static constexpr const char *name = "min";
-    static constexpr bool RequiredSampleCount = 1;
+    static constexpr int32_t RequiredSampleCount = 1;
     void operator() (T elem) { accumulator = std::min<T>(accumulator, elem); }
     void operator() () {}
     auto get() { return accumulator; }
@@ -92,7 +92,7 @@ struct Maximum
 {
     T accumulator = std::numeric_limits<T>::min();
     static constexpr const char *name = "max";
-    static constexpr bool RequiredSampleCount = 1;
+    static constexpr int32_t RequiredSampleCount = 1;
     void operator() (T elem) { accumulator = std::max<T>(accumulator, elem); }
     void operator() () {}
     auto get() { return accumulator; }
@@ -105,7 +105,7 @@ struct Mean
     int64_t count = 0;
     double accumulator = 0;
     static constexpr const char *name = "mean";
-    static constexpr bool RequiredSampleCount = 1;
+    static constexpr int32_t RequiredSampleCount = 1;
     void operator() (T elem) { accumulator += elem; count++; }
     void operator() () {}
     auto get() { return accumulator / count; }
@@ -117,7 +117,7 @@ struct Median
     std::vector<T> values;
 
     static constexpr const char *name = "median";
-    static constexpr bool RequiredSampleCount = 1;
+    static constexpr int32_t RequiredSampleCount = 1;
     void operator() (T elem) { values.push_back(elem); }
     void operator() () {}
     auto get() { return vectorQuantile(values, 0.5); }
@@ -129,7 +129,7 @@ struct Variance
     boost::accumulators::accumulator_set<T, boost::accumulators::features<boost::accumulators::tag::variance>> accumulator;
 
     static constexpr const char *name = "variance";
-    static constexpr bool RequiredSampleCount = 2;
+    static constexpr int32_t RequiredSampleCount = 2;
     void operator() (T elem) { accumulator(elem); }
     void operator() () {}
     auto get() { return boost::accumulators::variance(accumulator); }
@@ -147,7 +147,7 @@ struct Sum : Variance<T>
 {
     T accumulator{};
     static constexpr const char *name = "sum";
-    static constexpr bool RequiredSampleCount = 0;
+    static constexpr int32_t RequiredSampleCount = 0;
     void operator() (T elem) { accumulator += elem; }
     void operator() () {}
     T get() { return accumulator; }
@@ -157,7 +157,7 @@ struct Length
 {
     int64_t length = 0;
     static constexpr const char *name = "length";
-    static constexpr bool RequiredSampleCount = 0;
+    static constexpr int32_t RequiredSampleCount = 0;
 
     template<typename T>
     void operator()(T &&)
@@ -177,7 +177,7 @@ struct First
 {
     std::optional<T> value;
     static constexpr const char *name = "first";
-    static constexpr bool RequiredSampleCount = 1;
+    static constexpr int32_t RequiredSampleCount = 1;
 
     void operator()(T t)
     {
@@ -193,7 +193,7 @@ struct Last
 {
     T value{};
     static constexpr const char *name = "last";
-    static constexpr bool RequiredSampleCount = 1;
+    static constexpr int32_t RequiredSampleCount = 1;
 
     void operator()(T t)
     {
@@ -214,6 +214,7 @@ template<typename T> struct AggregatorFor<AggregateFunction::Length , T> { using
 template<typename T> struct AggregatorFor<AggregateFunction::Median , T> { using type = Median<T> ; };
 template<typename T> struct AggregatorFor<AggregateFunction::First  , T> { using type = First<T>  ; };
 template<typename T> struct AggregatorFor<AggregateFunction::Last   , T> { using type = Last<T>   ; };
+template<typename T> struct AggregatorFor<AggregateFunction::Sum    , T> { using type = Sum<T>    ; };
 
 template<arrow::Type::type id, typename Processor>
 auto calculateStatScalar(const arrow::Column &column, Processor &p)
@@ -223,6 +224,16 @@ auto calculateStatScalar(const arrow::Column &column, Processor &p)
         [] {});
 
     return p.get();
+}
+
+// Helper for providing fast path for single-chunked column index accessing
+template<typename F>
+auto dispatchIndexable(const std::shared_ptr<arrow::Column> &column, F &&f)
+{
+    if(column->data()->num_chunks() == 1)
+        return f(column->data()->chunk(0));
+    else
+        return f(column);
 }
 
 template<template <typename> typename Processor>
@@ -636,22 +647,6 @@ DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_pt
     return tableFromColumns(newColumns);
 }
 
-namespace detail
-{
-    template <template <class...> class Trait, class Enabler, class... Args>
-    struct is_detected : std::false_type{};
-
-    template <template <class...> class Trait, class... Args>
-    struct is_detected<Trait, std::void_t<Trait<Args...>>, Args...> : std::true_type{};
-}
-
-template <template <class...> class Trait, class... Args>
-using is_detected = typename detail::is_detected<Trait, void, Args...>::type;
-
-template <template <class...> class Trait, class... Args>
-constexpr bool is_detected_v = is_detected<Trait, Args...>::value;
-
-
 template<class TD>
 using IntervalType = typename TD::IntervalType;
 
@@ -702,6 +697,9 @@ std::vector<int64_t> collectRollingWindowPositionsT(const Indexable &indexable, 
             using TD = TypeDescription<id.value>;
             using Array = typename TD::Array;
             using IntervalType = IntervalType<TD>;
+
+            if(!std::holds_alternative<IntervalType>(interval))
+                THROW("wrong interval type: `index {}`, expected: `{}`", interval.index(), typeid(IntervalType));
 
             const auto intervalT = std::get<IntervalType>(interval);
 
@@ -763,10 +761,17 @@ std::optional<double> calculateFunctionOnWindow(const Indexable &indexable, int6
 
 std::vector<int64_t> collectRollingIntervalSizes(std::shared_ptr<arrow::Column> keyColumn, DynamicField interval)
 {
-    if(keyColumn->data()->num_chunks() == 1)
-        return collectRollingWindowPositionsT(*keyColumn->data()->chunk(0), interval);
-    else
-        return collectRollingWindowPositionsT(*keyColumn, interval);
+    try
+    {
+        return dispatchIndexable(keyColumn, [&] (auto &&indexable) 
+        {
+            return collectRollingWindowPositionsT(*indexable, interval);
+        });
+    }
+    catch(std::exception &e)
+    {
+        THROW("failed to collect window widths for column `{}` of type `{}`: {}", keyColumn->name(), keyColumn->type()->ToString(), e);
+    }
 }
 
 void requireSameSize(const arrow::Column &lhs, const arrow::Column &rhs)
@@ -778,16 +783,6 @@ void requireSameSize(const arrow::Column &lhs, const arrow::Column &rhs)
         THROW("Column length mismatch: `{}` has {} rows, `{}` has {} rows", lhs.name(), lhsN, rhs.name(), rhsN);
 }
 
-// Helper for providing fast path for single-chunked column index accessing
-template<typename F>
-auto optimizeIndexable(const std::shared_ptr<arrow::Column> &column, F &&f)
-{
-    if(column->data()->num_chunks() == 1)
-        return f(column->data()->chunk(0));
-    else
-        return f(column);
-}
-
 std::shared_ptr<arrow::Table> rollingInterval(std::shared_ptr<arrow::Column> keyColumn, DynamicField interval, std::vector<std::pair<std::shared_ptr<arrow::Column>, std::vector<AggregateFunction>>> toAggregate)
 {
     std::vector<std::shared_ptr<arrow::Column>> newColumns{ keyColumn };
@@ -797,7 +792,7 @@ std::shared_ptr<arrow::Table> rollingInterval(std::shared_ptr<arrow::Column> key
     for(auto && [col, funcs] : toAggregate)
     {
         requireSameSize(*keyColumn, *col);
-        optimizeIndexable(col, [&](auto &&indexable)
+        dispatchIndexable(col, [&](auto &&indexable)
         {
             const auto &name = col->name();
             for(auto fun : funcs)

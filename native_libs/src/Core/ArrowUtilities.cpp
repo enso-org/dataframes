@@ -269,7 +269,7 @@ std::pair<const arrow::Array *, int32_t> ChunkAccessor::locate(int64_t index) co
     {
         auto chunkStart = itr - 1;
         auto chunkIndex = std::distance(chunkStartIndices.begin(), chunkStart);
-        auto indexWithinChunk = (int32_t)index - *chunkStart;
+        auto indexWithinChunk = (int32_t)(index - *chunkStart);
         return { chunks[chunkIndex].get(), indexWithinChunk };
     }
     else

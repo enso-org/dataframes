@@ -1003,7 +1003,7 @@ BOOST_AUTO_TEST_CASE(AutoCorrelation)
     // Note: values above are calculated by pandas.
 }
 
-BOOST_AUTO_TEST_CASE(Rolling)
+BOOST_AUTO_TEST_CASE(Rolling, *boost::unit_test_framework::disabled())
 {
     auto table = loadTableFromCsvFile("F:/usa.us.txt");
     uglyPrint(*table);

@@ -65,7 +65,7 @@ struct GroupedKeyInfo
 
 enum class AggregateFunction : int8_t
 {
-    Minimum, Maximum, Mean, Length, Median, First, Last
+    Minimum, Maximum, Mean, Length, Median, First, Last, Sum
 };
 
 template<typename Function>
@@ -80,6 +80,7 @@ auto dispatchAggregateByEnum(AggregateFunction aggregateEnum, Function &&f)
     CASE_DISPATCH(AggregateFunction::Median)
     CASE_DISPATCH(AggregateFunction::First)
     CASE_DISPATCH(AggregateFunction::Last)
+    CASE_DISPATCH(AggregateFunction::Sum)
     default: throw std::runtime_error("not supported aggregate function " + std::to_string((int)aggregateEnum));
     }
 }
