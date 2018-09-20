@@ -27,6 +27,7 @@
 
 #include <Python.h>
 #include <matplotlibcpp.h>
+#include <datetime.h>
 
 #ifdef WAS_DEBUG
 #define _DEBUG 1
@@ -44,7 +45,13 @@ protected:
 public:
     PyListBuilder(size_t length)
         : list(PyList_New(length))
-    {}
+    {
+        // TODO: move to some kind of general purpose initialization procedure
+        if(PyDateTimeAPI == nullptr)
+        {
+            PyDateTime_IMPORT;
+        }
+    }
     ~PyListBuilder()
     {
         if(list)
@@ -74,7 +81,20 @@ public:
     // TODO: use date2num or sth???
     void append(const Timestamp &t)
     {
-        append(PyLong_FromLongLong(t.toStorage()));
+        using namespace date;
+        auto daypoint = floor<days>(t);
+        auto ymd = year_month_day(daypoint);   // calendar date
+        time_of_day tod = make_time(t - daypoint); // Yields time_of_day type
+
+        // Obtain individual components as integers
+        auto y = (int)ymd.year();
+        auto m = (int)(unsigned)ymd.month();
+        auto d = (int)(unsigned)ymd.day();
+        auto h = (int)tod.hours().count();
+        auto min = (int)tod.minutes().count();
+        auto s = (int)tod.seconds().count();
+        auto us = (int)std::chrono::duration_cast<std::chrono::microseconds>(tod.subseconds()).count();
+        append(PyDateTime_FromDateAndTime(y, m, d, h, min, s, us));
     }
 
     void appendNull()
@@ -120,6 +140,21 @@ extern "C"
         try {
             std::cout << "PLOT BEG" << std::endl;
             plt::plot(xsarray, ysarray, st);
+            std::cout << "PLOT END" << std::endl;
+        } catch (const runtime_error& e) {
+          std::cout << e.what() << std::endl;
+        }
+    }
+
+    void plot_date(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys) {
+
+        auto xsarray = chunkedArrayToPyObj(*xs);
+        std::cout << "XS " << xsarray << std::endl;
+        auto ysarray = chunkedArrayToPyObj(*ys);
+        std::cout << "YS " << ysarray << std::endl;
+        try {
+            std::cout << "PLOT BEG" << std::endl;
+            plt::plot_date(xsarray, ysarray);
             std::cout << "PLOT END" << std::endl;
         } catch (const runtime_error& e) {
           std::cout << e.what() << std::endl;

@@ -223,6 +223,11 @@ class ChartBuilder:
         c2 = self.table.at cname2 . toColumn
         Plot c1 c2 "o"
 
+    def plotDate cname1 cname2: 
+        c1 = self.table.at cname1 . toColumn
+        c2 = self.table.at cname2 . toColumn
+        PlotDate c1 c2
+
     def histogram cname:
         c = self.table.at cname . toColumn
         Histogram c 10 Map.empty
