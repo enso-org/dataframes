@@ -22,8 +22,23 @@ These dependencies are not required to compile the helper library, however witho
 * [xlnt library](https://github.com/mwu-tow/xlnt) C++ library — needed for .xlsx file format support. NOTE: On MacOS mwu-tow's fork is needed to fix the compilation issue. On other platforms, [official library repo](https://github.com/tfussell/xlnt) can be used.
 
 ## Build & Install
-* make sure that dependecies are all installed
- build the helper C++ library — CMake will automatically place the built binary in the native_libs/platform directory, so `luna` should out-of-the-box be able to find it.
+* make sure that dependecies are all installed.
+    * On Mac it is easily done with Anaconda (https://www.anaconda.com/download/).
+    * Once you have installed it, you can run the following commands to install Arrow:
+        ```bash
+        conda create -n dataframes python=3.6
+        conda activate dataframes
+        conda install arrow-cpp=0.10.* -c conda-forge
+        conda install pyarrow=0.10.* -c conda-forge
+        conda install rapidjson
+        ```
+    * With that in place, you need to instruct CMake where to find the libraries you've just installed. Add the following lines to `native_libs/src/CMakeLists.txt`:
+        ```cmake
+        set(CMAKE_LIBRARY_PATH "/anaconda3/envs/dataframes/lib")
+        set(CMAKE_INCLUDE_PATH "/anaconda3/envs/dataframes/include")
+        ```
+    And you should be all set.
+* build the helper C++ library — CMake will automatically place the built binary in the native_libs/platform directory, so `luna` should out-of-the-box be able to find it.
     * on Windows start *Visual Studio x64 Tools Command Prompt* and type:
       ```
       cd Dataframes\native_libs
