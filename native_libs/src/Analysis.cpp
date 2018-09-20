@@ -670,7 +670,7 @@ std::optional<typename TypeDescription<id>::ObservedType> getMaybeValue(const In
             return std::nullopt;
     }
     else
-        static_assert(always_false<indexable>);
+        static_assert(always_false_v<Indexable>);
 }
 
 template<arrow::Type::type id, typename Indexable>
@@ -681,7 +681,7 @@ auto getJustValue(const Indexable &indexable, int64_t index)
     else if constexpr(std::is_same_v<Indexable, arrow::Array>)
         return arrayValueAt<id>(indexable, index);
     else
-        static_assert(always_false<indexable>);
+        static_assert(always_false_v<Indexable>);
 }
 
 template<typename Indexable>
