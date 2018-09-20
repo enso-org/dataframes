@@ -13,6 +13,9 @@ class Matplotlib:
 
     def plotDate s1 s2: 
         self.call "plot_date" None [s1.toCArg, s2.toCArg]
+    
+    def scatter s1 s2: 
+        self.call "scatter" None [s1.toCArg, s2.toCArg]
 
     def plot s1 s2 style:
         cstr = CString.fromText style
@@ -100,7 +103,19 @@ class PlotDate:
     def + that: self.toChart.+that 
 
     def toJSON: self.toChart.toJSON
-    def toText: self.toJSON.toText
+
+class Scatter:
+    series1 :: Column
+    series2 :: Column
+
+    def render: 
+        Matplotlib.scatter self.series1.ptr.data.ptr self.series2.ptr.data.ptr
+    
+    def toChart: Chart self.render 
+
+    def + that: self.toChart.+that 
+
+    def toJSON: self.toChart.toJSON
 
 class Plot:
     series1 :: Column
