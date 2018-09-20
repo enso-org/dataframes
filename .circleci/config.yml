@@ -19,7 +19,9 @@ jobs:
       - run:
           name: Test C++ parts
           command: |
-            build/DataframeHelperTests -r detailed
+            build/DataframeHelperTests --log_format=JUNIT --log_sink=test_results.xml -r short
+      - store_test_results:
+          path: test_results.xml
   "GCC-8":
     <<: *job
     environment:
