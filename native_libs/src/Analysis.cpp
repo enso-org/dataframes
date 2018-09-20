@@ -806,7 +806,7 @@ std::shared_ptr<arrow::Table> rollingInterval(std::shared_ptr<arrow::Column> key
     for(auto && [col, funcs] : toAggregate)
     {
         requireSameSize(*keyColumn, *col);
-        dispatchIndexable(col, [&](auto &&indexable)
+        dispatchIndexable(col, [&, &col=col](auto &&indexable)
         {
             const auto &name = col->name();
             for(auto fun : funcs)
