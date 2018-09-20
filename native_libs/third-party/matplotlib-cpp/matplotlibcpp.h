@@ -122,6 +122,10 @@ private:
         }
         dlopen("libpython3.6m.so", RTLD_LAZY | RTLD_GLOBAL);
 
+#ifdef __linux__
+        dlopen("libpython3.6m.so", RTLD_LAZY | RTLD_GLOBAL);
+#endif
+
         PyObject* matplotlib = PyImport_Import(matplotlibname);
         Py_DECREF(matplotlibname);
         if (!matplotlib)

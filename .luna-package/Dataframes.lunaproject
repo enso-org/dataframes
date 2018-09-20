@@ -12,6 +12,21 @@ modulesSettings:
     typeRepToVisMap:
     - - tag: TCons
         contents:
+        - Column
+        - []
+      - - ! 'LunaVisualizer: base: table'
+        - base/table/table.html
+    - - tag: TCons
+        contents:
+        - List
+        - - tag: TCons
+            contents:
+            - Text
+            - []
+      - - ! 'LunaVisualizer: base: table'
+        - base/table/table.html
+    - - tag: TCons
+        contents:
         - Table
         - []
       - - ! 'LunaVisualizer: base: table'
@@ -110,8 +125,8 @@ modulesSettings:
     - - items:
         - main
       - breadcrumbCameraSettings:
-          logicalToScreen: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[-295.0,341.5,0.0,1.0]]'
-          screenToLogical: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[295.0,-341.5,0.0,1.0]]'
+          logicalToScreen: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[-1225.0,-93.0,0.0,1.0]]'
+          screenToLogical: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[1225.0,93.0,0.0,1.0]]'
           lastInverse: 0
     - - items:
         - main2
