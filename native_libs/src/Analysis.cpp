@@ -702,7 +702,7 @@ std::vector<int64_t> collectRollingWindowPositionsT(const Indexable &indexable, 
                 THROW("wrong interval type: `index {}`, expected: `{}`", interval.index(), typeid(IntervalType));
 
             const auto intervalT = std::get<IntervalType>(interval);
-
+            
             int64_t left = 0;
 
             for(int64_t right = 0; right < N; ++right)
@@ -806,7 +806,7 @@ std::shared_ptr<arrow::Table> rollingInterval(std::shared_ptr<arrow::Column> key
     for(auto && [col, funcs] : toAggregate)
     {
         requireSameSize(*keyColumn, *col);
-        dispatchIndexable(col, [&, &col=col](auto &&indexable)
+        dispatchIndexable(col, [&, &col=col, &funcs=funcs](auto &&indexable)
         {
             const auto &name = col->name();
             for(auto fun : funcs)
