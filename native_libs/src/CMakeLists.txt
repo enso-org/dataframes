@@ -40,6 +40,12 @@ find_path(FMT_INCLUDE fmt/format.h)
 if(NOT FMT_INCLUDE)
     message(WARNING "Cannot find {fmt} include dir with fmt/format.h. If it is present, consider setting CMAKE_PREFIX_PATH or CMAKE_INCLUDE_PATH.")
 endif()
+if(NOT WIN32)
+    find_library(FMT_LIBRARY fmt)
+    if(NOT FMT_LIBRARY)
+        message(WARNING "Cannot find fmt library. If it is present, consider setting CMAKE_PREFIX_PATH or CMAKE_LIBRARY_PATH.")
+    endif()
+endif()
 
 find_path(XLNT_INCLUDE xlnt/xlnt.hpp)
 if(NOT XLNT_INCLUDE)
@@ -88,7 +94,11 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC _SILENCE_ALL_CXX17_DEPRECATION
 
 # Includes path: project root, arrow, third-party any-lite
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR} ${ARROW_INCLUDE} ${PROJECT_SOURCE_DIR}/../third-party/any-lite ${PROJECT_SOURCE_DIR}/../third-party/optional-lite ${PROJECT_SOURCE_DIR}/../third-party/variant ${RAPIDJSON_INCLUDE} ${DATE_INCLUDE} ${FMT_INCLUDE})
-target_compile_definitions(${PROJECT_NAME} PUBLIC FMT_HEADER_ONLY)
+if(WIN32)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC FMT_HEADER_ONLY)
+else()
+    target_link_libraries(${PROJECT_NAME} FMT_LIBRARY)
+endif()
 target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
 
 if(XLNT_LIBRARY AND XLNT_INCLUDE)
