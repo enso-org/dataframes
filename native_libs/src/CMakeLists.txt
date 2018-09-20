@@ -97,7 +97,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR} ${ARROW_
 if(WIN32)
     target_compile_definitions(${PROJECT_NAME} PUBLIC FMT_HEADER_ONLY)
 else()
-    target_link_libraries(${PROJECT_NAME} FMT_LIBRARY)
+    target_link_libraries(${PROJECT_NAME} ${FMT_LIBRARY})
 endif()
 target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
 
