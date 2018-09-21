@@ -791,6 +791,12 @@ struct FixedSizeArrayBuilder
         static_assert(id == arrow::Type::INT64 || arrow::Type::DOUBLE); // would need another buffer
     }
 
+    explicit FixedSizeArrayBuilder(int32_t length)
+        : FixedSizeArrayBuilder(getTypeSingleton<id>(), length)
+    {
+        // TODO: should eventually require that type is parameter-free
+    }
+
     void Append(T value)
     {
         *nextValueToWrite++ = value;
