@@ -125,7 +125,6 @@ private:
         if (!pyplotname || !pylabname || !matplotlibname || !pyplotstylename || !ioname) {
             throw std::runtime_error("couldnt create string");
         }
-        dlopen("libpython3.6m.so", RTLD_LAZY | RTLD_GLOBAL);
 
 #ifdef __linux__
         dlopen("libpython3.6m.so", RTLD_LAZY | RTLD_GLOBAL);
