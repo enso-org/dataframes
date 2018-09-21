@@ -44,6 +44,9 @@ class SKLearnWrapper:
     def newLogisticRegression c:
         self.call "newLogisticRegression" PyModel [CDouble.fromReal c . toCArg]
 
+    def newLinearRegression:
+        self.call "newLinearRegression" PyModel []
+
     def fit model xs y:
         lookupSymbol "Learn" "fit" . call None [model.toCArg, xs.ptr.ptr.toCArg, y.toColumn.ptr.ptr.toCArg]
 

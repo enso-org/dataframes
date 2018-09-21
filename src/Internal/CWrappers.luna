@@ -236,6 +236,11 @@ class ColumnWrapper:
     def autoCorr lag:
         callHandlingError "columnAutoCorrelation" (CDouble) [self.ptr.toCArg, CInt64.fromInt lag . toCArg] . toReal
 
+def createIntSequenceColumnWrapper name from to step:
+    ptr = CString.with name nameC:
+        callHandlingError "columnNewInt64Sequence" (Pointer None) [nameC.toCArg, CInt64.fromInt from . toCArg, CInt64.fromInt to . toCArg, CInt64.fromInt step . toCArg]
+    wrapReleasableResouce ColumnWrapper ptr
+
 def createColumnWrapper field chunks:
     ptr = callHandlingError "columnNew" (Pointer None) [field.ptr.toCArg, chunks.ptr.toCArg]
     wrapReleasableResouce ColumnWrapper ptr
@@ -272,8 +277,8 @@ class SchemaWrapper:
         0 . upto (self.fieldCount - 1) . each self.fieldAt
 
 def createSchemaWrapper fieldWrappers:
-    Array (Pointer None) . with (fieldWrappers.each .ptr.ptr) arrayC:
-        ptr = callHandlingError "schemaNew" (Pointer None) [arrayC.ptr.toCArg, CInt32.fromInt arrayC.size . toCArg]
+    Array (Pointer None) . with (fieldWrappers.each (_.ptr . ptr)) arrayC:
+        ptr = callHandlingError "schemaNew" (Pointer None) [arrayC.ptr . toCArg, CInt32.fromInt arrayC.size . toCArg]
         wrapReleasableResouce SchemaWrapper ptr
 
 class TableWrapper:
@@ -385,8 +390,8 @@ class TableWrapper:
         wrapReleasableResouce TableWrapper ptr
 
 def createTableWrapper schemaWrapper columnWrappers:
-    Array (Pointer None) . with (columnWrappers.each .ptr.ptr) columnsCArray:
-        ptr = callHandlingError "tableNewFromSchamColumns" (Pointer None) [schemaWrapper.ptr.toCArg, columnsCArray.ptr.toCArg, CInt32.fromInt columnsCArray.size . toCArg]
+    Array (Pointer None) . with (columnWrappers.each (_.ptr . ptr)) columnsCArray:
+        ptr = callHandlingError "tableNewFromSchamColumns" (Pointer None) [schemaWrapper.ptr . toCArg, columnsCArray.ptr.toCArg, CInt32.fromInt columnsCArray.size . toCArg]
         wrapReleasableResouce TableWrapper ptr
 
 def readTableFromFile path:

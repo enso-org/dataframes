@@ -138,7 +138,7 @@ struct Negate
 struct Day
 {
     template<typename Lhs>
-    static constexpr int64_t exec(const Lhs &lhs)
+    static int64_t exec(const Lhs &lhs)
     {
         throw std::runtime_error("negate does not support operand of type: "s + typeid(lhs).name());
     }
@@ -150,7 +150,7 @@ struct Day
 struct Month
 {
     template<typename Lhs>
-    static constexpr int64_t exec(const Lhs &lhs)
+    static int64_t exec(const Lhs &lhs)
     {
         throw std::runtime_error("negate does not support operand of type: "s + typeid(lhs).name());
     }
@@ -162,7 +162,7 @@ struct Month
 struct Year
 {
     template<typename Lhs>
-    static constexpr int64_t exec(const Lhs &lhs)
+    static int64_t exec(const Lhs &lhs)
     {
         throw std::runtime_error("negate does not support operand of type: "s + typeid(lhs).name());
     }

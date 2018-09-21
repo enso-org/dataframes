@@ -29,6 +29,15 @@ class ElementType:
         MaybeIntElement: True
         MaybeRealElement: True
         MaybeTextElement: True
+    
+    def toJSON: case self of
+        IntElement: "IntElement".toJSON
+        RealElement: "RealElement".toJSON
+        TextElement: "TextElement".toJSON
+        MaybeIntElement: "MaybeIntElement".toJSON
+        MaybeRealElement: "MaybeRealElement".toJSON
+        MaybeTextElement: "MaybeTextElement".toJSON
+ 
 
 def listToMap list:
     def insert (k,v) m: m.insert k v
