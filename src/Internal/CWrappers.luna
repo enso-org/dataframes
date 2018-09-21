@@ -277,8 +277,8 @@ class SchemaWrapper:
         0 . upto (self.fieldCount - 1) . each self.fieldAt
 
 def createSchemaWrapper fieldWrappers:
-    Array (Pointer None) . with (fieldWrappers.each .ptr.ptr) arrayC:
-        ptr = callHandlingError "schemaNew" (Pointer None) [arrayC.ptr.toCArg, CInt32.fromInt arrayC.size . toCArg]
+    Array (Pointer None) . with (fieldWrappers.each (_.ptr . ptr)) arrayC:
+        ptr = callHandlingError "schemaNew" (Pointer None) [arrayC.ptr . toCArg, CInt32.fromInt arrayC.size . toCArg]
         wrapReleasableResouce SchemaWrapper ptr
 
 class TableWrapper:
@@ -377,8 +377,8 @@ class TableWrapper:
         wrapReleasableResouce TableWrapper ptr
 
 def createTableWrapper schemaWrapper columnWrappers:
-    Array (Pointer None) . with (columnWrappers.each .ptr.ptr) columnsCArray:
-        ptr = callHandlingError "tableNewFromSchamColumns" (Pointer None) [schemaWrapper.ptr.toCArg, columnsCArray.ptr.toCArg, CInt32.fromInt columnsCArray.size . toCArg]
+    Array (Pointer None) . with (columnWrappers.each (_.ptr . ptr)) columnsCArray:
+        ptr = callHandlingError "tableNewFromSchamColumns" (Pointer None) [schemaWrapper.ptr . toCArg, columnsCArray.ptr.toCArg, CInt32.fromInt columnsCArray.size . toCArg]
         wrapReleasableResouce TableWrapper ptr
 
 def readTableFromFile path:

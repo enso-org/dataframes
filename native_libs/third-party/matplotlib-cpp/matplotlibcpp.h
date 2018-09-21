@@ -1,9 +1,6 @@
 #pragma once
 
-#ifdef __linux__
 #include <dlfcn.h> 
-#endif
-
 #include <vector>
 #include <map>
 #include <numeric>
@@ -125,6 +122,7 @@ private:
         if (!pyplotname || !pylabname || !matplotlibname || !pyplotstylename || !ioname) {
             throw std::runtime_error("couldnt create string");
         }
+        dlopen("libpython3.6m.so", RTLD_LAZY | RTLD_GLOBAL);
 
 #ifdef __linux__
         dlopen("libpython3.6m.so", RTLD_LAZY | RTLD_GLOBAL);
@@ -666,7 +664,7 @@ bool kdeplot(PyObject* xarray, char* label)
     return res;
 }
 
-bool plot(PyObject* xarray, PyObject* yarray, const std::string& s = "")
+bool plot(PyObject* xarray, PyObject* yarray, char* label, const std::string& s = "")
 {
     PyObject* pystring = PyString_FromString(s.c_str());
 
@@ -675,13 +673,17 @@ bool plot(PyObject* xarray, PyObject* yarray, const std::string& s = "")
     PyTuple_SetItem(plot_args, 1, yarray);
     PyTuple_SetItem(plot_args, 2, pystring);
 
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_plot, plot_args);
+    PyObject* kwargs = PyDict_New();
+    if (label) PyDict_SetItemString(kwargs, "label", PyString_FromString(label));
+
+    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_plot, plot_args, kwargs);
     if (!res) {
         std::cout << "EXCEPTION PLOT" << std::endl;
         throw std::runtime_error("Call to plot() failed.");
     }
 
     Py_DECREF(plot_args);
+    Py_DECREF(kwargs);
     if(res) Py_DECREF(res);
 
     return res;
