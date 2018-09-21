@@ -160,7 +160,14 @@ struct Interpreter
         : table(table)
     {
         for(int i = 0; i < mapping.size(); i++)
-            columns.push_back(table.column(mapping.at(i)));
+        {
+            const auto ithColumn = table.column(mapping.at(i));
+            // TODO because interpreter cannot process chunked arrays, 
+            // we consolidate input columns. In future we should rather
+            // support chunked arrays and remove this workaround.
+            const auto ithColumnConsolidated = consolidate(ithColumn);
+            columns.push_back(ithColumnConsolidated);
+        }
     }
 
     const arrow::Table &table;

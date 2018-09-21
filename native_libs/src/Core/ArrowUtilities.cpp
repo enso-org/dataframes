@@ -293,3 +293,29 @@ Timestamp::Timestamp(date::year_month_day ymd)
     : Base(date::sys_days(ymd))
 {
 }
+
+std::shared_ptr<arrow::Column> consolidate(std::shared_ptr<arrow::Column> column)
+{
+    if(column->data()->num_chunks() <= 1)
+        return column;
+
+    return visitType(*column->type(), [&](auto id)
+    {
+        using TD = TypeDescription<id.value>;
+        using ArrowT = typename TD::ArrowType;
+        using Builder = typename TD::BuilderType;
+
+        auto builder = makeBuilder(std::dynamic_pointer_cast<ArrowT>(column->type()));
+        iterateOver<id.value>(*column, [&](auto &&elem)
+        {
+            append(*builder, elem);
+        },
+            [&]()
+        {
+            builder->AppendNull();
+        });
+
+        auto arr = finish(*builder);
+        return std::make_shared<arrow::Column>(column->field(), arr);
+    });
+}

@@ -757,13 +757,13 @@ void iterateOverJustPairs(const arrow::ChunkedArray &array1, const arrow::Chunke
         if(++index1 >= chunk1Length)
         {
             ++chunks1Itr;
-            chunk1Length = (*chunks1Itr)->length();
+            chunk1Length = (int32_t)(*chunks1Itr)->length();
             index1 = 0;
         }
         if(++index2 >= chunk2Length)
         {
             ++chunks2Itr;
-            chunk2Length = (*chunks2Itr)->length();
+            chunk2Length = (int32_t)(*chunks2Itr)->length();
             index2 = 0;
         }
 
@@ -842,3 +842,5 @@ using ArrowTypeFromPtr = typename std::decay_t<ArrowDataTypePtr>::element_type;
 
 template<typename ArrowDataTypePtr>
 constexpr arrow::Type::type idFromDataPointer = std::decay_t<ArrowDataTypePtr>::element_type::type_id;
+
+DFH_EXPORT std::shared_ptr<arrow::Column> consolidate(std::shared_ptr<arrow::Column> column);
