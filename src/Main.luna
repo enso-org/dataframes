@@ -1,43 +1,12 @@
-import Dataframes.Learn.LogisticRegression
-import Dataframes.Learn.SKLearnWrapper
-import Dataframes.Column
-import Dataframes.Learn.LinearRegression
-import Dataframes.Learn.Coach
-import Dataframes.Table
-import Dataframes.Main
-import Dataframes.IO
 import Std.Base
 import Std.Foreign.C.Value
-import Std.Foreign
 
 import Dataframes.Internal.Utils
 import Dataframes.Array
 import Dataframes.Types
 import Dataframes.Internal.Test.Test
 
-import Dataframes.Plot.Matplotlib
 
-«195»
-
-«357»def isSmoking x:
-    «358»a = x.at "smoker" == "yes"
-    «359»b = a . switch 1 0 
-    b
-
-«371»def func1 readFile1:
-    «372»dropNa1 = readFile1 . dropNa
-    «373»filter1 = dropNa1 . filter (x: «368»x.at "bmi" < 250)
-    «374»filter2 = filter1 . filter (x: «376»x.at "sex" == "female")
-    filter2
-
-«344»def main:
-    «388»readFile1 = CSVParser . readFile "./data/insurance.csv"
-    «391»eachTo1 = readFile1 . eachTo "dupa" (x: «392»(x.at "smoker" == "yes") . switch 1 0 )
-    «390»describeNa1 = readFile1 . describeNa
-    «389»describe1 = readFile1 . describe
-    «393»histogram1 = eachTo1 . chart.histogram "age"
-    None
-    
-«295»
-
-### META {"metas":[{"marker":372,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":373,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":176}}}},{"marker":368,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":374,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":352}}}},{"marker":376,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":358,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":359,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":176}}}},{"marker":388,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":-304,"_vector2_x":-304}}}},{"marker":391,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":-304,"_vector2_x":96}}}},{"marker":392,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":390,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":-448,"_vector2_x":48}}}},{"marker":389,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":-528,"_vector2_x":-80}}}},{"marker":393,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-304,"_vector2_x":480}}}}]}
+def main:
+    setHelperVerbosity False
+    benchmark "running tests" TestArrayBuilder.run
