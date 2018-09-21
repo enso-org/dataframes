@@ -24,10 +24,10 @@ DFH_EXPORT std::shared_ptr<arrow::Table> calculateCorrelationMatrix(const arrow:
 
 DFH_EXPORT double autoCorrelation(const std::shared_ptr<arrow::Column> &column, int lag = 1);
 
-template<arrow::Type::type id>
+template<typename ArrowType>
 struct GroupedKeyInfo
 {
-    using KeyT = typename TypeDescription<id>::ObservedType;
+    using KeyT = typename ArrowTypeDescription<ArrowType>::ObservedType;
     bool hasNulls;
     std::unordered_map<KeyT, int64_t> uniqueValues; // key value => group id
     std::vector<int64_t> groupIds; // [row index] => group id
@@ -37,7 +37,7 @@ struct GroupedKeyInfo
         , groupIds(keyColumn.length())
     {
         auto *rowGroupId = groupIds.data();
-        iterateOver<id>(keyColumn, 
+        iterateOver<ArrowType::type_id>(keyColumn, 
             [&] (auto &&value)
             {
                 if(auto itr = uniqueValues.find(value); itr != uniqueValues.end())

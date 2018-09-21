@@ -1,6 +1,9 @@
 #include "ArrowUtilities.h"
+#include <date/date.h>
 
 using namespace std::literals;
+
+//DFH_EXPORT std::shared_ptr<arrow::TimestampType> timestampTypeSingleton = std::make_shared<arrow::TimestampType>(arrow::TimeUnit::NANO);
 
 std::shared_ptr<arrow::Column> toColumn(std::shared_ptr<arrow::ChunkedArray> chunks, std::string name /*= "col"*/)
 {
@@ -188,7 +191,7 @@ struct GetTypeS<std::shared_ptr<T>> { using type = T; };
 template<typename SharedPtrToType>
 using GetType = typename GetTypeS<std::decay_t<SharedPtrToType>>::type;
 
-std::shared_ptr<arrow::Array> makeNullsArray(arrow::TypePtr type, int64_t length)
+std::shared_ptr<arrow::Array> makeNullsArray(TypePtr type, int64_t length)
 {
     return visitDataType(type, [&](auto &&typeDer)
     {
@@ -201,7 +204,7 @@ std::shared_ptr<arrow::Array> makeNullsArray(arrow::TypePtr type, int64_t length
     });
 }
 
-std::shared_ptr<arrow::ArrayBuilder> makeBuilder(const arrow::TypePtr &type)
+std::shared_ptr<arrow::ArrayBuilder> makeBuilder(const TypePtr &type)
 {
     return visitDataType(type, [&](auto &&typeDer) -> std::shared_ptr<arrow::ArrayBuilder>
     {
@@ -264,4 +267,16 @@ bool ChunkAccessor::isNull(int64_t index)
 {
     auto[chunk, chunkIndex] = locate(index);
     return chunk->IsNull(chunkIndex);
+}
+
+std::string std::to_string(const Timestamp &t)
+{
+    std::ostringstream out;
+    out << date::format("%F", t);
+    return out.str();
+}
+
+Timestamp::Timestamp(date::year_month_day ymd)
+    : Base(date::sys_days(ymd))
+{
 }

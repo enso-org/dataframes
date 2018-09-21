@@ -1,0 +1,35 @@
+version: 2
+jobs:
+  "GCC-7": &job
+    docker: # use the docker executor type; machine and macos executors are also supported
+      - image: murbanczyk/dataframesci:1.0.6 # the primary container, where your job's commands are run
+    steps:
+      - checkout # check out the code in the project directory
+      - run:
+          name: Configure CMake
+          command: |
+            mkdir build
+            cd build
+            cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ../native_libs/src
+      - run:
+          name: Build Dataframes C++ parts
+          command: |
+            cd build
+            make -j 2
+      - run:
+          name: Test C++ parts
+          command: |
+            build/DataframeHelperTests -r detailed
+  "GCC-8":
+    <<: *job
+    environment:
+      CC: gcc-8
+      CXX: g++-8
+
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - "GCC-7"
+      - "GCC-8"

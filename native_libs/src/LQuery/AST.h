@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/ArrowUtilities.h"
 #include "Core/Common.h"
 
 #include <array>
@@ -45,6 +46,9 @@ namespace ast
     {
         Plus, Minus, Times, Divide, Modulo,
         Negate,
+
+        // timestamp operations
+        Day, Month, Year
     };
 
     ValueOperator valueOperatorFromName(const std::string &name);
@@ -82,7 +86,7 @@ namespace ast
     };
 
     using ValueOperation = OperationNode<ValueOperator, Value>;
-    using ValueBase = std::variant<Literal<int64_t>, Literal<double>, Literal<std::string>, ColumnReference, ValueOperation, Condition>;
+    using ValueBase = std::variant<Literal<int64_t>, Literal<double>, Literal<std::string>, Literal<Timestamp>, ColumnReference, ValueOperation, Condition>;
 
     struct Value : ValueBase
     {

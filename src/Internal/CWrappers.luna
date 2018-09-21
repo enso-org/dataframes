@@ -26,6 +26,8 @@ def createDataTypeWrapper typename:
                 "Int64": 9
                 "Double": 12
                 "String": 13
+                "TimestampTag": 18
+                _: throw $ "unknown typename " + typename
     ptr = callHandlingError "dataTypeNew" (Pointer None) [CInt8.fromInt value . toCArg]
     wrapReleasableResouce DataTypeWrapper ptr
 

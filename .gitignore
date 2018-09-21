@@ -1,6 +1,7 @@
 .vs/
 x64/
 build/
+cmake-build-*/
 native_libs/macos/**
 native_libs/windows/**
 native_libs/linux/**

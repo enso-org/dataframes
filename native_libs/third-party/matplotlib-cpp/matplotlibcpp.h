@@ -41,6 +41,8 @@ struct _interpreter {
     PyObject *s_python_function_save;
     PyObject *s_python_function_figure;
     PyObject *s_python_function_plot;
+    PyObject *s_python_function_scatter;
+    PyObject *s_python_function_plot_date;
     PyObject *s_python_function_kdeplot;
     PyObject *s_python_function_heatmap;
     PyObject *s_python_function_semilogx;
@@ -180,6 +182,8 @@ private:
         s_python_function_pause = PyObject_GetAttrString(pymod, "pause");
         s_python_function_figure = PyObject_GetAttrString(pymod, "figure");
         s_python_function_plot = PyObject_GetAttrString(pymod, "plot");
+        s_python_function_scatter = PyObject_GetAttrString(pymod, "scatter");
+        s_python_function_plot_date = PyObject_GetAttrString(pymod, "plot_date");
         s_python_function_kdeplot = PyObject_GetAttrString(seabornmod, "kdeplot");
         s_python_function_heatmap = PyObject_GetAttrString(seabornmod, "heatmap");
         s_python_function_semilogx = PyObject_GetAttrString(pymod, "semilogx");
@@ -222,6 +226,8 @@ private:
             || !s_python_function_pause
             || !s_python_function_figure
             || !s_python_function_plot
+            || !s_python_function_scatter
+            || !s_python_function_plot_date
             || !s_python_function_kdeplot
             || !s_python_function_heatmap
             || !s_python_function_semilogx
@@ -256,6 +262,8 @@ private:
             || !PyFunction_Check(s_python_function_pause)
             || !PyFunction_Check(s_python_function_figure)
             || !PyFunction_Check(s_python_function_plot)
+            || !PyFunction_Check(s_python_function_scatter)
+            || !PyFunction_Check(s_python_function_plot_date)
             || !PyFunction_Check(s_python_function_kdeplot)
             || !PyFunction_Check(s_python_function_heatmap)
             || !PyFunction_Check(s_python_function_semilogx)
@@ -395,6 +403,44 @@ bool plot(const std::vector<Numeric> &x, const std::vector<Numeric> &y, const st
 
     Py_DECREF(args);
     Py_DECREF(kwargs);
+    if(res) Py_DECREF(res);
+
+    return res;
+}
+
+bool plot_date(PyObject* xarray, PyObject* yarray)
+{
+
+    PyObject* plot_args = PyTuple_New(2);
+    PyTuple_SetItem(plot_args, 0, xarray);
+    PyTuple_SetItem(plot_args, 1, yarray);
+    
+    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_plot_date, plot_args);
+    if (!res) {
+        std::cout << "EXCEPTION PLOT_DATE" << std::endl;
+        throw std::runtime_error("Call to plot_date() failed.");
+    }
+
+    Py_DECREF(plot_args);
+    if(res) Py_DECREF(res);
+
+    return res;
+}
+
+bool scatter(PyObject* xarray, PyObject* yarray)
+{
+
+    PyObject* plot_args = PyTuple_New(2);
+    PyTuple_SetItem(plot_args, 0, xarray);
+    PyTuple_SetItem(plot_args, 1, yarray);
+    
+    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_scatter, plot_args);
+    if (!res) {
+        std::cout << "EXCEPTION SCATTER" << std::endl;
+        throw std::runtime_error("Call to scatter() failed.");
+    }
+
+    Py_DECREF(plot_args);
     if(res) Py_DECREF(res);
 
     return res;

@@ -1,4 +1,3 @@
-#pragma once
 #include "Fixture.h"
 
 #include "Core/ArrowUtilities.h"

@@ -28,8 +28,8 @@ std::common_type_t<T, double> vectorQuantile(std::vector<T> &data, double q = 0.
 
     q = std::clamp(q, 0.0, 1.0);
     const double n = data.size() * q - 0.5;
-    const int n1 = std::floor(n);
-    const int n2 = std::ceil(n);
+    const int n1 = static_cast<int>(std::floor(n));
+    const int n2 = static_cast<int>(std::ceil(n));
     const auto t = n - n1;
     std::nth_element(data.begin(), data.begin() + n1, data.end());
     std::nth_element(data.begin() + n1, data.begin() + n2, data.end());
@@ -41,6 +41,7 @@ template<arrow::Type::type id>
 std::shared_ptr<arrow::Table> countValueTyped(const arrow::Column &column)
 {
     using T = typename TypeDescription<id>::ObservedType;
+    using ArrowType = typename TypeDescription<id>::ArrowType;
     using Builder = typename TypeDescription<id>::BuilderType;
     std::unordered_map<T, int64_t> valueCounts;
 
@@ -48,25 +49,25 @@ std::shared_ptr<arrow::Table> countValueTyped(const arrow::Column &column)
         [&] (auto &&elem) { valueCounts[elem]++; },
         [] () {});
 
-    Builder valueBuilder;
+    auto valueBuilder = makeBuilder(std::static_pointer_cast<ArrowType>(column.field()->type()));
     arrow::Int64Builder countBuilder;
 
-    valueBuilder.Reserve(valueCounts.size());
+    valueBuilder->Reserve(valueCounts.size());
     countBuilder.Reserve(valueCounts.size());
 
     for(auto && [value, count] : valueCounts)
     {
-        append(valueBuilder, value);
+        append(*valueBuilder, value);
         append(countBuilder, count);
     }
 
     if(column.null_count())
     {
-        valueBuilder.AppendNull();
+        valueBuilder->AppendNull();
         countBuilder.Append(column.null_count());
     }
 
-    auto valueArray = finish(valueBuilder);
+    auto valueArray = finish(*valueBuilder);
     auto countArray = finish(countBuilder);
 
     auto valueColumn = std::make_shared<arrow::Column>(arrow::field("value", column.type(), column.null_count()), valueArray);
@@ -157,7 +158,7 @@ template<arrow::Type::type id, typename Processor>
 auto calculateStatScalar(const arrow::Column &column, Processor &p)
 {
     iterateOver<id>(column,
-        [&] (auto elem) { p(elem); },
+        [&] (auto elem) { p(toStorage(elem)); },
         [] {});
 
     return p.get();
@@ -168,7 +169,7 @@ std::shared_ptr<arrow::Column> calculateStat(const arrow::Column &column)
 {
     return visitType(*column.type(), [&](auto id) -> std::shared_ptr<arrow::Column>
     {
-        if constexpr(id.value != arrow::Type::STRING)
+        if constexpr(id.value != arrow::Type::STRING && id.value != arrow::Type::TIMESTAMP)
         {
             using T = typename TypeDescription<id.value>::ValueType;
             Processor<T> p;
@@ -304,9 +305,9 @@ double calculateCorrelation(const arrow::Column &xCol, const arrow::Column &yCol
             {
                 CorrelationStats stats;
                 iterateOverJustPairs<id1.value, id2.value>(xCol, yCol,
-                    [&] (double xVal, double yVal)
+                    [&] (auto xVal, auto yVal)
                 {
-                    stats.addPair(xVal, yVal);
+                    stats.addPair(toStorage(xVal), toStorage(yVal));
                 });
                 return stats;
             }
@@ -482,7 +483,7 @@ std::unique_ptr<AggregateBase<T>> makeAggregator(AggregateFunction a)
 
 std::string aggregateName(AggregateFunction a)
 {
-    // not efficent, but should not be called that often
+    // inefficient, but should not be called that often
     return makeAggregator<double>(a)->name();
 }
 
@@ -508,86 +509,113 @@ struct Aggregators
     }
 };
 
+// Cannot be just lambda because of GCC-8 bug
+// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=86740
+template<typename ArrowType, typename T>
+struct AbominableGroupingIterator
+{
+    int64_t row = 0;
+
+    GroupedKeyInfo<ArrowType> &groups;
+    std::vector<Aggregators<T>> &aggregators;
+
+    AbominableGroupingIterator(GroupedKeyInfo<ArrowType> &groups, std::vector<Aggregators<T>> &aggregators)
+            : groups(groups), aggregators(aggregators)
+    {}
+
+    template <typename U>
+    void operator()(U value)
+    {
+        const auto groupId = groups.groupIds[row++];
+        aggregators[groupId](value);
+    }
+    void operator()()
+    {
+        const auto groupId = groups.groupIds[row++];
+        aggregators[groupId]();
+    }
+};
+
 DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn, std::vector<std::pair<std::shared_ptr<arrow::Column>, std::vector<AggregateFunction>>> toAggregate)
 {
     std::vector<std::shared_ptr<arrow::Column>> newColumns;
 
-    visitType(*keyColumn->type(), [&](auto keyTypeID)
+    visitDataType(keyColumn->type(), [&](auto type)
     {
-        using KeyT = typename TypeDescription<keyTypeID.value>::ObservedType;
-        GroupedKeyInfo<keyTypeID.value> groups{*keyColumn};
-
-        const auto groupCount = groups.groupCount();
-        const auto hasNulls = groups.hasNulls;
-        const auto afterLastGroup = groups.uniqueValues.size()+1;
-
-        std::vector<KeyT> keyValues(afterLastGroup);
-        for(auto [keyValue, groupId] : groups.uniqueValues)
-            keyValues[groupId] = keyValue;
-        
-        // build column with unique key values
+        using ArrowType = ArrowTypeFromPtr<decltype(type)>;
+        constexpr auto keyTypeID = idFromDataPointer<decltype(type)>;
+        using KeyT = typename TypeDescription<keyTypeID>::ObservedType;
+        if constexpr(keyTypeID == arrow::Type::LIST)
         {
-            BuilderFor<keyTypeID.value> builder;
-            if(hasNulls)
-                builder.AppendNull();
-            for(int group = 1; group < keyValues.size(); ++group)
-                append(builder, keyValues[group]);
-
-            auto arr = finish(builder);
-            newColumns.push_back(std::make_shared<arrow::Column>(keyColumn->field(), arr));
+            throw std::runtime_error("not implemented: grouping by column of list type");
         }
-
-        // build column for each (column, aggregate function) pair
-        for(auto &colAggrs : toAggregate)
+        else
         {
-            visitType(colAggrs.first->type()->id(), [&](auto id)
+            GroupedKeyInfo<ArrowType> groups{*keyColumn};
+
+            const auto groupCount = groups.groupCount();
+            const auto hasNulls = groups.hasNulls;
+            const auto afterLastGroup = groups.uniqueValues.size()+1;
+
+            std::vector<KeyT> keyValues(afterLastGroup);
+            for(auto [keyValue, groupId] : groups.uniqueValues)
+                keyValues[groupId] = keyValue;
+
+            // build column with unique key values
             {
-                auto[column, aggregates] = colAggrs;
-                if constexpr(id != arrow::Type::STRING)
+                auto builder = makeBuilder(type);
+                if(hasNulls)
+                    builder->AppendNull();
+                for(int group = 1; group < keyValues.size(); ++group)
+                    append(*builder, keyValues[group]);
+
+                auto arr = finish(*builder);
+                newColumns.push_back(std::make_shared<arrow::Column>(keyColumn->field(), arr));
+            }
+
+            // build column for each (column, aggregate function) pair
+            for(auto &colAggrs : toAggregate)
+            {
+                visitType(colAggrs.first->type()->id(), [&](auto id)
                 {
-                    using T = typename TypeDescription<id.value>::ObservedType;
-                    std::vector<Aggregators<T>> aggregators;
-                    aggregators.reserve(afterLastGroup);
-                    for(int i = 0; i < afterLastGroup; i++)
-                        aggregators.emplace_back(aggregates);
-
-                    int64_t row = 0;
-                    iterateOver<id.value>(*column, [&](auto value)
-                        {
-                            const auto groupId = groups.groupIds[row++];
-                            aggregators[groupId](value);
-                        },
-                        [&]()
-                        {
-                            const auto groupId = groups.groupIds[row++];
-                            aggregators[groupId]();
-                        });
-
-                    std::vector<arrow::DoubleBuilder> newColumnBuilders(aggregates.size());
-                    for(auto &&newColumnBuilder : newColumnBuilders)
-                        newColumnBuilder.Reserve(groupCount);
-
-                    for(int64_t groupItr = !hasNulls; groupItr < afterLastGroup; ++groupItr)
+                    auto[column, aggregates] = colAggrs;
+                    if constexpr(id != arrow::Type::STRING && id != arrow::Type::TIMESTAMP)
                     {
-                        auto &aggr = aggregators[groupItr];
+                        using T = typename TypeDescription<id.value>::ObservedType;
+                        std::vector<Aggregators<T>> aggregators;
+                        aggregators.reserve(afterLastGroup);
+                        for(int i = 0; i < afterLastGroup; i++)
+                            aggregators.emplace_back(aggregates);
+
+                        AbominableGroupingIterator<ArrowType, T> iterator{groups, aggregators};
+                        iterateOver<id.value>(*column, iterator, iterator);
+
+                        std::vector<arrow::DoubleBuilder> newColumnBuilders(aggregates.size());
+                        for(auto &&newColumnBuilder : newColumnBuilders)
+                            newColumnBuilder.Reserve(groupCount);
+
+                        for(int64_t groupItr = !hasNulls; groupItr < afterLastGroup; ++groupItr)
+                        {
+                            auto &aggr = aggregators[groupItr];
+                            for(int32_t i = 0; i < aggregates.size(); i++)
+                            {
+                                if(auto result = aggr.aggregators[i]->get(aggr.hadValidValue))
+                                    newColumnBuilders[i].Append(*result);
+                                else
+                                    newColumnBuilders[i].AppendNull();
+                            }
+                        }
                         for(int32_t i = 0; i < aggregates.size(); i++)
                         {
-                            if(auto result = aggr.aggregators[i]->get(aggr.hadValidValue))
-                                newColumnBuilders[i].Append(*result);
-                            else
-                                newColumnBuilders[i].AppendNull();
-                        }
+                            auto arr = finish(newColumnBuilders[i]);
+                            auto col = toColumn(arr, column->name() + "_"s + aggregateName(aggregates[i]));
+                            newColumns.push_back(col);
+                        };
                     }
-                    for(int32_t i = 0; i < aggregates.size(); i++)
-                    {
-                        auto arr = finish(newColumnBuilders[i]);
-                        auto col = toColumn(arr, column->name() + "_"s + aggregateName(aggregates[i]));
-                        newColumns.push_back(col);
-                    };
-                }
-                else
-                    throw std::runtime_error("cannot aggregate column `" + column->name() +  "` of type " + column->type()->ToString() + ": must be numeric type!");
-            });
+                    else
+                        throw std::runtime_error("cannot aggregate column `" + column->name() +  "` of type " + column->type()->ToString() + ": must be numeric type!");
+                });
+            }
         }
     });
 

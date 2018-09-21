@@ -1,16 +1,81 @@
 #pragma once
 
 #include <cassert>
+#include <chrono>
+#include <ctime>
+#include <iomanip>
 #include <sstream>
 #include <stdexcept>
 #include <tuple>
 #include "variant.h"
+
+#include <date/date.h>
 
 #include <arrow/array.h>
 #include <arrow/builder.h>
 #include <arrow/table.h>
 #include <arrow/type.h>
 #include "Common.h"
+
+using TypePtr = std::shared_ptr<arrow::DataType>;
+
+namespace date
+{
+    class year_month_day;
+}
+
+using TimestampDuration = std::chrono::duration<int64_t, std::nano>; // nanoseconds since epoch
+
+struct Timestamp;
+
+namespace std
+{
+    DFH_EXPORT std::string to_string(const Timestamp &t);
+}
+
+struct DFH_EXPORT Timestamp : std::chrono::time_point<std::chrono::system_clock, TimestampDuration>
+{
+    using Base = std::chrono::time_point<std::chrono::system_clock, TimestampDuration>;
+    explicit Timestamp(int64_t nanoticks) : Base(TimestampDuration(nanoticks)) {}
+    Timestamp(date::year_month_day ymd);
+    using Base::time_point;
+
+    int64_t toStorage() const { return time_since_epoch().count(); }
+    time_t toTimeT() const 
+    {
+        using namespace std::chrono;
+        return system_clock::to_time_t(time_point_cast<system_clock::duration>(*this)); 
+    }
+    constexpr date::year_month_day ymd() const
+    {
+        return  { date::floor<date::days>(*this) };
+    }
+
+    friend std::ostream &operator<<(std::ostream &out, const Timestamp &t)
+    {
+        return out << std::to_string(t);
+    }
+};
+
+
+template<typename T>
+inline auto toStorage(const T &t) { return t; }
+inline auto toStorage(const Timestamp &t) { return t.toStorage(); }
+
+namespace std
+{
+    template <>
+    struct hash<Timestamp>
+    {
+        using argument_type = Timestamp;
+        using result_type = std::size_t;
+
+        result_type operator()(const argument_type &value) const noexcept
+        {
+            return value.time_since_epoch().count();
+        }
+    };
+}
 
 template<typename T>
 constexpr auto ValueTypeToId()
@@ -21,6 +86,8 @@ constexpr auto ValueTypeToId()
         return arrow::Type::DOUBLE;
     else if constexpr(std::is_same_v<T, std::string>)
         return arrow::Type::STRING;
+    else if constexpr(std::is_same_v<T, Timestamp>)
+        return arrow::Type::TIMESTAMP;
     else
         static_assert(always_false_v<T>);
 }
@@ -78,6 +145,19 @@ struct ListElemView
     {}
 };
 
+template<> struct TypeDescription<arrow::Type::TIMESTAMP>
+{
+    using ArrowType = arrow::TimestampType;
+    using BuilderType = arrow::TimestampBuilder;
+    using ValueType = Timestamp;
+    using ObservedType = Timestamp;
+    using CType = int64_t;
+    using Array = arrow::TimestampArray;
+    using StorageValueType = int64_t;
+    using OffsetType = void;
+    static constexpr arrow::Type::type id = ArrowType::type_id;
+};
+
 template<> struct TypeDescription<arrow::Type::LIST>
 {
     using ArrowType = arrow::ListType;
@@ -93,6 +173,9 @@ template<> struct TypeDescription<arrow::Type::LIST>
 
 template<typename Array>
 using ArrayTypeDescription = TypeDescription<std::decay_t<std::remove_pointer_t<Array>>::TypeClass::type_id>;
+
+template<typename ArrowType>
+using ArrowTypeDescription = TypeDescription<ArrowType::type_id>;
 
 template<arrow::Type::type id>
 using BuilderFor = typename TypeDescription<id>::BuilderType;
@@ -111,6 +194,7 @@ auto visitDataType3(const std::shared_ptr<arrow::DataType> &type, F &&f)
         case arrow::Type::INT64: return f(std::static_pointer_cast<arrow::Int64Type>(type));
         case arrow::Type::DOUBLE: return f(std::static_pointer_cast<arrow::DoubleType>(type));
         case arrow::Type::STRING: return f(std::static_pointer_cast<arrow::StringType>(type));
+        case arrow::Type::TIMESTAMP: return f(std::static_pointer_cast<arrow::TimestampType>(type));
         default: throw std::runtime_error("type not supported to downcast: " + type->ToString());
     }
 }
@@ -123,6 +207,7 @@ auto visitDataType(const std::shared_ptr<arrow::DataType> &type, F &&f)
     case arrow::Type::INT64: return f(std::static_pointer_cast<arrow::Int64Type>(type));
     case arrow::Type::DOUBLE: return f(std::static_pointer_cast<arrow::DoubleType>(type));
     case arrow::Type::STRING: return f(std::static_pointer_cast<arrow::StringType>(type));
+    case arrow::Type::TIMESTAMP: return f(std::static_pointer_cast<arrow::TimestampType>(type));
     case arrow::Type::LIST: return f(std::static_pointer_cast<arrow::ListType>(type));
     default: throw std::runtime_error("type not supported to downcast: " + type->ToString());
     }
@@ -136,6 +221,7 @@ auto visitType(const arrow::Type::type &id, F &&f)
     case arrow::Type::INT64 : return f(std::integral_constant<arrow::Type::type, arrow::Type::INT64 >{});
     case arrow::Type::DOUBLE: return f(std::integral_constant<arrow::Type::type, arrow::Type::DOUBLE>{});
     case arrow::Type::STRING: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
+    case arrow::Type::TIMESTAMP: return f(std::integral_constant<arrow::Type::type, arrow::Type::TIMESTAMP>{});
     //case arrow::Type::LIST: return f(std::integral_constant<arrow::Type::type, arrow::Type::LIST>{});
     default: throw std::runtime_error("array type not supported to downcast: " + std::to_string((int)id));
     }
@@ -149,19 +235,21 @@ auto visitType(const arrow::DataType &type, F &&f)
     case arrow::Type::INT64 : return f(std::integral_constant<arrow::Type::type, arrow::Type::INT64 >{});
     case arrow::Type::DOUBLE: return f(std::integral_constant<arrow::Type::type, arrow::Type::DOUBLE>{});
     case arrow::Type::STRING: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
+    case arrow::Type::TIMESTAMP: return f(std::integral_constant<arrow::Type::type, arrow::Type::TIMESTAMP>{});
     //case arrow::Type::LIST: return f(std::integral_constant<arrow::Type::type, arrow::Type::LIST>{});
     default: throw std::runtime_error("array type not supported to downcast: " + type.ToString());
     }
 }
 
 template<typename F>
-auto visitType4(const arrow::TypePtr &type, F &&f)
+auto visitType4(const TypePtr &type, F &&f)
 {
     switch(type->id())
     {
     case arrow::Type::INT64: return f(std::integral_constant<arrow::Type::type, arrow::Type::INT64 >{});
     case arrow::Type::DOUBLE: return f(std::integral_constant<arrow::Type::type, arrow::Type::DOUBLE>{});
     case arrow::Type::STRING: return f(std::integral_constant<arrow::Type::type, arrow::Type::STRING>{});
+    case arrow::Type::TIMESTAMP: return f(std::integral_constant<arrow::Type::type, arrow::Type::TIMESTAMP>{});
     case arrow::Type::LIST: return f(std::integral_constant<arrow::Type::type, arrow::Type::LIST>{});
     default: throw std::runtime_error("array type not supported to downcast: " + type->ToString());
     }
@@ -182,9 +270,82 @@ auto arrayValueAtTyped(const Array &array, int32_t index)
         const auto offset = array.value_offset(index);
         return ListElemView{ array.values().get(), offset, length };
     }
+    else if constexpr(std::is_same_v<arrow::TimestampArray, Array>)
+    {
+        return Timestamp(TimestampDuration(array.Value(index)));
+    }
     else
         return array.Value(index);
 }
+
+//////////////////////////////////////////////////////////////////////////
+
+
+// for now we just assume that all timestamps are nanoseconds based
+//DFH_EXPORT extern std::shared_ptr<arrow::TimestampType> timestampTypeSingleton;
+
+template<arrow::Type::type id>
+auto getTypeSingleton()
+{
+    using ArrowType = typename TypeDescription<id>::ArrowType;
+    if constexpr(id == arrow::Type::TIMESTAMP)
+    {
+        // TODO: be smarter
+        return std::make_shared<arrow::TimestampType>(arrow::TimeUnit::NANO);
+    }
+    else
+        return std::static_pointer_cast<ArrowType>(arrow::TypeTraits<ArrowType>::type_singleton());
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+DFH_EXPORT std::shared_ptr<arrow::ArrayBuilder> makeBuilder(const TypePtr &type);
+
+template<typename TypeT>
+auto makeBuilder(const std::shared_ptr<TypeT> &type)
+{
+    using TT = arrow::TypeTraits<TypeT>;
+    using Builder = typename TT::BuilderType;
+    constexpr auto id = TypeT::type_id;
+    if constexpr(id == arrow::Type::LIST)
+    {
+        if(type->num_children() != 1)
+            throw std::runtime_error("list type must have a single child type");
+
+        // list builder must additionally take a nested builder for a value buffer
+        auto nestedBuilder = makeBuilder(type->child(0)->type());
+        return std::make_shared<Builder>(nullptr, nestedBuilder);
+    }
+    else if constexpr(TT::is_parameter_free)
+    {
+        return std::make_shared<Builder>();
+    }
+    else
+    {
+        return std::make_shared<Builder>(type, arrow::default_memory_pool());
+    }
+}
+
+inline auto append(arrow::StringBuilder &builder, std::string_view sv)
+{
+    return builder.Append(sv.data(), static_cast<int32_t>(sv.length()));
+}
+
+template<typename N, typename V>
+auto append(arrow::NumericBuilder<N> &builder, const V &value)
+{
+    return builder.Append(value);
+}
+
+inline auto append(arrow::TimestampBuilder &builder, const Timestamp &value)
+{
+    // TODO support other units than nanoseconds
+    assert(std::dynamic_pointer_cast<arrow::TimestampType>(builder.type())->unit() == arrow::TimeUnit::NANO);
+    static_assert(std::is_same_v<Timestamp::period, std::nano>);
+    return builder.Append(value.time_since_epoch().count());
+}
+
+//////////////////////////////////////////////////////////////////////////
 
 template <arrow::Type::type type>
 auto arrayValueAt(const arrow::Array &array, int32_t index)
@@ -419,24 +580,24 @@ template<typename T>
 std::shared_ptr<arrow::Array> toArray(const std::vector<T> &elems)
 {
     using ValueT = strip_optional_t<T>;
-
-    using BuilderT = typename TypeDescription<ValueTypeToId<ValueT>()>::BuilderType;
-    BuilderT builder;
-    builder.Reserve(elems.size());
+    using TD = TypeDescription<ValueTypeToId<ValueT>()>;
+    using BuilderT = typename TD::BuilderType;
+    auto builder = makeBuilder(getTypeSingleton<TD::id>());
+    builder->Reserve(elems.size());
     for(auto &&elem : elems)
     {
         if constexpr(is_optional_v<T>)
         {
             if(elem)
-                builder.Append(*elem);
+                append(*builder, *elem);
             else
-                builder.AppendNull();
+                builder->AppendNull();
         }
         else
-            builder.Append(elem);
+            append(*builder, elem);
     }
 
-    return finish(builder);
+    return finish(*builder);
 }
 
 template<typename T>
@@ -511,9 +672,9 @@ std::shared_ptr<arrow::Table> tableFromVectors(const std::vector<Ts> & ...ts)
     return tableFromArrays({toArray(ts)...});
 }
 
-using DynamicField = std::variant<int64_t, double, std::string_view, std::string, ListElemView, std::nullopt_t>;
+using DynamicField = std::variant<int64_t, double, std::string_view, std::string, ListElemView, Timestamp, std::nullopt_t>;
 
-using DynamicJustVector = std::variant<std::vector<int64_t>, std::vector<double>, std::vector<std::string_view>, std::vector<ListElemView>>;
+using DynamicJustVector = std::variant<std::vector<int64_t>, std::vector<double>, std::vector<std::string_view>, std::vector<ListElemView>, std::vector<Timestamp>>;
 DFH_EXPORT DynamicJustVector toJustVector(const arrow::ChunkedArray &chunkedArray);
 DFH_EXPORT DynamicJustVector toJustVector(const arrow::Column &column);
 
@@ -562,16 +723,6 @@ DFH_EXPORT void validateIndex(const arrow::Array &array, int64_t index);
 DFH_EXPORT void validateIndex(const arrow::ChunkedArray &array, int64_t index);
 DFH_EXPORT void validateIndex(const arrow::Column &column, int64_t index);
 
-inline void append(arrow::StringBuilder &builder, std::string_view sv)
-{
-    builder.Append(sv.data(), static_cast<int32_t>(sv.length()));
-}
-template<typename N, typename V>
-void append(arrow::NumericBuilder<N> &builder, const V &value)
-{
-    builder.Append(value);
-}
-
 template<arrow::Type::type id1, arrow::Type::type id2, typename F>
 void iterateOverJustPairs(const arrow::ChunkedArray &array1, const arrow::ChunkedArray &array2, F &&f)
 {
@@ -615,30 +766,8 @@ void iterateOverJustPairs(const arrow::Column &column1, const arrow::Column &col
 }
 
 
-DFH_EXPORT std::shared_ptr<arrow::Array> makeNullsArray(arrow::TypePtr type, int64_t length);
+DFH_EXPORT std::shared_ptr<arrow::Array> makeNullsArray(TypePtr type, int64_t length);
 
-
-DFH_EXPORT std::shared_ptr<arrow::ArrayBuilder> makeBuilder(const arrow::TypePtr &type);
-
-template<typename TypeT>
-auto makeBuilder(const std::shared_ptr<TypeT> &type)
-{
-    using Builder = typename arrow::TypeTraits<TypeT>::BuilderType;
-    constexpr auto id = TypeT::type_id;
-    if constexpr(id != arrow::Type::LIST)
-    {
-        return std::make_shared<Builder>();
-    }
-    else
-    {
-        if(type->num_children() != 1)
-            throw std::runtime_error("list type must have a single child type");
-
-        // list builder must additionally take a nested builder for a value buffer
-        auto nestedBuilder = makeBuilder(type->child(0)->type());
-        return std::make_shared<Builder>(nullptr, nestedBuilder);
-    }
-}
 
 template<arrow::Type::type id, bool nullable>
 struct FixedSizeArrayBuilder
@@ -646,13 +775,15 @@ struct FixedSizeArrayBuilder
     using T = typename TypeDescription<id>::StorageValueType;
     using Array = typename TypeDescription<id>::Array;
 
+    std::shared_ptr<arrow::DataType> type;
     int64_t length;
     std::shared_ptr<arrow::Buffer> valueBuffer;
     T *nextValueToWrite{};
 
 
-    FixedSizeArrayBuilder(int32_t length)
-        : length(length)
+    FixedSizeArrayBuilder(std::shared_ptr<arrow::DataType> type, int32_t length)
+        : type(std::move(type))
+        , length(length)
     {
         std::tie(valueBuffer, nextValueToWrite) = allocateBuffer<T>(length);
 
@@ -667,7 +798,7 @@ struct FixedSizeArrayBuilder
 
     auto Finish()
     {
-        return std::make_shared<Array>(length, valueBuffer, nullptr, 0);
+        return std::make_shared<Array>(type, length, valueBuffer, nullptr, 0);
     }
 };
 
@@ -684,3 +815,10 @@ auto dispatch(bool value, F &&f)
         CASE_DISPATCH(true);
     }
 }
+
+
+template<typename ArrowDataTypePtr>
+using ArrowTypeFromPtr = typename std::decay_t<ArrowDataTypePtr>::element_type;
+
+template<typename ArrowDataTypePtr>
+constexpr arrow::Type::type idFromDataPointer = std::decay_t<ArrowDataTypePtr>::element_type::type_id;

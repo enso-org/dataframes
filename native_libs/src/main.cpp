@@ -55,6 +55,7 @@ struct Int64  { static constexpr arrow::Type::type id = arrow::Type::INT64;  };
 struct Float  { static constexpr arrow::Type::type id = arrow::Type::FLOAT;  };
 struct Double { static constexpr arrow::Type::type id = arrow::Type::DOUBLE; };
 struct String { static constexpr arrow::Type::type id = arrow::Type::STRING; };
+struct TimestampTag { static constexpr arrow::Type::type id = arrow::Type::TIMESTAMP; };
 
 template<typename Tag>
 using TypeDescriptionForTag = TypeDescription<Tag::id>;
@@ -81,13 +82,15 @@ std::shared_ptr<arrow::DataType> idToDataType(arrow::Type::type id)
     switch(id)
     {
     case arrow::Type::INT32:
-        return std::make_shared<arrow::Int32Type>();
+        return getTypeSingleton<arrow::Type::INT32>();
     case arrow::Type::INT64:
-        return std::make_shared<arrow::Int64Type>();
+        return getTypeSingleton<arrow::Type::INT64>();
     case arrow::Type::DOUBLE:
-        return std::make_shared<arrow::DoubleType>();
+        return getTypeSingleton<arrow::Type::DOUBLE>();
     case arrow::Type::STRING:
-        return std::make_shared<arrow::StringType>();
+        return getTypeSingleton<arrow::Type::STRING>();
+    case arrow::Type::TIMESTAMP:
+        return getTypeSingleton<arrow::Type::TIMESTAMP>();
     default:
     {
         std::ostringstream out;
@@ -214,7 +217,9 @@ extern "C"
         /* NOTE: needs release */                                                                                                                           \
         return TRANSLATE_EXCEPTION(outError)                                                                                                               \
         {                                                                                                                                                   \
-            return LifetimeManager::instance().addOwnership(std::make_shared<TypeDescriptionForTag<TYPENAME>::BuilderType>());                                       \
+            auto type = getTypeSingleton<TYPENAME::id>(); \
+            auto builder = makeBuilder(type); \
+            return LifetimeManager::instance().addOwnership(builder);                                       \
         };                                                                                                                                                   \
     }                                                                                                                                                       \
     DFH_EXPORT void builder##TYPENAME##Reserve(TypeDescriptionForTag<TYPENAME>::BuilderType *builder, int64_t count, const char **outError) noexcept                           \
@@ -272,6 +277,7 @@ extern "C"
     COMMON_BUILDER(Float);
     COMMON_BUILDER(Double);
     COMMON_BUILDER(String);
+    COMMON_BUILDER(TimestampTag);
 
     // TODO current string append needlessly allocates std::string for BinaryBuilder::Append argument
 
@@ -481,6 +487,7 @@ extern "C"
     NUMERIC_ARRAY_METHODS(Int64);
     NUMERIC_ARRAY_METHODS(Float);
     NUMERIC_ARRAY_METHODS(Double);
+    NUMERIC_ARRAY_METHODS(TimestampTag);
 
     // string array uses somewhat different interface than numeric -- and needs a special method thereof
     // TODO should an actual array subtype be required? generally speaking having right data in array should be enough

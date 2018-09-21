@@ -13,6 +13,7 @@
 #include "Core/Benchmark.h"
 #include "Processing.h"
 #include "Fixture.h"
+#include "Core/Utils.h"
 
 using namespace std::literals;
 using boost::unit_test_framework::disabled;
@@ -272,109 +273,6 @@ BOOST_FIXTURE_TEST_CASE(InterpolateBigColumn, DataGenerator)
 //     {
 //         return interpolateNA(doubles90pct);
 //     });
-}
-
-template<typename Range, typename Reader>
-void printList(Range &&r, Reader &&f)
-{
-    auto end = std::end(r);
-    auto itr = std::begin(r);
-    if(itr != end)
-    {
-        std::cout << std::invoke(f, *itr++);
-    }
-
-    while(itr != end)
-    {
-        std::cout << "\t" << std::invoke(f, *itr++);
-    }
-}
-
-
-template<typename T>
-std::string formatColumnElem(const std::optional<T> &elem);
-
-template<typename T>
-std::string formatColumnElem(const T &elem)
-{
-    return std::to_string(elem);
-}
-std::string formatColumnElem(const std::string_view &elem)
-{
-    return std::string(elem);
-}
-std::string formatColumnElem(const ListElemView &elem)
-{
-    std::ostringstream out;
-    out << "[";
-
-    visitType4(elem.array->type(), [&](auto id)
-    {
-        if(elem.length)
-        {
-            auto value = tryArrayValueAt<id.value>(*elem.array, elem.offset + 0);
-            out << formatColumnElem(value);
-        }
-
-        for(int i = 1; i < elem.length; i++)
-        {
-            out << ", ";
-            auto value = tryArrayValueAt<id.value>(*elem.array, elem.offset + i);
-            out << formatColumnElem(value);
-        }
-    });
-
-    out << "]";
-    return out.str();
-}
-
-template<typename T>
-std::string formatColumnElem(const std::optional<T> &elem)
-{
-    if(elem)
-        return formatColumnElem(*elem);
-    return "null"s;
-}
-
-void uglyPrint(const arrow::Table &table)
-{
-    auto cols = getColumns(table);
-    std::cout << "\t| ";
-    printList(cols, [](auto col){ return col->name(); });
-    std::cout << '\n';
-    for(int i = 0; i < 80; i++)
-        std::cout << "-";
-    std::cout << '\n';
-
-    int64_t partsSize = 5;
-
-    auto printedElement = [&](const arrow::Column &col, int row)
-    {
-        return visitType4(col.type(), [&](auto id) -> std::string
-        {
-            const auto value = columnValueAt<id.value>(col, row);
-            return formatColumnElem(value);
-        });
-    };
-
-    auto printRow = [&](int64_t row)
-    {
-        std::cout << row << "\t| ";
-        printList(cols, [&](const auto &col) -> std::string
-        {
-            return printedElement(*col, row);
-        });
-        std::cout << '\n';
-    };
-
-    for(int64_t row = 0; row < partsSize && row < table.num_rows(); row++)
-        printRow(row);
-    if(table.num_rows() > partsSize*2)
-        std::cout << "... " << (table.num_rows() - partsSize * 2) << " more rows ...\n";
-    for(int64_t row = std::max<int64_t>(partsSize, std::max<int64_t>(0, table.num_rows() - partsSize)); row < table.num_rows(); row++)
-        printRow(row);
-
-    std::cout << "[" << table.num_rows() << " rows x " << table.num_columns() << " cols]" << std::endl;
 }
 
 BOOST_FIXTURE_TEST_CASE(GroupExperiments, DataGenerator)

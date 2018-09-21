@@ -11,6 +11,12 @@ class Matplotlib:
     def histogram data bins params:
         self.call "histogram" None [data.toCArg, CInt.fromInt bins . toCArg]
 
+    def plotDate s1 s2: 
+        self.call "plot_date" None [s1.toCArg, s2.toCArg]
+    
+    def scatter s1 s2: 
+        self.call "scatter" None [s1.toCArg, s2.toCArg]
+
     def plot s1 s2 style:
         cstr = CString.fromText style
         self.call "plot" None [s1.toCArg, s2.toCArg, cstr.toCArg]
@@ -84,6 +90,32 @@ class Histogram:
     def toJSON: self.toChart.toJSON
 
     def setBins b: self.bins = b
+
+class PlotDate:
+    series1 :: Column
+    series2 :: Column
+
+    def render: 
+        Matplotlib.plotDate self.series1.ptr.data.ptr self.series2.ptr.data.ptr
+    
+    def toChart: Chart self.render 
+
+    def + that: self.toChart.+that 
+
+    def toJSON: self.toChart.toJSON
+
+class Scatter:
+    series1 :: Column
+    series2 :: Column
+
+    def render: 
+        Matplotlib.scatter self.series1.ptr.data.ptr self.series2.ptr.data.ptr
+    
+    def toChart: Chart self.render 
+
+    def + that: self.toChart.+that 
+
+    def toJSON: self.toChart.toJSON
 
 class Plot:
     series1 :: Column

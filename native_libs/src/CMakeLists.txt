@@ -67,6 +67,11 @@ if(NOT ARROW_LIBRARY)
 endif()
 
 
+find_path(DATE_INCLUDE date/date.h)
+if(NOT DATE_INCLUDE)
+    message(WARNING "Cannot find date library include dir with date/date.h. If it is present, consider setting CMAKE_PREFIX_PATH or CMAKE_INCLUDE_PATH.")
+endif()
+
 # Glob for the project files
 file(GLOB_RECURSE HEADER_FILES ${PROJECT_SOURCE_DIR}/*.h)
 file(GLOB_RECURSE SRC_FILES ${PROJECT_SOURCE_DIR}/*.cpp)
@@ -77,7 +82,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE BUILDING_DATAFRAME_HELPER)
 target_compile_definitions(${PROJECT_NAME} PUBLIC _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS) # rapidjson is so deprecated)
 
 # Includes path: project root, arrow, third-party any-lite
-target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR} ${ARROW_INCLUDE} ${PROJECT_SOURCE_DIR}/../third-party/any-lite ${PROJECT_SOURCE_DIR}/../third-party/optional-lite ${PROJECT_SOURCE_DIR}/../third-party/variant ${RAPIDJSON_INCLUDE})
+target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR} ${ARROW_INCLUDE} ${PROJECT_SOURCE_DIR}/../third-party/any-lite ${PROJECT_SOURCE_DIR}/../third-party/optional-lite ${PROJECT_SOURCE_DIR}/../third-party/variant ${RAPIDJSON_INCLUDE} ${DATE_INCLUDE})
 target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
 
 if(XLNT_LIBRARY AND XLNT_INCLUDE)

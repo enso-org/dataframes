@@ -24,15 +24,14 @@ struct GenerateColumnNames {};
 
 using HeaderPolicy = std::variant<TakeFirstRowAsHeaders, GenerateColumnNames, std::vector<std::string>>;
 
-struct ColumnType
+struct DFH_EXPORT ColumnType
 {
     std::shared_ptr<arrow::DataType> type;
     bool nullable;
     bool deduced; // deduced types allow fallback
 
-    ColumnType(std::shared_ptr<arrow::DataType> type, bool nullable, bool deduced)
-        : type(type), nullable(nullable), deduced(deduced)
-    {}
+    ColumnType(std::shared_ptr<arrow::DataType> type, bool nullable, bool deduced);
+    ColumnType(const arrow::Column &column, bool deduced);
 };
 
 enum class GeneratorHeaderPolicy : int8_t
@@ -55,7 +54,7 @@ inline constexpr auto defaultValue()
     {
         return "";
     }
-    else if constexpr(type == arrow::Type::INT64)
+    else if constexpr(type == arrow::Type::INT64 || type == arrow::Type::TIMESTAMP)
     {
         return std::int64_t(0);
     }

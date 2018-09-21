@@ -8,6 +8,8 @@
 #include <arrow/builder.h>
 #include <arrow/table.h>
 
+#include <fstream>
+
 #ifdef DISABLE_XLSX
 
 #pragma message("Note: DataframeHelper is being compiled without XLSX support.")  
@@ -21,7 +23,6 @@ void writeXlsx(std::ostream &out, const arrow::Table &table, GeneratorHeaderPoli
 {
     throw std::runtime_error("The library was compiled without XLSX support!");
 }
-
 
 #else // DISABLE_XLSX
 
@@ -43,20 +44,33 @@ namespace
     struct ColumnBuilder : ColumnBuilderBase
     {
         bool nullable{};
-        BuilderFor<type> builder;
+        std::shared_ptr<BuilderFor<type>> builder;
 
-        ColumnBuilder(bool nullable) : nullable(nullable) {}
+        ColumnBuilder(bool nullable)
+            : nullable(nullable) 
+            , builder(makeBuilder(getTypeSingleton<type>()))
+        {}
 
         virtual void addFromCell(const xlnt::cell &field) override
         {
             if(field.has_value())
             {
                 if constexpr(type == arrow::Type::STRING)
-                    checkStatus(builder.Append(field.to_string()));
+                    checkStatus(builder->Append(field.to_string()));
                 else if constexpr(type == arrow::Type::INT64)
-                    checkStatus(builder.Append(field.value<long long int>())); // NOTE: cannot be int64_t -- no such overload, fails on GCC
+                    checkStatus(builder->Append(field.value<long long int>())); // NOTE: cannot be int64_t -- no such overload, fails on GCC
                 else if constexpr(type == arrow::Type::DOUBLE)
-                    checkStatus(builder.Append(field.value<double>()));
+                    checkStatus(builder->Append(field.value<double>()));
+                else if constexpr(type == arrow::Type::TIMESTAMP)
+                {
+                    using namespace std::chrono;
+                    using namespace date;
+                    auto v = field.value<xlnt::datetime>();
+                    auto day = year(v.year)/v.month/v.day;
+                    auto timeOfDay = hours(v.hour) + minutes(v.minute) + seconds(v.second) + microseconds(v.microsecond);
+                    Timestamp t{(sys_days)day + timeOfDay};
+                    checkStatus(builder->Append(t.toStorage()));
+                }
                 else
                     throw std::runtime_error("wrong type");
             }
@@ -66,18 +80,18 @@ namespace
         virtual void addMissing() override
         {
             if(nullable)
-                checkStatus(builder.AppendNull());
+                checkStatus(builder->AppendNull());
             else
-                checkStatus(builder.Append(defaultValue<type>()));
+                checkStatus(builder->Append(defaultValue<type>()));
         }
         virtual void reserve(int64_t count) override
         {
-            checkStatus(builder.Reserve(count));
+            checkStatus(builder->Reserve(count));
         }
 
         virtual std::shared_ptr<arrow::Array> finish() override
         {
-            return ::finish(builder);
+            return ::finish(*builder);
         }
     };
 }
@@ -119,7 +133,9 @@ std::shared_ptr<arrow::Table> readXlsxFile(const char *filepath, HeaderPolicy he
             columnBuilders.push_back(std::move(ptr));
         }
         for(auto i = columnBuilders.size(); i < columnCount; i++)
+        {
             columnBuilders.push_back(std::make_unique<ColumnBuilder<arrow::Type::STRING>>(false));
+        }
     
         for(int column = 0; column < columnCount; column++)
         {
@@ -170,6 +186,25 @@ void writeXlsx(std::ostream &out, const arrow::Table &table, GeneratorHeaderPoli
                 cell.value((long long)field);
             else if constexpr(std::is_same_v<std::string_view, FieldType>)
                 cell.value(std::string(field));
+            else if constexpr(std::is_same_v<Timestamp, FieldType>)
+            {
+                using namespace date;
+                auto daypoint = floor<days>(field);
+                auto ymd = year_month_day(daypoint);   // calendar date
+                time_of_day tod = make_time(field - daypoint); // Yields time_of_day type
+
+                // Obtain individual components as integers
+                auto y = (int)ymd.year();
+                auto m = (int)(unsigned)ymd.month();
+                auto d = (int)(unsigned)ymd.day();
+                auto h = (int)tod.hours().count();
+                auto min = (int)tod.minutes().count();
+                auto s = (int)tod.seconds().count();
+                auto us = (int)std::chrono::duration_cast<std::chrono::microseconds>(tod.subseconds()).count();
+
+                xlnt::datetime timestamp{y, m, d, h, min, s, us}; // TODO: microsecond
+                cell.value(timestamp);
+            }
             else
                 cell.value(field);
             ++row;
@@ -186,3 +221,9 @@ void writeXlsx(std::ostream &out, const arrow::Table &table, GeneratorHeaderPoli
 }
 
 #endif // DISABLE_XLSX
+
+void writeXlsx(const char *filepath, const arrow::Table &table, GeneratorHeaderPolicy headerPolicy /*= GeneratorHeaderPolicy::GenerateHeaderLine*/)
+{
+    auto out = openFileToWrite(filepath);
+    return writeXlsx(out, table, headerPolicy);
+}
