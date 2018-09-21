@@ -1,6 +1,9 @@
 #pragma once
 
+#ifdef __linux__
 #include <dlfcn.h> 
+#endif 
+
 #include <vector>
 #include <map>
 #include <numeric>
