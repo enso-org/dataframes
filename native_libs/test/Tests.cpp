@@ -1005,45 +1005,29 @@ BOOST_AUTO_TEST_CASE(AutoCorrelation)
 
 BOOST_AUTO_TEST_CASE(Rolling, *boost::unit_test_framework::disabled())
 {
-    auto table = loadTableFromCsvFile("F:/usa.us.txt");
-    uglyPrint(*table);
-    auto Date = getColumn(*table, "Date");
-    auto Open = getColumn(*table, "Open");
-
-    auto meanForEachColumn = transformToVector(getColumns(*table), [](auto col)
+    const date::sys_days day = 2013_y / jan / 01;
+    const std::vector<Timestamp> ts
     {
-        return std::pair(col, std::vector<AggregateFunction>{AggregateFunction::Mean});
-    });
-    meanForEachColumn.erase(meanForEachColumn.begin());
+        day + 9h + 0s,
+        day + 9h + 2s,
+        day + 9h + 3s,
+        day + 9h + 5s,
+        day + 9h + 6s,
+    };
 
 
-    MeasureAtLeast p{ 100, 15s };
-    measure("rolling", p, [&]
-    {
-        return rollingInterval(Date, TimestampDuration(date::days(7)), meanForEachColumn); 
-    });
-    //auto ttt2 = rollingInterval(Date, TimestampDuration(date::days(7)), meanForEachColumn); //  {{Open, {AggregateFunction::Mean}}}
+    const auto tsCol = toColumn(ts);
+    const auto numCol = toColumn(std::vector<std::optional<double>>{0.0, 1.0, 2.0, std::nullopt, 4.0});
+    const auto table = tableFromColumns({ tsCol, numCol });
 
-    //uglyPrint(*ttt2);
-//     date::sys_days day = 2013_y/jan/01;
-//     std::vector<Timestamp> ts
-//     {
-//         day + 9h + 0s,
-//         day + 9h + 2s,
-//         day + 9h + 3s,
-//         day + 9h + 5s,
-//         day + 9h + 6s,
-//     };
-// 
-//  
-//     auto tsCol = toColumn(ts);
-//     auto numCol = toColumn(std::vector<std::optional<double>>{0.0, 1.0, 2.0, std::nullopt, 4.0});
-//     auto table = tableFromColumns({tsCol, numCol});
-// 
-//     auto ttt = collectRollingIntervalSizes(tsCol, 2s);
-//     auto ttt2 = rollingInterval(tsCol, 2s, {{numCol, {AggregateFunction::Mean}}});
-//     uglyPrint(*ttt2);
-//     auto expectedSizes = std::vector<int>{1, 1, 2, 1, 2};
-//     BOOST_CHECK_EQUAL_RANGES(ttt, expectedSizes);
+    const auto samplesPerWindow = collectRollingIntervalSizes(tsCol, 2s);
+    const auto expectedSamplesPerWindow = std::vector<int>{ 1, 1, 2, 1, 2 };
+    BOOST_CHECK_EQUAL_RANGES(samplesPerWindow, expectedSamplesPerWindow);
+
+    const auto sumsPerWindowT = rollingInterval(tsCol, 2s, { {numCol, {AggregateFunction::Sum}} });
+    const auto sumsPerWindowV = toVectors<Timestamp, double>(*sumsPerWindowT);
+    const auto expectedSumsPerWindow = std::vector<double>{ 0, 1, 3, 0, 4 };
+    BOOST_CHECK_EQUAL_RANGES(std::get<0>(sumsPerWindowV), ts); // timestamps column should not be modified
+    BOOST_CHECK_EQUAL_RANGES(std::get<1>(sumsPerWindowV), expectedSumsPerWindow);
 }
 
