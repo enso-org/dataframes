@@ -37,6 +37,7 @@ class AggregateFunction:
     Last
     Sum
     RSI
+    Std
 
     def toInt: case self of
         Minimum: 0
@@ -48,6 +49,7 @@ class AggregateFunction:
         Last: 6
         Sum: 7
         RSI: 8
+        Std: 9
 
 class Table:
     Table
@@ -276,7 +278,7 @@ class Table:
     def shift columnName periods:
         columnToShift = self.column columnName
         shiftedColumn = columnToShift.shift periods 
-        newColumnname = columnName ++ "_shift_" ++ periods.toText
+        newColumnname = columnName + "_shift_" + periods.toText
         newTable = self.setAt newColumnname shiftedColumn
         newTable
 

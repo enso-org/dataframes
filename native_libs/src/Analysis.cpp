@@ -241,6 +241,7 @@ template<typename T> struct AggregatorFor<AggregateFunction::First  , T> { using
 template<typename T> struct AggregatorFor<AggregateFunction::Last   , T> { using type = Last<T>   ; };
 template<typename T> struct AggregatorFor<AggregateFunction::Sum    , T> { using type = Sum<T>    ; };
 template<typename T> struct AggregatorFor<AggregateFunction::RSI    , T> { using type = RSI       ; };
+template<typename T> struct AggregatorFor<AggregateFunction::StdDev , T> { using type = StdDev<T> ; };
 
 template<arrow::Type::type id, typename Processor>
 auto calculateStatScalar(const arrow::Column &column, Processor &p)
