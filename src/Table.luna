@@ -272,6 +272,14 @@ class Table:
         aggregationWithWrappers = aggregations.each (colname, aggrs): (self.column colname . ptr, aggrs.each .toInt)
         self.fromWrapper $ self.ptr.rollingInterval keyColumnWrapper (interval.toMicroseconds * 1000) aggregationWithWrappers
 
+    # shift :: Text -> Int -> Table
+    def shift columnName periods:
+        columnToShift = self.column columnName
+        shiftedColumn = columnToShift.shift periods 
+        newColumnname = columnName ++ "_shift_" ++ periods.toText
+        newTable = self.setAt newColumnname shiftedColumn
+        newTable
+
     def chart: ChartBuilder self
 
 class ChartBuilder:
