@@ -36,6 +36,7 @@ class AggregateFunction:
     First
     Last
     Sum
+    RSI
 
     def toInt: case self of
         Minimum: 0
@@ -46,6 +47,7 @@ class AggregateFunction:
         First: 5
         Last: 6
         Sum: 7
+        RSI: 8
 
 class Table:
     Table
