@@ -317,6 +317,12 @@ class ChartBuilder:
     def heatmap:
         Heatmap self.table "RdBu_r" Nothing
 
+    def fillBetween cname1 cname2 cname3:
+        c1 = self.table.at cname1 . toColumn
+        c2 = self.table.at cname2 . toColumn
+        c3 = self.table.at cname3 . toColumn
+        FillBetween c1 c2 c3 
+
 class Heatmap:
     data :: Table
     colorMap :: Text
