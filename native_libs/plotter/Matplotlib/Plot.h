@@ -14,6 +14,7 @@ extern "C"
 	EXPORT void plot(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* label, const char *style);
 	EXPORT void kdeplot2(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* colormap);
 	EXPORT void kdeplot(arrow::ChunkedArray *xs, char* label);
+	EXPORT void filled_between(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys1, arrow::ChunkedArray *ys2);
 	EXPORT void heatmap(arrow::Table* xs, char* cmap, char* annot);
 	EXPORT void histogram(arrow::ChunkedArray *xs, size_t bins);
 	EXPORT void show();

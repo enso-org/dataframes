@@ -427,6 +427,26 @@ bool plot_date(PyObject* xarray, PyObject* yarray)
     return res;
 }
 
+bool fill_between(PyObject* xarray, PyObject* yarray1, PyObject* yarray2)
+{
+
+    PyObject* plot_args = PyTuple_New(3);
+    PyTuple_SetItem(plot_args, 0, xarray);
+    PyTuple_SetItem(plot_args, 1, yarray1);
+    PyTuple_SetItem(plot_args, 2, yarray2);
+    
+    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_fill_between, plot_args);
+    if (!res) {
+        std::cout << "EXCEPTION FILL_BETWEEN" << std::endl;
+        throw std::runtime_error("Call to fill_between() failed.");
+    }
+
+    Py_DECREF(plot_args);
+    if(res) Py_DECREF(res);
+
+    return res;
+}
+
 bool scatter(PyObject* xarray, PyObject* yarray)
 {
 

@@ -212,6 +212,22 @@ extern "C"
         }
     }
 
+    void fill_between(arrow::ChunkedArray* xs, arrow::ChunkedArray* ys1, arrow::ChunkedArray* ys2) {
+        auto xsarray = chunkedArrayToPyObj(*xs);
+        std::cout << "XS " << xsarray << std::endl;
+        auto ysarray1 = chunkedArrayToPyObj(*ys1);
+        std::cout << "YS1 " << ysarray1 << std::endl;
+        auto ysarray2 = chunkedArrayToPyObj(*ys2);
+        std::cout << "YS2 " << ysarray2 << std::endl;
+        try {
+            std::cout << "FILL BEG" << std::endl;
+            plt::fill_between(xsarray, ysarray1, ysarray2);
+            std::cout << "FILL END" << std::endl;
+        } catch (const runtime_error& e) {
+          std::cout << e.what() << std::endl;
+        }
+    }
+
     void histogram(arrow::ChunkedArray *xs, size_t bins) {
         auto xsarray = chunkedArrayToPyObj(*xs);
         try {

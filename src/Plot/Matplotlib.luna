@@ -37,7 +37,7 @@ class Matplotlib:
         self.call "heatmap" None [s1.toCArg, cstr.toCArg, annotc.toCArg]
     
     def fillBetween s1 s2 s3:
-        self.call "fill_between" None [s1.toCArg, s2.toCArg. s3.toCArg]
+        self.call "fill_between" None [s1.toCArg, s2.toCArg, s3.toCArg]
 
     def kdeplot s label:
         cstr = case label of
@@ -155,9 +155,9 @@ class Plot:
     def setLabel l: self.label = (Just l)
 
 class FillBetween:
-    series1: Column
-    series2: Column
-    series3: Column 
+    series1 :: Column
+    series2 :: Column
+    series3 :: Column 
 
     def render:
         Matplotlib.fillBetween self.series1.ptr.data.ptr self.series2.ptr.data.ptr self.series3.ptr.data.ptr
