@@ -427,21 +427,27 @@ bool plot_date(PyObject* xarray, PyObject* yarray)
     return res;
 }
 
-bool fill_between(PyObject* xarray, PyObject* yarray1, PyObject* yarray2)
+bool fill_between(PyObject* xarray, PyObject* yarray1, PyObject* yarray2, char* label, char* color)
 {
 
     PyObject* plot_args = PyTuple_New(3);
     PyTuple_SetItem(plot_args, 0, xarray);
     PyTuple_SetItem(plot_args, 1, yarray1);
     PyTuple_SetItem(plot_args, 2, yarray2);
+
+    PyObject* kwargs = PyDict_New();
     
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_fill_between, plot_args);
+    if (label) PyDict_SetItemString(kwargs, "label", PyString_FromString(label));
+    if (color) PyDict_SetItemString(kwargs, "color", PyString_FromString(color));
+    
+    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_fill_between, plot_args, kwargs);
     if (!res) {
         std::cout << "EXCEPTION FILL_BETWEEN" << std::endl;
         throw std::runtime_error("Call to fill_between() failed.");
     }
 
     Py_DECREF(plot_args);
+    Py_DECREF(kwargs);
     if(res) Py_DECREF(res);
 
     return res;
@@ -686,7 +692,7 @@ bool kdeplot(PyObject* xarray, char* label)
     return res;
 }
 
-bool plot(PyObject* xarray, PyObject* yarray, char* label, const std::string& s = "")
+bool plot(PyObject* xarray, PyObject* yarray, char* label, char* color, const std::string& s = "")
 {
     PyObject* pystring = PyString_FromString(s.c_str());
 
@@ -697,6 +703,7 @@ bool plot(PyObject* xarray, PyObject* yarray, char* label, const std::string& s 
 
     PyObject* kwargs = PyDict_New();
     if (label) PyDict_SetItemString(kwargs, "label", PyString_FromString(label));
+    if (color) PyDict_SetItemString(kwargs, "color", PyString_FromString(color));
 
     PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_plot, plot_args, kwargs);
     if (!res) {

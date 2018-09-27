@@ -290,7 +290,7 @@ class ChartBuilder:
     def plot cname1 cname2:
         c1 = self.table.at cname1 . toColumn
         c2 = self.table.at cname2 . toColumn
-        Plot c1 c2 "o" Nothing
+        Plot c1 c2 "o" Nothing Nothing
 
     def plotDate cname1 cname2: 
         c1 = self.table.at cname1 . toColumn
@@ -321,7 +321,7 @@ class ChartBuilder:
         c1 = self.table.at cname1 . toColumn
         c2 = self.table.at cname2 . toColumn
         c3 = self.table.at cname3 . toColumn
-        FillBetween c1 c2 c3 
+        FillBetween c1 c2 c3 Nothing Nothing
 
 class Heatmap:
     data :: Table
