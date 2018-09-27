@@ -71,6 +71,14 @@ class CSVParser:
         CustomNames l: l
         _: []
 
+    # Read CSV file from the hard drive, returning a `Table` value.
+    # 
+    # > import Dataframes.IO 
+    # > CSVParser.readFile "./data/simple_empty.csv"
+    #
+    # `filepath`: Path to the CSV file to read.
+    # `return`: Table value containing the data from CSV file. 
+    
     def readFile filepath:
         Table.fromWrapper $ callCsvParser (ParseCSVFile filepath) self.namePolicy self.typePolicy
 
