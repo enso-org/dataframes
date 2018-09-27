@@ -58,6 +58,19 @@ class Table:
         TableVal wrapper'
     def fromSchemaAndColumns schema columns:
         self.fromWrapper $ createTableWrapper schema.ptr (columns.each .ptr)
+
+    # Create `Table` value from a list of `Column` values.
+    # 
+    # > import Dataframes.Column 
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,4,5]
+    # > l2 = [11,12,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" Int64Type l2
+    # > fromColumns1 = Table.fromColumns [col1 , col2]
+    #
+    # `columns`: List of columns to construct the `Table`.
+    # `return`: Table value with columns from the list.
     def fromColumns columns:
         fields = columns.each .field
         ptrs = columns.each .ptr
