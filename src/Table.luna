@@ -188,13 +188,15 @@ class Table:
         "Table<" + self.columnCount.toText + "×" + self.rowCount.toText + ">"
 
     def corr:
-        self.fromWrapper $ self.ptr.corr
+        numeric = self.filterColumns .isNumeric
+        numeric.fromWrapper $ self.ptr.corr
 
     # corrWith :: Text -> Table 
     def corrWith columnName:
-        column = self.at columnName . toColumn
-        corrCol = Column.fromColumnWrapper $ self.ptr.corrWith column.ptr
-        colNames = self.toList . each .name
+        numeric = self.filterColumns .isNumeric
+        column = numeric.at columnName . toColumn
+        corrCol = Column.fromColumnWrapper $ numeric.ptr.corrWith column.ptr
+        colNames = numeric.toList . each .name
         corrList = corrCol.toList
         l1 = colNames . zip corrList
         sorted = l1.sortBy .second
