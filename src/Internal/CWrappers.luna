@@ -362,7 +362,7 @@ class TableWrapper:
     def interpolate:
         ptr = callHandlingError "tableInterpolateNa" (Pointer None) [self.ptr.toCArg]
         wrapReleasableResouce TableWrapper ptr
-    
+
     # aggregateBy :: ColumnWrapper -> [(ColumnWrapper, [Int])]
     def aggregateBy keyColumn aggregation:
         aggregatedColumnWrapperManagedPtrs = aggregation.each (col, _): col.ptr
@@ -376,7 +376,7 @@ class TableWrapper:
                         callHandlingError "tableAggregateBy" (Pointer None) [keyColumn.ptr.toCArg, CInt32.fromInt aggregation.length . toCArg, aggregatedColumnsC.toCArg, aggregateFunctionCountsC.toCArg, arrayOfArraysWithIds.toCArg]
         wrapReleasableResouce TableWrapper ptr
 
-    # aggregateBy :: ColumnWrapper -> [(ColumnWrapper, [Int])]
+    # rollingInterval :: ColumnWrapper -> Int -> [(ColumnWrapper, [Int])]
     def rollingInterval keyColumn intervalNs aggregation:
         aggregatedColumnWrapperManagedPtrs = aggregation.each (col, _): col.ptr
         aggregatedColumnWrapperPtrs = aggregatedColumnWrapperManagedPtrs.each .ptr
