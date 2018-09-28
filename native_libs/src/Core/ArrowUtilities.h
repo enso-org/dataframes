@@ -24,7 +24,7 @@ namespace date
     class year_month_day;
 }
 
-using TimestampDuration = std::chrono::duration<int64_t, std::nano>; // nanoseconds since epoch
+using TimestampDuration = std::chrono::duration<int64_t, std::nano>; // nanoseconds
 
 struct Timestamp;
 
@@ -33,6 +33,7 @@ namespace std
     DFH_EXPORT std::string to_string(const Timestamp &t);
 }
 
+// timestamp represents nanoseconds since unix epoch
 struct DFH_EXPORT Timestamp : std::chrono::time_point<std::chrono::system_clock, TimestampDuration>
 {
     using Base = std::chrono::time_point<std::chrono::system_clock, TimestampDuration>;
@@ -107,6 +108,7 @@ struct NumericTypeDescription
     using Array = arrow::NumericArray<T>;
     using StorageValueType = ValueType;
     using OffsetType = void;
+    using IntervalType = ValueType;
     static constexpr arrow::Type::type id = ArrowType::type_id;
 };
 
@@ -155,6 +157,7 @@ template<> struct TypeDescription<arrow::Type::TIMESTAMP>
     using Array = arrow::TimestampArray;
     using StorageValueType = int64_t;
     using OffsetType = void;
+    using IntervalType = TimestampDuration;
     static constexpr arrow::Type::type id = ArrowType::type_id;
 };
 
@@ -332,7 +335,7 @@ inline auto append(arrow::StringBuilder &builder, std::string_view sv)
 }
 
 template<typename N, typename V>
-auto append(arrow::NumericBuilder<N> &builder, const V &value)
+auto append(arrow::NumericBuilder<N> &builder, const V &value, std::enable_if_t<std::is_arithmetic_v<V>> * = nullptr)
 {
     return builder.Append(value);
 }
@@ -344,6 +347,16 @@ inline auto append(arrow::TimestampBuilder &builder, const Timestamp &value)
     static_assert(std::is_same_v<Timestamp::period, std::nano>);
     return builder.Append(value.time_since_epoch().count());
 }
+
+template<typename Builder, typename T>
+inline auto append(Builder &builder, const std::optional<T> &value)
+{
+    if(value)
+        append(builder, *value);
+    else
+        builder.AppendNull();
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -642,6 +655,7 @@ std::tuple<std::vector<Ts>...> toVectors(const arrow::Table &table)
     return detail::toVectorsHlp<Ts...>(table, std::index_sequence_for<Ts...>{});
 }
 
+DFH_EXPORT std::shared_ptr<arrow::Column> getColumn(const arrow::Table &table, std::string_view name);
 DFH_EXPORT std::vector<std::shared_ptr<arrow::Column>> getColumns(const arrow::Table &table);
 DFH_EXPORT std::unordered_map<std::string, std::shared_ptr<arrow::Column>> getColumnMap(const arrow::Table &table);
 
@@ -672,7 +686,7 @@ std::shared_ptr<arrow::Table> tableFromVectors(const std::vector<Ts> & ...ts)
     return tableFromArrays({toArray(ts)...});
 }
 
-using DynamicField = std::variant<int64_t, double, std::string_view, std::string, ListElemView, Timestamp, std::nullopt_t>;
+using DynamicField = std::variant<int64_t, double, std::string_view, std::string, ListElemView, Timestamp, TimestampDuration, std::nullopt_t>;
 
 using DynamicJustVector = std::variant<std::vector<int64_t>, std::vector<double>, std::vector<std::string_view>, std::vector<ListElemView>, std::vector<Timestamp>>;
 DFH_EXPORT DynamicJustVector toJustVector(const arrow::ChunkedArray &chunkedArray);
@@ -743,13 +757,13 @@ void iterateOverJustPairs(const arrow::ChunkedArray &array1, const arrow::Chunke
         if(++index1 >= chunk1Length)
         {
             ++chunks1Itr;
-            chunk1Length = (*chunks1Itr)->length();
+            chunk1Length = (int32_t)(*chunks1Itr)->length();
             index1 = 0;
         }
         if(++index2 >= chunk2Length)
         {
             ++chunks2Itr;
-            chunk2Length = (*chunks2Itr)->length();
+            chunk2Length = (int32_t)(*chunks2Itr)->length();
             index2 = 0;
         }
 
@@ -828,3 +842,5 @@ using ArrowTypeFromPtr = typename std::decay_t<ArrowDataTypePtr>::element_type;
 
 template<typename ArrowDataTypePtr>
 constexpr arrow::Type::type idFromDataPointer = std::decay_t<ArrowDataTypePtr>::element_type::type_id;
+
+DFH_EXPORT std::shared_ptr<arrow::Column> consolidate(std::shared_ptr<arrow::Column> column);

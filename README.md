@@ -18,10 +18,10 @@ Required dependencies:
     * `matplotlib`
     * `seaborn`
   * [RapidJSON](https://github.com/Tencent/rapidjson) — needed for LQuery processing
+  * [{fmt}](http://fmtlib.net/) C++ library string formatting
 
 Optional dependencies:
 These dependencies are not required to compile the helper library, however without them certain functionalities shall be disabled.
-* [{fmt}](http://fmtlib.net/) C++ library — needed if C++ library logs are enabled (meant only for debugging purposes)
 * [xlnt library](https://github.com/mwu-tow/xlnt) C++ library — needed for .xlsx file format support. NOTE: On MacOS mwu-tow's fork is needed to fix the compilation issue. On other platforms, [official library repo](https://github.com/tfussell/xlnt) can be used.
 
 ## Build & Install

@@ -1002,3 +1002,32 @@ BOOST_AUTO_TEST_CASE(AutoCorrelation)
     BOOST_CHECK(std::isnan(autoCorrelation(intsCol, -50)));
     // Note: values above are calculated by pandas.
 }
+
+BOOST_AUTO_TEST_CASE(Rolling, *boost::unit_test_framework::disabled())
+{
+    const date::sys_days day = 2013_y / jan / 01;
+    const std::vector<Timestamp> ts
+    {
+        day + 9h + 0s,
+        day + 9h + 2s,
+        day + 9h + 3s,
+        day + 9h + 5s,
+        day + 9h + 6s,
+    };
+
+
+    const auto tsCol = toColumn(ts);
+    const auto numCol = toColumn(std::vector<std::optional<double>>{0.0, 1.0, 2.0, std::nullopt, 4.0});
+    const auto table = tableFromColumns({ tsCol, numCol });
+
+    const auto samplesPerWindow = collectRollingIntervalSizes(tsCol, 2s);
+    const auto expectedSamplesPerWindow = std::vector<int>{ 1, 1, 2, 1, 2 };
+    BOOST_CHECK_EQUAL_RANGES(samplesPerWindow, expectedSamplesPerWindow);
+
+    const auto sumsPerWindowT = rollingInterval(tsCol, 2s, { {numCol, {AggregateFunction::Sum}} });
+    const auto sumsPerWindowV = toVectors<Timestamp, double>(*sumsPerWindowT);
+    const auto expectedSumsPerWindow = std::vector<double>{ 0, 1, 3, 0, 4 };
+    BOOST_CHECK_EQUAL_RANGES(std::get<0>(sumsPerWindowV), ts); // timestamps column should not be modified
+    BOOST_CHECK_EQUAL_RANGES(std::get<1>(sumsPerWindowV), expectedSumsPerWindow);
+}
+
