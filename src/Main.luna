@@ -1,4 +1,5 @@
 import Std.Base
+import Std.Time
 import Std.Foreign.C.Value
 
 import Dataframes.Internal.Utils
@@ -12,7 +13,14 @@ import Dataframes.Internal.Test.Test
 def main:
     xCol = Column.fromList "x" Int64Type [1,2,3,4,5]
     yCol = Column.fromList "y" Int64Type [1,2,3,4,5]
-    table1 = Table.fromColumns [xCol, yCol]
+    times = ["2013-01-01", "2013-01-02", "2013-01-05", "2013-01-06", "2013-01-07"].each (Time.parseFmt "%F")
+    tCol = Column.fromList "t" TimestampType times
+    table1 = Table.fromColumns [xCol, yCol, tCol]
     chart1 = table1.chart
     plot1 = chart1.plot "x" "y"
+    plot2 = chart1.plotDate "t" "y"
+    plot3 = chart1.scatter "x" "y"
+    plot4 = chart1.kde "x"
+    plot5 = chart1.kde2 "x" "y"
+    plot6 = chart1.histogram "x"
     None

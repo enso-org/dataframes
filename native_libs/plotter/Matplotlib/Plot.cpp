@@ -21,11 +21,11 @@ namespace
 //
 // And we don't want to use Debug binaries of Python, because they are 
 // incompatible with Release packages installed through pip (e.g. numpy)
-// and having Debug and Release packages side-by-side looks non-trival.
+// and having Debug and Release packages side-by-side looks non-trivial.
 // Perhaps someone with better Python knowledge can improve this is future.
 // 
 // For now just let's try to trick Python into thinking that we are in Release
-// mode and hope that noone else includes this header. 
+// mode and hope that no one else includes this header. 
 // And that standard library/runtime won't explode.
 #if defined(_DEBUG) && defined(_MSC_VER)
 #define WAS_DEBUG
@@ -80,13 +80,12 @@ public:
         append(PyFloat_FromDouble(d));
     }
 
-    void append(const std::string_view &s)
+    void append(std::string_view s)
     {
         append(PyString_FromString(std::string(s).c_str()));
     }
 
-    // TODO: use date2num or sth???
-    void append(const Timestamp &t)
+    void append(Timestamp t)
     {
         using namespace date;
         auto daypoint = floor<days>(t);
@@ -106,7 +105,7 @@ public:
 
     void appendNull()
     {
-        append(PyFloat_FromDouble(nan(" ")));
+        append(PyFloat_FromDouble(std::nan(" ")));
     }
 
     auto release()
@@ -119,11 +118,30 @@ public:
 
 PyObject* chunkedArrayToPyObj(const arrow::ChunkedArray &arr)
 {
-    PyListBuilder builder{(size_t)arr.length()};
-    iterateOverGeneric(arr,
-        [&] (auto &&elem) { builder.append(elem); },
-        [&] ()            { builder.appendNull(); });
-    return builder.release();
+    try
+    {
+        PyListBuilder builder{(size_t)arr.length()};
+        iterateOverGeneric(arr,
+            [&] (auto &&elem) { builder.append(elem); },
+            [&] ()            { builder.appendNull(); });
+        return builder.release();
+    }
+    catch(std::exception &e)
+    {
+        throw std::runtime_error("failed to convert chunked array to python list: "s + e.what());
+    }
+}
+
+PyObject* chunkedArrayToPyObj(const arrow::Column &arr)
+{
+    try
+    {
+        return chunkedArrayToPyObj(*arr.data());
+    }
+    catch(std::exception &e)
+    {
+        throw std::runtime_error("column " + arr.name() + ": " + e.what());
+    }
 }
 
 PyObject* tableToPyObj(const arrow::Table &table)
@@ -138,129 +156,101 @@ PyObject* tableToPyObj(const arrow::Table &table)
 
 extern "C"
 {
-    void plot(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, const char* label, const char *style) {
-        std::string st(style);
-        auto xsarray = chunkedArrayToPyObj(*xs);
-        std::cout << "XS " << xsarray << std::endl;
-        auto ysarray = chunkedArrayToPyObj(*ys);
-        std::cout << "YS " << ysarray << std::endl;
-        try {
-            std::cout << "PLOT BEG" << std::endl;
-            plt::plot(xsarray, ysarray, label, st);
-            std::cout << "PLOT END" << std::endl;
-        } catch (const runtime_error& e) {
-          std::cout << e.what() << std::endl;
-        }
-    }
-
-    void plot_date(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys) {
-
-        auto xsarray = chunkedArrayToPyObj(*xs);
-        std::cout << "XS " << xsarray << std::endl;
-        auto ysarray = chunkedArrayToPyObj(*ys);
-        std::cout << "YS " << ysarray << std::endl;
-        try {
-            std::cout << "PLOT_DATE BEG" << std::endl;
-            plt::plot_date(xsarray, ysarray);
-            std::cout << "PLOT_DATE END" << std::endl;
-        } catch (const runtime_error& e) {
-          std::cout << e.what() << std::endl;
-        }
-    }
-
-    void scatter(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys) {
-
-        auto xsarray = chunkedArrayToPyObj(*xs);
-        std::cout << "XS " << xsarray << std::endl;
-        auto ysarray = chunkedArrayToPyObj(*ys);
-        std::cout << "YS " << ysarray << std::endl;
-        try {
-            std::cout << "SCATTER BEG" << std::endl;
-            plt::scatter(xsarray, ysarray);
-            std::cout << "SCATTER END" << std::endl;
-        } catch (const runtime_error& e) {
-          std::cout << e.what() << std::endl;
-        }
-    }
-
-    void kdeplot2(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, const char* colormap) {
-        auto xsarray = chunkedArrayToPyObj(*xs);
-        std::cout << "XS " << xsarray << std::endl;
-        auto ysarray = chunkedArrayToPyObj(*ys);
-        std::cout << "YS " << ysarray << std::endl;
-        try {
-            std::cout << "KDEPLOT2 BEG" << std::endl;
-            plt::kdeplot2(xsarray, ysarray, colormap);
-            std::cout << "KDEPLOT2 END" << std::endl;
-        } catch (const runtime_error& e) {
-          std::cout << e.what() << std::endl;
-        }
-    }
-
-    void kdeplot(arrow::ChunkedArray *xs, const char* label) {
-        auto xsarray = chunkedArrayToPyObj(*xs);
-        try {
-          std::cout << "KDE BEG" << std::endl;
-          plt::kdeplot(xsarray, label);
-          std::cout << "KDE END" << std::endl;
-        } catch (const runtime_error& e) {
-          std::cout << e.what() << std::endl;
-        }
-    }
-
-    void heatmap(arrow::Table* xs, const char* cmap, const char* annot) {
-        auto xsarray = tableToPyObj(*xs);
-        try {
-            std::cout << "HEATMAP BEG" << std::endl;
-            plt::heatmap(xsarray, cmap, annot);
-            std::cout << "HEATMAP END" << std::endl;
-        } catch (const runtime_error& e) {
-          std::cout << e.what() << std::endl;
-        }
-    }
-
-    void histogram(arrow::ChunkedArray *xs, size_t bins) {
-        auto xsarray = chunkedArrayToPyObj(*xs);
-        try {
-          std::cout << "HIST BEG" << std::endl;
-          plt::hist(xsarray, bins);
-          std::cout << "HIST END" << std::endl;
-        } catch (const runtime_error& e) {
-          std::cout << e.what() << std::endl;
-        }
-    }
-
-    void show() {
-        try {
-          std::cout << "SHOW BEG" << std::endl;
-          plt::show();
-          std::cout << "SHOW END" << std::endl;
-        } catch (const runtime_error& e) {
-          std::cout << e.what() << std::endl;
-        }
-    }
-
-    void init(size_t w, size_t h) {
-        try {
-          std::cout << "INIT BEG" << std::endl;
-          plt::backend("Agg");
-          plt::detail::_interpreter::get();
-          std::cout << "figsize BEG " << w << " " << h << std::endl;
-          plt::figure_size(w, h);
-          plt::rotate_ticks(45);
-          std::cout << "figsize END" << std::endl;
-          std::cout << "INIT END" << std::endl;
-        } catch (const runtime_error& e) {
-          std::cout << e.what() << std::endl;
-        }
-    }
-
-    void subplot(long nrows, long ncols, long plot_number)
+    void plot(const arrow::Column *xs, const arrow::Column *ys, const char* label, const char *style, const char **outError) noexcept
     {
-        plt::subplot(nrows, ncols, plot_number);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto xsarray = chunkedArrayToPyObj(*xs);
+            auto ysarray = chunkedArrayToPyObj(*xs);
+            plt::plot(xsarray, ysarray, label, style);
+        };
     }
 
-    const char* getPNG(const char **outError) noexcept
+    void plotDate(const arrow::Column *xs, const arrow::Column *ys, const char **outError) noexcept
+    {
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto xsarray = chunkedArrayToPyObj(*xs);
+            auto ysarray = chunkedArrayToPyObj(*ys);
+            plt::plot_date(xsarray, ysarray);
+        };
+    }
+
+    void scatter(const arrow::Column *xs, const arrow::Column *ys, const char **outError) noexcept
+    {
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto xsarray = chunkedArrayToPyObj(*xs);
+            auto ysarray = chunkedArrayToPyObj(*ys);
+            plt::scatter(xsarray, ysarray);
+        };
+    }
+
+    void kdeplot(const arrow::Column *xs, const char *label, const char **outError) noexcept
+    {
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto xsarray = chunkedArrayToPyObj(*xs);
+            plt::kdeplot(xsarray, label);
+        };
+    }
+
+    void kdeplot2(const arrow::Column *xs, const arrow::Column *ys, const char *colormap, const char **outError) noexcept
+    {
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto xsarray = chunkedArrayToPyObj(*xs);
+            auto ysarray = chunkedArrayToPyObj(*ys);
+            plt::kdeplot2(xsarray, ysarray, colormap);
+        };
+    }
+
+    void heatmap(const arrow::Table* xs, const char* cmap, const char* annot, const char **outError) noexcept
+    {
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto xsarray = tableToPyObj(*xs);
+            plt::heatmap(xsarray, cmap, annot);
+        };
+    }
+
+    void histogram(const arrow::Column *xs, size_t bins, const char **outError) noexcept
+    {
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto xsarray = chunkedArrayToPyObj(*xs);
+            plt::hist(xsarray, bins);
+        };
+    }
+
+    void show(const char **outError) noexcept
+    {
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            plt::show();
+        };
+    }
+
+    void init(size_t w, size_t h, const char **outError) noexcept
+    {
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            plt::backend("Agg");
+            plt::detail::_interpreter::get();
+            plt::figure_size(w, h);
+            plt::rotate_ticks(45);
+        };
+    }
+
+    void subplot(long nrows, long ncols, long plot_number, const char **outError) noexcept
+    {
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            plt::subplot(nrows, ncols, plot_number);
+        };
+    }
+
+    const char* getPngBase64(const char **outError) noexcept
     {
         return TRANSLATE_EXCEPTION(outError)
         {

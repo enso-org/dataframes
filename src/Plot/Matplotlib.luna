@@ -16,46 +16,40 @@ class Matplotlib:
         callLibHandlingError self.libraryName n ret args
 
     def histogram data bins params:
-        self.call "histogram" None [data.toCArg, CInt.fromInt bins . toCArg]
+        self.callHandlingError "histogram" None [data.toCArg, CInt.fromInt bins . toCArg]
 
     def plotDate s1 s2:
-        self.call "plot_date" None [s1.toCArg, s2.toCArg]
+        self.callHandlingError "plotDate" None [s1.toCArg, s2.toCArg]
 
     def scatter s1 s2:
-        self.call "scatter" None [s1.toCArg, s2.toCArg]
+        self.callHandlingError "scatter" None [s1.toCArg, s2.toCArg]
 
     def plot s1 s2 style label:
-        cstr = CString.fromText style
-        lbl = case label of
-            Nothing: CString.null
-            Just t: CString.fromText t
-        self.call "plot" None [s1.toCArg, s2.toCArg, lbl.toCArg, cstr.toCArg]
-
-    def kdeplot2 s1 s2 style:
-        cstr = CString.fromText style
-        self.call "kdeplot2" None [s1.toCArg, s2.toCArg, cstr.toCArg]
-
-    def heatmap s1 style annot:
-        annotc = case annot of
-            Nothing: CString.null
-            Just t: CString.fromText t
-        cstr = CString.fromText style
-        self.call "heatmap" None [s1.toCArg, cstr.toCArg, annotc.toCArg]
+        CString.with style styleC:
+            CString.with (label.withDefault "") labelC:
+                self.callHandlingError "plot" None [s1.toCArg, s2.toCArg, labelC.toCArg, styleC.toCArg]
 
     def kdeplot s label:
-        cstr = case label of
-            Nothing: CString.null
-            Just t: CString.fromText t
-        self.call "kdeplot" None [s.toCArg, cstr.toCArg]
+        CString.with (label.withDefault "") labelC:
+            self.callHandlingError "kdeplot" None [s.toCArg, labelC.toCArg]
+
+    def kdeplot2 s1 s2 style:
+        CString.with style styleC:
+            self.callHandlingError "kdeplot2" None [s1.toCArg, s2.toCArg, styleC.toCArg]
+
+    def heatmap s1 style annot:
+        CString.with (annot.withDefault "") annotC:
+            CString.with style styleC:
+                self.callHandlingError "heatmap" None [s1.toCArg, styleC.toCArg, annotC.toCArg]
 
     def subplot nrows ncols iplot:
-        self.call "subplot" None [CLong.fromInt nrows . toCArg, CLong.fromInt ncols . toCArg, CLong.fromInt iplot . toCArg]
+        self.callHandlingError "subplot" None [CLong.fromInt nrows . toCArg, CLong.fromInt ncols . toCArg, CLong.fromInt iplot . toCArg]
 
     def init w h:
-        self.call "init" None [CSize.fromInt w . toCArg, CSize.fromInt h . toCArg]
+        self.callHandlingError "init" None [CSize.fromInt w . toCArg, CSize.fromInt h . toCArg]
 
     def getPNG:
-        result = self.callHandlingError "getPNG" CString []
+        result = self.callHandlingError "getPngBase64" CString []
         result.toText
 
 class Chart:
@@ -95,7 +89,7 @@ class Histogram:
     options :: Map Text Text
 
     def render:
-        Matplotlib.histogram self.data.ptr.data.ptr self.bins self.options
+        Matplotlib.histogram self.data.ptr self.bins self.options
 
     def toChart: Chart self.render
 
@@ -111,7 +105,7 @@ class PlotDate:
     series2 :: Column
 
     def render:
-        Matplotlib.plotDate self.series1.ptr.data.ptr self.series2.ptr.data.ptr
+        Matplotlib.plotDate self.series1.ptr self.series2.ptr
 
     def toChart: Chart self.render
 
@@ -124,7 +118,7 @@ class Scatter:
     series2 :: Column
 
     def render:
-        Matplotlib.scatter self.series1.ptr.data.ptr self.series2.ptr.data.ptr
+        Matplotlib.scatter self.series1.ptr self.series2.ptr
 
     def toChart: Chart self.render
 
@@ -139,7 +133,7 @@ class Plot:
     label :: Maybe Text
 
     def render:
-        Matplotlib.plot self.series1.ptr.data.ptr self.series2.ptr.data.ptr self.style self.label
+        Matplotlib.plot self.series1.ptr self.series2.ptr self.style self.label
 
     def toChart: Chart self.render
 
@@ -158,7 +152,7 @@ class KDE2:
     colorMap :: Text
 
     def render:
-        Matplotlib.kdeplot2 self.series1.ptr.data.ptr self.series2.ptr.data.ptr self.colorMap
+        Matplotlib.kdeplot2 self.series1.ptr self.series2.ptr self.colorMap
 
     def toChart: Chart self.render
 
@@ -174,7 +168,7 @@ class KDE:
     label :: Maybe Text
 
     def render:
-        Matplotlib.kdeplot self.data.ptr.data.ptr self.label
+        Matplotlib.kdeplot self.data.ptr self.label
 
     def toChart: Chart self.render
 

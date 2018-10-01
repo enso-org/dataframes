@@ -10,9 +10,9 @@
  	std::vector<int64_t> ints{1,2,3,4,5};
  	auto intsColumn = toColumn(ints);
 
- 	init(800, 600);
- 	plot(intsColumn->data().get(), intsColumn->data().get(), "label", "o");
- 	auto p = getPNG(nullptr);
+ 	init(800, 600, nullptr);
+ 	plot(intsColumn.get(), intsColumn.get(), "label", "o", nullptr);
+ 	auto p = getPngBase64(nullptr);
 
  }
 
