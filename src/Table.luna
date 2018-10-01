@@ -396,10 +396,28 @@ class Table:
     # > table = Table.fromColumns [col1 , col2]
     # > newTable = table.fillNa 53
     #
-    # `valueToFillWith`: 
+    # `valueToFillWith`: Value to use to fill holes (e.g. 0).
+    # `return`: `Table` with holes filled by `valueToFillWith`.
 
     def fillNa valueToFillWith:
         self.fromWrapper $ self.ptr.fillNa valueToFillWith
+
+    # Fill NA/NaN values with `valueToFillWith` in column `columnName`
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,,5]
+    # > l2 = [11,,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" StringType l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > newTable = table.fillNaAt "col1" 53
+    #
+    # `columnName`: Name of the column to fill holes in.
+    # `valueToFillWith`: Value to use to fill holes (e.g. 0).
+    # `return`: `Table` with holes in column `columnName` filled with `valueToFillWith `.
+
     def fillNaAt columnName valueToFillWith:
         self.fromWrapper $ self.ptr.fillNaAt columnName valueToFillWith
     def interpolate:
@@ -408,7 +426,7 @@ class Table:
         case self.toList of
             [c]: c
             t: throw $ "Table.toColumn: table must have exactly 1 column, but has " + t.length.toText
-
+    
     def describeNa:
         cols = self.toList
         nrows = self.rowCount
