@@ -1,16 +1,13 @@
-import Dataframes.Plot.Matplotlib
-import Dataframes.IO
 import Dataframes.Table
 import Dataframes.Types
 import Dataframes.Column
-
-
-
 «0»def main:
-    «9»readFile1 = CSVParser . readFile "./data/insurance.csv"
-    «10»plot1 = readFile1 . chart.plot "age" "charges" . setLabel "foo"
-    «11»plot2 = readFile1 . chart.plot "age" "bmi" . setLabel "bar"
-    «12»appendVertical1 = Chart None . appendVertical [plot2, plot1]
+    «2»list2 = [11,12,13,14,15,16]
+    «1»list1 = [1,2,3,4,5,6]
+    «4»fromList1 = Column . fromList "col1" Int64Type list1
+    «3»fromList2 = Column . fromList "col2" Int64Type list2
+    «5»fromColumns1 = Table . fromColumns [fromList1 , fromList2 ]
+    «6»plot1 = fromColumns1 . chart . plot "col1" "col2"
     None
 
-### META {"metas":[{"marker":9,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-192,"_vector2_x":-256}}}},{"marker":10,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-192,"_vector2_x":64}}}},{"marker":11,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":128,"_vector2_x":64}}}},{"marker":12,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-128,"_vector2_x":576}}}}]}
+### META {"metas":[{"marker":2,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":160,"_vector2_x":320}}}},{"marker":1,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":336}}}},{"marker":4,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":16,"_vector2_x":656}}}},{"marker":3,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":160,"_vector2_x":640}}}},{"marker":5,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":80,"_vector2_x":928}}}},{"marker":6,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":80,"_vector2_x":1248}}}}]}

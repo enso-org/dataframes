@@ -420,6 +420,7 @@ class Table:
 
     def fillNaAt columnName valueToFillWith:
         self.fromWrapper $ self.ptr.fillNaAt columnName valueToFillWith
+
     def interpolate:
         self.fromWrapper $ self.ptr.interpolate
     def toColumn:
@@ -455,7 +456,7 @@ class Table:
     def shortRep:
         "Table<" + self.columnCount.toText + "×" + self.rowCount.toText + ">"
 
-    # Compute pairwise correlation of columns, excluding NA/null values.
+    # Compute pairwise Pearson's correlation of columns, excluding NA/null values.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -472,7 +473,7 @@ class Table:
     def corr:
         self.fromWrapper $ self.ptr.corr
 
-    # Compute pairwise correlations with given column, excluding NA/null values.
+    # Compute pairwise Pearson's correlations with given column, excluding NA/null values.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -507,8 +508,8 @@ class Table:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
-    # > l1 = [1,2,3,,5]
-    # > l2 = [11,,13,14,15]
+    # > l1 = [1,2,3,4,5]
+    # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
     # > col2 = Column.fromList "col2" StringType l2
     # > table = Table.fromColumns [col1 , col2]
@@ -542,8 +543,8 @@ class Table:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
-    # > l1 = [1,2,3,,5]
-    # > l2 = [11,,13,14,15]
+    # > l1 = [1,2,3,4,5]
+    # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
     # > col2 = Column.fromList "col2" StringType l2
     # > table = Table.fromColumns [col1 , col2]
@@ -598,32 +599,112 @@ class Table:
 class ChartBuilder:
     table :: Table
 
-    def plot cname1 cname2:
-        c1 = self.table.at cname1 . toColumn
-        c2 = self.table.at cname2 . toColumn
+    # Plot y versus x as markers or lines.
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,4,5]
+    # > l2 = [11,12,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" StringType l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > plot1 = table.chart.plot "col1" "col2"
+    #
+    # `columnName1`: X column name.
+    # `columnName2`: Y column name.
+    # `return`: [] OBRAZEK
+
+    def plot columnName1 columnName2:
+        c1 = self.table.at columnName1 . toColumn
+        c2 = self.table.at columnName2 . toColumn
         Plot c1 c2 "o" Nothing
 
-    def plotDate cname1 cname2: 
-        c1 = self.table.at cname1 . toColumn
-        c2 = self.table.at cname2 . toColumn
+    def plotDate columnName1 columnName2: 
+        c1 = self.table.at columnName1 . toColumn
+        c2 = self.table.at columnName2 . toColumn
         PlotDate c1 c2
 
-    def scatter cname1 cname2: 
-        c1 = self.table.at cname1 . toColumn
-        c2 = self.table.at cname2 . toColumn
+    def scatter columnName1 columnName2: 
+        c1 = self.table.at columnName1 . toColumn
+        c2 = self.table.at columnName2 . toColumn
         Scatter c1 c2
 
-    def histogram cname:
-        c = self.table.at cname . toColumn
+    # Plot a histogram.
+    #
+    # Compute and plot histogram of x.
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,4,5]
+    # > l2 = [11,12,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" StringType l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > plot1 = table.chart.histogram "col1"
+    #
+    # `columnName`: X column name.
+    # `return`: [] OBRAZEK
+
+    def histogram columnName:
+        c = self.table.at columnName . toColumn
         Histogram c 10 Map.empty
 
-    def kde2 cname1 cname2:
-        c1 = self.table.at cname1 . toColumn
-        c2 = self.table.at cname2 . toColumn
+    # Fit and plot a bivariate kernel density estimate.
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,4,5]
+    # > l2 = [11,12,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" StringType l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > plot1 = table.chart.kde2 "col1" "col2"
+    #
+    # `columnName1`: First input data.
+    # `columnName2`: Second input data.
+    # `return`: [] OBRAZEK
+
+    def kde2 columnName1 columnName2:
+        c1 = self.table.at columnName1 . toColumn
+        c2 = self.table.at columnName2 . toColumn
         KDE2 c1 c2 "Blues_r"
-    def kde cname:
-        c = self.table.at cname . dropNa . toColumn
+
+    # Fit and plot a univariate kernel density estimate.
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,4,5]
+    # > l2 = [11,12,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" StringType l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > plot1 = table.chart.kde "col1"
+    #
+    # `columnName`: Input data.
+    # `return`: [] OBRAZEK
+
+    def kde columnName:
+        c = self.table.at columnName . dropNa . toColumn
         KDE c Nothing
+
+    # Plot rectangular data as a color-encoded matrix.
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,4,5]
+    # > l2 = [11,12,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" StringType l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > correlations = table.corr 
+    # > heatmapPlot = correlations.chart.heatmap 
+    #
+    # `return`: [] OBRAZEK
 
     def heatmap:
         Heatmap self.table "RdBu_r" Nothing
@@ -643,5 +724,5 @@ class Heatmap:
 
     def toJSON: self.toChart.toJSON
 
-    def setColorMap s: self.colorMap = s
-    def setAnnotations s: self.annotations = Just s
+    def setColorMap s: Heatmap self.data s self.annotations
+    def setAnnotations s: Heatmap self.data self.colorMap (Just s)

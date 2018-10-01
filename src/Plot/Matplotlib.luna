@@ -147,7 +147,7 @@ class Plot:
 
     def toJSON: self.toChart.toJSON
 
-    def setStyle s: self.style = s
+    def setStyle s: Plot self.series1 self.series2 s self.label
 
     def setLabel l: Plot self.series1 self.series2 self.style (Just l)
 
