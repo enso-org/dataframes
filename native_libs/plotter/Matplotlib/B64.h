@@ -7,6 +7,8 @@
  */
 
 #include <cstdlib>
+#include <string>
+#include <string_view>
 
 static const unsigned char base64_table[65] =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -23,24 +25,26 @@ static const unsigned char base64_table[65] =
  * nul terminated to make it easier to use as a C string. The nul terminator is
  * not included in out_len.
  */
-unsigned char * base64_encode(const unsigned char *src, size_t len,
-			      size_t *out_len)
+std::string base64_encode(std::string_view data)
 {
-	unsigned char *out, *pos;
-	const unsigned char *end, *in;
+    const auto len = data.size();
+
 	size_t olen;
 
 	olen = len * 4 / 3 + 4; /* 3-byte blocks to 4-byte */
 	olen++; /* nul termination */
 	if (olen < len)
 		return NULL; /* integer overflow */
-	out = (unsigned char *) malloc(olen);
-	if (out == NULL)
-		return NULL;
 
-	end = src + len;
-	in = src;
-	pos = out;
+    std::string ret;
+    ret.resize(olen);
+
+    const char * const src = data.data();
+    const char * const end = src + len;
+
+    const char *in = src;
+	char *pos = ret.data();
+
 	while (end - in >= 3) {
 		*pos++ = base64_table[in[0] >> 2];
 		*pos++ = base64_table[((in[0] & 0x03) << 4) | (in[1] >> 4)];
@@ -63,7 +67,5 @@ unsigned char * base64_encode(const unsigned char *src, size_t len,
 	}
 
 	*pos = '\0';
-	if (out_len)
-		*out_len = pos - out;
-	return out;
+	return ret;
 }

@@ -15,6 +15,7 @@
 #include "Processing.h"
 #include "Sort.h"
 #include "LifetimeManager.h"
+#include "ValueHolder.h"
 #include "IO/csv.h"
 #include "IO/Feather.h"
 #include "IO/IO.h"
@@ -102,16 +103,7 @@ std::shared_ptr<arrow::DataType> idToDataType(arrow::Type::type id)
 
 namespace
 {
-    // NOTE: we need an object that will keep returned strings alive in memory
-    // it must be thread local, as two luna threads can concurrently call out methods
-    thread_local std::string returnedStringBuffer;
-
-    const char *returnString(std::string s)
-    {
-        returnedStringBuffer = std::move(s);
-        return returnedStringBuffer.c_str();
-    }
-
+    thread_local ValueHolder returnedString;
     HeaderPolicy headerPolicyFromC(int columnNamesPolicy, const char **columnNames)
     {
         if(columnNamesPolicy < 0)
@@ -181,14 +173,14 @@ extern "C"
     {
         return TRANSLATE_EXCEPTION(outError)
         {
-            return returnString(datatype->name());
+            return returnedString.store(datatype->name());
         };
     }
     DFH_EXPORT const char *dataTypeToString(arrow::DataType *datatype, const char **outError) noexcept
     {
         return TRANSLATE_EXCEPTION(outError)
         {
-            return returnString(datatype->ToString());
+            return returnedString.store(datatype->ToString());
         };
     }
     DFH_EXPORT std::int8_t dataTypeId(arrow::DataType *datatype, const char **outError) noexcept
@@ -498,7 +490,7 @@ extern "C"
         return TRANSLATE_EXCEPTION(outError)
         {
             validateIndex(*array, index);
-            return returnString(asSpecificArray<String>(array)->GetString(index));
+            return returnedString.store(asSpecificArray<String>(array)->GetString(index));
         };
     }
 
@@ -673,7 +665,7 @@ extern "C"
         LOG("@{}", (void*)field);
         return TRANSLATE_EXCEPTION(outError)
         {
-            return returnString(field->name());
+            return returnedString.store(field->name());
         };
     }
     DFH_EXPORT arrow::DataType *fieldType(arrow::Field *field, const char **outError) noexcept
@@ -697,7 +689,7 @@ extern "C"
         LOG("@{}", (void*)field);
         return TRANSLATE_EXCEPTION(outError)
         {
-            return returnString(field->ToString());
+            return returnedString.store(field->ToString());
         };
     }
     DFH_EXPORT bool fieldEquals(arrow::Field *lhs, arrow::Field *rhs, const char **outError) noexcept
@@ -787,7 +779,7 @@ extern "C"
         LOG("@{}", (void*)column);
         return TRANSLATE_EXCEPTION(outError)
         {
-            return returnString(column->name());
+            return returnedString.store(column->name());
         };
     }
     DFH_EXPORT arrow::Column *columnSlice(arrow::Column *column, int64_t fromIndex, int64_t count, const char **outError) noexcept
@@ -966,7 +958,7 @@ extern "C"
         LOG("@{}", (void*)schema);
         return TRANSLATE_EXCEPTION(outError)
         {
-            return returnString(schema->ToString());
+            return returnedString.store(schema->ToString());
         };
     }
 
@@ -1352,7 +1344,7 @@ extern "C"
         {
             std::ostringstream out;
             generateCsv(out, *table, headerPolicy, quotingPolicy);
-            return returnString(out.str());
+            return returnedString.store(out.str());
         };
     }
 

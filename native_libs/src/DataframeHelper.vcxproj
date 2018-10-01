@@ -105,6 +105,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Processing.cpp" />
     <ClCompile Include="Sort.cpp" />
+    <ClCompile Include="ValueHolder.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Analysis.h" />
@@ -124,6 +125,7 @@
     <ClInclude Include="LQuery\Interpreter.h" />
     <ClInclude Include="Processing.h" />
     <ClInclude Include="Sort.h" />
+    <ClInclude Include="ValueHolder.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

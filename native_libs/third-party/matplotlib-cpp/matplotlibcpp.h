@@ -591,7 +591,7 @@ bool named_hist(std::string label,const std::vector<Numeric>& y, long bins=10, s
     return res;
 }
 
-bool kdeplot2(PyObject* xarray, PyObject* yarray, char* colorMap)
+bool kdeplot2(PyObject* xarray, PyObject* yarray, const char* colorMap)
 {
     //PyObject* pystring = PyString_FromString(s.c_str());
 
@@ -615,7 +615,7 @@ bool kdeplot2(PyObject* xarray, PyObject* yarray, char* colorMap)
     return res;
 }
 
-bool heatmap(PyObject* xarray, char* colorMap, char* annot)
+bool heatmap(PyObject* xarray, const char* colorMap, const char* annot)
 {
     PyObject* plot_args = PyTuple_New(1);
     PyTuple_SetItem(plot_args, 0, xarray);
@@ -642,7 +642,7 @@ bool heatmap(PyObject* xarray, char* colorMap, char* annot)
     return res;
 }
 
-bool kdeplot(PyObject* xarray, char* label)
+bool kdeplot(PyObject* xarray, const char* label)
 {
     //PyObject* pystring = PyString_FromString(s.c_str());
 
@@ -666,7 +666,7 @@ bool kdeplot(PyObject* xarray, char* label)
     return res;
 }
 
-bool plot(PyObject* xarray, PyObject* yarray, char* label, const std::string& s = "")
+bool plot(PyObject* xarray, PyObject* yarray, const char* label, const std::string& s = "")
 {
     PyObject* pystring = PyString_FromString(s.c_str());
 
@@ -1267,7 +1267,7 @@ inline void save(const std::string& filename)
     Py_DECREF(res);
 }
 
-inline void getPNG(char** buf, size_t* len)
+inline std::string getPNG()
 {
     PyObject* bytesIO = PyObject_CallObject(detail::_interpreter::get().s_python_function_newbytesio, detail::_interpreter::get().s_python_empty_tuple);
     if (!bytesIO) throw std::runtime_error("Creating bytesIO failed");
@@ -1295,9 +1295,10 @@ inline void getPNG(char** buf, size_t* len)
     char* buffer;
     PyBytes_AsStringAndSize(bytes, &buffer, &length);
     std::cout << length << std::endl;
-    *len = (size_t) length;
-    *buf = (char*) malloc((size_t) length);
-    memcpy(*buf, buffer, length);
+
+    std::string ret;
+    ret.resize(length);
+    memcpy(ret.data(), buffer, length);
     std::cout << "memcpy doone" << std::endl;
     Py_DECREF(args);
     std::cout << "decref args doone" << std::endl;
@@ -1309,6 +1310,7 @@ inline void getPNG(char** buf, size_t* len)
     std::cout << "decref getvalue doone" << std::endl;
     Py_DECREF(bytesIO);
     std::cout << "decrefs done" << std::endl;
+    return ret;
 }
 
 inline void clf() {

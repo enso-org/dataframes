@@ -470,7 +470,7 @@ std::shared_ptr<arrow::Table> calculateCorrelationMatrix(const arrow::Table &tab
     return tableFromColumns(ret);
 }
 
-double autoCorrelation(const std::shared_ptr<arrow::Column> &column, int lag /*= 1*/)
+double autoCorrelation(const std::shared_ptr<arrow::Column> &column, int64_t lag /*= 1*/)
 {
     auto shiftedColumn = shift(column, lag);
     auto debug = toVector<std::optional<int64_t>>(*shiftedColumn);

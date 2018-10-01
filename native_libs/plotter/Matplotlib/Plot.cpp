@@ -3,7 +3,13 @@
 #include <arrow/array.h>
 #include <Core/ArrowUtilities.h>
 #include "B64.h"
+#include "ValueHolder.h"
 
+
+namespace
+{
+    thread_local ValueHolder returnedString;
+}
 
 // Windows-specific issue workaround:
 // Note [MU]:
@@ -131,7 +137,7 @@ PyObject* tableToPyObj(const arrow::Table &table)
 
 extern "C"
 {
-    void plot(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* label, const char *style) {
+    void plot(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, const char* label, const char *style) {
         std::string st(style);
         auto xsarray = chunkedArrayToPyObj(*xs);
         std::cout << "XS " << xsarray << std::endl;
@@ -176,7 +182,7 @@ extern "C"
         }
     }
 
-    void kdeplot2(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* colormap) {
+    void kdeplot2(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, const char* colormap) {
         auto xsarray = chunkedArrayToPyObj(*xs);
         std::cout << "XS " << xsarray << std::endl;
         auto ysarray = chunkedArrayToPyObj(*ys);
@@ -190,7 +196,7 @@ extern "C"
         }
     }
 
-    void kdeplot(arrow::ChunkedArray *xs, char* label) {
+    void kdeplot(arrow::ChunkedArray *xs, const char* label) {
         auto xsarray = chunkedArrayToPyObj(*xs);
         try {
           std::cout << "KDE BEG" << std::endl;
@@ -201,7 +207,7 @@ extern "C"
         }
     }
 
-    void heatmap(arrow::Table* xs, char* cmap, char* annot) {
+    void heatmap(arrow::Table* xs, const char* cmap, const char* annot) {
         auto xsarray = tableToPyObj(*xs);
         try {
             std::cout << "HEATMAP BEG" << std::endl;
@@ -252,25 +258,28 @@ extern "C"
         plt::subplot(nrows, ncols, plot_number);
     }
 
-    char* getPNG() {
-        char* b;
-        char* out = NULL;
-        size_t l;
-        try {
-          plt::tight_layout();
-          plt::legend();
-          std::cout << "PNG BEG" << std::endl;
-          plt::getPNG(&b, &l);
-          std::cout << "PNG END" << std::endl;
-          std::cout << "B64 BEG" << std::endl;
-          out = (char*) base64_encode((unsigned char *) b, l, NULL);
-          std::cout << "B64 END" << std::endl;
-          std::cout << "FREE BEG" << std::endl;
-          free(b);
-          std::cout << "FREE END" << std::endl;
-        } catch (const runtime_error& e) {
-          std::cout << e.what() << std::endl;
+    const char* getPNG()
+    {
+        try
+        {
+            plt::tight_layout();
+            plt::legend();
+            std::cout << "PNG BEG" << std::endl;
+            auto png = plt::getPNG();
+            std::cout << "PNG END" << std::endl;
+            std::cout << "B64 BEG" << std::endl;
+            auto encodedPng = base64_encode(png);
+            std::cout << "B64 END" << std::endl;
+            auto ret = new char[encodedPng.size() + 1];
+            std::memcpy(ret, encodedPng.data(), encodedPng.size());
+            ret[encodedPng.size()] = 0;
+            return ret;
+            //return returnedString.store(std::move(encodedPng));
         }
-        return out;
+        catch(const runtime_error& e)
+        {
+            std::cout << "Failed to getPNG: " << e.what() << std::endl;
+        }
+        return nullptr;
     }
 }

@@ -12,16 +12,16 @@ class Matplotlib:
     def histogram data bins params:
         self.call "histogram" None [data.toCArg, CInt.fromInt bins . toCArg]
 
-    def plotDate s1 s2: 
+    def plotDate s1 s2:
         self.call "plot_date" None [s1.toCArg, s2.toCArg]
-    
-    def scatter s1 s2: 
+
+    def scatter s1 s2:
         self.call "scatter" None [s1.toCArg, s2.toCArg]
 
     def plot s1 s2 style label:
         cstr = CString.fromText style
-        lbl = case label of 
-            Nothing: CString.null 
+        lbl = case label of
+            Nothing: CString.null
             Just t: CString.fromText t
         self.call "plot" None [s1.toCArg, s2.toCArg, lbl.toCArg, cstr.toCArg]
 
@@ -54,19 +54,18 @@ class Matplotlib:
             True: throw "Matplotlib: getPNG call failed."
             False:
                 t = cstr.toText
-                cstr.free
                 t
 
 class Chart:
     render :: None
 
     def appendVertical list:
-        plotsList = list.map (x: x.toChart) 
+        plotsList = list.map (x: x.toChart)
         n = plotsList.length
         elems = 1.upto n
         zipped = plotsList.zip elems
-        seqRend = zipped.map (x: 
-            Matplotlib.subplot n 1 (x.second) 
+        seqRend = zipped.map (x:
+            Matplotlib.subplot n 1 (x.second)
             x.first . render)
         Chart seqRend.sequence
 
@@ -109,12 +108,12 @@ class PlotDate:
     series1 :: Column
     series2 :: Column
 
-    def render: 
+    def render:
         Matplotlib.plotDate self.series1.ptr.data.ptr self.series2.ptr.data.ptr
-    
-    def toChart: Chart self.render 
 
-    def + that: self.toChart.+that 
+    def toChart: Chart self.render
+
+    def + that: self.toChart.+that
 
     def toJSON: self.toChart.toJSON
 
@@ -122,12 +121,12 @@ class Scatter:
     series1 :: Column
     series2 :: Column
 
-    def render: 
+    def render:
         Matplotlib.scatter self.series1.ptr.data.ptr self.series2.ptr.data.ptr
-    
-    def toChart: Chart self.render 
 
-    def + that: self.toChart.+that 
+    def toChart: Chart self.render
+
+    def + that: self.toChart.+that
 
     def toJSON: self.toChart.toJSON
 

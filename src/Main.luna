@@ -3,10 +3,16 @@ import Std.Foreign.C.Value
 
 import Dataframes.Internal.Utils
 import Dataframes.Array
+import Dataframes.Column
+import Dataframes.Table
 import Dataframes.Types
 import Dataframes.Internal.Test.Test
 
 
 def main:
-    setHelperVerbosity False
-    benchmark "running tests" TestArrayBuilder.run
+    xCol = Column.fromList "x" Int64Type [1,2,3,4,5]
+    yCol = Column.fromList "y" Int64Type [1,2,3,4,5]
+    table1 = Table.fromColumns [xCol, yCol]
+    chart1 = table1.chart
+    plot1 = chart1.plot "x" "y"
+    None
