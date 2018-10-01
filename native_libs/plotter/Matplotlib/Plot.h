@@ -19,5 +19,5 @@ extern "C"
 	EXPORT void show();
 	EXPORT void init(size_t w, size_t h);
 	EXPORT void subplot(long nrows, long ncols, long plot_number);
-	EXPORT const char* getPNG();
+	EXPORT const char* getPNG(const char **outError) noexcept;
 }

@@ -9,23 +9,24 @@ namespace
 {
     const auto unknownInternalErrorText = "Unknown internal error encountered";
     thread_local std::string errorMessage;
-}
 
-void writeError(const char **outError, const char *toWrite)
-{
-    if(toWrite)
-        LOG("Setting error message: {}", toWrite);
 
-    if(outError)
+    void writeError(const char **outError, const char *toWrite)
     {
-        *outError = toWrite;
-    }
-    else if(toWrite)
-    {
-        // should not happen unless caller gives nullptr as error target
-        // in such case we will just write the error to stdout
-        // as we have no other means of getting user's attention
-        std::cout << "outError==nullptr, failed to set error message: " << toWrite << std::endl;
+        if(toWrite)
+            LOG("Setting error message: {}", toWrite);
+
+        if(outError)
+        {
+            *outError = toWrite;
+        }
+        else if(toWrite)
+        {
+            // should not happen unless caller gives nullptr as error target
+            // in such case we will just write the error to stdout
+            // as we have no other means of getting user's attention
+            std::cout << "outError==nullptr, failed to set error message: " << toWrite << std::endl;
+        }
     }
 }
 

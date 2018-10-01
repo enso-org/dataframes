@@ -12,7 +12,7 @@
 
  	init(800, 600);
  	plot(intsColumn->data().get(), intsColumn->data().get(), "label", "o");
- 	auto p = getPNG();
+ 	auto p = getPNG(nullptr);
 
  }
 

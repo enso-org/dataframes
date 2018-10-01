@@ -1,7 +1,8 @@
 #pragma once
 #include <atomic>
+#include "Common.h"
 
-class Logger
+class DFH_EXPORT Logger
 {
 public:
     std::atomic_bool enabled;

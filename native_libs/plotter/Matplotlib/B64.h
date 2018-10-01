@@ -39,10 +39,10 @@ std::string base64_encode(std::string_view data)
     std::string ret;
     ret.resize(olen);
 
-    const char * const src = data.data();
-    const char * const end = src + len;
+    const unsigned char * const src = (const unsigned char*)data.data();
+    const unsigned char * const end = src + len;
 
-    const char *in = src;
+    auto *in = src;
 	char *pos = ret.data();
 
 	while (end - in >= 3) {

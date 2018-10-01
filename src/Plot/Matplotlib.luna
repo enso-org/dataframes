@@ -3,11 +3,17 @@ import Std.Foreign
 import Std.Base
 
 import Dataframes.Column
+import Dataframes.Internal.Utils
 import Dataframes.Table
 
 class Matplotlib:
+    def libraryName: "DataframePlotter"
+
     def call n ret args:
-        lookupSymbol "DataframePlotter" n . call ret args
+        lookupSymbol self.libraryName n . call ret args
+
+    def callHandlingError n ret args:
+        callLibHandlingError self.libraryName n ret args
 
     def histogram data bins params:
         self.call "histogram" None [data.toCArg, CInt.fromInt bins . toCArg]
@@ -49,12 +55,8 @@ class Matplotlib:
         self.call "init" None [CSize.fromInt w . toCArg, CSize.fromInt h . toCArg]
 
     def getPNG:
-        cstr = self.call "getPNG" CString []
-        case cstr.isNull of
-            True: throw "Matplotlib: getPNG call failed."
-            False:
-                t = cstr.toText
-                t
+        result = self.callHandlingError "getPNG" CString []
+        result.toText
 
 class Chart:
     render :: None

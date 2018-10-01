@@ -4,6 +4,7 @@
 #include <Core/ArrowUtilities.h>
 #include "B64.h"
 #include "ValueHolder.h"
+#include "Core/Error.h"
 
 
 namespace
@@ -254,32 +255,20 @@ extern "C"
         }
     }
 
-    void subplot(long nrows, long ncols, long plot_number) {
+    void subplot(long nrows, long ncols, long plot_number)
+    {
         plt::subplot(nrows, ncols, plot_number);
     }
 
-    const char* getPNG()
+    const char* getPNG(const char **outError) noexcept
     {
-        try
+        return TRANSLATE_EXCEPTION(outError)
         {
             plt::tight_layout();
             plt::legend();
-            std::cout << "PNG BEG" << std::endl;
             auto png = plt::getPNG();
-            std::cout << "PNG END" << std::endl;
-            std::cout << "B64 BEG" << std::endl;
             auto encodedPng = base64_encode(png);
-            std::cout << "B64 END" << std::endl;
-            auto ret = new char[encodedPng.size() + 1];
-            std::memcpy(ret, encodedPng.data(), encodedPng.size());
-            ret[encodedPng.size()] = 0;
-            return ret;
-            //return returnedString.store(std::move(encodedPng));
-        }
-        catch(const runtime_error& e)
-        {
-            std::cout << "Failed to getPNG: " << e.what() << std::endl;
-        }
-        return nullptr;
+            return returnedString.store(std::move(encodedPng));
+        };
     }
 }
