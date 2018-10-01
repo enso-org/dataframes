@@ -149,7 +149,7 @@ class Plot:
 
     def setStyle s: self.style = s
 
-    def setLabel l: self.label = (Just l)
+    def setLabel l: Plot self.series1 self.series2 self.style (Just l)
 
 class KDE2:
     series1 :: Column

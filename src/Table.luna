@@ -62,6 +62,7 @@ class Table:
     # Constructing `Table` from a list of `Column` values.
     # 
     # > import Dataframes.Column 
+    # > import Dataframes.Types
     # > import Dataframes.Table 
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
@@ -88,6 +89,7 @@ class Table:
     # Returns a single `Column` value from `Table` by integer index.
     # 
     # > import Dataframes.Column 
+    # > import Dataframes.Types
     # > import Dataframes.Table 
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
@@ -106,6 +108,7 @@ class Table:
     # Insert a single `Column` value to `Table` under given index.
     # 
     # > import Dataframes.Column 
+    # > import Dataframes.Types
     # > import Dataframes.Table 
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
@@ -130,6 +133,7 @@ class Table:
     # Returns a `Table` value contain column matching given name.
     #
     # > import Dataframes.Column 
+    # > import Dataframes.Types
     # > import Dataframes.Table 
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
@@ -147,6 +151,7 @@ class Table:
     # Add a single `Column` value to `Table` with given name.
     # 
     # > import Dataframes.Column 
+    # > import Dataframes.Types
     # > import Dataframes.Table 
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
@@ -168,9 +173,40 @@ class Table:
         col = column.rename name
         columns = before + [col] + after
         self.fromColumns columns
+
+    # Returns `Column` value from `Table` located under given name.
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,4,5]
+    # > l2 = [11,12,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" Int64Type l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > col = table.column "col1"
+    #
+    # `name`: Name of the column to return.
+    # `return`: Single `Column` value selected from `self` table by name.
     def column name:
         ix = self.schema.getFieldIndexByName name
         self.columnAt ix    
+    
+    # Returns `Table` value being a subset of `self` table containing given list of columns.
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,4,5]
+    # > l2 = [11,12,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" Int64Type l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > newTable = table.columns ["col1"] 
+    #
+    # `names`: List of column names to be returned.
+    # `return`: `Table` value with selected columns from `self` table.
+
     def columns names:
         columns = names.each self.column
         self.fromColumns columns
@@ -205,21 +241,102 @@ class Table:
         cols = self.toList
         columnValueLists = cols.each (_ . slice 0 rowCount . toList)
         JSON.empty . insert "header" self.columnNames . insert "data" columnValueLists
+    
+    # Returns `Table` value with records for which the given predicate returns `True`.
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,4,5]
+    # > l2 = [11,12,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" Int64Type l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > filteredTable = table.filter (x: x.at "col2" < 14)
+    #
+    # `f`: The predicate (Boolean-valued function).
+    # `return`: Table with elements satisfying predicate.
+
     def filter f:
         pred = f TableHandle
         self.fromWrapper $ self.ptr.filter pred
+    
+    # Returns `Table` value with columns for which the given predicate returns `True`.
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,4,5]
+    # > l2 = ["a", "b", "c", "d", "e"]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" StringType l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > filteredTable = table.filterColumns .isNumeric
+    #
+    # `f`: The predicate (Boolean-valued function).
+    # `return`: Table with columns satisfying predicate.
+
     def filterColumns pred:
         cols = self.toList
         filtered = cols.filter pred
         self.fromColumns filtered
+    
+    # Returns `Table` value with results of applied functions on each of the columns from `self` table.
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,4,5]
+    # > l2 = [11,12,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" StringType l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > filteredTable = table.eachColumn .max
+    #
+    # `pred`: {min, max, mean, median, std, var, sum}
+    # `return`: Table with function application results.
+
     def eachColumn pred:
         cols = self.toList
         filtered = cols.each pred
         self.fromColumns filtered
+
+    # Returns `Column` value with results of function `f` application.
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,4,5]
+    # > l2 = [11,12,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" StringType l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > column = table.each (_.at "col1" * 10)
+    #
+    # `f`: Function to apply on `self` table.
+    # `return`: `Column` value with function application results.
+
     def each f:
         mapper = f TableHandle
         columnWrapper = self.ptr.eachToColumn "Result" mapper
         Column.fromColumnWrapper columnWrapper
+    
+    # Adds to `self` table a column with `name` and values as a result of application function `f` on the `self` table.
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,4,5]
+    # > l2 = [11,12,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" StringType l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > newTable = table.eachTo "col3" (_.at "col1" * 10)
+    #
+    # `name`: Name of newly created column in result table.
+    # `f`: Function to apply on `self` table.
+    # `return`: `Table` value with `self` table and additionla column with provided name and values resulting from function `f` application.
+
     def eachTo name f:
         r = self.each f
         self.setAt name r
@@ -231,10 +348,56 @@ class Table:
     def sort sortBy:
         sortByColumns = sortBy.each (colName, order, pos): (self.column colName, order, pos)
         self.sortByColumn sortByColumns
+
+    # Remove rows with missing values.
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,4,5]
+    # > l2 = [11,,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" StringType l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > newTable = table.dropNa
+    #
+    # `return`: `Table` value without rows containing NA records.
+
     def dropNa:
         self.fromWrapper $ self.ptr.dropNa
+
+    # Remove rows where missing values occurs for given column.
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,,5]
+    # > l2 = [11,,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" StringType l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > newTable = table.dropNaAt "col2"
+    #
+    # `name`: Column name for which we check NA values.
+    # `return`: `Table` value without rows containing NA records in given column.
+
     def dropNaAt columnName:
         self.fromWrapper $ self.ptr.dropNaByName columnName
+
+    # Fill NA/NaN values with `valueToFillWith`.
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,,5]
+    # > l2 = [11,,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" StringType l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > newTable = table.fillNa 53
+    #
+    # `valueToFillWith`: 
+
     def fillNa valueToFillWith:
         self.fromWrapper $ self.ptr.fillNa valueToFillWith
     def fillNaAt columnName valueToFillWith:
@@ -298,7 +461,7 @@ class Table:
         aggregationWithWrappers = aggregations.each (colname, aggrs): (self.column colname . ptr, aggrs.each .toInt)
         self.fromWrapper $ self.ptr.aggregateBy keyColumnWrapper aggregationWithWrappers
 
-    # describe returns informations about whole table like standard deviation, minium, maximum, mean, median qunatile 0.25 and 0.75 for each column
+    # Describe returns informations about whole table like standard deviation, minium, maximum, mean, median qunatile 0.25 and 0.75 for each column
     def describe:
         numerics = self.filterColumns .isNumeric
         names = numerics.columnNames 

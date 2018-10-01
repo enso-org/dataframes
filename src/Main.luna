@@ -1,12 +1,16 @@
-import Std.Base
-import Std.Foreign.C.Value
-
-import Dataframes.Internal.Utils
-import Dataframes.Array
+import Dataframes.Plot.Matplotlib
+import Dataframes.IO
+import Dataframes.Table
 import Dataframes.Types
-import Dataframes.Internal.Test.Test
+import Dataframes.Column
 
 
-def main:
-    setHelperVerbosity False
-    benchmark "running tests" TestArrayBuilder.run
+
+«0»def main:
+    «9»readFile1 = CSVParser . readFile "./data/insurance.csv"
+    «10»plot1 = readFile1 . chart.plot "age" "charges" . setLabel "foo"
+    «11»plot2 = readFile1 . chart.plot "age" "bmi" . setLabel "bar"
+    «12»appendVertical1 = Chart None . appendVertical [plot2, plot1]
+    None
+
+### META {"metas":[{"marker":9,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-192,"_vector2_x":-256}}}},{"marker":10,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-192,"_vector2_x":64}}}},{"marker":11,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":128,"_vector2_x":64}}}},{"marker":12,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-128,"_vector2_x":576}}}}]}
