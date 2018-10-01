@@ -426,7 +426,21 @@ class Table:
         case self.toList of
             [c]: c
             t: throw $ "Table.toColumn: table must have exactly 1 column, but has " + t.length.toText
-    
+
+    # Generates `Table` with number and ratio of NA/NaN values for each column.
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,,5]
+    # > l2 = [11,,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" StringType l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > newTable = table.describeNa
+    #
+    # `return`: `Table` value with statistics of NA/NaN values for each column.
+
     def describeNa:
         cols = self.toList
         nrows = self.rowCount
@@ -441,10 +455,38 @@ class Table:
     def shortRep:
         "Table<" + self.columnCount.toText + "×" + self.rowCount.toText + ">"
 
+    # Compute pairwise correlation of columns, excluding NA/null values.
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,,5]
+    # > l2 = [11,,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" StringType l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > correlations = table.corr
+    #
+    # `return`: `Table` value with pairwise correlations calculated for `self` table.
+
     def corr:
         self.fromWrapper $ self.ptr.corr
 
-    # corrWith :: Text -> Table 
+    # Compute pairwise correlations with given column, excluding NA/null values.
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,,5]
+    # > l2 = [11,,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" StringType l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > correlations = table.corrWith "col2"
+    #
+    # `columnName`: Column for which the correlations are calculated.
+    # `return`: `Table` value including correlations with `columnName` column calculated for `self` table.
+
     def corrWith columnName:
         column = self.at columnName . toColumn
         corrCol = Column.fromColumnWrapper $ self.ptr.corrWith column.ptr
@@ -458,7 +500,23 @@ class Table:
         col2 = Column.fromList ("CORR_WITH_" + columnName) DoubleType vals
         Table.fromColumns [col1, col2]
 
-    # describeColumn :: Text -> Table 
+    # Generates descriptive statistics that summarize the central tendency, dispersion and shape of the values in given column distribution. 
+    #
+    # Analyzes just numeric values, excluding NA/null values. Returns statistics like: mean, standard deviation, minimum, 1st quantile, median, 3rd quantile, maximum.
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,,5]
+    # > l2 = [11,,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" StringType l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > correlations = table.describeColumn "col2"
+    #
+    # `columnName`: String value, name of the column to calculate statistics for.
+    # `return`: `Table` value with statistics for given column.
+
     def describeColumn columnName:
         col = self.at columnName . toColumn
         min = col.min
@@ -479,7 +537,20 @@ class Table:
         aggregationWithWrappers = aggregations.each (colname, aggrs): (self.column colname . ptr, aggrs.each .toInt)
         self.fromWrapper $ self.ptr.aggregateBy keyColumnWrapper aggregationWithWrappers
 
-    # Describe returns informations about whole table like standard deviation, minium, maximum, mean, median qunatile 0.25 and 0.75 for each column
+    # Describe returns informations about whole table like standard deviation, minium, maximum, mean, median qunatile 0.25 and 0.75 for each column.
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,,5]
+    # > l2 = [11,,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" StringType l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > correlations = table.describe
+    #
+    # `return`: `Table` value with statistics for `self` table.
+
     def describe:
         numerics = self.filterColumns .isNumeric
         names = numerics.columnNames 
