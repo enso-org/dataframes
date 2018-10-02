@@ -71,6 +71,7 @@ class Table:
     # > table = Table.fromColumns [col1 , col2]
     #
     # `columns`: List of columns to construct the `Table`.
+    #
     # `return`: `Table` value with columns from the list.
     def fromColumns columns:
         fields = columns.each .field
@@ -99,6 +100,7 @@ class Table:
     # > column = table.columnAt 1
     #
     # `index`: Integer column index.
+    #
     # `return`: `Column` value from the `Table` for given index.
 
     def columnAt index:
@@ -121,6 +123,7 @@ class Table:
     #
     # `index`: Integer index for newly inserted column.
     # `column`: `Column` value to insert.
+    #
     # `return`: `Table` value containing previous `table` with newly inserted column.
 
     def addColumn index column:
@@ -143,6 +146,7 @@ class Table:
     # > column = table.at "col1"
     #
     # `name`: Label for column.
+    #
     # `return`: `Table` value from the `table` for given name.
 
     def at name:
@@ -164,6 +168,7 @@ class Table:
     #
     # `name`: String name for newly added column.
     # `column`: `Column` value to add.
+    #
     # `return`: `Table` value containing previous `table` with newly added column.
 
     def setAt name column:
@@ -187,7 +192,9 @@ class Table:
     # > col = table.column "col1"
     #
     # `name`: Name of the column to return.
+    #
     # `return`: Single `Column` value selected from `self` table by name.
+
     def column name:
         ix = self.schema.getFieldIndexByName name
         self.columnAt ix    
@@ -205,6 +212,7 @@ class Table:
     # > newTable = table.columns ["col1"] 
     #
     # `names`: List of column names to be returned.
+    #
     # `return`: `Table` value with selected columns from `self` table.
 
     def columns names:
@@ -244,6 +252,7 @@ class Table:
     # > take2 = table.take 2
     #
     # `count`: Number of rows to take.
+    #
     # `return`: `Table` value with first `count` rows from `self` table.
 
     def take count: self.slice 0 count
@@ -261,6 +270,7 @@ class Table:
     # > take2 = table.drop 2
     #
     # `count`: Number of rows to drop.
+    #
     # `return`: `Table` value without first `count` rows from `self` table.
 
     def drop count:
@@ -287,6 +297,7 @@ class Table:
     # > filteredTable = table.filter (x: x.at "col2" < 14)
     #
     # `f`: The predicate (Boolean-valued function).
+    #
     # `return`: Table with elements satisfying predicate.
 
     def filter f:
@@ -306,6 +317,7 @@ class Table:
     # > filteredTable = table.filterColumns .isNumeric
     #
     # `f`: The predicate (Boolean-valued function).
+    #
     # `return`: Table with columns satisfying predicate.
 
     def filterColumns pred:
@@ -325,7 +337,8 @@ class Table:
     # > table = Table.fromColumns [col1 , col2]
     # > filteredTable = table.eachColumn .max
     #
-    # `pred`: {min, max, mean, median, std, var, sum}
+    # `pred`: {min, max, mean, median, std, var, sum}.
+    #
     # `return`: Table with function application results.
 
     def eachColumn pred:
@@ -346,6 +359,7 @@ class Table:
     # > column = table.each (_.at "col1" * 10)
     #
     # `f`: Function to apply on `self` table.
+    #
     # `return`: `Column` value with function application results.
 
     def each f:
@@ -367,6 +381,7 @@ class Table:
     #
     # `name`: Name of newly created column in result table.
     # `f`: Function to apply on `self` table.
+    #
     # `return`: `Table` value with `self` table and additionla column with provided name and values resulting from function `f` application.
 
     def eachTo name f:
@@ -401,6 +416,7 @@ class Table:
     # > newTable = table.dropNaAt "b"
     #
     # `name`: Column name for which we check NA values.
+    #
     # `return`: `Table` value without rows containing NA records in given column.
 
     def dropNaAt columnName:
@@ -414,6 +430,7 @@ class Table:
     # > newTable = table.fillNa 53
     #
     # `valueToFillWith`: Value to use to fill holes (e.g. 0).
+    #
     # `return`: `Table` with holes filled by `valueToFillWith`.
 
     def fillNa valueToFillWith:
@@ -428,6 +445,7 @@ class Table:
     #
     # `columnName`: Name of the column to fill holes in.
     # `valueToFillWith`: Value to use to fill holes (e.g. 0).
+    #
     # `return`: `Table` with holes in column `columnName` filled with `valueToFillWith `.
 
     def fillNaAt columnName valueToFillWith:
@@ -493,6 +511,7 @@ class Table:
     # > correlations = table.corrWith "col2"
     #
     # `columnName`: Column for which the correlations are calculated.
+    #
     # `return`: `Table` value including correlations with `columnName` column calculated for `self` table.
 
     def corrWith columnName:
@@ -523,6 +542,7 @@ class Table:
     # > correlations = table.describeColumn "col2"
     #
     # `columnName`: String value, name of the column to calculate statistics for.
+    #
     # `return`: `Table` value with statistics for given column.
 
     def describeColumn columnName:
@@ -620,7 +640,8 @@ class ChartBuilder:
     #
     # `columnName1`: X column name.
     # `columnName2`: Y column name.
-    # `return`: [] OBRAZEK
+    #
+    # `return`: [] SCREESHOT
 
     def plot columnName1 columnName2:
         c1 = self.table.at columnName1 . toColumn
@@ -652,7 +673,8 @@ class ChartBuilder:
     # > plot1 = table.chart.histogram "col1"
     #
     # `columnName`: X column name.
-    # `return`: [] OBRAZEK
+    #
+    # `return`: [] SCREESHOT
 
     def histogram columnName:
         c = self.table.at columnName . toColumn
@@ -672,7 +694,8 @@ class ChartBuilder:
     #
     # `columnName1`: First input data.
     # `columnName2`: Second input data.
-    # `return`: [] OBRAZEK
+    #
+    # `return`: [] SCREESHOT
 
     def kde2 columnName1 columnName2:
         c1 = self.table.at columnName1 . toColumn
@@ -692,7 +715,8 @@ class ChartBuilder:
     # > plot1 = table.chart.kde "col1"
     #
     # `columnName`: Input data.
-    # `return`: [] OBRAZEK
+    #
+    # `return`: [] SCREESHOT
 
     def kde columnName:
         c = self.table.at columnName . dropNa . toColumn
@@ -711,7 +735,7 @@ class ChartBuilder:
     # > correlations = table.corr 
     # > heatmapPlot = correlations.chart.heatmap 
     #
-    # `return`: [] OBRAZEK
+    # `return`: [] SCREESHOT
 
     def heatmap:
         Heatmap self.table "RdBu_r" Nothing
