@@ -9,6 +9,8 @@ namespace arrow
 	class Table;
 }
 
+EXPORT std::string getPNG();
+
 extern "C"
 {
     EXPORT void plot(const arrow::Column *xs, const arrow::Column *ys, const char *label, const char *style, const char **outError) noexcept;

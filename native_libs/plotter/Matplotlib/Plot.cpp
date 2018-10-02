@@ -116,14 +116,14 @@ public:
     }
 };
 
-PyObject* chunkedArrayToPyObj(const arrow::ChunkedArray &arr)
+PyObject *toPyList(const arrow::ChunkedArray &arr)
 {
     try
     {
-        PyListBuilder builder{(size_t)arr.length()};
+        PyListBuilder builder{ (size_t)arr.length() };
         iterateOverGeneric(arr,
-            [&] (auto &&elem) { builder.append(elem); },
-            [&] ()            { builder.appendNull(); });
+            [&](auto &&elem) { builder.append(elem); },
+            [&]()            { builder.appendNull(); });
         return builder.release();
     }
     catch(std::exception &e)
@@ -132,26 +132,34 @@ PyObject* chunkedArrayToPyObj(const arrow::ChunkedArray &arr)
     }
 }
 
-PyObject* chunkedArrayToPyObj(const arrow::Column &arr)
+PyObject *toPyList(const arrow::Column &column)
 {
     try
     {
-        return chunkedArrayToPyObj(*arr.data());
+        return toPyList(*column.data());
     }
     catch(std::exception &e)
     {
-        throw std::runtime_error("column " + arr.name() + ": " + e.what());
+        throw std::runtime_error("column " + column.name() + ": " + e.what());
     }
 }
 
-PyObject* tableToPyObj(const arrow::Table &table)
+PyObject *toPyList(const arrow::Table &table)
 {
+    // TODO resource safety
     auto cols = getColumns(table);
     PyObject *result = PyList_New(table.num_columns());
-    for (int i = 0; i < table.num_columns(); i++)
-        PyList_SetItem(result, i, chunkedArrayToPyObj(*(cols[i]->data())));
+    for(int i = 0; i < table.num_columns(); i++)
+        PyList_SetItem(result, i, toPyList(*(cols[i]->data())));
 
     return result;
+}
+
+std::string getPNG()
+{
+    plt::tight_layout();
+    plt::legend();
+    return plt::getPNG();
 }
 
 extern "C"
@@ -160,8 +168,8 @@ extern "C"
     {
         return TRANSLATE_EXCEPTION(outError)
         {
-            auto xsarray = chunkedArrayToPyObj(*xs);
-            auto ysarray = chunkedArrayToPyObj(*xs);
+            auto xsarray = toPyList(*xs);
+            auto ysarray = toPyList(*xs);
             plt::plot(xsarray, ysarray, label, style);
         };
     }
@@ -170,8 +178,8 @@ extern "C"
     {
         return TRANSLATE_EXCEPTION(outError)
         {
-            auto xsarray = chunkedArrayToPyObj(*xs);
-            auto ysarray = chunkedArrayToPyObj(*ys);
+            auto xsarray = toPyList(*xs);
+            auto ysarray = toPyList(*ys);
             plt::plot_date(xsarray, ysarray);
         };
     }
@@ -180,8 +188,8 @@ extern "C"
     {
         return TRANSLATE_EXCEPTION(outError)
         {
-            auto xsarray = chunkedArrayToPyObj(*xs);
-            auto ysarray = chunkedArrayToPyObj(*ys);
+            auto xsarray = toPyList(*xs);
+            auto ysarray = toPyList(*ys);
             plt::scatter(xsarray, ysarray);
         };
     }
@@ -190,7 +198,7 @@ extern "C"
     {
         return TRANSLATE_EXCEPTION(outError)
         {
-            auto xsarray = chunkedArrayToPyObj(*xs);
+            auto xsarray = toPyList(*xs);
             plt::kdeplot(xsarray, label);
         };
     }
@@ -199,8 +207,8 @@ extern "C"
     {
         return TRANSLATE_EXCEPTION(outError)
         {
-            auto xsarray = chunkedArrayToPyObj(*xs);
-            auto ysarray = chunkedArrayToPyObj(*ys);
+            auto xsarray = toPyList(*xs);
+            auto ysarray = toPyList(*ys);
             plt::kdeplot2(xsarray, ysarray, colormap);
         };
     }
@@ -209,7 +217,7 @@ extern "C"
     {
         return TRANSLATE_EXCEPTION(outError)
         {
-            auto xsarray = tableToPyObj(*xs);
+            auto xsarray = toPyList(*xs);
             plt::heatmap(xsarray, cmap, annot);
         };
     }
@@ -218,7 +226,7 @@ extern "C"
     {
         return TRANSLATE_EXCEPTION(outError)
         {
-            auto xsarray = chunkedArrayToPyObj(*xs);
+            auto xsarray = toPyList(*xs);
             plt::hist(xsarray, bins);
         };
     }
@@ -254,9 +262,7 @@ extern "C"
     {
         return TRANSLATE_EXCEPTION(outError)
         {
-            plt::tight_layout();
-            plt::legend();
-            auto png = plt::getPNG();
+            auto png = ::getPNG();
             auto encodedPng = base64_encode(png);
             return returnedString.store(std::move(encodedPng));
         };
