@@ -2,13 +2,9 @@
 #include <arrow/array.h>
 #include <Core/ArrowUtilities.h>
 #include "SKLearn.h"
-#include <numpy/arrayobject.h>
 #include <variant.h>
-#include <Python.h>
 #include <LifetimeManager.h>
 #include <Analysis.h>
-
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 
 namespace skl = sklearn;
 

@@ -22,10 +22,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DataframePlotter", "Datafra
 		{899B5CE2-B02C-4841-AAE8-6F33B5F1460E} = {899B5CE2-B02C-4841-AAE8-6F33B5F1460E}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DataframeLearn", "DataframeLearn.vcxproj", "{80A9D1EE-D7AE-4F89-A3E2-6600C7874E36}"
+	ProjectSection(ProjectDependencies) = postProject
+		{899B5CE2-B02C-4841-AAE8-6F33B5F1460E} = {899B5CE2-B02C-4841-AAE8-6F33B5F1460E}
+	EndProjectSection
+EndProject
 Global
-	GlobalSection(Performance) = preSolution
-		HasPerformanceSessions = true
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
 		Release|x64 = Release|x64
@@ -33,22 +35,29 @@ Global
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{899B5CE2-B02C-4841-AAE8-6F33B5F1460E}.Debug|x64.ActiveCfg = Debug|x64
 		{899B5CE2-B02C-4841-AAE8-6F33B5F1460E}.Debug|x64.Build.0 = Debug|x64
-		{899B5CE2-B02C-4841-AAE8-6F33B5F1460E}.Release|x64.ActiveCfg = Release|x64
-		{899B5CE2-B02C-4841-AAE8-6F33B5F1460E}.Release|x64.Build.0 = Release|x64
+		{899B5CE2-B02C-4841-AAE8-6F33B5F1460E}.Release|x64.ActiveCfg = Debug|x64
+		{899B5CE2-B02C-4841-AAE8-6F33B5F1460E}.Release|x64.Build.0 = Debug|x64
 		{EAD3EB9B-8C2F-40E8-80A1-4B5ED9AD6842}.Debug|x64.ActiveCfg = Debug|x64
 		{EAD3EB9B-8C2F-40E8-80A1-4B5ED9AD6842}.Debug|x64.Build.0 = Debug|x64
-		{EAD3EB9B-8C2F-40E8-80A1-4B5ED9AD6842}.Release|x64.ActiveCfg = Release|x64
-		{EAD3EB9B-8C2F-40E8-80A1-4B5ED9AD6842}.Release|x64.Build.0 = Release|x64
+		{EAD3EB9B-8C2F-40E8-80A1-4B5ED9AD6842}.Release|x64.ActiveCfg = Debug|x64
+		{EAD3EB9B-8C2F-40E8-80A1-4B5ED9AD6842}.Release|x64.Build.0 = Debug|x64
 		{DB21CF45-ED79-4996-A2BD-BEC689322DD7}.Debug|x64.ActiveCfg = Debug|x64
 		{DB21CF45-ED79-4996-A2BD-BEC689322DD7}.Debug|x64.Build.0 = Debug|x64
-		{DB21CF45-ED79-4996-A2BD-BEC689322DD7}.Release|x64.ActiveCfg = Release|x64
-		{DB21CF45-ED79-4996-A2BD-BEC689322DD7}.Release|x64.Build.0 = Release|x64
+		{DB21CF45-ED79-4996-A2BD-BEC689322DD7}.Release|x64.ActiveCfg = Debug|x64
+		{DB21CF45-ED79-4996-A2BD-BEC689322DD7}.Release|x64.Build.0 = Debug|x64
+		{80A9D1EE-D7AE-4F89-A3E2-6600C7874E36}.Debug|x64.ActiveCfg = Debug|x64
+		{80A9D1EE-D7AE-4F89-A3E2-6600C7874E36}.Debug|x64.Build.0 = Debug|x64
+		{80A9D1EE-D7AE-4F89-A3E2-6600C7874E36}.Release|x64.ActiveCfg = Debug|x64
+		{80A9D1EE-D7AE-4F89-A3E2-6600C7874E36}.Release|x64.Build.0 = Debug|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6BCEC416-E86B-4B08-8F0B-C020AA3B399F}
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
 	EndGlobalSection
 	GlobalSection(Performance) = preSolution
 		HasPerformanceSessions = true

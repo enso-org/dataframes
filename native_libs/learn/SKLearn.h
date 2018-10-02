@@ -1,11 +1,22 @@
 #pragma once
 
-#include <Python.h>
 #include <stdexcept>
-#include <numpy/arrayobject.h>
 #include <iostream>
 
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#if defined(_DEBUG) && defined(_MSC_VER)
+#define WAS_DEBUG
+#undef _DEBUG
+#endif
+
+#include <numpy/arrayobject.h>
+#include <Python.h>
+#include <datetime.h>
+
+#ifdef WAS_DEBUG
+#define _DEBUG 1
+#endif
+
+
 
 #if PY_MAJOR_VERSION >= 3
 #  define PyString_FromString PyUnicode_FromString
