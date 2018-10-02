@@ -383,14 +383,9 @@ class Table:
 
     # Remove rows with missing values.
     #
-    # > import Dataframes.Column 
-    # > import Dataframes.Types
-    # > import Dataframes.Table 
-    # > l1 = [1,2,3,4,5]
-    # > l2 = [11,,13,14,15]
-    # > col1 = Column.fromList "col1" Int64Type l1
-    # > col2 = Column.fromList "col2" StringType l2
-    # > table = Table.fromColumns [col1 , col2]
+    # > import Dataframes.Table
+    # > import Dataframes.IO 
+    # > table = CSVParser.readFile "./data/simple_empty.csv"
     # > newTable = table.dropNa
     #
     # `return`: `Table` value without rows containing NA records.
@@ -400,15 +395,10 @@ class Table:
 
     # Remove rows where missing values occurs for given column.
     #
-    # > import Dataframes.Column 
-    # > import Dataframes.Types
-    # > import Dataframes.Table 
-    # > l1 = [1,2,3,,5]
-    # > l2 = [11,,13,14,15]
-    # > col1 = Column.fromList "col1" Int64Type l1
-    # > col2 = Column.fromList "col2" StringType l2
-    # > table = Table.fromColumns [col1 , col2]
-    # > newTable = table.dropNaAt "col2"
+    # > import Dataframes.Table
+    # > import Dataframes.IO 
+    # > table = CSVParser.readFile "./data/simple_empty.csv"
+    # > newTable = table.dropNaAt "b"
     #
     # `name`: Column name for which we check NA values.
     # `return`: `Table` value without rows containing NA records in given column.
@@ -418,14 +408,9 @@ class Table:
 
     # Fill NA/NaN values with `valueToFillWith`.
     #
-    # > import Dataframes.Column 
-    # > import Dataframes.Types
-    # > import Dataframes.Table 
-    # > l1 = [1,2,3,,5]
-    # > l2 = [11,,13,14,15]
-    # > col1 = Column.fromList "col1" Int64Type l1
-    # > col2 = Column.fromList "col2" StringType l2
-    # > table = Table.fromColumns [col1 , col2]
+    # > import Dataframes.Table
+    # > import Dataframes.IO 
+    # > table = CSVParser.readFile "./data/simple_empty.csv"
     # > newTable = table.fillNa 53
     #
     # `valueToFillWith`: Value to use to fill holes (e.g. 0).
@@ -436,15 +421,10 @@ class Table:
 
     # Fill NA/NaN values with `valueToFillWith` in column `columnName`
     #
-    # > import Dataframes.Column 
-    # > import Dataframes.Types
-    # > import Dataframes.Table 
-    # > l1 = [1,2,3,,5]
-    # > l2 = [11,,13,14,15]
-    # > col1 = Column.fromList "col1" Int64Type l1
-    # > col2 = Column.fromList "col2" StringType l2
-    # > table = Table.fromColumns [col1 , col2]
-    # > newTable = table.fillNaAt "col1" 53
+    # > import Dataframes.Table
+    # > import Dataframes.IO 
+    # > table = CSVParser.readFile "./data/simple_empty.csv"
+    # > newTable = table.fillNaAt "b" 53
     #
     # `columnName`: Name of the column to fill holes in.
     # `valueToFillWith`: Value to use to fill holes (e.g. 0).
@@ -462,14 +442,9 @@ class Table:
 
     # Generates `Table` with number and ratio of NA/NaN values for each column.
     #
-    # > import Dataframes.Column 
-    # > import Dataframes.Types
-    # > import Dataframes.Table 
-    # > l1 = [1,2,3,,5]
-    # > l2 = [11,,13,14,15]
-    # > col1 = Column.fromList "col1" Int64Type l1
-    # > col2 = Column.fromList "col2" StringType l2
-    # > table = Table.fromColumns [col1 , col2]
+    # > import Dataframes.Table
+    # > import Dataframes.IO 
+    # > table = CSVParser.readFile "./data/simple_empty.csv"
     # > newTable = table.describeNa
     #
     # `return`: `Table` value with statistics of NA/NaN values for each column.
@@ -493,8 +468,8 @@ class Table:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
-    # > l1 = [1,2,3,,5]
-    # > l2 = [11,,13,14,15]
+    # > l1 = [1,2,3,4,5]
+    # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
     # > col2 = Column.fromList "col2" StringType l2
     # > table = Table.fromColumns [col1 , col2]
@@ -510,8 +485,8 @@ class Table:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
-    # > l1 = [1,2,3,,5]
-    # > l2 = [11,,13,14,15]
+    # > l1 = [1,2,3,4,5]
+    # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
     # > col2 = Column.fromList "col2" StringType l2
     # > table = Table.fromColumns [col1 , col2]
