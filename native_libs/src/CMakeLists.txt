@@ -83,6 +83,11 @@ if(NOT DATE_INCLUDE)
     message(WARNING "Cannot find date library include dir with date/date.h. If it is present, consider setting CMAKE_PREFIX_PATH or CMAKE_INCLUDE_PATH.")
 endif()
 
+find_path(PYBIND_INCLUDE pybind11/embed.h)
+if(NOT PYBIND_INCLUDE)
+    message(WARNING "Cannot find pybind11 library include dir with pybind11/embed.h. If it is present, consider setting CMAKE_PREFIX_PATH or CMAKE_INCLUDE_PATH.")
+endif()
+
 # Glob for the project files
 file(GLOB_RECURSE HEADER_FILES ${PROJECT_SOURCE_DIR}/*.h)
 file(GLOB_RECURSE SRC_FILES ${PROJECT_SOURCE_DIR}/*.cpp)
@@ -146,7 +151,7 @@ file(GLOB_RECURSE LEARN_SRC_FILES    ${PROJECT_SOURCE_DIR}/../learn/*.cpp)
 add_library(Learn SHARED ${LEARN_HEADER_FILES} ${LEARN_SRC_FILES})
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR};${CMAKE_MODULE_PATH}")
 find_package(NumPy)
-target_include_directories(Learn PRIVATE ${PYTHON_INCLUDE_DIRS} ${PYTHON_NUMPY_INCLUDE_DIR})
+target_include_directories(Learn PUBLIC ${PYTHON_INCLUDE_DIRS} ${PYTHON_NUMPY_INCLUDE_DIR} ${PYBIND_INCLUDE})
 target_link_libraries(Learn ${PROJECT_NAME} ${PYTHON_LIBRARIES})
 
 ##################
@@ -156,5 +161,5 @@ file(GLOB_RECURSE TEST_SRC_FILES    ${PROJECT_SOURCE_DIR}/../test/*.cpp)
 
 add_executable(DataframeHelperTests ${TEST_HEADER_FILES} ${TEST_SRC_FILES})
 target_include_directories(DataframeHelperTests PRIVATE ${Boost_INCLUDE_DIRS})
-target_link_libraries(DataframeHelperTests ${PROJECT_NAME} DataframePlotter Boost::unit_test_framework)
+target_link_libraries(DataframeHelperTests Learn ${PROJECT_NAME} DataframePlotter Boost::unit_test_framework)
 ###################

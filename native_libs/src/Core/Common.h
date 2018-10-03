@@ -32,7 +32,7 @@ using namespace std::chrono_literals;
 #if defined(_MSC_VER) && !defined(__INTELLISENSE__)
 #define EXPORT __declspec(dllexport)
 #else
-#define EXPORT
+#define EXPORT [[gnu::visibility ("default")]]
 #endif
 
 #ifdef BUILDING_DATAFRAME_HELPER
