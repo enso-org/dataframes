@@ -18,7 +18,7 @@ class Matplotlib:
     def scatter s1 s2: 
         self.call "scatter" None [s1.toCArg, s2.toCArg]
 
-    def plot s1 s2 style label color:
+    def plot s1 s2 style label color alpha:
         cstr = CString.fromText style
         lbl = case label of 
             Nothing: CString.null 
@@ -26,7 +26,10 @@ class Matplotlib:
         col = case color of 
             Nothing: CString.null 
             Just c: CString.fromText c
-        self.call "plot" None [s1.toCArg, s2.toCArg, lbl.toCArg, col.toCArg, cstr.toCArg]
+        al = case alpha of 
+            Nothing: CDouble.fromReal 1.0 
+            Just a: CDouble.fromReal a
+        self.call "plot" None [s1.toCArg, s2.toCArg, lbl.toCArg, col.toCArg, al.toCArg, cstr.toCArg]
 
     def kdeplot2 s1 s2 style:
         cstr = CString.fromText style
@@ -39,14 +42,17 @@ class Matplotlib:
         cstr = CString.fromText style
         self.call "heatmap" None [s1.toCArg, cstr.toCArg, annotc.toCArg]
     
-    def fillBetween s1 s2 s3 label color:
+    def fillBetween s1 s2 s3 label color alpha:
         lbl = case label of 
             Nothing: CString.null 
             Just t: CString.fromText t
         col = case color of 
             Nothing: CString.null 
             Just c: CString.fromText c
-        self.call "fill_between" None [s1.toCArg, s2.toCArg, s3.toCArg, lbl.toCArg, col.toCArg]
+        al = case alpha of 
+            Nothing: CDouble.fromReal 1.0 
+            Just a: CDouble.fromReal a
+        self.call "fill_between" None [s1.toCArg, s2.toCArg, s3.toCArg, lbl.toCArg, col.toCArg, al.toCArg]
 
     def kdeplot s label:
         cstr = case label of
@@ -149,9 +155,10 @@ class Plot:
     style :: Text
     label :: Maybe Text
     color :: Maybe Text
+    alpha :: Maybe Double
 
     def render:
-        Matplotlib.plot self.series1.ptr.data.ptr self.series2.ptr.data.ptr self.style self.label self.color
+        Matplotlib.plot self.series1.ptr.data.ptr self.series2.ptr.data.ptr self.style self.label self.color self.alpha
 
     def toChart: Chart self.render
 
@@ -160,11 +167,13 @@ class Plot:
 
     def toJSON: self.toChart.toJSON
 
-    def setStyle s: Plot self.series1 self.series2 s self.label self.color
+    def setStyle s: Plot self.series1 self.series2 s self.label self.color self.alpha
 
-    def setLabel l: Plot self.series1 self.series2 self.style (Just l) self.color
+    def setLabel l: Plot self.series1 self.series2 self.style (Just l) self.color self.alpha
 
-    def setColor c: Plot self.series1 self.series2 self.style self.label (Just c)
+    def setColor c: Plot self.series1 self.series2 self.style self.label (Just c) self.alpha
+
+    def setAplha a: Plot self.series1 self.series2 self.style self.label self.color (Just a)
 
 class FillBetween:
     series1 :: Column
@@ -172,9 +181,10 @@ class FillBetween:
     series3 :: Column 
     label :: Maybe Text
     color :: Maybe Text
+    alpha :: Maybe Double
 
     def render:
-        Matplotlib.fillBetween self.series1.ptr.data.ptr self.series2.ptr.data.ptr self.series3.ptr.data.ptr self.label self.color
+        Matplotlib.fillBetween self.series1.ptr.data.ptr self.series2.ptr.data.ptr self.series3.ptr.data.ptr self.label self.color self.alpha
 
     def toChart: Chart self.render 
 
@@ -183,9 +193,11 @@ class FillBetween:
     
     def toJSON: self.toChart.toJSON
 
-    def setLabel l: FillBetween self.series1 self.series2 self.series3 (Just l) self.color
+    def setLabel l: FillBetween self.series1 self.series2 self.series3 (Just l) self.color self.alpha
 
-    def setColor c: FillBetween self.series1 self.series2 self.series3 self.label (Just c)
+    def setColor c: FillBetween self.series1 self.series2 self.series3 self.label (Just c) self.alpha
+    
+    def setAplha a: FillBetween self.series1 self.series2 self.style self.label self.color (Just a)
 
 class KDE2:
     series1 :: Column

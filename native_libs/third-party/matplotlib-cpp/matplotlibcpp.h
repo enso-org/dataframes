@@ -427,7 +427,7 @@ bool plot_date(PyObject* xarray, PyObject* yarray)
     return res;
 }
 
-bool fill_between(PyObject* xarray, PyObject* yarray1, PyObject* yarray2, char* label, char* color)
+bool fill_between(PyObject* xarray, PyObject* yarray1, PyObject* yarray2, char* label, char* color, double alpha)
 {
 
     PyObject* plot_args = PyTuple_New(3);
@@ -439,6 +439,7 @@ bool fill_between(PyObject* xarray, PyObject* yarray1, PyObject* yarray2, char* 
     
     if (label) PyDict_SetItemString(kwargs, "label", PyString_FromString(label));
     if (color) PyDict_SetItemString(kwargs, "color", PyString_FromString(color));
+    if (alpha) PyDict_SetItemString(kwargs, "alpha", PyFloat_FromDouble(alpha));
     
     PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_fill_between, plot_args, kwargs);
     if (!res) {
@@ -692,7 +693,7 @@ bool kdeplot(PyObject* xarray, char* label)
     return res;
 }
 
-bool plot(PyObject* xarray, PyObject* yarray, char* label, char* color, const std::string& s = "")
+bool plot(PyObject* xarray, PyObject* yarray, char* label, char* color, double alpha, const std::string& s = "")
 {
     PyObject* pystring = PyString_FromString(s.c_str());
 
@@ -704,6 +705,7 @@ bool plot(PyObject* xarray, PyObject* yarray, char* label, char* color, const st
     PyObject* kwargs = PyDict_New();
     if (label) PyDict_SetItemString(kwargs, "label", PyString_FromString(label));
     if (color) PyDict_SetItemString(kwargs, "color", PyString_FromString(color));
+    if (alpha) PyDict_SetItemString(kwargs, "alpha", PyFloat_FromDouble(alpha));
 
     PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_plot, plot_args, kwargs);
     if (!res) {

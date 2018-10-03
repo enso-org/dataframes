@@ -23,7 +23,7 @@ import Dataframes.Plot.Matplotlib
     b
 
 «1»def main:
-    «4»readFile1 = CSVParser . readFile "./data/ibm.us.txt"
+    «4»readFile1 = CSVParser . readFile "./data/Stocks/ibm.us.txt"
     «9»column1 = readFile1 . column "Close"
     «10»shift1 = column1 . shift 1
     «11»setAt1 = readFile1 . setAt "Close_shift_1" shift1

@@ -289,14 +289,30 @@ class Table:
 class ChartBuilder:
     table :: Table
 
-    def plot cname1 cname2:
-        c1 = self.table.at cname1 . toColumn
-        c2 = self.table.at cname2 . toColumn
+    # Plot y versus x as markers or lines.
+    #
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # > l1 = [1,2,3,4,5]
+    # > l2 = [11,12,13,14,15]
+    # > col1 = Column.fromList "col1" Int64Type l1
+    # > col2 = Column.fromList "col2" StringType l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > plot1 = table.chart.plot "col1" "col2"
+    #
+    # `columnName1`: X column name.
+    # `columnName2`: Y column name.
+    # `return`: [] PIC
+
+    def plot columnName1 columnName2:
+        c1 = self.table.at columnName1 . toColumn
+        c2 = self.table.at columnName2 . toColumn
         Plot c1 c2 "o" Nothing Nothing
 
-    def plotDate cname1 cname2: 
-        c1 = self.table.at cname1 . toColumn
-        c2 = self.table.at cname2 . toColumn
+    def plotDate columnName1 columnName2: 
+        c1 = self.table.at columnName1 . toColumn
+        c2 = self.table.at columnName2 . toColumn
         PlotDate c1 c2
 
     def scatter cname1 cname2: 
@@ -323,7 +339,7 @@ class ChartBuilder:
         c1 = self.table.at cname1 . toColumn
         c2 = self.table.at cname2 . toColumn
         c3 = self.table.at cname3 . toColumn
-        FillBetween c1 c2 c3 Nothing Nothing
+        FillBetween c1 c2 c3 Nothing Nothing Nothing
 
 class Heatmap:
     data :: Table
