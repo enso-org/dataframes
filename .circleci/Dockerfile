@@ -13,6 +13,9 @@ RUN wget https://github.com/apache/arrow/archive/apache-arrow-0.10.0.zip && unzi
 # DATE
 RUN wget https://github.com/HowardHinnant/date/archive/v2.4.1.zip && unzip v2.4.1.zip && cd date-2.4.1 && mkdir build && cd build && cmake ../ -DCMAKE_BUILD_TYPE=Release && make -j 8 && make install && make clean && cd ../../ && rm -rf date-2.4.1 v2.4.1.zip
 
+# PYBIND11
+RUN wget https://github.com/pybind/pybind11/archive/v2.2.4.zip && unzip v2.2.4.zip && cd pybind11-2.2.4 && mkdir build && cd build && cmake ../ -DPYBIND11_TEST=OFF -DCMAKE_BUILD_TYPE=Release && make -j 8 && make install && cd ../../ && rm -rf pybind11-2.2.4 v2.2.4.zip
+
 # RUN git clone https://github.com/luna/Dataframes.git
 # RUN mkdir build
 # WORKDIR build
