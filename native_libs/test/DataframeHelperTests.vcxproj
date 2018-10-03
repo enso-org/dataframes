@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClCompile Include="Benchmarks.cpp" />
     <ClCompile Include="Fixture.cpp" />
+    <ClCompile Include="LearnTests.cpp" />
     <ClCompile Include="PlotTests.cpp" />
     <ClCompile Include="Tests.cpp" />
   </ItemGroup>
@@ -56,7 +57,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>DataframeHelper.lib;DataframePlotter.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>DataframeHelper.lib;Learn.lib;DataframePlotter.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">

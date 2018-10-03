@@ -2,15 +2,25 @@ import Std.Base
 import Std.Time
 import Std.Foreign.C.Value
 
+import Dataframes.Learn.LinearRegression
+
 import Dataframes.Internal.Utils
 import Dataframes.Array
 import Dataframes.Column
+import Dataframes.IO
 import Dataframes.Table
 import Dataframes.Types
 import Dataframes.Internal.Test.Test
 
 
 def main:
+    l1 = [1,2,3,4,5]
+    l2 = [11,12,13,14,15]
+    col1 = Column.fromList "col1" Int64Type l1
+    col2 = Column.fromList "col2" Int64Type l2
+    tableA = Table.fromColumns [col1 , col2]
+    plotA = tableA.chart.kde2 "col1" "col2"
+
     xCol = Column.fromList "x" Int64Type [1,2,3,4,5]
     yCol = Column.fromList "y" Int64Type [1,2,3,4,5]
     times = ["2013-01-01", "2013-01-02", "2013-01-05", "2013-01-06", "2013-01-07"].each (Time.parseFmt "%F")
@@ -23,4 +33,10 @@ def main:
     plot4 = chart1.kde "x"
     plot5 = chart1.kde2 "x" "y"
     plot6 = chart1.histogram "x"
+
+    table = CSVParser.readFile "F:/dev/insurance.csv"
+    newPlot = table.chart.plot "age" "charges"
+    foo = LinearRegression.fit (table.column "age") (table.column "charges")
+    bar = foo . score (table.column "age") (table.column "charges")
+
     None

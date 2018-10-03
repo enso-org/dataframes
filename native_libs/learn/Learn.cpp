@@ -5,6 +5,7 @@
 #include <variant.h>
 #include <LifetimeManager.h>
 #include <Analysis.h>
+#include "Core/Error.h"
 
 namespace skl = sklearn;
 
@@ -39,24 +40,28 @@ struct NPArrayBuilder
     {
         data[row*cols+col] = nan(" ");
     }
-    PyObject* getNPMatrix()
+    pybind11::array getNPMatrix()
     {
         npy_intp dims[2] = {(long) rows, (long) cols};
-        PyObject* r = PyArray_SimpleNewFromData(2, dims, NPY_DOUBLE, data);
-        return r;
+        pybind11::handle h = PyArray_SimpleNewFromData(2, dims, NPY_DOUBLE, data);
+        return pybind11::array{h, false};
     }
-    PyObject* getNPArr()
+    pybind11::array_t<double> getNPArr()
     {
         npy_intp dim = rows*cols;
-        PyObject* r = PyArray_SimpleNewFromData(1, &dim, NPY_DOUBLE, data);
-        return r;
+        pybind11::handle h = PyArray_SimpleNewFromData(1, &dim, NPY_DOUBLE, data);
+        return pybind11::array{ h, false };
     }
 };
 
-PyObject* tableToNpMatrix(const arrow::Table& table)
+auto fromC(PyObject *obj)
 {
-    Py_Initialize();
-    import_array();
+    return pybind11::reinterpret_borrow<pybind11::object>(obj);
+}
+
+pybind11::array tableToNpMatrix(const arrow::Table& table)
+{
+    skl::interpreter::get();
     NPArrayBuilder builder;
     builder.init(table.num_rows(), table.num_columns());
     auto cols = getColumns(table);
@@ -78,14 +83,13 @@ PyObject* tableToNpMatrix(const arrow::Table& table)
         colIndex++;
     }
     auto res = builder.getNPMatrix();
-    PyObject_Print(res, stdout, 0);
+    //PyObject_Print(res, stdout, 0);
     return res;
 }
 
-PyObject* columnToNpArr(const arrow::Column& col)
+pybind11::array_t<double> columnToNpArr(const arrow::Column &col)
 {
-    Py_Initialize();
-    import_array();
+    skl::interpreter::get();
     NPArrayBuilder builder;
     builder.init(col.length(), 1);
     int rowIndex = 0;
@@ -101,86 +105,121 @@ PyObject* columnToNpArr(const arrow::Column& col)
                 rowIndex++;
             });
     auto res = builder.getNPArr();
-    PyObject_Print(res, stdout, 0);
+    //PyObject_Print(res, stdout, 0);
     return res;
 }
 
-arrow::Column* npArrayToColumn(PyObject* arO)
+std::shared_ptr<arrow::Column> npArrayToColumn(pybind11::array_t<double> arr, std::string name)
 {
-    PyArrayObject* ar = reinterpret_cast<PyArrayObject*>(PyArray_ContiguousFromObject(arO, NPY_DOUBLE, 0, 0));
-    std::cout << "MEAN IS: " << PyFloat_AsDouble(PyArray_Mean(ar, 0, NPY_DOUBLE, NULL)) << std::endl;
-    int size = PyArray_DIM(ar, 0);
-    double* data = (double*) PyArray_DATA(ar);
+    // TODO: check that this is 1-D array
+    // TODO: check that array contains doubles
+    skl::interpreter::get();
+    auto size = arr.shape(0);
+    auto data = (const double *) arr.data();
+
+    // TODO: check that array is contiguous
     arrow::DoubleBuilder builder;
-    builder.AppendValues(data, size);
-    auto arr = finish(builder);
-    auto field = arrow::field("Predictions", arr->type(), arr->null_count());
-    auto p = std::make_shared<arrow::Column>(field, arr);
-    return LifetimeManager::instance().addOwnership(std::move(p));
+    for(size_t i = 0; i < size; ++i)
+    {
+        auto value = data[i];
+        if(std::isnan(value))
+            builder.AppendNull();
+        else
+            builder.Append(value);
+    }
+    return toColumn(finish(builder), name);
 }
 
 extern "C"
 {
 
-EXPORT void toNpArr(arrow::Table* tb)
+EXPORT void toNpArr(arrow::Table* tb) noexcept
 {
-    tableToNpMatrix(*tb);
+    return TRANSLATE_EXCEPTION(nullptr)
+    {
+        skl::interpreter::get();
+        tableToNpMatrix(*tb);
+    };
 }
 
-EXPORT void freePyObj(PyObject* o)
+EXPORT void freePyObj(PyObject* o) noexcept
 {
-    Py_DECREF(o);
+    return TRANSLATE_EXCEPTION(nullptr)
+    {
+        skl::interpreter::get();
+        Py_DECREF(o);
+    };
 }
 
-EXPORT PyObject* newLogisticRegression(double C)
+EXPORT PyObject* newLogisticRegression(double C) noexcept
 {
-    skl::interpreter::get();
-    return skl::newLogisticRegression(C);
+    return TRANSLATE_EXCEPTION(nullptr)
+    {
+        skl::interpreter::get();
+        return skl::newLogisticRegression(C).release().ptr();
+    };
 }
 
-  EXPORT PyObject* newLinearRegression() {
-    skl::interpreter::get();
-    return skl::newLinearRegression();
-  }
-
-  EXPORT void fit(PyObject* model, arrow::Table *xs, arrow::Column *y) {
-    skl::interpreter::get();
-    PyObject* xsO = tableToNpMatrix(*xs);
-    PyObject* yO = columnToNpArr(*y);
-    skl::fit(model, xsO, yO);
+EXPORT PyObject* newLinearRegression() noexcept
+{
+    return TRANSLATE_EXCEPTION(nullptr)
+    {
+        skl::interpreter::get();
+        return skl::newLinearRegression().release().ptr();;
+    };
 }
 
-EXPORT double score(PyObject* model, arrow::Table* xs, arrow::Column* y)
+EXPORT void fit(PyObject* model, arrow::Table *xs, arrow::Column *y) noexcept
 {
-    skl::interpreter::get();
-    PyObject* xsO = tableToNpMatrix(*xs);
-    PyObject* yO = columnToNpArr(*y);
-    return skl::score(model, xsO, yO);
+    return TRANSLATE_EXCEPTION(nullptr)
+    {
+        skl::interpreter::get();
+        auto xsO = tableToNpMatrix(*xs);
+        auto yO = columnToNpArr(*y);
+        skl::fit(pybind11::reinterpret_borrow<pybind11::object>(model), xsO, yO);
+    };
 }
 
-EXPORT arrow::Column* predict(PyObject* model, arrow::Table* xs)
+EXPORT double score(PyObject* model, arrow::Table* xs, arrow::Column* y) noexcept
 {
-    skl::interpreter::get();
-    PyObject* xsO = tableToNpMatrix(*xs);
-    PyObject* yO = skl::predict(model, xsO);
-    PyObject_Print(yO, stdout, 0);
-    return npArrayToColumn(yO);
+    return TRANSLATE_EXCEPTION(nullptr)
+    {
+        skl::interpreter::get();
+        auto xsO = tableToNpMatrix(*xs);
+        auto yO = columnToNpArr(*y);
+        return skl::score(fromC(model), xsO, yO);
+    };
 }
 
-EXPORT arrow::Table* confusionMatrix(arrow::Column* ytrue, arrow::Column* ypred)
+EXPORT arrow::Column* predict(PyObject* model, arrow::Table* xs) noexcept
 {
-    auto c1 = columnToNpArr(*ytrue);
-    auto c2 = columnToNpArr(*ypred);
-    auto t1 = skl::confusion_matrix(c1, c2);
-    std::cout << "\nBEFORE\n";
-    PyObject_Print(t1, stdout, 0);
-    std::cout << "\nAFTER\n";
-    return NULL;
+    return TRANSLATE_EXCEPTION(nullptr)
+    {
+        skl::interpreter::get();
+        auto xsO = tableToNpMatrix(*xs);
+        auto yO = skl::predict(fromC(model), xsO);
+        //PyObject_Print(yO, stdout, 0);
+        return LifetimeManager::instance().addOwnership(npArrayToColumn(yO, "Predictions"));
+    };
 }
 
-EXPORT arrow::Table* oneHotEncode(arrow::Column* col)
+EXPORT arrow::Table* confusionMatrix(arrow::Column* ytrue, arrow::Column* ypred) noexcept
 {
-    return [&] // NOTE: [MU] top-level faux-lambda is needed because extern-C function can't contain polymorphic lambdas (but for some reason they can contain lambdas containing polymorphic lambdas...)
+    return TRANSLATE_EXCEPTION(nullptr)
+    {
+        auto c1 = columnToNpArr(*ytrue);
+        auto c2 = columnToNpArr(*ypred);
+        auto t1 = skl::confusion_matrix(c1, c2);
+//         std::cout << "\nBEFORE\n";
+//         PyObject_Print(t1, stdout, 0);
+//         std::cout << "\nAFTER\n";
+        return nullptr;
+    };
+}
+
+EXPORT arrow::Table* oneHotEncode(arrow::Column* col) noexcept
+{
+    return TRANSLATE_EXCEPTION(nullptr)
     {
         std::unordered_map<std::string_view, int> valIndexes;
         int lastIndex = 0;
@@ -219,6 +258,12 @@ EXPORT arrow::Table* oneHotEncode(arrow::Column* col)
         }
         auto t = tableFromArrays(arrs, names);
         return LifetimeManager::instance().addOwnership(std::move(t));
-    }();
+    };
 }
+}
+
+sklearn::interpreter& sklearn::interpreter::get()
+{
+    static sklearn::interpreter ctx;
+    return ctx;
 }

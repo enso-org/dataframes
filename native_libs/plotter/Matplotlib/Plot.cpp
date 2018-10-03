@@ -169,7 +169,7 @@ extern "C"
         return TRANSLATE_EXCEPTION(outError)
         {
             auto xsarray = toPyList(*xs);
-            auto ysarray = toPyList(*xs);
+            auto ysarray = toPyList(*ys);
             plt::plot(xsarray, ysarray, label, style);
         };
     }
