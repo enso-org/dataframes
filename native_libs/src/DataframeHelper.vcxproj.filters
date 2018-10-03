@@ -75,6 +75,9 @@
     <ClCompile Include="ValueHolder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Python\PythonInterpreter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Common.h">
@@ -129,6 +132,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ValueHolder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Python\IncludePython.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Python\PythonInterpreter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

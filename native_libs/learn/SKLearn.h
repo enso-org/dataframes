@@ -3,26 +3,8 @@
 #include <stdexcept>
 #include <iostream>
 
-#if defined(_DEBUG) && defined(_MSC_VER)
-#define WAS_DEBUG
-#undef _DEBUG
-#endif
-
-#include <pybind11/embed.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/numpy.h>
-#include <numpy/arrayobject.h>
-#include <Python.h>
-#include <datetime.h>
+#include "Python/IncludePython.h"
 using namespace pybind11::literals;
-
-#ifdef WAS_DEBUG
-#define _DEBUG 1
-#endif
-
-#if PY_MAJOR_VERSION >= 3
-#  define PyString_FromString PyUnicode_FromString
-#endif
 
 namespace arrow
 {
@@ -43,29 +25,8 @@ struct EXPORT interpreter
 
 private:
 
-#  if PY_MAJOR_VERSION >= 3
-    void *import_numpy() {
-        import_array(); // initialize C-API
-        return NULL;
-    }
-#  else
-    void import_numpy() {
-        import_array(); // initialize C-API
-    }
-#  endif
-
     interpreter()
     {
-        // optional but recommended
-#if PY_MAJOR_VERSION >= 3
-        wchar_t name[] = L"plotting";
-#else
-        char name[] = "plotting";
-#endif
-        Py_SetProgramName(name);
-        pybind11::initialize_interpreter();
-        import_numpy(); // initialize numpy C-API
-
         pybind11::module sklearnlinmod = pybind11::module::import("sklearn.linear_model");
         //pybind11::module sklearnselmod = pybind11::module::import("sklearn.model_selection");
         pybind11::module sklearnmetricsmod = pybind11::module::import("sklearn.metrics");
@@ -78,7 +39,6 @@ private:
 
     ~interpreter()
     {
-        pybind11::finalize_interpreter();
     }
 };
 
@@ -124,3 +84,4 @@ inline pybind11::object confusion_matrix(pybind11::object ytrue, pybind11::objec
 
 EXPORT pybind11::array_t<double> columnToNpArr(const arrow::Column &col);
 EXPORT std::shared_ptr<arrow::Column> npArrayToColumn(pybind11::array_t<double> arr, std::string name);
+EXPORT pybind11::array tableToNpMatrix(const arrow::Table& table);

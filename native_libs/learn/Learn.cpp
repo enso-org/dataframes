@@ -6,6 +6,9 @@
 #include <LifetimeManager.h>
 #include <Analysis.h>
 #include "Core/Error.h"
+#include "Python/PythonInterpreter.h"
+
+COMPILATION_UNIT_USING_NUMPY;
 
 namespace skl = sklearn;
 
@@ -17,7 +20,10 @@ struct NPArrayBuilder
     {
         rows = _rows;
         cols = _cols;
+        // FIXME!!! I think this can leak
         data = (double*) malloc(sizeof(double)*rows*cols);
+        if(!data)
+            THROW("failed to allocate memory for numpy matrix of {} rows x {} columns", _rows, _cols);
     }
     void setAt(int64_t row, int64_t col, double d)
     {
@@ -25,14 +31,14 @@ struct NPArrayBuilder
     }
     void setAt(int64_t row, int64_t col, int64_t i)
     {
-        if (row==0) std::cout << (double) i << std::endl;
+        //if (row==0) std::cout << (double) i << std::endl;
         data[row*cols+col] = (double) i;
     }
-    void setAt(int64_t row, int64_t col, const std::string_view& s)
+    void setAt(int64_t row, int64_t col, std::string_view)
     {
         throw std::runtime_error("Cannot use strings with numpy array.");
     }
-    void setAt(int64_t row, int64_t col, const Timestamp&)
+    void setAt(int64_t row, int64_t col, Timestamp)
     {
         throw std::runtime_error("Cannot use timestamps with numpy array.");
     }
@@ -52,6 +58,26 @@ struct NPArrayBuilder
         pybind11::handle h = PyArray_SimpleNewFromData(1, &dim, NPY_DOUBLE, data);
         return pybind11::array{ h, false };
     }
+    template<typename Iterable>
+    void addColumn(int columnIndex, const Iterable &iterable)
+    {
+        // TODO? perhaps can relax rules and fill with nulls / ignore additional values
+        if(iterable.length() != rows)
+            THROW("failed to add column with index {} to numpy matrix: it has {} rows while expected {}", columnIndex, iterable.length(), rows);
+
+        int64_t rowIndex = 0;
+        iterateOverGeneric(iterable,
+            [&](auto&& elem)
+            {
+                setAt(rowIndex, columnIndex, elem);
+                rowIndex++;
+            },
+            [&]()
+            {
+                setNaAt(rowIndex, columnIndex);
+                rowIndex++;
+            });
+    }
 };
 
 auto fromC(PyObject *obj)
@@ -59,28 +85,20 @@ auto fromC(PyObject *obj)
     return pybind11::reinterpret_borrow<pybind11::object>(obj);
 }
 
+auto passToC(pybind11::object obj)
+{
+    return obj.release().ptr();
+}
+
 pybind11::array tableToNpMatrix(const arrow::Table& table)
 {
-    skl::interpreter::get();
     NPArrayBuilder builder;
     builder.init(table.num_rows(), table.num_columns());
     auto cols = getColumns(table);
     int colIndex = 0;
     for (auto& col : cols)
     {
-        int rowIndex = 0;
-        iterateOverGeneric(*col,
-                [&](auto&& elem)
-                {
-                    builder.setAt(rowIndex, colIndex, elem);
-                    rowIndex++;
-                },
-                [&]()
-                {
-                    builder.setNaAt(rowIndex, colIndex);
-                    rowIndex++;
-                });
-        colIndex++;
+        builder.addColumn(colIndex++, *col);
     }
     auto res = builder.getNPMatrix();
     //PyObject_Print(res, stdout, 0);
@@ -89,21 +107,9 @@ pybind11::array tableToNpMatrix(const arrow::Table& table)
 
 pybind11::array_t<double> columnToNpArr(const arrow::Column &col)
 {
-    skl::interpreter::get();
     NPArrayBuilder builder;
     builder.init(col.length(), 1);
-    int rowIndex = 0;
-    iterateOverGeneric(col,
-            [&](auto&& elem)
-            {
-                builder.setAt(rowIndex, 0, elem);
-                rowIndex++;
-            },
-            [&]()
-            {
-                builder.setNaAt(rowIndex, 0);
-                rowIndex++;
-            });
+    builder.addColumn(0, col);
     auto res = builder.getNPArr();
     //PyObject_Print(res, stdout, 0);
     return res;
@@ -113,7 +119,6 @@ std::shared_ptr<arrow::Column> npArrayToColumn(pybind11::array_t<double> arr, st
 {
     // TODO: check that this is 1-D array
     // TODO: check that array contains doubles
-    skl::interpreter::get();
     auto size = arr.shape(0);
     auto data = (const double *) arr.data();
 
@@ -133,69 +138,62 @@ std::shared_ptr<arrow::Column> npArrayToColumn(pybind11::array_t<double> arr, st
 extern "C"
 {
 
-EXPORT void toNpArr(arrow::Table* tb) noexcept
+EXPORT void toNpArr(arrow::Table* tb, const char **outError) noexcept
 {
-    return TRANSLATE_EXCEPTION(nullptr)
+    return TRANSLATE_EXCEPTION(outError)
     {
-        skl::interpreter::get();
         tableToNpMatrix(*tb);
     };
 }
 
-EXPORT void freePyObj(PyObject* o) noexcept
+EXPORT void freePyObj(PyObject* o, const char **outError) noexcept
 {
-    return TRANSLATE_EXCEPTION(nullptr)
+    return TRANSLATE_EXCEPTION(outError)
     {
-        skl::interpreter::get();
-        Py_DECREF(o);
+        Py_XDECREF(o);
     };
 }
 
-EXPORT PyObject* newLogisticRegression(double C) noexcept
+EXPORT PyObject* newLogisticRegression(double C, const char **outError) noexcept
 {
-    return TRANSLATE_EXCEPTION(nullptr)
+    return TRANSLATE_EXCEPTION(outError)
     {
-        skl::interpreter::get();
-        return skl::newLogisticRegression(C).release().ptr();
+        return passToC(skl::newLogisticRegression(C));
     };
 }
 
-EXPORT PyObject* newLinearRegression() noexcept
+EXPORT PyObject* newLinearRegression(const char **outError) noexcept
 {
-    return TRANSLATE_EXCEPTION(nullptr)
+    return TRANSLATE_EXCEPTION(outError)
     {
-        skl::interpreter::get();
-        return skl::newLinearRegression().release().ptr();;
+        return passToC(skl::newLinearRegression());
     };
 }
 
-EXPORT void fit(PyObject* model, arrow::Table *xs, arrow::Column *y) noexcept
+EXPORT void fit(PyObject* model, arrow::Table *xs, arrow::Column *y, const char **outError) noexcept
 {
-    return TRANSLATE_EXCEPTION(nullptr)
+    return TRANSLATE_EXCEPTION(outError)
     {
-        skl::interpreter::get();
         auto xsO = tableToNpMatrix(*xs);
         auto yO = columnToNpArr(*y);
         skl::fit(pybind11::reinterpret_borrow<pybind11::object>(model), xsO, yO);
     };
 }
 
-EXPORT double score(PyObject* model, arrow::Table* xs, arrow::Column* y) noexcept
+EXPORT double score(PyObject* model, arrow::Table* xs, arrow::Column* y, const char **outError) noexcept
 {
-    return TRANSLATE_EXCEPTION(nullptr)
+    return TRANSLATE_EXCEPTION(outError)
     {
-        skl::interpreter::get();
         auto xsO = tableToNpMatrix(*xs);
         auto yO = columnToNpArr(*y);
         return skl::score(fromC(model), xsO, yO);
     };
 }
 
-EXPORT arrow::Column* predict(PyObject* model, arrow::Table* xs) noexcept
+EXPORT arrow::Column* predict(PyObject* model, arrow::Table* xs, const char **outError) noexcept
 {
-    return TRANSLATE_EXCEPTION(nullptr)
+    return TRANSLATE_EXCEPTION(outError)
     {
-        skl::interpreter::get();
         auto xsO = tableToNpMatrix(*xs);
         auto yO = skl::predict(fromC(model), xsO);
         //PyObject_Print(yO, stdout, 0);
@@ -203,9 +201,9 @@ EXPORT arrow::Column* predict(PyObject* model, arrow::Table* xs) noexcept
     };
 }
 
-EXPORT arrow::Table* confusionMatrix(arrow::Column* ytrue, arrow::Column* ypred) noexcept
+EXPORT arrow::Table* confusionMatrix(arrow::Column* ytrue, arrow::Column* ypred, const char **outError) noexcept
 {
-    return TRANSLATE_EXCEPTION(nullptr)
+    return TRANSLATE_EXCEPTION(outError)
     {
         auto c1 = columnToNpArr(*ytrue);
         auto c2 = columnToNpArr(*ypred);
@@ -217,9 +215,9 @@ EXPORT arrow::Table* confusionMatrix(arrow::Column* ytrue, arrow::Column* ypred)
     };
 }
 
-EXPORT arrow::Table* oneHotEncode(arrow::Column* col) noexcept
+EXPORT arrow::Table* oneHotEncode(arrow::Column* col, const char **outError) noexcept
 {
-    return TRANSLATE_EXCEPTION(nullptr)
+    return TRANSLATE_EXCEPTION(outError)
     {
         std::unordered_map<std::string_view, int> valIndexes;
         int lastIndex = 0;

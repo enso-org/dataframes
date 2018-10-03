@@ -36,7 +36,8 @@ def main:
 
     table = CSVParser.readFile "F:/dev/insurance.csv"
     newPlot = table.chart.plot "age" "charges"
-    foo = LinearRegression.fit (table.column "age") (table.column "charges")
-    bar = foo . score (table.column "age") (table.column "charges")
+    columns = table.columns ["age"]
+    foo = LinearRegression.fit columns (table.column "charges")
+    bar = foo . score columns (table.column "charges")
 
     None

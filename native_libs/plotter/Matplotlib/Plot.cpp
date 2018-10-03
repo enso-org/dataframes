@@ -6,42 +6,16 @@
 #include "ValueHolder.h"
 #include "Core/Error.h"
 
+#include "Python/IncludePython.h"
+#include <matplotlibcpp.h>
+#include "Python/PythonInterpreter.h"
 
 namespace
 {
     thread_local ValueHolder returnedString;
 }
-
-// Windows-specific issue workaround:
-// Note [MU]:
-// When _DEBUG is defined, Python defines Py_DEBUG and Py_DEBUG leads to
-// Py_DECREF expanding to special checking code that uses symbols available
-// only in debug binaries of Python. That causes linker error on Windows
-// when using Release Python binaries with Debug Dataframe build.
-//
-// And we don't want to use Debug binaries of Python, because they are 
-// incompatible with Release packages installed through pip (e.g. numpy)
-// and having Debug and Release packages side-by-side looks non-trivial.
-// Perhaps someone with better Python knowledge can improve this is future.
-// 
-// For now just let's try to trick Python into thinking that we are in Release
-// mode and hope that no one else includes this header. 
-// And that standard library/runtime won't explode.
-#if defined(_DEBUG) && defined(_MSC_VER)
-#define WAS_DEBUG
-#undef _DEBUG
-#endif
-
-#include <Python.h>
-#include <matplotlibcpp.h>
-#include <datetime.h>
-
-#ifdef WAS_DEBUG
-#define _DEBUG 1
-#endif
 ///////////////////////////////////////////////////////////////////////////////
 
-using namespace std;
 namespace plt = matplotlibcpp;
 
 struct PyListBuilder
@@ -53,11 +27,6 @@ public:
     PyListBuilder(size_t length)
         : list(PyList_New(length))
     {
-        // TODO: move to some kind of general purpose initialization procedure
-        if(PyDateTimeAPI == nullptr)
-        {
-            PyDateTime_IMPORT;
-        }
     }
     ~PyListBuilder()
     {
@@ -87,20 +56,7 @@ public:
 
     void append(Timestamp t)
     {
-        using namespace date;
-        auto daypoint = floor<days>(t);
-        auto ymd = year_month_day(daypoint);   // calendar date
-        time_of_day tod = make_time(t - daypoint); // Yields time_of_day type
-
-        // Obtain individual components as integers
-        auto y = (int)ymd.year();
-        auto m = (int)(unsigned)ymd.month();
-        auto d = (int)(unsigned)ymd.day();
-        auto h = (int)tod.hours().count();
-        auto min = (int)tod.minutes().count();
-        auto s = (int)tod.seconds().count();
-        auto us = (int)std::chrono::duration_cast<std::chrono::microseconds>(tod.subseconds()).count();
-        append(PyDateTime_FromDateAndTime(y, m, d, h, min, s, us));
+        append(PythonInterpreter::instance().toPyDateTime(t).release().ptr());
     }
 
     void appendNull()

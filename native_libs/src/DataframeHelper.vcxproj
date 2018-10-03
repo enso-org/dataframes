@@ -73,6 +73,7 @@
     <ClCompile Include="LQuery\Interpreter.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Processing.cpp" />
+    <ClCompile Include="Python\PythonInterpreter.cpp" />
     <ClCompile Include="Sort.cpp" />
     <ClCompile Include="ValueHolder.cpp" />
   </ItemGroup>
@@ -93,6 +94,8 @@
     <ClInclude Include="LQuery\Functions.h" />
     <ClInclude Include="LQuery\Interpreter.h" />
     <ClInclude Include="Processing.h" />
+    <ClInclude Include="Python\IncludePython.h" />
+    <ClInclude Include="Python\PythonInterpreter.h" />
     <ClInclude Include="Sort.h" />
     <ClInclude Include="ValueHolder.h" />
   </ItemGroup>

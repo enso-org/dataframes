@@ -14,12 +14,7 @@
 #include <functional>
 #include <string_view>
 
-#include <Python.h>
-
-#ifndef WITHOUT_NUMPY
-#  define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#  include <numpy/arrayobject.h>
-#endif // WITHOUT_NUMPY
+#include "Python/IncludePython.h"
 
 #define PyString_FromString PyUnicode_FromString
 
@@ -33,7 +28,8 @@ namespace detail {
 
 static std::string s_backend;
 
-struct _interpreter {
+struct _interpreter
+{
     PyObject *s_python_function_show;
     PyObject *s_python_function_close;
     PyObject *s_python_function_draw;
@@ -83,39 +79,8 @@ struct _interpreter {
     }
 
 private:
-
-#ifndef WITHOUT_NUMPY
-#  if PY_MAJOR_VERSION >= 3
-
-    void *import_numpy() {
-        import_array(); // initialize C-API
-        return NULL;
-    }
-
-#  else
-
-    void import_numpy() {
-        import_array(); // initialize C-API
-    }
-
-#  endif
-#endif
-
-    _interpreter() {
-
-        // optional but recommended
-#if PY_MAJOR_VERSION >= 3
-        wchar_t name[] = L"plotting";
-#else
-        char name[] = "plotting";
-#endif
-        Py_SetProgramName(name);
-        Py_Initialize();
-
-#ifndef WITHOUT_NUMPY
-        import_numpy(); // initialize numpy C-API
-#endif
-
+    _interpreter() 
+    {
         PyObject* matplotlibname = PyString_FromString("matplotlib");
         PyObject* pyplotname = PyString_FromString("matplotlib.pyplot");
         PyObject* pyplotstylename = PyString_FromString("matplotlib.style");
@@ -293,8 +258,8 @@ private:
         s_python_empty_tuple = PyTuple_New(0);
     }
 
-    ~_interpreter() {
-        Py_Finalize();
+    ~_interpreter()
+    {
     }
 };
 
