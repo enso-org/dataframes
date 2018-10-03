@@ -1,5 +1,4 @@
 #include "ArrowUtilities.h"
-#include <date/date.h>
 
 using namespace std::literals;
 
@@ -35,7 +34,7 @@ std::shared_ptr<arrow::Column> getColumn(const arrow::Table &table, std::string_
             return col;
 
     auto names = transformToVector(columns, [](auto &col) { return col->name(); });
-    THROW("Failed to found column by name `{}`. Available columns: `{}`", 
+    THROW("Failed to find column by name `{}`. Available columns: `{}`", 
         name, names);
 }
 
