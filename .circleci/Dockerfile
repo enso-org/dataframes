@@ -2,7 +2,7 @@ FROM ubuntu:18.04 AS DataframesCI
 
 RUN apt-get update
 RUN apt-get install -y cmake g++ g++-8 git libboost-all-dev libcurl4-openssl-dev libfmt-dev python3-pip rapidjson-dev unzip wget
-RUN pip3 install numpy matplotlib seaborn
+RUN pip3 install numpy matplotlib seaborn sklearn
 
 # XLNT
 RUN wget https://github.com/tfussell/xlnt/archive/v1.3.0.zip && unzip v1.3.0.zip && cd xlnt-1.3.0 && cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo . && make -j 8 && make install && make clean && cd .. && rm -rf xlnt-1.3.0 xlnt-1.3.0.zip
