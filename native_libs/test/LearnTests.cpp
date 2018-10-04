@@ -12,7 +12,7 @@ BOOST_AUTO_TEST_CASE(DoubleColumnNumpyRoundtrip)
     BOOST_CHECK(col->Equals(*col2));
 }
 
-BOOST_AUTO_TEST_CASE(LinearRegresion, *boost::unit_test_framework::disabled())
+BOOST_AUTO_TEST_CASE(LinearRegresion)
 {
     sklearn::interpreter::get();
     auto logReg = sklearn::newLogisticRegression(5.25);
