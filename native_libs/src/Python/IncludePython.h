@@ -40,3 +40,7 @@
 
 // Python makes some defines that break other headers (namely Arrow's)
 #undef timezone
+
+#include <Core/Common.h>
+
+DFH_EXPORT pybind11::function getMethod(pybind11::object module, const std::string &attributeName);

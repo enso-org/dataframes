@@ -24,31 +24,47 @@ struct RegressionFixture
 
     std::vector<double> newSample{ 20.0 };
 
-    pybind11::array xs = tableToNpMatrix(*tableFromVectors(xsVector));
-    pybind11::array ys = columnToNpArr(*toColumn(ysVector));
+    std::shared_ptr<arrow::Table> xs = tableFromVectors(xsVector);
+    std::shared_ptr<arrow::Column> ys = toColumn(ysVector);
+
+    double predictAt20(pybind11::object model)
+    {
+        auto predictedAt20 = toVector<double>(*sklearn::predict(model, *tableFromVectors(newSample)));
+        return predictedAt20.at(0);
+    }
 };
 
 BOOST_FIXTURE_TEST_CASE(LinearRegression, RegressionFixture)
 {
     auto linReg = sklearn::newLinearRegression();
     BOOST_CHECK_EQUAL((std::string)linReg.get_type().str(), "<class 'sklearn.linear_model.base.LinearRegression'>");
-    sklearn::fit(linReg, xs, ys);
-    //pybind11::print(linReg, linReg.attr("coef_"), linReg.attr("intercept_"));
+    sklearn::fit(linReg, *xs, *ys);;
 
     auto inferredCoef = linReg.attr("coef_").cast<double>();
     auto inferredIntercept = linReg.attr("intercept_").cast<double>();
     BOOST_CHECK_EQUAL(inferredCoef, coef);
     BOOST_CHECK_EQUAL(inferredIntercept, intercept);
 
-    auto predictedAt20 = sklearn::predict(linReg, tableToNpMatrix(*tableFromVectors(newSample))).cast<double>();
+    BOOST_CHECK_EQUAL(sklearn::score(linReg, *xs, *ys), 1.0);
+
+    auto predictedAt20 = predictAt20(linReg);
     BOOST_CHECK_EQUAL(predictedAt20, linearMap(20));
 }
 
 BOOST_FIXTURE_TEST_CASE(LogisticRegression, RegressionFixture)
 {
+    // TODO: find a better example
+    // now just check that functions can be called to obtain whatever results
     auto logReg = sklearn::newLogisticRegression(5.25);
     BOOST_CHECK_EQUAL((std::string)logReg.get_type().str(), "<class 'sklearn.linear_model.logistic.LogisticRegression'>");
     BOOST_CHECK_EQUAL(logReg.attr("C").cast<double>(), 5.25);
 
+    sklearn::fit(logReg, *xs, *ys);
+    //BOOST_CHECK_EQUAL(sklearn::score(logReg, *xs, *ys), 1.0);
+    
+    // see what got inferred
+
+    auto predictedAt20 = predictAt20(logReg);
+    //BOOST_CHECK_EQUAL(predictedAt20, linearMap(20));
 
 }

@@ -92,7 +92,7 @@ auto passToC(pybind11::object obj)
     return obj.release().ptr();
 }
 
-}
+} // anonymous namespace
 
 pybind11::array tableToNpMatrix(const arrow::Table& table)
 {
@@ -245,28 +245,29 @@ EXPORT arrow::Table* oneHotEncode(const arrow::Column* col, const char **outErro
         std::unordered_map<std::string_view, int> valIndexes;
         int lastIndex = 0;
         iterateOver<arrow::Type::STRING>(*col,
-                [&](auto&& elem)
-                {
-                    if (valIndexes.find(elem)==valIndexes.end()) valIndexes[elem] = lastIndex++;
-                },
-                []() { });
+            [&](auto &&elem)
+            {
+                if (valIndexes.find(elem)==valIndexes.end()) 
+                    valIndexes[elem] = lastIndex++;
+            },
+            []() { });
         std::vector<arrow::DoubleBuilder> builders(valIndexes.size());
         iterateOver<arrow::Type::STRING>(*col,
-                [&](auto&& elem)
+            [&](auto &&elem)
+            {
+                int ind = valIndexes[elem];
+                for (int i = 0; i<builders.size(); i++)
                 {
-                    int ind = valIndexes[elem];
-                    for (int i = 0; i<builders.size(); i++)
-                    {
-                        builders[i].Append(i==ind ? 1 : 0);
-                    }
-                },
-                [&]()
+                    builders[i].Append(i==ind ? 1 : 0);
+                }
+            },
+            [&]()
+            {
+                for (int i = 0; i<builders.size(); i++)
                 {
-                    for (int i = 0; i<builders.size(); i++)
-                    {
-                        builders[i].Append(0);
-                    }
-                });
+                    builders[i].Append(0);
+                }
+            });
         std::vector<PossiblyChunkedArray> arrs;
         for (auto& bldr : builders)
         {

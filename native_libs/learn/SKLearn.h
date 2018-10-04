@@ -16,10 +16,10 @@ namespace sklearn
 
 struct EXPORT interpreter
 {
-    pybind11::object s_python_function_logistic_regression;
-    pybind11::object s_python_function_linear_regression;
-    pybind11::object s_python_function_test_train_split;
-    pybind11::object s_python_function_confusion_matrix;
+    pybind11::function s_python_function_logistic_regression;
+    pybind11::function s_python_function_linear_regression;
+    pybind11::function s_python_function_test_train_split;
+    pybind11::function s_python_function_confusion_matrix;
 
     static interpreter& get();
 
@@ -27,14 +27,14 @@ private:
 
     interpreter()
     {
-        pybind11::module sklearnlinmod = pybind11::module::import("sklearn.linear_model");
         //pybind11::module sklearnselmod = pybind11::module::import("sklearn.model_selection");
-        pybind11::module sklearnmetricsmod = pybind11::module::import("sklearn.metrics");
+        pybind11::module sklearnlinmod = pybind11::module::import("sklearn.linear_model");
+        s_python_function_logistic_regression = getMethod(sklearnlinmod, "LogisticRegression");
+        s_python_function_linear_regression   = getMethod(sklearnlinmod, "LinearRegression");
+        s_python_function_test_train_split    = getMethod(sklearnlinmod, "LogisticRegression");
 
-        s_python_function_logistic_regression = sklearnlinmod.attr("LogisticRegression");
-        s_python_function_linear_regression = sklearnlinmod.attr("LinearRegression");
-        s_python_function_test_train_split = sklearnlinmod.attr("LogisticRegression");
-        s_python_function_confusion_matrix = sklearnmetricsmod.attr("confusion_matrix");
+        pybind11::module sklearnmetricsmod = pybind11::module::import("sklearn.metrics");
+        s_python_function_confusion_matrix = getMethod(sklearnmetricsmod, "confusion_matrix");
     }
 
     ~interpreter()
