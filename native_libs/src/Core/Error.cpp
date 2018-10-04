@@ -25,7 +25,7 @@ namespace
             // should not happen unless caller gives nullptr as error target
             // in such case we will just write the error to stdout
             // as we have no other means of getting user's attention
-            std::cout << "outError==nullptr, failed to set error message: " << toWrite << std::endl;
+            std::cerr << "outError==nullptr, failed to set error message: " << toWrite << std::endl;
         }
     }
 }
