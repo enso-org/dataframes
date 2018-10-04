@@ -70,9 +70,15 @@ class Table:
     # > col2 = Column.fromList "col2" Int64Type l2
     # > table = Table.fromColumns [col1 , col2]
     #
+    # errors:
+    # `columns` argument is a empty list: Table.empty is created CONFIRM WITH MWU
+    # columns have different rows counts: Table with different amount of rows in different columns. To be fixed by https://github.com/luna/Dataframes/issues/62
+    #
     # `columns`: List of columns to construct the `Table`.
     #
     # `return`: `Table` value with columns from the list.
+    # ![](data/docs/docs1.png)
+
     def fromColumns columns:
         fields = columns.each .field
         ptrs = columns.each .ptr
@@ -88,6 +94,8 @@ class Table:
         SchemaVal wrapper
 
     # Returns a single `Column` value from `Table` by integer index.
+    #
+    # Columns are indexed from 0.
     # 
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -99,15 +107,21 @@ class Table:
     # > table = Table.fromColumns [col1 , col2]
     # > column = table.columnAt 1
     #
+    # errors:
+    # If column index is out of bounds runtime error will appear: `tableColumnAt: wrong index 2 when array length is 2`
+    #
     # `index`: Integer column index.
     #
     # `return`: `Column` value from the `Table` for given index.
+    # ![](data/docs/docs2.png)
 
     def columnAt index:
         columnWrapper = self.ptr.columnAt index
         Column.fromColumnWrapper columnWrapper
     
     # Insert a single `Column` value to `Table` under given index.
+    #
+    # Columns are indexed from 0. After inserting the column under the `index` and all of the next columns will be shifted by 1. If the index will be increased by 1 number  of columns newly added column will be at the end of the table.
     # 
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -121,10 +135,14 @@ class Table:
     # > col3 = Column.fromList "col3" Int64Type l3 
     # > newTable = table.addColumn 1 col3
     #
+    # errors:
+    # For index out of bound runtime error will appear.
+    #
     # `index`: Integer index for newly inserted column.
     # `column`: `Column` value to insert.
     #
     # `return`: `Table` value containing previous `table` with newly inserted column.
+    # ![](data/docs/docs3.png)
 
     def addColumn index column:
         self.fromWrapper $ self.ptr.addColumn index column.ptr
@@ -134,6 +152,8 @@ class Table:
     def + that: Table.concat [self, that]
 
     # Returns a `Table` value contain column matching given name.
+    #
+    # If two columns will have the same name the second one will be returned.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -153,6 +173,8 @@ class Table:
         self.columns [name]
     
     # Add a single `Column` value to `Table` with given name.
+    #
+    # New column is always added at the end of the table.
     # 
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -166,7 +188,7 @@ class Table:
     # > col3 = Column.fromList "col3" Int64Type l3 
     # > newTable = table.setAt "foo" col3
     #
-    # `name`: String name for newly added column.
+    # `name`: Name for newly added column.
     # `column`: `Column` value to add.
     #
     # `return`: `Table` value containing previous `table` with newly added column.
@@ -181,6 +203,8 @@ class Table:
 
     # Returns `Column` value from `Table` located under given name.
     #
+    # If more columns than one will have the same name the last one will be returned. 
+    #
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
@@ -190,6 +214,9 @@ class Table:
     # > col2 = Column.fromList "col2" Int64Type l2
     # > table = Table.fromColumns [col1 , col2]
     # > col = table.column "col1"
+    #
+    # errors:
+    # If column `name` will not be in table runtime error will occur.
     #
     # `name`: Name of the column to return.
     #
@@ -201,6 +228,8 @@ class Table:
     
     # Returns `Table` value being a subset of `self` table containing given list of columns.
     #
+    # If more columns than one will have the same name the last one will be returned. 
+    #
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
@@ -210,6 +239,9 @@ class Table:
     # > col2 = Column.fromList "col2" Int64Type l2
     # > table = Table.fromColumns [col1 , col2]
     # > newTable = table.columns ["col1"] 
+    #
+    # errors:
+    # If choosen column will not be in table runtime error will occur.
     #
     # `names`: List of column names to be returned.
     #
@@ -241,6 +273,9 @@ class Table:
     
     # Returns the first `count` rows
     #
+    # If the number of elements to take will be higher than actual rows number the returned table will be tha same as the `self` table. 
+    # For `count` number negative the tabel with no data will be returned.
+    #
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
@@ -258,6 +293,9 @@ class Table:
     def take count: self.slice 0 count
 
     # Drop first `count` rows. 
+    #
+    # If the number of elements to take will be higher than actual rows number empty table will be returned.
+    # For negative `count` number the returned table will be the same as `self` table. TO BE FIXED https://github.com/luna/Dataframes/issues/63 
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -356,7 +394,7 @@ class Table:
     # > col1 = Column.fromList "col1" Int64Type l1
     # > col2 = Column.fromList "col2" StringType l2
     # > table = Table.fromColumns [col1 , col2]
-    # > column = table.each (_.at "col1" * 10)
+    # > column = table.each (x: x.at "col1" * 10)
     #
     # `f`: Function to apply on `self` table.
     #
@@ -377,12 +415,12 @@ class Table:
     # > col1 = Column.fromList "col1" Int64Type l1
     # > col2 = Column.fromList "col2" StringType l2
     # > table = Table.fromColumns [col1 , col2]
-    # > newTable = table.eachTo "col3" (_.at "col1" * 10)
+    # > newTable = table.eachTo "col3" (x: x.at "col1" * 10)
     #
     # `name`: Name of newly created column in result table.
     # `f`: Function to apply on `self` table.
     #
-    # `return`: `Table` value with `self` table and additionla column with provided name and values resulting from function `f` application.
+    # `return`: `self` with additional column `name` containing values returned by f for each row.
 
     def eachTo name f:
         r = self.each f
