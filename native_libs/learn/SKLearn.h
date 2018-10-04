@@ -81,7 +81,3 @@ inline pybind11::object confusion_matrix(pybind11::object ytrue, pybind11::objec
 }
 
 } // end sklearn
-
-EXPORT pybind11::array_t<double> columnToNpArr(const arrow::Column &col);
-EXPORT std::shared_ptr<arrow::Column> npArrayToColumn(pybind11::array_t<double> arr, std::string name);
-EXPORT pybind11::array tableToNpMatrix(const arrow::Table& table);

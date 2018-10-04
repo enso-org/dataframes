@@ -1,3 +1,4 @@
+#include "Learn.h"
 #include <cmath>
 #include <arrow/array.h>
 #include <Core/ArrowUtilities.h>
@@ -10,7 +11,8 @@
 
 COMPILATION_UNIT_USING_NUMPY;
 
-namespace skl = sklearn;
+namespace
+{
 
 struct NPArrayBuilder
 {
@@ -90,6 +92,8 @@ auto passToC(pybind11::object obj)
     return obj.release().ptr();
 }
 
+}
+
 pybind11::array tableToNpMatrix(const arrow::Table& table)
 {
     NPArrayBuilder builder;
@@ -135,10 +139,40 @@ std::shared_ptr<arrow::Column> npArrayToColumn(pybind11::array_t<double> arr, st
     return toColumn(finish(builder), name);
 }
 
+void sklearn::fit(pybind11::object model, const arrow::Table &xs, const arrow::Column &y)
+{
+    auto xsO = tableToNpMatrix(xs);
+    auto yO = columnToNpArr(y);
+    sklearn::fit(model, xsO, yO);
+}
+
+double sklearn::score(pybind11::object model, const arrow::Table &xs, const arrow::Column &y)
+{
+    auto xsO = tableToNpMatrix(xs);
+    auto yO = columnToNpArr(y);
+    return sklearn::score(model, xsO, yO);
+}
+
+std::shared_ptr<arrow::Column> sklearn::predict(pybind11::object model, const arrow::Table &xs)
+{
+    auto xsO = tableToNpMatrix(xs);
+    auto yO = sklearn::predict(model, xsO);
+    auto predictedColumn = npArrayToColumn(yO, "Predictions");
+    return predictedColumn;
+}
+
+std::shared_ptr<arrow::Table> sklearn::confusionMatrix(const arrow::Column &ytrue, const arrow::Column &ypred)
+{
+    auto c1 = columnToNpArr(ytrue);
+    auto c2 = columnToNpArr(ypred);
+    auto t1 = sklearn::confusion_matrix(c1, c2);
+    THROW("not implemented");
+}
+
 extern "C"
 {
 
-EXPORT void toNpArr(arrow::Table* tb, const char **outError) noexcept
+EXPORT void toNpArr(const arrow::Table* tb, const char **outError) noexcept
 {
     return TRANSLATE_EXCEPTION(outError)
     {
@@ -158,7 +192,7 @@ EXPORT PyObject* newLogisticRegression(double C, const char **outError) noexcept
 {
     return TRANSLATE_EXCEPTION(outError)
     {
-        return passToC(skl::newLogisticRegression(C));
+        return passToC(sklearn::newLogisticRegression(C));
     };
 }
 
@@ -166,56 +200,45 @@ EXPORT PyObject* newLinearRegression(const char **outError) noexcept
 {
     return TRANSLATE_EXCEPTION(outError)
     {
-        return passToC(skl::newLinearRegression());
+        return passToC(sklearn::newLinearRegression());
     };
 }
 
-EXPORT void fit(PyObject* model, arrow::Table *xs, arrow::Column *y, const char **outError) noexcept
+EXPORT void fit(PyObject* model, const arrow::Table *xs, const arrow::Column *y, const char **outError) noexcept
 {
     return TRANSLATE_EXCEPTION(outError)
     {
-        auto xsO = tableToNpMatrix(*xs);
-        auto yO = columnToNpArr(*y);
-        skl::fit(pybind11::reinterpret_borrow<pybind11::object>(model), xsO, yO);
+        return sklearn::fit(fromC(model), *xs, *y);
     };
 }
 
-EXPORT double score(PyObject* model, arrow::Table* xs, arrow::Column* y, const char **outError) noexcept
+EXPORT double score(PyObject* model, const arrow::Table* xs, const arrow::Column* y, const char **outError) noexcept
 {
     return TRANSLATE_EXCEPTION(outError)
     {
-        auto xsO = tableToNpMatrix(*xs);
-        auto yO = columnToNpArr(*y);
-        return skl::score(fromC(model), xsO, yO);
+        return sklearn::score(fromC(model), *xs, *y);
     };
 }
 
-EXPORT arrow::Column* predict(PyObject* model, arrow::Table* xs, const char **outError) noexcept
+EXPORT arrow::Column* predict(PyObject* model, const arrow::Table* xs, const char **outError) noexcept
 {
     return TRANSLATE_EXCEPTION(outError)
     {
-        auto xsO = tableToNpMatrix(*xs);
-        auto yO = skl::predict(fromC(model), xsO);
-        //PyObject_Print(yO, stdout, 0);
-        return LifetimeManager::instance().addOwnership(npArrayToColumn(yO, "Predictions"));
+        auto ret = sklearn::predict(fromC(model), *xs);
+        return LifetimeManager::instance().addOwnership(ret);
     };
 }
 
-EXPORT arrow::Table* confusionMatrix(arrow::Column* ytrue, arrow::Column* ypred, const char **outError) noexcept
+EXPORT arrow::Table* confusionMatrix(const arrow::Column* ytrue, const arrow::Column* ypred, const char **outError) noexcept
 {
     return TRANSLATE_EXCEPTION(outError)
     {
-        auto c1 = columnToNpArr(*ytrue);
-        auto c2 = columnToNpArr(*ypred);
-        auto t1 = skl::confusion_matrix(c1, c2);
-//         std::cout << "\nBEFORE\n";
-//         PyObject_Print(t1, stdout, 0);
-//         std::cout << "\nAFTER\n";
-        return nullptr;
+        auto ret = sklearn::confusionMatrix(*ytrue, *ypred);
+        return LifetimeManager::instance().addOwnership(ret);
     };
 }
 
-EXPORT arrow::Table* oneHotEncode(arrow::Column* col, const char **outError) noexcept
+EXPORT arrow::Table* oneHotEncode(const arrow::Column* col, const char **outError) noexcept
 {
     return TRANSLATE_EXCEPTION(outError)
     {
@@ -258,7 +281,8 @@ EXPORT arrow::Table* oneHotEncode(arrow::Column* col, const char **outError) noe
         return LifetimeManager::instance().addOwnership(std::move(t));
     };
 }
-}
+
+} // extern "C"
 
 sklearn::interpreter& sklearn::interpreter::get()
 {

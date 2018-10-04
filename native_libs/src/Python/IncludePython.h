@@ -38,3 +38,5 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
+// Python makes some defines that break other headers (namely Arrow's)
+#undef timezone
