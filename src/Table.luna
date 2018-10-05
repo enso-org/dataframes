@@ -397,6 +397,7 @@ class Table:
     # `f`: The predicate.
     #
     # `return`: Table with columns satisfying predicate.
+    # ![](data/docs/docs10.png)
 
     def filterColumns pred:
         cols = self.toList
@@ -418,9 +419,13 @@ class Table:
     # >     filteredTable = table.eachColumn .max
     # >     None
     #
+    # errors:
+    # If the predicate can not be applied for one of the columns runtime error will appear.
+    #
     # `pred`: {min, max, mean, median, std, var, sum}.
     #
     # `return`: Table with function application results.
+    # ![](data/docs/docs11.png)
 
     def eachColumn pred:
         cols = self.toList
@@ -445,6 +450,7 @@ class Table:
     # `f`: Function to apply on `self` table.
     #
     # `return`: `Column` value with function application results.
+    # ![](data/docs/docs12.png)
 
     def each f:
         mapper = f TableHandle
@@ -470,6 +476,7 @@ class Table:
     # `f`: Function to apply on `self` table.
     #
     # `return`: `self` with additional column `name` containing values returned by f for each row.
+    # ![](data/docs/docs13.png)
 
     def eachTo name f:
         r = self.each f
@@ -499,6 +506,7 @@ class Table:
     # >     None
     #
     # `return`: `Table` value without rows containing NA records.
+    # ![](data/docs/docs14.png)
 
     def dropNa:
         self.fromWrapper $ self.ptr.dropNa
@@ -521,6 +529,7 @@ class Table:
     # `name`: Column name for which we check null values.
     #
     # `return`: `Table` value without rows containing null records in given column.
+    # ![](data/docs/docs15.png)
 
     def dropNaAt columnName:
         self.fromWrapper $ self.ptr.dropNaByName columnName
@@ -562,7 +571,8 @@ class Table:
     # >     newTable = table.fillNaAt "col1" 53
     # >     None
     #
-    #
+    # errors:
+    # 
     #
     # `columnName`: Name of the column to fill nulls in.
     # `valueToFillWith`: Value to use to fill nulls (e.g. 0).
