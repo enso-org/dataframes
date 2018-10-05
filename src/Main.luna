@@ -1,41 +1,14 @@
-import Dataframes.Learn.LogisticRegression
-import Dataframes.Learn.LinearRegression
-import Dataframes.Learn.SKLearnWrapper
-import Dataframes.Column
-import Dataframes.Learn.Coach
-import Dataframes.Table
-import Dataframes.Main
-import Dataframes.IO
-import Std.Base
-import Std.Foreign.C.Value
-import Std.Foreign
-
-
-import Dataframes.Plot.Matplotlib
-
-«70»def bar x: x
-
-«1»def main:
-    «64»readFile1 = CSVParser . readFile "./data/filtered2_half_append.csv"
-    «67»describeNa1 = readFile1 . describeNa
-    «69»fillNa1 = readFile1 . fillNa 0
-    «65»countValues1 = readFile1 . countValues "id"
-    «68»histogram1 = describeNa1 . chart . histogram "ratio"
-    «76»remove1 = fillNa1 . remove "id" . remove "MISSING_0"
-    «95»shift1 = fillNa1 . shift "technical_20" 5
-    «66»plot1 = countValues1 . chart . plot "value" "count" Nothing
-    «77»remove2 = remove1 . remove "timestamp"
-    «78»corrWith1 = remove2 . corrWith "y"
-    «79»sort1 = corrWith1 . sort [("CORR_WITH_y", Descending , NullsAfter )]
-    «80»drop1 = sort1 . drop 1
-    «81»take1 = drop1 . take 4
-    «88»column1 = take1 . column "column"
-    «83»toList1 = column1 . toList
-    «92»columns1 = fillNa1 . columns toList1
-    «84»each1 = toList1 . each (x: «85»fillNa1.chart.plot "timestamp" x Nothing)
-    «93»corr1 = columns1 . corr
-    «86»appendVertical1 = Chart None . appendVertical each1
-    «94»heatmap1 = corr1 . chart . heatmap
-    None
-
-### META {"metas":[{"marker":64,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":1360,"_vector2_x":4160}}}},{"marker":67,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":1360,"_vector2_x":4480}}}},{"marker":69,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":1680,"_vector2_x":4480}}}},{"marker":65,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":1232,"_vector2_x":4544}}}},{"marker":68,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":1360,"_vector2_x":4800}}}},{"marker":76,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":1680,"_vector2_x":4800}}}},{"marker":95,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":2000,"_vector2_x":4800}}}},{"marker":66,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":1232,"_vector2_x":4864}}}},{"marker":77,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":1680,"_vector2_x":5120}}}},{"marker":78,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":1680,"_vector2_x":5440}}}},{"marker":79,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":1680,"_vector2_x":5760}}}},{"marker":80,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":1680,"_vector2_x":6080}}}},{"marker":81,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":1680,"_vector2_x":6400}}}},{"marker":88,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":1680,"_vector2_x":6720}}}},{"marker":83,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":1680,"_vector2_x":7040}}}},{"marker":92,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":1072,"_vector2_x":7216}}}},{"marker":84,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":1680,"_vector2_x":7360}}}},{"marker":85,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":93,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":1072,"_vector2_x":7536}}}},{"marker":86,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":1680,"_vector2_x":7616}}}},{"marker":94,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":1072,"_vector2_x":7856}}}}]}
+import Std.Base		 import Std.Base
+ import Std.Foreign.C.Value		 import Std.Foreign.C.Value
+ import Std.Foreign
+		
+ import Dataframes.Internal.Utils		
+ import Dataframes.Array		
+ import Dataframes.Types		
+ import Dataframes.Internal.Test.Test		
+		
+ import Dataframes.Plot.Matplotlib
+		
+ def main:		 «70»def bar x: x
+     setHelperVerbosity False		
+     benchmark "running tests" TestArrayBuilder.run 
