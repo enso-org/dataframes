@@ -76,7 +76,10 @@ class CSVParser:
     # It is assumed thath first row contain column names. Column types will are deduced. If deduction fails the `Text` type will be applied. 
     #
     # > import Dataframes.IO 
-    # > CSVParser.readFile "./data/simple_empty.csv"
+    # >
+    # > def main:
+    # >     CSVParser.readFile "./data/simple_empty.csv"
+    # >     None
     #
     # `filepath`: Path to the CSV file to read.
     #
