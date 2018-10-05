@@ -6,6 +6,7 @@ native_libs/macos/**
 native_libs/windows/**
 native_libs/linux/**
 .idea/
+.luna-package/
 
 *.vcxproj.user
 *.vspx
