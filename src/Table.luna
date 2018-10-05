@@ -247,7 +247,7 @@ class Table:
         ix = self.schema.getFieldIndexByName name
         self.columnAt ix    
     
-    # Returns `Table` value being a subset of `self` table containing given list of columns.
+    # Returns a `Table` value with subset of columns from `self` designated by the given name list.
     #
     # If more columns than one will have the same name the last one will be returned. 
     #
@@ -451,7 +451,7 @@ class Table:
         columnWrapper = self.ptr.eachToColumn "Result" mapper
         Column.fromColumnWrapper columnWrapper
     
-    # Adds to `self` table a column with `name` and values as a result of application function `f` on the `self` table.
+    # Creates a table with columns from `self` and an additional column named `name` being a result of application function `f` on the `self` table.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -483,7 +483,7 @@ class Table:
         sortByColumns = sortBy.each (colName, order, pos): (self.column colName, order, pos)
         self.sortByColumn sortByColumns
 
-    # Removes rows with missing values.
+    # Creates `Table` value from `self` table with removed rows with missing values.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -503,7 +503,7 @@ class Table:
     def dropNa:
         self.fromWrapper $ self.ptr.dropNa
 
-    # Removes rows where missing values occurs for given column.
+    # Creates `Table` value from `self` table with removed rows where missing values occurs for given column.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -518,14 +518,14 @@ class Table:
     # >     newTable = table.dropNaAt "col2"
     # >     None
     #
-    # `name`: Column name for which we check NA values.
+    # `name`: Column name for which we check null values.
     #
-    # `return`: `Table` value without rows containing NA records in given column.
+    # `return`: `Table` value without rows containing null records in given column.
 
     def dropNaAt columnName:
         self.fromWrapper $ self.ptr.dropNaByName columnName
 
-    # Fills null values with `valueToFillWith`.
+    # Creates `Table` value from `self` table with null values filled by `valueToFillWith`.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -547,7 +547,7 @@ class Table:
     def fillNa valueToFillWith:
         self.fromWrapper $ self.ptr.fillNa valueToFillWith
 
-    # Fills null values with `valueToFillWith` in column `columnName`
+    # Creates `Table` value from `self` table with null values filled with `valueToFillWith` in column `columnName`
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
