@@ -1,14 +1,11 @@
-import Std.Base		 import Std.Base
- import Std.Foreign.C.Value		 import Std.Foreign.C.Value
- import Std.Foreign
+import Std.Base
+import Std.Foreign.C.Value
 		
- import Dataframes.Internal.Utils		
- import Dataframes.Array		
- import Dataframes.Types		
- import Dataframes.Internal.Test.Test		
+import Dataframes.Internal.Utils		
+import Dataframes.Array		
+import Dataframes.Types		
+import Dataframes.Internal.Test.Test		
 		
- import Dataframes.Plot.Matplotlib
-		
- def main:		 «70»def bar x: x
-     setHelperVerbosity False		
-     benchmark "running tests" TestArrayBuilder.run 
+def main:		 
+    setHelperVerbosity False		
+    benchmark "running tests" TestArrayBuilder.run 
