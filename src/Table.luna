@@ -188,13 +188,15 @@ class Table:
         "Table<" + self.columnCount.toText + "×" + self.rowCount.toText + ">"
 
     def corr:
-        self.fromWrapper $ self.ptr.corr
+        numeric = self.filterColumns .isNumeric
+        numeric.fromWrapper $ self.ptr.corr
 
     # corrWith :: Text -> Table 
     def corrWith columnName:
-        column = self.at columnName . toColumn
-        corrCol = Column.fromColumnWrapper $ self.ptr.corrWith column.ptr
-        colNames = self.toList . each .name
+        numeric = self.filterColumns .isNumeric
+        column = numeric.at columnName . toColumn
+        corrCol = Column.fromColumnWrapper $ numeric.ptr.corrWith column.ptr
+        colNames = numeric.toList . each .name
         corrList = corrCol.toList
         l1 = colNames . zip corrList
         sorted = l1.sortBy .second
@@ -287,14 +289,14 @@ class Table:
 class ChartBuilder:
     table :: Table
 
-    def plot cname1 cname2:
-        c1 = self.table.at cname1 . toColumn
-        c2 = self.table.at cname2 . toColumn
-        Plot c1 c2 "o" Nothing
+    def plot columnName1 columnName2:
+        c1 = self.table.at columnName1 . toColumn
+        c2 = self.table.at columnName2 . toColumn
+        Plot c1 c2 "o" Nothing Nothing
 
-    def plotDate cname1 cname2: 
-        c1 = self.table.at cname1 . toColumn
-        c2 = self.table.at cname2 . toColumn
+    def plotDate columnName1 columnName2: 
+        c1 = self.table.at columnName1 . toColumn
+        c2 = self.table.at columnName2 . toColumn
         PlotDate c1 c2
 
     def scatter cname1 cname2: 
@@ -316,6 +318,12 @@ class ChartBuilder:
 
     def heatmap:
         Heatmap self.table "RdBu_r" Nothing
+
+    def fill cname1 cname2 cname3:
+        c1 = self.table.at cname1 . toColumn
+        c2 = self.table.at cname2 . toColumn
+        c3 = self.table.at cname3 . toColumn
+        FillBetween c1 c2 c3 Nothing Nothing Nothing
 
 class Heatmap:
     data :: Table
