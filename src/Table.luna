@@ -177,7 +177,7 @@ class Table:
     # >     column = table.at "col1"
     # >     None
     #
-    # `name`: Label for column.
+    # `name`: Column name.
     #
     # `return`: `Table` value from the `table` for given name.
     # ![](data/docs/docs4.png)
