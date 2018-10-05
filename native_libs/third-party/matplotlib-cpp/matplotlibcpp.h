@@ -16,9 +16,11 @@
 
 #include "Python/IncludePython.h"
 
+using namespace pybind11::literals;
+
 #define PyString_FromString PyUnicode_FromString
 
-PyObject *PyString_FromStringView(std::string_view sv)
+inline PyObject *PyString_FromStringView(std::string_view sv)
 {
     return PyUnicode_FromStringAndSize(sv.data(), sv.size());
 }
@@ -30,41 +32,41 @@ static std::string s_backend;
 
 struct _interpreter
 {
-    PyObject *s_python_function_show;
-    PyObject *s_python_function_close;
-    PyObject *s_python_function_draw;
-    PyObject *s_python_function_pause;
-    PyObject *s_python_function_save;
-    PyObject *s_python_function_figure;
-    PyObject *s_python_function_plot;
-    PyObject *s_python_function_scatter;
-    PyObject *s_python_function_plot_date;
-    PyObject *s_python_function_kdeplot;
-    PyObject *s_python_function_heatmap;
-    PyObject *s_python_function_semilogx;
-    PyObject *s_python_function_semilogy;
-    PyObject *s_python_function_loglog;
-    PyObject *s_python_function_fill_between;
-    PyObject *s_python_function_hist;
-    PyObject *s_python_function_subplot;
-    PyObject *s_python_function_legend;
-    PyObject *s_python_function_xlim;
-    PyObject *s_python_function_xticks;
-    PyObject *s_python_function_ion;
-    PyObject *s_python_function_ylim;
-    PyObject *s_python_function_title;
-    PyObject *s_python_function_axis;
-    PyObject *s_python_function_xlabel;
-    PyObject *s_python_function_ylabel;
-    PyObject *s_python_function_grid;
-    PyObject *s_python_function_clf;
-    PyObject *s_python_function_errorbar;
-    PyObject *s_python_function_annotate;
-    PyObject *s_python_function_tight_layout;
-    PyObject *s_python_empty_tuple;
-    PyObject *s_python_function_stem;
-    PyObject *s_python_function_xkcd;
-    PyObject *s_python_function_newbytesio;
+    pybind11::function s_python_function_show;
+    pybind11::function s_python_function_close;
+    pybind11::function s_python_function_draw;
+    pybind11::function s_python_function_pause;
+    pybind11::function s_python_function_save;
+    pybind11::function s_python_function_figure;
+    pybind11::function s_python_function_plot;
+    pybind11::function s_python_function_scatter;
+    pybind11::function s_python_function_plot_date;
+    pybind11::function s_python_function_kdeplot;
+    pybind11::function s_python_function_heatmap;
+    pybind11::function s_python_function_semilogx;
+    pybind11::function s_python_function_semilogy;
+    pybind11::function s_python_function_loglog;
+    pybind11::function s_python_function_fill_between;
+    pybind11::function s_python_function_hist;
+    pybind11::function s_python_function_subplot;
+    pybind11::function s_python_function_legend;
+    pybind11::function s_python_function_xlim;
+    pybind11::function s_python_function_xticks;
+    pybind11::function s_python_function_ion;
+    pybind11::function s_python_function_ylim;
+    pybind11::function s_python_function_title;
+    pybind11::function s_python_function_axis;
+    pybind11::function s_python_function_xlabel;
+    pybind11::function s_python_function_ylabel;
+    pybind11::function s_python_function_grid;
+    pybind11::function s_python_function_clf;
+    pybind11::function s_python_function_errorbar;
+    pybind11::function s_python_function_annotate;
+    pybind11::function s_python_function_tight_layout;
+    pybind11::function s_python_function_stem;
+    pybind11::function s_python_function_xkcd;
+    pybind11::function s_python_function_newbytesio;
+    //pybind11::tuple s_python_empty_tuple;
 
 
     /* For now, _interpreter is implemented as a singleton since its currently not possible to have
@@ -81,181 +83,60 @@ struct _interpreter
 private:
     _interpreter() 
     {
-        PyObject* matplotlibname = PyString_FromString("matplotlib");
-        PyObject* pyplotname = PyString_FromString("matplotlib.pyplot");
-        PyObject* pyplotstylename = PyString_FromString("matplotlib.style");
-        PyObject* pylabname  = PyString_FromString("pylab");
-        PyObject* seabornname  = PyString_FromString("seaborn");
-        PyObject* ioname     = PyString_FromString("io");
-        if (!pyplotname || !pylabname || !matplotlibname || !pyplotstylename || !ioname) {
-            throw std::runtime_error("couldnt create string");
-        }
-
 #ifdef __linux__
         dlopen("libpython3.6m.so", RTLD_LAZY | RTLD_GLOBAL);
 #endif
-
-        PyObject* matplotlib = PyImport_Import(matplotlibname);
-        Py_DECREF(matplotlibname);
-        if (!matplotlib)
-		{
-			PyErr_Print();
-			throw std::runtime_error("Error loading module matplotlib!"); 
-		}
-
-        //char* ver = PyString_AsString(PyObject_GetAttrString(matplotlib, "__version__"));
-        //std::cout << ver << std::endl;
-
-        PyObject* pystylemod = PyImport_Import(pyplotstylename);
-        Py_DECREF(pyplotstylename);
-        if (!pystylemod) { throw std::runtime_error("Error loading module matplotlib.pyplot.style!"); }
-
-
+        auto matplotlib = pybind11::module::import("matplotlib");
+        auto pystylemod = pybind11::module::import("matplotlib.style");
 
         // matplotlib.use() must be called *before* pylab, matplotlib.pyplot,
         // or matplotlib.backends is imported for the first time
-        if (!s_backend.empty()) {
-            PyObject_CallMethod(matplotlib, const_cast<char*>("use"), const_cast<char*>("s"), s_backend.c_str());
-        }
+        matplotlib.attr("use")(s_backend);
 
-        PyObject* pymod = PyImport_Import(pyplotname);
-        Py_DECREF(pyplotname);
-        if (!pymod) {
-          PyErr_Print();
-          throw std::runtime_error("Error loading module matplotlib.pyplot!");
-        }
+        auto pymod = pybind11::module::import("matplotlib.pyplot");
+        auto pylabmod = pybind11::module::import("pylab");
+        auto seabornmod = pybind11::module::import("seaborn");
+        auto iomod = pybind11::module::import("io");
 
-        PyObject* pylabmod = PyImport_Import(pylabname);
-        Py_DECREF(pylabname);
-        if (!pylabmod) { throw std::runtime_error("Error loading module pylab!"); }
+        s_python_function_show         = getMethod(pymod, "show");
+        s_python_function_show         = getMethod(pymod, "show");
+        s_python_function_close        = getMethod(pymod, "close");
+        s_python_function_draw         = getMethod(pymod, "draw");
+        s_python_function_pause        = getMethod(pymod, "pause");
+        s_python_function_figure       = getMethod(pymod, "figure");
+        s_python_function_plot         = getMethod(pymod, "plot");
+        s_python_function_scatter      = getMethod(pymod, "scatter");
+        s_python_function_plot_date    = getMethod(pymod, "plot_date");
+        s_python_function_kdeplot      = getMethod(seabornmod, "kdeplot");
+        s_python_function_heatmap      = getMethod(seabornmod, "heatmap");
+        s_python_function_semilogx     = getMethod(pymod, "semilogx");
+        s_python_function_semilogy     = getMethod(pymod, "semilogy");
+        s_python_function_loglog       = getMethod(pymod, "loglog");
+        s_python_function_fill_between = getMethod(pymod, "fill_between");
+        s_python_function_hist         = getMethod(pymod,"hist");
+        s_python_function_subplot      = getMethod(pymod, "subplot");
+        s_python_function_legend       = getMethod(pymod, "legend");
+        s_python_function_ylim         = getMethod(pymod, "ylim");
+        s_python_function_title        = getMethod(pymod, "title");
+        s_python_function_axis         = getMethod(pymod, "axis");
+        s_python_function_xlabel       = getMethod(pymod, "xlabel");
+        s_python_function_ylabel       = getMethod(pymod, "ylabel");
+        s_python_function_grid         = getMethod(pymod, "grid");
+        s_python_function_xlim         = getMethod(pymod, "xlim");
+        s_python_function_xticks       = getMethod(pymod, "xticks");
+        s_python_function_ion          = getMethod(pymod, "ion");
+        s_python_function_save         = getMethod(pylabmod, "savefig");
+        s_python_function_annotate     = getMethod(pymod,"annotate");
+        s_python_function_clf          = getMethod(pymod, "clf");
+        s_python_function_errorbar     = getMethod(pymod, "errorbar");
+        s_python_function_tight_layout = getMethod(pymod, "tight_layout");
+        s_python_function_stem         = getMethod(pymod, "stem");
+        s_python_function_xkcd         = getMethod(pymod, "xkcd");
+        s_python_function_newbytesio   = getMethod(iomod, "BytesIO");
 
-        PyObject* seabornmod = PyImport_Import(seabornname);
-        Py_DECREF(seabornname);
-        if (!seabornmod) 
-		{
-			PyErr_Print();
-			throw std::runtime_error("Error loading module seaborn!"); 
-		}
-
-        PyObject* iomod = PyImport_Import(ioname);
-        Py_DECREF(ioname);
-        if (!iomod) { throw std::runtime_error("Error loading module io!"); }
-
-        s_python_function_show = PyObject_GetAttrString(pymod, "show");
-        s_python_function_close = PyObject_GetAttrString(pymod, "close");
-        s_python_function_draw = PyObject_GetAttrString(pymod, "draw");
-        s_python_function_pause = PyObject_GetAttrString(pymod, "pause");
-        s_python_function_figure = PyObject_GetAttrString(pymod, "figure");
-        s_python_function_plot = PyObject_GetAttrString(pymod, "plot");
-        s_python_function_scatter = PyObject_GetAttrString(pymod, "scatter");
-        s_python_function_plot_date = PyObject_GetAttrString(pymod, "plot_date");
-        s_python_function_kdeplot = PyObject_GetAttrString(seabornmod, "kdeplot");
-        s_python_function_heatmap = PyObject_GetAttrString(seabornmod, "heatmap");
-        s_python_function_semilogx = PyObject_GetAttrString(pymod, "semilogx");
-        s_python_function_semilogy = PyObject_GetAttrString(pymod, "semilogy");
-        s_python_function_loglog = PyObject_GetAttrString(pymod, "loglog");
-        s_python_function_fill_between = PyObject_GetAttrString(pymod, "fill_between");
-        s_python_function_hist = PyObject_GetAttrString(pymod,"hist");
-        s_python_function_subplot = PyObject_GetAttrString(pymod, "subplot");
-        s_python_function_legend = PyObject_GetAttrString(pymod, "legend");
-        s_python_function_ylim = PyObject_GetAttrString(pymod, "ylim");
-        s_python_function_title = PyObject_GetAttrString(pymod, "title");
-        s_python_function_axis = PyObject_GetAttrString(pymod, "axis");
-        s_python_function_xlabel = PyObject_GetAttrString(pymod, "xlabel");
-        s_python_function_ylabel = PyObject_GetAttrString(pymod, "ylabel");
-        s_python_function_grid = PyObject_GetAttrString(pymod, "grid");
-        s_python_function_xlim = PyObject_GetAttrString(pymod, "xlim");
-        s_python_function_xticks = PyObject_GetAttrString(pymod, "xticks");
-        s_python_function_ion = PyObject_GetAttrString(pymod, "ion");
-        s_python_function_save = PyObject_GetAttrString(pylabmod, "savefig");
-        s_python_function_annotate = PyObject_GetAttrString(pymod,"annotate");
-        s_python_function_clf = PyObject_GetAttrString(pymod, "clf");
-        s_python_function_errorbar = PyObject_GetAttrString(pymod, "errorbar");
-        s_python_function_tight_layout = PyObject_GetAttrString(pymod, "tight_layout");
-        s_python_function_stem = PyObject_GetAttrString(pymod, "stem");
-        s_python_function_xkcd = PyObject_GetAttrString(pymod, "xkcd");
-        s_python_function_newbytesio = PyObject_GetAttrString(iomod, "BytesIO");
-
-        PyObject *usestyle = PyObject_GetAttrString(pystylemod, "use");
-        if (!usestyle) { throw std::runtime_error("Couldn't find plt.style.use attribute"); }
-        PyObject* dark = PyString_FromString("dark_background");
-        PyObject* style_args = PyTuple_New(1);
-        PyTuple_SetItem(style_args, 0, dark);
-        PyObject* res = PyObject_CallObject(usestyle, style_args);
-
-
-
-        if(    !s_python_function_show
-            || !s_python_function_close
-            || !s_python_function_draw
-            || !s_python_function_pause
-            || !s_python_function_figure
-            || !s_python_function_plot
-            || !s_python_function_scatter
-            || !s_python_function_plot_date
-            || !s_python_function_kdeplot
-            || !s_python_function_heatmap
-            || !s_python_function_semilogx
-            || !s_python_function_semilogy
-            || !s_python_function_loglog
-            || !s_python_function_fill_between
-            || !s_python_function_subplot
-            || !s_python_function_legend
-            || !s_python_function_ylim
-            || !s_python_function_title
-            || !s_python_function_axis
-            || !s_python_function_xlabel
-            || !s_python_function_ylabel
-            || !s_python_function_grid
-            || !s_python_function_xlim
-            || !s_python_function_xticks
-            || !s_python_function_ion
-            || !s_python_function_save
-            || !s_python_function_clf
-            || !s_python_function_annotate
-            || !s_python_function_errorbar
-            || !s_python_function_errorbar
-            || !s_python_function_tight_layout
-            || !s_python_function_stem
-            || !s_python_function_xkcd
-            || !s_python_function_newbytesio
-        ) { throw std::runtime_error("Couldn't find required function!"); }
-
-        if (   !PyFunction_Check(s_python_function_show)
-            || !PyFunction_Check(s_python_function_close)
-            || !PyFunction_Check(s_python_function_draw)
-            || !PyFunction_Check(s_python_function_pause)
-            || !PyFunction_Check(s_python_function_figure)
-            || !PyFunction_Check(s_python_function_plot)
-            || !PyFunction_Check(s_python_function_scatter)
-            || !PyFunction_Check(s_python_function_plot_date)
-            || !PyFunction_Check(s_python_function_kdeplot)
-            || !PyFunction_Check(s_python_function_heatmap)
-            || !PyFunction_Check(s_python_function_semilogx)
-            || !PyFunction_Check(s_python_function_semilogy)
-            || !PyFunction_Check(s_python_function_loglog)
-            || !PyFunction_Check(s_python_function_fill_between)
-            || !PyFunction_Check(s_python_function_subplot)
-            || !PyFunction_Check(s_python_function_legend)
-            || !PyFunction_Check(s_python_function_annotate)
-            || !PyFunction_Check(s_python_function_ylim)
-            || !PyFunction_Check(s_python_function_title)
-            || !PyFunction_Check(s_python_function_axis)
-            || !PyFunction_Check(s_python_function_xlabel)
-            || !PyFunction_Check(s_python_function_ylabel)
-            || !PyFunction_Check(s_python_function_grid)
-            || !PyFunction_Check(s_python_function_xlim)
-            || !PyFunction_Check(s_python_function_xticks)
-            || !PyFunction_Check(s_python_function_ion)
-            || !PyFunction_Check(s_python_function_save)
-            || !PyFunction_Check(s_python_function_clf)
-            || !PyFunction_Check(s_python_function_tight_layout)
-            || !PyFunction_Check(s_python_function_errorbar)
-            || !PyFunction_Check(s_python_function_stem)
-            || !PyFunction_Check(s_python_function_xkcd)
-        ) { throw std::runtime_error("Python object is unexpectedly not a PyFunction."); }
-
-        s_python_empty_tuple = PyTuple_New(0);
+        auto usestyle = getMethod(pystylemod, "use");
+        usestyle("dark_background");
+        //s_python_empty_tuple = PyTuple_New(0);
     }
 
     ~_interpreter()
@@ -270,1046 +151,840 @@ inline void backend(const std::string& name)
 {
     detail::s_backend = name;
 }
-
-inline bool annotate(std::string annotation, double x, double y)
+// 
+// inline bool annotate(std::string annotation, double x, double y)
+// {
+//     PyObject * xy = PyTuple_New(2);
+//     PyObject * str = PyString_FromString(annotation.c_str());
+// 
+//     PyTuple_SetItem(xy,0,PyFloat_FromDouble(x));
+//     PyTuple_SetItem(xy,1,PyFloat_FromDouble(y));
+// 
+//     PyObject* kwargs = PyDict_New();
+//     PyDict_SetItemString(kwargs, "xy", xy);
+// 
+//     PyObject* args = PyTuple_New(1);
+//     PyTuple_SetItem(args, 0, str);
+// 
+//     PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_annotate, args, kwargs);
+// 
+//     Py_DECREF(args);
+//     Py_DECREF(kwargs);
+// 
+//     if(res) Py_DECREF(res);
+// 
+//     return res;
+// }
+// 
+// #ifndef WITHOUT_NUMPY
+// // Type selector for numpy array conversion
+// template <typename T> struct select_npy_type { const static NPY_TYPES type = NPY_NOTYPE; }; //Default
+// template <> struct select_npy_type<double> { const static NPY_TYPES type = NPY_DOUBLE; };
+// template <> struct select_npy_type<float> { const static NPY_TYPES type = NPY_FLOAT; };
+// template <> struct select_npy_type<bool> { const static NPY_TYPES type = NPY_BOOL; };
+// template <> struct select_npy_type<int8_t> { const static NPY_TYPES type = NPY_INT8; };
+// template <> struct select_npy_type<int16_t> { const static NPY_TYPES type = NPY_SHORT; };
+// template <> struct select_npy_type<int32_t> { const static NPY_TYPES type = NPY_INT; };
+// template <> struct select_npy_type<int64_t> { const static NPY_TYPES type = NPY_INT64; };
+// template <> struct select_npy_type<uint8_t> { const static NPY_TYPES type = NPY_UINT8; };
+// template <> struct select_npy_type<uint16_t> { const static NPY_TYPES type = NPY_USHORT; };
+// template <> struct select_npy_type<uint32_t> { const static NPY_TYPES type = NPY_ULONG; };
+// template <> struct select_npy_type<uint64_t> { const static NPY_TYPES type = NPY_UINT64; };
+// 
+// template<typename Numeric>
+// PyObject* get_array(const std::vector<Numeric>& v)
+// {
+//     detail::_interpreter::get();    //interpreter needs to be initialized for the numpy commands to work
+//     NPY_TYPES type = select_npy_type<Numeric>::type;
+//     if (type == NPY_NOTYPE)
+//     {
+//         std::vector<double> vd(v.size());
+//         npy_intp vsize = v.size();
+//         std::copy(v.begin(),v.end(),vd.begin());
+//         PyObject* varray = PyArray_SimpleNewFromData(1, &vsize, NPY_DOUBLE, (void*)(vd.data()));
+//         return varray;
+//     }
+// 
+//     npy_intp vsize = v.size();
+//     PyObject* varray = PyArray_SimpleNewFromData(1, &vsize, type, (void*)(v.data()));
+//     return varray;
+// }
+// 
+// #else // fallback if we don't have numpy: copy every element of the given vector
+// 
+// template<typename Numeric>
+// PyObject* get_array(const std::vector<Numeric>& v)
+// {
+//     PyObject* list = PyList_New(v.size());
+//     for(size_t i = 0; i < v.size(); ++i) {
+//         PyList_SetItem(list, i, PyFloat_FromDouble(v.at(i)));
+//     }
+//     return list;
+// }
+// 
+// #endif // WITHOUT_NUMPY
+// 
+// template<typename Numeric>
+// bool plot(const std::vector<Numeric> &x, const std::vector<Numeric> &y, const std::map<std::string, std::string>& keywords)
+// {
+//     assert(x.size() == y.size());
+// 
+//     // using numpy arrays
+//     PyObject* xarray = get_array(x);
+//     PyObject* yarray = get_array(y);
+// 
+//     // construct positional args
+//     PyObject* args = PyTuple_New(2);
+//     PyTuple_SetItem(args, 0, xarray);
+//     PyTuple_SetItem(args, 1, yarray);
+// 
+//     // construct keyword args
+//     PyObject* kwargs = PyDict_New();
+//     for(std::map<std::string, std::string>::const_iterator it = keywords.begin(); it != keywords.end(); ++it)
+//     {
+//         PyDict_SetItemString(kwargs, it->first.c_str(), PyString_FromString(it->second.c_str()));
+//     }
+// 
+//     PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_plot, args, kwargs);
+// 
+//     Py_DECREF(args);
+//     Py_DECREF(kwargs);
+//     if(res) Py_DECREF(res);
+// 
+//     return res;
+// }
+// 
+void plot_date(pybind11::list xarray, pybind11::list yarray)
 {
-    PyObject * xy = PyTuple_New(2);
-    PyObject * str = PyString_FromString(annotation.c_str());
-
-    PyTuple_SetItem(xy,0,PyFloat_FromDouble(x));
-    PyTuple_SetItem(xy,1,PyFloat_FromDouble(y));
-
-    PyObject* kwargs = PyDict_New();
-    PyDict_SetItemString(kwargs, "xy", xy);
-
-    PyObject* args = PyTuple_New(1);
-    PyTuple_SetItem(args, 0, str);
-
-    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_annotate, args, kwargs);
-
-    Py_DECREF(args);
-    Py_DECREF(kwargs);
-
-    if(res) Py_DECREF(res);
-
-    return res;
+    detail::_interpreter::get().s_python_function_plot_date(xarray, yarray);
 }
 
-#ifndef WITHOUT_NUMPY
-// Type selector for numpy array conversion
-template <typename T> struct select_npy_type { const static NPY_TYPES type = NPY_NOTYPE; }; //Default
-template <> struct select_npy_type<double> { const static NPY_TYPES type = NPY_DOUBLE; };
-template <> struct select_npy_type<float> { const static NPY_TYPES type = NPY_FLOAT; };
-template <> struct select_npy_type<bool> { const static NPY_TYPES type = NPY_BOOL; };
-template <> struct select_npy_type<int8_t> { const static NPY_TYPES type = NPY_INT8; };
-template <> struct select_npy_type<int16_t> { const static NPY_TYPES type = NPY_SHORT; };
-template <> struct select_npy_type<int32_t> { const static NPY_TYPES type = NPY_INT; };
-template <> struct select_npy_type<int64_t> { const static NPY_TYPES type = NPY_INT64; };
-template <> struct select_npy_type<uint8_t> { const static NPY_TYPES type = NPY_UINT8; };
-template <> struct select_npy_type<uint16_t> { const static NPY_TYPES type = NPY_USHORT; };
-template <> struct select_npy_type<uint32_t> { const static NPY_TYPES type = NPY_ULONG; };
-template <> struct select_npy_type<uint64_t> { const static NPY_TYPES type = NPY_UINT64; };
-
-template<typename Numeric>
-PyObject* get_array(const std::vector<Numeric>& v)
+void scatter(pybind11::list xarray, pybind11::list yarray)
 {
-    detail::_interpreter::get();    //interpreter needs to be initialized for the numpy commands to work
-    NPY_TYPES type = select_npy_type<Numeric>::type;
-    if (type == NPY_NOTYPE)
+    detail::_interpreter::get().s_python_function_scatter(xarray, yarray);
+}
+ 
+// template<typename Numeric>
+// bool stem(const std::vector<Numeric> &x, const std::vector<Numeric> &y, const std::map<std::string, std::string>& keywords)
+// {
+//     assert(x.size() == y.size());
+// 
+//     // using numpy arrays
+//     PyObject* xarray = get_array(x);
+//     PyObject* yarray = get_array(y);
+// 
+//     // construct positional args
+//     PyObject* args = PyTuple_New(2);
+//     PyTuple_SetItem(args, 0, xarray);
+//     PyTuple_SetItem(args, 1, yarray);
+// 
+//     // construct keyword args
+//     PyObject* kwargs = PyDict_New();
+//     for (std::map<std::string, std::string>::const_iterator it =
+//             keywords.begin(); it != keywords.end(); ++it) {
+//         PyDict_SetItemString(kwargs, it->first.c_str(),
+//                 PyString_FromString(it->second.c_str()));
+//     }
+// 
+//     PyObject* res = PyObject_Call(
+//             detail::_interpreter::get().s_python_function_stem, args, kwargs);
+// 
+//     Py_DECREF(args);
+//     Py_DECREF(kwargs);
+//     if (res)
+//         Py_DECREF(res);
+// 
+//     return res;
+// }
+// 
+// template< typename Numeric >
+// bool fill_between(const std::vector<Numeric>& x, const std::vector<Numeric>& y1, const std::vector<Numeric>& y2, const std::map<std::string, std::string>& keywords)
+// {
+//     assert(x.size() == y1.size());
+//     assert(x.size() == y2.size());
+// 
+//     // using numpy arrays
+//     PyObject* xarray = get_array(x);
+//     PyObject* y1array = get_array(y1);
+//     PyObject* y2array = get_array(y2);
+// 
+//     // construct positional args
+//     PyObject* args = PyTuple_New(3);
+//     PyTuple_SetItem(args, 0, xarray);
+//     PyTuple_SetItem(args, 1, y1array);
+//     PyTuple_SetItem(args, 2, y2array);
+// 
+//     // construct keyword args
+//     PyObject* kwargs = PyDict_New();
+//     for(std::map<std::string, std::string>::const_iterator it = keywords.begin(); it != keywords.end(); ++it)
+//     {
+//         PyDict_SetItemString(kwargs, it->first.c_str(), PyUnicode_FromString(it->second.c_str()));
+//     }
+// 
+//     PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_fill_between, args, kwargs);
+// 
+//     Py_DECREF(args);
+//     Py_DECREF(kwargs);
+//     if(res) Py_DECREF(res);
+// 
+//     return res;
+// }
+// 
+void hist(pybind11::list yarray, size_t bins = 20,std::string color = "b", double alpha = 1.0)
+{
+    detail::_interpreter::get().s_python_function_hist(yarray, "bins"_a=bins, "color"_a=color, "alpha"_a=alpha);
+}
+// 
+// template< typename Numeric>
+// bool hist(const std::vector<Numeric>& y, long bins=10,std::string color="b", double alpha=1.0)
+// {
+// 
+//     PyObject* yarray = get_array(y);
+// 
+//     PyObject* kwargs = PyDict_New();
+//     PyDict_SetItemString(kwargs, "bins", PyLong_FromLong(bins));
+//     PyDict_SetItemString(kwargs, "color", PyString_FromString(color.c_str()));
+//     PyDict_SetItemString(kwargs, "alpha", PyFloat_FromDouble(alpha));
+// 
+// 
+//     PyObject* plot_args = PyTuple_New(1);
+// 
+//     PyTuple_SetItem(plot_args, 0, yarray);
+// 
+// 
+//     PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_hist, plot_args, kwargs);
+// 
+// 
+//     Py_DECREF(plot_args);
+//     Py_DECREF(kwargs);
+//     if(res) Py_DECREF(res);
+// 
+//     return res;
+// }
+// 
+// template< typename Numeric>
+// bool named_hist(std::string label,const std::vector<Numeric>& y, long bins=10, std::string color="b", double alpha=1.0)
+// {
+//     PyObject* yarray = get_array(y);
+// 
+//     PyObject* kwargs = PyDict_New();
+//     PyDict_SetItemString(kwargs, "label", PyString_FromString(label.c_str()));
+//     PyDict_SetItemString(kwargs, "bins", PyLong_FromLong(bins));
+//     PyDict_SetItemString(kwargs, "color", PyString_FromString(color.c_str()));
+//     PyDict_SetItemString(kwargs, "alpha", PyFloat_FromDouble(alpha));
+// 
+// 
+//     PyObject* plot_args = PyTuple_New(1);
+//     PyTuple_SetItem(plot_args, 0, yarray);
+// 
+//     PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_hist, plot_args, kwargs);
+// 
+//     Py_DECREF(plot_args);
+//     Py_DECREF(kwargs);
+//     if(res) Py_DECREF(res);
+// 
+//     return res;
+// }
+// 
+void kdeplot2(pybind11::list xarray, pybind11::list yarray, const char* colorMap)
+{
+    detail::_interpreter::get().s_python_function_kdeplot(xarray, yarray, "cmap"_a=colorMap);
+}
+ 
+void heatmap(pybind11::list xarray, const char* colorMap, const char* annot)
+{
+    pybind11::dict kwargs{"cmap"_a = colorMap};
+    if(annot)
     {
-        std::vector<double> vd(v.size());
-        npy_intp vsize = v.size();
-        std::copy(v.begin(),v.end(),vd.begin());
-        PyObject* varray = PyArray_SimpleNewFromData(1, &vsize, NPY_DOUBLE, (void*)(vd.data()));
-        return varray;
+        insert(kwargs, "annot", pybind11::bool_(true));
+        insert(kwargs, "fmt", pybind11::str(annot));
     }
-
-    npy_intp vsize = v.size();
-    PyObject* varray = PyArray_SimpleNewFromData(1, &vsize, type, (void*)(v.data()));
-    return varray;
+    detail::_interpreter::get().s_python_function_heatmap(xarray, "cmap", **kwargs);
 }
-
-#else // fallback if we don't have numpy: copy every element of the given vector
-
-template<typename Numeric>
-PyObject* get_array(const std::vector<Numeric>& v)
+ 
+void kdeplot(pybind11::list xarray, const char* label)
 {
-    PyObject* list = PyList_New(v.size());
-    for(size_t i = 0; i < v.size(); ++i) {
-        PyList_SetItem(list, i, PyFloat_FromDouble(v.at(i)));
-    }
-    return list;
+    pybind11::dict kwargs;
+    if(label)
+        insert(kwargs, "label", pybind11::str(label));
+
+    detail::_interpreter::get().s_python_function_kdeplot(xarray, **kwargs);
 }
 
-#endif // WITHOUT_NUMPY
-
-template<typename Numeric>
-bool plot(const std::vector<Numeric> &x, const std::vector<Numeric> &y, const std::map<std::string, std::string>& keywords)
+void plot(pybind11::list xarray, pybind11::list yarray, std::string_view label, std::string_view format = "")
 {
-    assert(x.size() == y.size());
+    pybind11::dict kwargs = label.empty()
+        ? pybind11::dict{}
+        : pybind11::dict{"label"_a=label};
 
-    // using numpy arrays
-    PyObject* xarray = get_array(x);
-    PyObject* yarray = get_array(y);
-
-    // construct positional args
-    PyObject* args = PyTuple_New(2);
-    PyTuple_SetItem(args, 0, xarray);
-    PyTuple_SetItem(args, 1, yarray);
-
-    // construct keyword args
-    PyObject* kwargs = PyDict_New();
-    for(std::map<std::string, std::string>::const_iterator it = keywords.begin(); it != keywords.end(); ++it)
-    {
-        PyDict_SetItemString(kwargs, it->first.c_str(), PyString_FromString(it->second.c_str()));
-    }
-
-    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_plot, args, kwargs);
-
-    Py_DECREF(args);
-    Py_DECREF(kwargs);
-    if(res) Py_DECREF(res);
-
-    return res;
+    auto lines = detail::_interpreter::get().s_python_function_plot(xarray, yarray, format, **kwargs);
 }
-
-bool plot_date(PyObject* xarray, PyObject* yarray)
-{
-
-    PyObject* plot_args = PyTuple_New(2);
-    PyTuple_SetItem(plot_args, 0, xarray);
-    PyTuple_SetItem(plot_args, 1, yarray);
-    
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_plot_date, plot_args);
-    if (!res) {
-        std::cout << "EXCEPTION PLOT_DATE" << std::endl;
-        throw std::runtime_error("Call to plot_date() failed.");
-    }
-
-    Py_DECREF(plot_args);
-    if(res) Py_DECREF(res);
-
-    return res;
-}
-
-bool scatter(PyObject* xarray, PyObject* yarray)
-{
-
-    PyObject* plot_args = PyTuple_New(2);
-    PyTuple_SetItem(plot_args, 0, xarray);
-    PyTuple_SetItem(plot_args, 1, yarray);
-    
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_scatter, plot_args);
-    if (!res) {
-        std::cout << "EXCEPTION SCATTER" << std::endl;
-        throw std::runtime_error("Call to scatter() failed.");
-    }
-
-    Py_DECREF(plot_args);
-    if(res) Py_DECREF(res);
-
-    return res;
-}
-
-template<typename Numeric>
-bool stem(const std::vector<Numeric> &x, const std::vector<Numeric> &y, const std::map<std::string, std::string>& keywords)
-{
-    assert(x.size() == y.size());
-
-    // using numpy arrays
-    PyObject* xarray = get_array(x);
-    PyObject* yarray = get_array(y);
-
-    // construct positional args
-    PyObject* args = PyTuple_New(2);
-    PyTuple_SetItem(args, 0, xarray);
-    PyTuple_SetItem(args, 1, yarray);
-
-    // construct keyword args
-    PyObject* kwargs = PyDict_New();
-    for (std::map<std::string, std::string>::const_iterator it =
-            keywords.begin(); it != keywords.end(); ++it) {
-        PyDict_SetItemString(kwargs, it->first.c_str(),
-                PyString_FromString(it->second.c_str()));
-    }
-
-    PyObject* res = PyObject_Call(
-            detail::_interpreter::get().s_python_function_stem, args, kwargs);
-
-    Py_DECREF(args);
-    Py_DECREF(kwargs);
-    if (res)
-        Py_DECREF(res);
-
-    return res;
-}
-
-template< typename Numeric >
-bool fill_between(const std::vector<Numeric>& x, const std::vector<Numeric>& y1, const std::vector<Numeric>& y2, const std::map<std::string, std::string>& keywords)
-{
-    assert(x.size() == y1.size());
-    assert(x.size() == y2.size());
-
-    // using numpy arrays
-    PyObject* xarray = get_array(x);
-    PyObject* y1array = get_array(y1);
-    PyObject* y2array = get_array(y2);
-
-    // construct positional args
-    PyObject* args = PyTuple_New(3);
-    PyTuple_SetItem(args, 0, xarray);
-    PyTuple_SetItem(args, 1, y1array);
-    PyTuple_SetItem(args, 2, y2array);
-
-    // construct keyword args
-    PyObject* kwargs = PyDict_New();
-    for(std::map<std::string, std::string>::const_iterator it = keywords.begin(); it != keywords.end(); ++it)
-    {
-        PyDict_SetItemString(kwargs, it->first.c_str(), PyUnicode_FromString(it->second.c_str()));
-    }
-
-    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_fill_between, args, kwargs);
-
-    Py_DECREF(args);
-    Py_DECREF(kwargs);
-    if(res) Py_DECREF(res);
-
-    return res;
-}
-
-bool hist(PyObject* yarray, size_t bins=20,std::string color="b", double alpha=1.0)
-{
-
-    PyObject* kwargs = PyDict_New();
-    PyDict_SetItemString(kwargs, "bins", PyLong_FromLongLong(bins));
-    PyDict_SetItemString(kwargs, "color", PyString_FromString(color.c_str()));
-    PyDict_SetItemString(kwargs, "alpha", PyFloat_FromDouble(alpha));
-
-
-    PyObject* plot_args = PyTuple_New(1);
-
-    PyTuple_SetItem(plot_args, 0, yarray);
-
-
-    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_hist, plot_args, kwargs);
-    if (!res) {
-        std::cout << "EXCEPTION HIST" << std::endl;
-        throw std::runtime_error("Call to hist() failed.");
-    }
-
-
-    Py_DECREF(plot_args);
-    Py_DECREF(kwargs);
-    if(res) Py_DECREF(res);
-
-    return res;
-}
-
-template< typename Numeric>
-bool hist(const std::vector<Numeric>& y, long bins=10,std::string color="b", double alpha=1.0)
-{
-
-    PyObject* yarray = get_array(y);
-
-    PyObject* kwargs = PyDict_New();
-    PyDict_SetItemString(kwargs, "bins", PyLong_FromLong(bins));
-    PyDict_SetItemString(kwargs, "color", PyString_FromString(color.c_str()));
-    PyDict_SetItemString(kwargs, "alpha", PyFloat_FromDouble(alpha));
-
-
-    PyObject* plot_args = PyTuple_New(1);
-
-    PyTuple_SetItem(plot_args, 0, yarray);
-
-
-    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_hist, plot_args, kwargs);
-
-
-    Py_DECREF(plot_args);
-    Py_DECREF(kwargs);
-    if(res) Py_DECREF(res);
-
-    return res;
-}
-
-template< typename Numeric>
-bool named_hist(std::string label,const std::vector<Numeric>& y, long bins=10, std::string color="b", double alpha=1.0)
-{
-    PyObject* yarray = get_array(y);
-
-    PyObject* kwargs = PyDict_New();
-    PyDict_SetItemString(kwargs, "label", PyString_FromString(label.c_str()));
-    PyDict_SetItemString(kwargs, "bins", PyLong_FromLong(bins));
-    PyDict_SetItemString(kwargs, "color", PyString_FromString(color.c_str()));
-    PyDict_SetItemString(kwargs, "alpha", PyFloat_FromDouble(alpha));
-
-
-    PyObject* plot_args = PyTuple_New(1);
-    PyTuple_SetItem(plot_args, 0, yarray);
-
-    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_hist, plot_args, kwargs);
-
-    Py_DECREF(plot_args);
-    Py_DECREF(kwargs);
-    if(res) Py_DECREF(res);
-
-    return res;
-}
-
-bool kdeplot2(PyObject* xarray, PyObject* yarray, const char* colorMap)
-{
-    //PyObject* pystring = PyString_FromString(s.c_str());
-
-    PyObject* plot_args = PyTuple_New(2);
-    PyTuple_SetItem(plot_args, 0, xarray);
-    PyTuple_SetItem(plot_args, 1, yarray);
-
-    PyObject* kwargs = PyDict_New();
-    //PyDict_SetItemString(kwargs, "shade", Py_True);
-    PyDict_SetItemString(kwargs, "cmap", PyString_FromString(colorMap));
-
-    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_kdeplot, plot_args, kwargs);
-    if (!res) {
-        PyErr_Print();
-        throw std::runtime_error("Call to kdeplot() failed.");
-    }
-
-    Py_DECREF(plot_args);
-    if(res) Py_DECREF(res);
-
-    return res;
-}
-
-bool heatmap(PyObject* xarray, const char* colorMap, const char* annot)
-{
-    PyObject* plot_args = PyTuple_New(1);
-    PyTuple_SetItem(plot_args, 0, xarray);
-
-    PyObject* kwargs = PyDict_New();
-    //PyDict_SetItemString(kwargs, "shade", Py_True);
-    PyDict_SetItemString(kwargs, "cmap", PyString_FromString(colorMap));
-    if (annot) {
-        PyDict_SetItemString(kwargs, "annot", Py_True);
-        PyDict_SetItemString(kwargs, "fmt", PyString_FromString(annot));
-    }
-
-    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_heatmap, plot_args, kwargs);
-    if (!res) {
-        std::cout << "EXCEPTION HEATMAP" << std::endl;
-        PyErr_Print();
-        throw std::runtime_error("Call to heatmap() failed.");
-    }
-
-    Py_DECREF(plot_args);
-    Py_DECREF(kwargs);
-    if(res) Py_DECREF(res);
-
-    return res;
-}
-
-bool kdeplot(PyObject* xarray, const char* label)
-{
-    //PyObject* pystring = PyString_FromString(s.c_str());
-
-    PyObject* plot_args = PyTuple_New(1);
-    PyTuple_SetItem(plot_args, 0, xarray);
-
-    PyObject* kwargs = PyDict_New();
-    //PyDict_SetItemString(kwargs, "shade", Py_True);
-    if (label) PyDict_SetItemString(kwargs, "label", PyString_FromString(label));
-
-    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_kdeplot, plot_args, kwargs);
-    if (!res) {
-        std::cout << "EXCEPTION KDEPLOT" << std::endl;
-        throw std::runtime_error("Call to kdeplot() failed.");
-    }
-
-    Py_DECREF(plot_args);
-    Py_DECREF(kwargs);
-    if(res) Py_DECREF(res);
-
-    return res;
-}
-
-bool plot(PyObject* xarray, PyObject* yarray, std::string_view label, std::string_view format = "")
-{
-    PyObject* formatPy = PyString_FromStringView(format);
-
-    PyObject* plot_args = PyTuple_New(3);
-    PyTuple_SetItem(plot_args, 0, xarray);
-    PyTuple_SetItem(plot_args, 1, yarray);
-    PyTuple_SetItem(plot_args, 2, formatPy);
-
-    PyObject* kwargs = PyDict_New();
-    if(!label.empty())
-        PyDict_SetItemString(kwargs, "label", PyString_FromStringView(label));
-
-    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_plot, plot_args, kwargs);
-    if (!res)
-    {
-        std::cout << "EXCEPTION PLOT" << std::endl;
-        throw std::runtime_error("Call to plot() failed.");
-    }
-
-    Py_DECREF(plot_args);
-    Py_DECREF(kwargs);
-    if(res)
-        Py_DECREF(res);
-
-    return res;
-}
-
-template<typename NumericX, typename NumericY>
-bool plot(const std::vector<NumericX>& x, const std::vector<NumericY>& y, const std::string& s = "")
-{
-    assert(x.size() == y.size());
-
-    PyObject* xarray = get_array(x);
-    PyObject* yarray = get_array(y);
-
-    PyObject* pystring = PyString_FromString(s.c_str());
-
-    PyObject* plot_args = PyTuple_New(3);
-    PyTuple_SetItem(plot_args, 0, xarray);
-    PyTuple_SetItem(plot_args, 1, yarray);
-    PyTuple_SetItem(plot_args, 2, pystring);
-
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_plot, plot_args);
-
-    Py_DECREF(plot_args);
-    if(res) Py_DECREF(res);
-
-    return res;
-}
-
-template<typename NumericX, typename NumericY>
-bool stem(const std::vector<NumericX>& x, const std::vector<NumericY>& y, const std::string& s = "")
-{
-    assert(x.size() == y.size());
-
-    PyObject* xarray = get_array(x);
-    PyObject* yarray = get_array(y);
-
-    PyObject* pystring = PyString_FromString(s.c_str());
-
-    PyObject* plot_args = PyTuple_New(3);
-    PyTuple_SetItem(plot_args, 0, xarray);
-    PyTuple_SetItem(plot_args, 1, yarray);
-    PyTuple_SetItem(plot_args, 2, pystring);
-
-    PyObject* res = PyObject_CallObject(
-            detail::_interpreter::get().s_python_function_stem, plot_args);
-
-    Py_DECREF(plot_args);
-    if (res)
-        Py_DECREF(res);
-
-    return res;
-}
-
-template<typename NumericX, typename NumericY>
-bool semilogx(const std::vector<NumericX>& x, const std::vector<NumericY>& y, const std::string& s = "")
-{
-    assert(x.size() == y.size());
-
-    PyObject* xarray = get_array(x);
-    PyObject* yarray = get_array(y);
-
-    PyObject* pystring = PyString_FromString(s.c_str());
-
-    PyObject* plot_args = PyTuple_New(3);
-    PyTuple_SetItem(plot_args, 0, xarray);
-    PyTuple_SetItem(plot_args, 1, yarray);
-    PyTuple_SetItem(plot_args, 2, pystring);
-
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_semilogx, plot_args);
-
-    Py_DECREF(plot_args);
-    if(res) Py_DECREF(res);
-
-    return res;
-}
-
-template<typename NumericX, typename NumericY>
-bool semilogy(const std::vector<NumericX>& x, const std::vector<NumericY>& y, const std::string& s = "")
-{
-    assert(x.size() == y.size());
-
-    PyObject* xarray = get_array(x);
-    PyObject* yarray = get_array(y);
-
-    PyObject* pystring = PyString_FromString(s.c_str());
-
-    PyObject* plot_args = PyTuple_New(3);
-    PyTuple_SetItem(plot_args, 0, xarray);
-    PyTuple_SetItem(plot_args, 1, yarray);
-    PyTuple_SetItem(plot_args, 2, pystring);
-
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_semilogy, plot_args);
-
-    Py_DECREF(plot_args);
-    if(res) Py_DECREF(res);
-
-    return res;
-}
-
-template<typename NumericX, typename NumericY>
-bool loglog(const std::vector<NumericX>& x, const std::vector<NumericY>& y, const std::string& s = "")
-{
-    assert(x.size() == y.size());
-
-    PyObject* xarray = get_array(x);
-    PyObject* yarray = get_array(y);
-
-    PyObject* pystring = PyString_FromString(s.c_str());
-
-    PyObject* plot_args = PyTuple_New(3);
-    PyTuple_SetItem(plot_args, 0, xarray);
-    PyTuple_SetItem(plot_args, 1, yarray);
-    PyTuple_SetItem(plot_args, 2, pystring);
-
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_loglog, plot_args);
-
-    Py_DECREF(plot_args);
-    if(res) Py_DECREF(res);
-
-    return res;
-}
-
-template<typename NumericX, typename NumericY>
-bool errorbar(const std::vector<NumericX> &x, const std::vector<NumericY> &y, const std::vector<NumericX> &yerr, const std::string &s = "")
-{
-    assert(x.size() == y.size());
-
-    PyObject* xarray = get_array(x);
-    PyObject* yarray = get_array(y);
-    PyObject* yerrarray = get_array(yerr);
-
-    PyObject *kwargs = PyDict_New();
-
-    PyDict_SetItemString(kwargs, "yerr", yerrarray);
-
-    PyObject *pystring = PyString_FromString(s.c_str());
-
-    PyObject *plot_args = PyTuple_New(2);
-    PyTuple_SetItem(plot_args, 0, xarray);
-    PyTuple_SetItem(plot_args, 1, yarray);
-
-    PyObject *res = PyObject_Call(detail::_interpreter::get().s_python_function_errorbar, plot_args, kwargs);
-
-    Py_DECREF(kwargs);
-    Py_DECREF(plot_args);
-
-    if (res)
-        Py_DECREF(res);
-    else
-        throw std::runtime_error("Call to errorbar() failed.");
-
-    return res;
-}
-
-template<typename Numeric>
-bool named_plot(const std::string& name, const std::vector<Numeric>& y, const std::string& format = "")
-{
-    PyObject* kwargs = PyDict_New();
-    PyDict_SetItemString(kwargs, "label", PyString_FromString(name.c_str()));
-
-    PyObject* yarray = get_array(y);
-
-    PyObject* pystring = PyString_FromString(format.c_str());
-
-    PyObject* plot_args = PyTuple_New(2);
-
-    PyTuple_SetItem(plot_args, 0, yarray);
-    PyTuple_SetItem(plot_args, 1, pystring);
-
-    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_plot, plot_args, kwargs);
-
-    Py_DECREF(kwargs);
-    Py_DECREF(plot_args);
-    if (res) Py_DECREF(res);
-
-    return res;
-}
-
-template<typename Numeric>
-bool named_plot(const std::string& name, const std::vector<Numeric>& x, const std::vector<Numeric>& y, const std::string& format = "")
-{
-    PyObject* kwargs = PyDict_New();
-    PyDict_SetItemString(kwargs, "label", PyString_FromString(name.c_str()));
-
-    PyObject* xarray = get_array(x);
-    PyObject* yarray = get_array(y);
-
-    PyObject* pystring = PyString_FromString(format.c_str());
-
-    PyObject* plot_args = PyTuple_New(3);
-    PyTuple_SetItem(plot_args, 0, xarray);
-    PyTuple_SetItem(plot_args, 1, yarray);
-    PyTuple_SetItem(plot_args, 2, pystring);
-
-    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_plot, plot_args, kwargs);
-
-    Py_DECREF(kwargs);
-    Py_DECREF(plot_args);
-    if (res) Py_DECREF(res);
-
-    return res;
-}
-
-template<typename Numeric>
-bool named_semilogx(const std::string& name, const std::vector<Numeric>& x, const std::vector<Numeric>& y, const std::string& format = "")
-{
-    PyObject* kwargs = PyDict_New();
-    PyDict_SetItemString(kwargs, "label", PyString_FromString(name.c_str()));
-
-    PyObject* xarray = get_array(x);
-    PyObject* yarray = get_array(y);
-
-    PyObject* pystring = PyString_FromString(format.c_str());
-
-    PyObject* plot_args = PyTuple_New(3);
-    PyTuple_SetItem(plot_args, 0, xarray);
-    PyTuple_SetItem(plot_args, 1, yarray);
-    PyTuple_SetItem(plot_args, 2, pystring);
-
-    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_semilogx, plot_args, kwargs);
-
-    Py_DECREF(kwargs);
-    Py_DECREF(plot_args);
-    if (res) Py_DECREF(res);
-
-    return res;
-}
-
-template<typename Numeric>
-bool named_semilogy(const std::string& name, const std::vector<Numeric>& x, const std::vector<Numeric>& y, const std::string& format = "")
-{
-    PyObject* kwargs = PyDict_New();
-    PyDict_SetItemString(kwargs, "label", PyString_FromString(name.c_str()));
-
-    PyObject* xarray = get_array(x);
-    PyObject* yarray = get_array(y);
-
-    PyObject* pystring = PyString_FromString(format.c_str());
-
-    PyObject* plot_args = PyTuple_New(3);
-    PyTuple_SetItem(plot_args, 0, xarray);
-    PyTuple_SetItem(plot_args, 1, yarray);
-    PyTuple_SetItem(plot_args, 2, pystring);
-
-    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_semilogy, plot_args, kwargs);
-
-    Py_DECREF(kwargs);
-    Py_DECREF(plot_args);
-    if (res) Py_DECREF(res);
-
-    return res;
-}
-
-template<typename Numeric>
-bool named_loglog(const std::string& name, const std::vector<Numeric>& x, const std::vector<Numeric>& y, const std::string& format = "")
-{
-    PyObject* kwargs = PyDict_New();
-    PyDict_SetItemString(kwargs, "label", PyString_FromString(name.c_str()));
-
-    PyObject* xarray = get_array(x);
-    PyObject* yarray = get_array(y);
-
-    PyObject* pystring = PyString_FromString(format.c_str());
-
-    PyObject* plot_args = PyTuple_New(3);
-    PyTuple_SetItem(plot_args, 0, xarray);
-    PyTuple_SetItem(plot_args, 1, yarray);
-    PyTuple_SetItem(plot_args, 2, pystring);
-
-    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_loglog, plot_args, kwargs);
-
-    Py_DECREF(kwargs);
-    Py_DECREF(plot_args);
-    if (res) Py_DECREF(res);
-
-    return res;
-}
-
-template<typename Numeric>
-bool plot(const std::vector<Numeric>& y, const std::string& format = "")
-{
-    std::vector<Numeric> x;
-    x.resize(y.size());
-    for(size_t i=0; i < x.size(); ++i) 
-        x.at(i) = (Numeric)i;
-
-    return plot(x,y,format);
-}
-
-template<typename Numeric>
-bool stem(const std::vector<Numeric>& y, const std::string& format = "")
-{
-    std::vector<Numeric> x(y.size());
-    for (size_t i = 0; i < x.size(); ++i) x.at(i) = i;
-    return stem(x, y, format);
-}
-
-inline void figure()
-{
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_figure, detail::_interpreter::get().s_python_empty_tuple);
-    if(!res) throw std::runtime_error("Call to figure() failed.");
-
-    Py_DECREF(res);
-}
-
+// 
+// template<typename NumericX, typename NumericY>
+// bool plot(const std::vector<NumericX>& x, const std::vector<NumericY>& y, const std::string& s = "")
+// {
+//     assert(x.size() == y.size());
+// 
+//     PyObject* xarray = get_array(x);
+//     PyObject* yarray = get_array(y);
+// 
+//     PyObject* pystring = PyString_FromString(s.c_str());
+// 
+//     PyObject* plot_args = PyTuple_New(3);
+//     PyTuple_SetItem(plot_args, 0, xarray);
+//     PyTuple_SetItem(plot_args, 1, yarray);
+//     PyTuple_SetItem(plot_args, 2, pystring);
+// 
+//     PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_plot, plot_args);
+// 
+//     Py_DECREF(plot_args);
+//     if(res) Py_DECREF(res);
+// 
+//     return res;
+// }
+// 
+// template<typename NumericX, typename NumericY>
+// bool stem(const std::vector<NumericX>& x, const std::vector<NumericY>& y, const std::string& s = "")
+// {
+//     assert(x.size() == y.size());
+// 
+//     PyObject* xarray = get_array(x);
+//     PyObject* yarray = get_array(y);
+// 
+//     PyObject* pystring = PyString_FromString(s.c_str());
+// 
+//     PyObject* plot_args = PyTuple_New(3);
+//     PyTuple_SetItem(plot_args, 0, xarray);
+//     PyTuple_SetItem(plot_args, 1, yarray);
+//     PyTuple_SetItem(plot_args, 2, pystring);
+// 
+//     PyObject* res = PyObject_CallObject(
+//             detail::_interpreter::get().s_python_function_stem, plot_args);
+// 
+//     Py_DECREF(plot_args);
+//     if (res)
+//         Py_DECREF(res);
+// 
+//     return res;
+// }
+// 
+// template<typename NumericX, typename NumericY>
+// bool semilogx(const std::vector<NumericX>& x, const std::vector<NumericY>& y, const std::string& s = "")
+// {
+//     assert(x.size() == y.size());
+// 
+//     PyObject* xarray = get_array(x);
+//     PyObject* yarray = get_array(y);
+// 
+//     PyObject* pystring = PyString_FromString(s.c_str());
+// 
+//     PyObject* plot_args = PyTuple_New(3);
+//     PyTuple_SetItem(plot_args, 0, xarray);
+//     PyTuple_SetItem(plot_args, 1, yarray);
+//     PyTuple_SetItem(plot_args, 2, pystring);
+// 
+//     PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_semilogx, plot_args);
+// 
+//     Py_DECREF(plot_args);
+//     if(res) Py_DECREF(res);
+// 
+//     return res;
+// }
+// 
+// template<typename NumericX, typename NumericY>
+// bool semilogy(const std::vector<NumericX>& x, const std::vector<NumericY>& y, const std::string& s = "")
+// {
+//     assert(x.size() == y.size());
+// 
+//     PyObject* xarray = get_array(x);
+//     PyObject* yarray = get_array(y);
+// 
+//     PyObject* pystring = PyString_FromString(s.c_str());
+// 
+//     PyObject* plot_args = PyTuple_New(3);
+//     PyTuple_SetItem(plot_args, 0, xarray);
+//     PyTuple_SetItem(plot_args, 1, yarray);
+//     PyTuple_SetItem(plot_args, 2, pystring);
+// 
+//     PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_semilogy, plot_args);
+// 
+//     Py_DECREF(plot_args);
+//     if(res) Py_DECREF(res);
+// 
+//     return res;
+// }
+// 
+// template<typename NumericX, typename NumericY>
+// bool loglog(const std::vector<NumericX>& x, const std::vector<NumericY>& y, const std::string& s = "")
+// {
+//     assert(x.size() == y.size());
+// 
+//     PyObject* xarray = get_array(x);
+//     PyObject* yarray = get_array(y);
+// 
+//     PyObject* pystring = PyString_FromString(s.c_str());
+// 
+//     PyObject* plot_args = PyTuple_New(3);
+//     PyTuple_SetItem(plot_args, 0, xarray);
+//     PyTuple_SetItem(plot_args, 1, yarray);
+//     PyTuple_SetItem(plot_args, 2, pystring);
+// 
+//     PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_loglog, plot_args);
+// 
+//     Py_DECREF(plot_args);
+//     if(res) Py_DECREF(res);
+// 
+//     return res;
+// }
+// 
+// template<typename NumericX, typename NumericY>
+// bool errorbar(const std::vector<NumericX> &x, const std::vector<NumericY> &y, const std::vector<NumericX> &yerr, const std::string &s = "")
+// {
+//     assert(x.size() == y.size());
+// 
+//     PyObject* xarray = get_array(x);
+//     PyObject* yarray = get_array(y);
+//     PyObject* yerrarray = get_array(yerr);
+// 
+//     PyObject *kwargs = PyDict_New();
+// 
+//     PyDict_SetItemString(kwargs, "yerr", yerrarray);
+// 
+//     PyObject *pystring = PyString_FromString(s.c_str());
+// 
+//     PyObject *plot_args = PyTuple_New(2);
+//     PyTuple_SetItem(plot_args, 0, xarray);
+//     PyTuple_SetItem(plot_args, 1, yarray);
+// 
+//     PyObject *res = PyObject_Call(detail::_interpreter::get().s_python_function_errorbar, plot_args, kwargs);
+// 
+//     Py_DECREF(kwargs);
+//     Py_DECREF(plot_args);
+// 
+//     if (res)
+//         Py_DECREF(res);
+//     else
+//         throw std::runtime_error("Call to errorbar() failed.");
+// 
+//     return res;
+// }
+// 
+// template<typename Numeric>
+// bool named_plot(const std::string& name, const std::vector<Numeric>& y, const std::string& format = "")
+// {
+//     PyObject* kwargs = PyDict_New();
+//     PyDict_SetItemString(kwargs, "label", PyString_FromString(name.c_str()));
+// 
+//     PyObject* yarray = get_array(y);
+// 
+//     PyObject* pystring = PyString_FromString(format.c_str());
+// 
+//     PyObject* plot_args = PyTuple_New(2);
+// 
+//     PyTuple_SetItem(plot_args, 0, yarray);
+//     PyTuple_SetItem(plot_args, 1, pystring);
+// 
+//     PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_plot, plot_args, kwargs);
+// 
+//     Py_DECREF(kwargs);
+//     Py_DECREF(plot_args);
+//     if (res) Py_DECREF(res);
+// 
+//     return res;
+// }
+// 
+// template<typename Numeric>
+// bool named_plot(const std::string& name, const std::vector<Numeric>& x, const std::vector<Numeric>& y, const std::string& format = "")
+// {
+//     PyObject* kwargs = PyDict_New();
+//     PyDict_SetItemString(kwargs, "label", PyString_FromString(name.c_str()));
+// 
+//     PyObject* xarray = get_array(x);
+//     PyObject* yarray = get_array(y);
+// 
+//     PyObject* pystring = PyString_FromString(format.c_str());
+// 
+//     PyObject* plot_args = PyTuple_New(3);
+//     PyTuple_SetItem(plot_args, 0, xarray);
+//     PyTuple_SetItem(plot_args, 1, yarray);
+//     PyTuple_SetItem(plot_args, 2, pystring);
+// 
+//     PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_plot, plot_args, kwargs);
+// 
+//     Py_DECREF(kwargs);
+//     Py_DECREF(plot_args);
+//     if (res) Py_DECREF(res);
+// 
+//     return res;
+// }
+// 
+// template<typename Numeric>
+// bool named_semilogx(const std::string& name, const std::vector<Numeric>& x, const std::vector<Numeric>& y, const std::string& format = "")
+// {
+//     PyObject* kwargs = PyDict_New();
+//     PyDict_SetItemString(kwargs, "label", PyString_FromString(name.c_str()));
+// 
+//     PyObject* xarray = get_array(x);
+//     PyObject* yarray = get_array(y);
+// 
+//     PyObject* pystring = PyString_FromString(format.c_str());
+// 
+//     PyObject* plot_args = PyTuple_New(3);
+//     PyTuple_SetItem(plot_args, 0, xarray);
+//     PyTuple_SetItem(plot_args, 1, yarray);
+//     PyTuple_SetItem(plot_args, 2, pystring);
+// 
+//     PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_semilogx, plot_args, kwargs);
+// 
+//     Py_DECREF(kwargs);
+//     Py_DECREF(plot_args);
+//     if (res) Py_DECREF(res);
+// 
+//     return res;
+// }
+// 
+// template<typename Numeric>
+// bool named_semilogy(const std::string& name, const std::vector<Numeric>& x, const std::vector<Numeric>& y, const std::string& format = "")
+// {
+//     PyObject* kwargs = PyDict_New();
+//     PyDict_SetItemString(kwargs, "label", PyString_FromString(name.c_str()));
+// 
+//     PyObject* xarray = get_array(x);
+//     PyObject* yarray = get_array(y);
+// 
+//     PyObject* pystring = PyString_FromString(format.c_str());
+// 
+//     PyObject* plot_args = PyTuple_New(3);
+//     PyTuple_SetItem(plot_args, 0, xarray);
+//     PyTuple_SetItem(plot_args, 1, yarray);
+//     PyTuple_SetItem(plot_args, 2, pystring);
+// 
+//     PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_semilogy, plot_args, kwargs);
+// 
+//     Py_DECREF(kwargs);
+//     Py_DECREF(plot_args);
+//     if (res) Py_DECREF(res);
+// 
+//     return res;
+// }
+// 
+// template<typename Numeric>
+// bool named_loglog(const std::string& name, const std::vector<Numeric>& x, const std::vector<Numeric>& y, const std::string& format = "")
+// {
+//     PyObject* kwargs = PyDict_New();
+//     PyDict_SetItemString(kwargs, "label", PyString_FromString(name.c_str()));
+// 
+//     PyObject* xarray = get_array(x);
+//     PyObject* yarray = get_array(y);
+// 
+//     PyObject* pystring = PyString_FromString(format.c_str());
+// 
+//     PyObject* plot_args = PyTuple_New(3);
+//     PyTuple_SetItem(plot_args, 0, xarray);
+//     PyTuple_SetItem(plot_args, 1, yarray);
+//     PyTuple_SetItem(plot_args, 2, pystring);
+// 
+//     PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_loglog, plot_args, kwargs);
+// 
+//     Py_DECREF(kwargs);
+//     Py_DECREF(plot_args);
+//     if (res) Py_DECREF(res);
+// 
+//     return res;
+// }
+// 
+// template<typename Numeric>
+// bool plot(const std::vector<Numeric>& y, const std::string& format = "")
+// {
+//     std::vector<Numeric> x;
+//     x.resize(y.size());
+//     for(size_t i=0; i < x.size(); ++i) 
+//         x.at(i) = (Numeric)i;
+// 
+//     return plot(x,y,format);
+// }
+// 
+// template<typename Numeric>
+// bool stem(const std::vector<Numeric>& y, const std::string& format = "")
+// {
+//     std::vector<Numeric> x(y.size());
+//     for (size_t i = 0; i < x.size(); ++i) x.at(i) = i;
+//     return stem(x, y, format);
+// }
+// 
+// inline void figure()
+// {
+//     PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_figure, detail::_interpreter::get().s_python_empty_tuple);
+//     if(!res) throw std::runtime_error("Call to figure() failed.");
+// 
+//     Py_DECREF(res);
+// }
+// 
 inline void figure_size(size_t w, size_t h)
 {
-    const size_t dpi = 100;
-    PyObject* size = PyTuple_New(2);
-    PyTuple_SetItem(size, 0, PyFloat_FromDouble((double)w / dpi));
-    PyTuple_SetItem(size, 1, PyFloat_FromDouble((double)h / dpi));
-
-    PyObject* kwargs = PyDict_New();
-    PyDict_SetItemString(kwargs, "figsize", size);
-    PyDict_SetItemString(kwargs, "dpi", PyLong_FromSize_t(dpi));
-
-    PyObject* res = PyObject_Call(detail::_interpreter::get().s_python_function_figure,
-            detail::_interpreter::get().s_python_empty_tuple, kwargs);
-
-    Py_DECREF(kwargs);
-
-    if(!res) throw std::runtime_error("Call to figure_size() failed.");
-    Py_DECREF(res);
+    double dpi = 100;
+    auto size = pybind11::make_tuple(w / dpi, h / dpi); 
+    detail::_interpreter::get().s_python_function_figure("figsize"_a=size, "dpi"_a = dpi);
 }
-
-inline void rotate_ticks(long rot) {
-    PyObject* kwargs = PyDict_New();
-    PyDict_SetItemString(kwargs, "rotation", PyLong_FromLong(rot));
-    PyDict_SetItemString(kwargs, "ha", PyString_FromString("right"));
-    PyObject *res = PyObject_Call(detail::_interpreter::get().s_python_function_xticks, detail::_interpreter::get().s_python_empty_tuple, kwargs);
-    Py_DECREF(kwargs);
-    Py_DECREF(res);
+ 
+inline void rotate_ticks(long rot)
+{
+    detail::_interpreter::get().s_python_function_xticks("rotation"_a = rot, "ha"_a = "right");
 }
-
+ 
 inline void legend()
 {
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_legend, detail::_interpreter::get().s_python_empty_tuple);
-    if(!res) throw std::runtime_error("Call to legend() failed.");
-
-    Py_DECREF(res);
+    detail::_interpreter::get().s_python_function_legend();
 }
-
-template<typename Numeric>
-void ylim(Numeric left, Numeric right)
-{
-    PyObject* list = PyList_New(2);
-    PyList_SetItem(list, 0, PyFloat_FromDouble(left));
-    PyList_SetItem(list, 1, PyFloat_FromDouble(right));
-
-    PyObject* args = PyTuple_New(1);
-    PyTuple_SetItem(args, 0, list);
-
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_ylim, args);
-    if(!res) throw std::runtime_error("Call to ylim() failed.");
-
-    Py_DECREF(args);
-    Py_DECREF(res);
-}
-
-template<typename Numeric>
-void xlim(Numeric left, Numeric right)
-{
-    PyObject* list = PyList_New(2);
-    PyList_SetItem(list, 0, PyFloat_FromDouble(left));
-    PyList_SetItem(list, 1, PyFloat_FromDouble(right));
-
-    PyObject* args = PyTuple_New(1);
-    PyTuple_SetItem(args, 0, list);
-
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_xlim, args);
-    if(!res) throw std::runtime_error("Call to xlim() failed.");
-
-    Py_DECREF(args);
-    Py_DECREF(res);
-}
-
-
-inline double* xlim()
-{
-    PyObject* args = PyTuple_New(0);
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_xlim, args);
-    PyObject* left = PyTuple_GetItem(res,0);
-    PyObject* right = PyTuple_GetItem(res,1);
-
-    double* arr = new double[2];
-    arr[0] = PyFloat_AsDouble(left);
-    arr[1] = PyFloat_AsDouble(right);
-
-    if(!res) throw std::runtime_error("Call to xlim() failed.");
-
-    Py_DECREF(res);
-    return arr;
-}
-
-
-inline double* ylim()
-{
-    PyObject* args = PyTuple_New(0);
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_ylim, args);
-    PyObject* left = PyTuple_GetItem(res,0);
-    PyObject* right = PyTuple_GetItem(res,1);
-
-    double* arr = new double[2];
-    arr[0] = PyFloat_AsDouble(left);
-    arr[1] = PyFloat_AsDouble(right);
-
-    if(!res) throw std::runtime_error("Call to ylim() failed.");
-
-    Py_DECREF(res);
-    return arr;
-}
-
+// 
+// template<typename Numeric>
+// void ylim(Numeric left, Numeric right)
+// {
+//     PyObject* list = PyList_New(2);
+//     PyList_SetItem(list, 0, PyFloat_FromDouble(left));
+//     PyList_SetItem(list, 1, PyFloat_FromDouble(right));
+// 
+//     PyObject* args = PyTuple_New(1);
+//     PyTuple_SetItem(args, 0, list);
+// 
+//     PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_ylim, args);
+//     if(!res) throw std::runtime_error("Call to ylim() failed.");
+// 
+//     Py_DECREF(args);
+//     Py_DECREF(res);
+// }
+// 
+// template<typename Numeric>
+// void xlim(Numeric left, Numeric right)
+// {
+//     PyObject* list = PyList_New(2);
+//     PyList_SetItem(list, 0, PyFloat_FromDouble(left));
+//     PyList_SetItem(list, 1, PyFloat_FromDouble(right));
+// 
+//     PyObject* args = PyTuple_New(1);
+//     PyTuple_SetItem(args, 0, list);
+// 
+//     PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_xlim, args);
+//     if(!res) throw std::runtime_error("Call to xlim() failed.");
+// 
+//     Py_DECREF(args);
+//     Py_DECREF(res);
+// }
+// 
+// 
+// inline double* xlim()
+// {
+//     PyObject* args = PyTuple_New(0);
+//     PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_xlim, args);
+//     PyObject* left = PyTuple_GetItem(res,0);
+//     PyObject* right = PyTuple_GetItem(res,1);
+// 
+//     double* arr = new double[2];
+//     arr[0] = PyFloat_AsDouble(left);
+//     arr[1] = PyFloat_AsDouble(right);
+// 
+//     if(!res) throw std::runtime_error("Call to xlim() failed.");
+// 
+//     Py_DECREF(res);
+//     return arr;
+// }
+// 
+// 
+// inline double* ylim()
+// {
+//     PyObject* args = PyTuple_New(0);
+//     PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_ylim, args);
+//     PyObject* left = PyTuple_GetItem(res,0);
+//     PyObject* right = PyTuple_GetItem(res,1);
+// 
+//     double* arr = new double[2];
+//     arr[0] = PyFloat_AsDouble(left);
+//     arr[1] = PyFloat_AsDouble(right);
+// 
+//     if(!res) throw std::runtime_error("Call to ylim() failed.");
+// 
+//     Py_DECREF(res);
+//     return arr;
+// }
+// 
 inline void subplot(long nrows, long ncols, long plot_number)
 {
-    // construct positional args
-    PyObject* args = PyTuple_New(3);
-    PyTuple_SetItem(args, 0, PyFloat_FromDouble(nrows));
-    PyTuple_SetItem(args, 1, PyFloat_FromDouble(ncols));
-    PyTuple_SetItem(args, 2, PyFloat_FromDouble(plot_number));
-
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_subplot, args);
-    if(!res) throw std::runtime_error("Call to subplot() failed.");
-
-    Py_DECREF(args);
-    Py_DECREF(res);
+    detail::_interpreter::get().s_python_function_subplot(nrows, ncols, plot_number);
 }
-
-inline void title(const std::string &titlestr)
+// 
+// inline void title(const std::string &titlestr)
+// {
+//     PyObject* pytitlestr = PyString_FromString(titlestr.c_str());
+//     PyObject* args = PyTuple_New(1);
+//     PyTuple_SetItem(args, 0, pytitlestr);
+// 
+//     PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_title, args);
+//     if(!res) throw std::runtime_error("Call to title() failed.");
+// 
+//     Py_DECREF(args);
+//     Py_DECREF(res);
+// }
+// 
+// inline void axis(const std::string &axisstr)
+// {
+//     PyObject* str = PyString_FromString(axisstr.c_str());
+//     PyObject* args = PyTuple_New(1);
+//     PyTuple_SetItem(args, 0, str);
+// 
+//     PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_axis, args);
+//     if(!res) throw std::runtime_error("Call to title() failed.");
+// 
+//     Py_DECREF(args);
+//     Py_DECREF(res);
+// }
+// 
+// inline void xlabel(const std::string &str)
+// {
+//     PyObject* pystr = PyString_FromString(str.c_str());
+//     PyObject* args = PyTuple_New(1);
+//     PyTuple_SetItem(args, 0, pystr);
+// 
+//     PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_xlabel, args);
+//     if(!res) throw std::runtime_error("Call to xlabel() failed.");
+// 
+//     Py_DECREF(args);
+//     Py_DECREF(res);
+// }
+// 
+// inline void ylabel(const std::string &str)
+// {
+//     PyObject* pystr = PyString_FromString(str.c_str());
+//     PyObject* args = PyTuple_New(1);
+//     PyTuple_SetItem(args, 0, pystr);
+// 
+//     PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_ylabel, args);
+//     if(!res) throw std::runtime_error("Call to ylabel() failed.");
+// 
+//     Py_DECREF(args);
+//     Py_DECREF(res);
+// }
+// 
+// inline void grid(bool flag)
+// {
+//     PyObject* pyflag = flag ? Py_True : Py_False;
+//     Py_INCREF(pyflag);
+// 
+//     PyObject* args = PyTuple_New(1);
+//     PyTuple_SetItem(args, 0, pyflag);
+// 
+//     PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_grid, args);
+//     if(!res) throw std::runtime_error("Call to grid() failed.");
+// 
+//     Py_DECREF(args);
+//     Py_DECREF(res);
+// }
+// 
+inline void show(pybind11::bool_ block = true)
 {
-    PyObject* pytitlestr = PyString_FromString(titlestr.c_str());
-    PyObject* args = PyTuple_New(1);
-    PyTuple_SetItem(args, 0, pytitlestr);
-
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_title, args);
-    if(!res) throw std::runtime_error("Call to title() failed.");
-
-    Py_DECREF(args);
-    Py_DECREF(res);
+    detail::_interpreter::get().s_python_function_show("block"_a = block);
 }
-
-inline void axis(const std::string &axisstr)
-{
-    PyObject* str = PyString_FromString(axisstr.c_str());
-    PyObject* args = PyTuple_New(1);
-    PyTuple_SetItem(args, 0, str);
-
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_axis, args);
-    if(!res) throw std::runtime_error("Call to title() failed.");
-
-    Py_DECREF(args);
-    Py_DECREF(res);
-}
-
-inline void xlabel(const std::string &str)
-{
-    PyObject* pystr = PyString_FromString(str.c_str());
-    PyObject* args = PyTuple_New(1);
-    PyTuple_SetItem(args, 0, pystr);
-
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_xlabel, args);
-    if(!res) throw std::runtime_error("Call to xlabel() failed.");
-
-    Py_DECREF(args);
-    Py_DECREF(res);
-}
-
-inline void ylabel(const std::string &str)
-{
-    PyObject* pystr = PyString_FromString(str.c_str());
-    PyObject* args = PyTuple_New(1);
-    PyTuple_SetItem(args, 0, pystr);
-
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_ylabel, args);
-    if(!res) throw std::runtime_error("Call to ylabel() failed.");
-
-    Py_DECREF(args);
-    Py_DECREF(res);
-}
-
-inline void grid(bool flag)
-{
-    PyObject* pyflag = flag ? Py_True : Py_False;
-    Py_INCREF(pyflag);
-
-    PyObject* args = PyTuple_New(1);
-    PyTuple_SetItem(args, 0, pyflag);
-
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_grid, args);
-    if(!res) throw std::runtime_error("Call to grid() failed.");
-
-    Py_DECREF(args);
-    Py_DECREF(res);
-}
-
-inline void show(const bool block = true)
-{
-    PyObject* res;
-    if(block)
-    {
-        res = PyObject_CallObject(
-                detail::_interpreter::get().s_python_function_show,
-                detail::_interpreter::get().s_python_empty_tuple);
-    }
-    else
-    {
-        PyObject *kwargs = PyDict_New();
-        PyDict_SetItemString(kwargs, "block", Py_False);
-        res = PyObject_Call( detail::_interpreter::get().s_python_function_show, detail::_interpreter::get().s_python_empty_tuple, kwargs);
-	Py_DECREF(kwargs);
-    }
-
-
-    if (!res) throw std::runtime_error("Call to show() failed.");
-
-    Py_DECREF(res);
-}
-
-inline void close()
-{
-    PyObject* res = PyObject_CallObject(
-            detail::_interpreter::get().s_python_function_close,
-            detail::_interpreter::get().s_python_empty_tuple);
-
-    if (!res) throw std::runtime_error("Call to close() failed.");
-
-    Py_DECREF(res);
-}
-
-inline void xkcd() {
-    PyObject* res;
-    PyObject *kwargs = PyDict_New();
-
-    res = PyObject_Call(detail::_interpreter::get().s_python_function_xkcd,
-            detail::_interpreter::get().s_python_empty_tuple, kwargs);
-
-    Py_DECREF(kwargs);
-
-    if (!res)
-        throw std::runtime_error("Call to show() failed.");
-
-    Py_DECREF(res);
-}
-
-inline void draw()
-{
-    PyObject* res = PyObject_CallObject(
-        detail::_interpreter::get().s_python_function_draw,
-        detail::_interpreter::get().s_python_empty_tuple);
-
-    if (!res) throw std::runtime_error("Call to draw() failed.");
-
-    Py_DECREF(res);
-}
-
-template<typename Numeric>
-inline void pause(Numeric interval)
-{
-    PyObject* args = PyTuple_New(1);
-    PyTuple_SetItem(args, 0, PyFloat_FromDouble(interval));
-
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_pause, args);
-    if(!res) throw std::runtime_error("Call to pause() failed.");
-
-    Py_DECREF(args);
-    Py_DECREF(res);
-}
-
-inline void save(const std::string& filename)
-{
-    PyObject* pyfilename = PyString_FromString(filename.c_str());
-
-    PyObject* args = PyTuple_New(1);
-    PyTuple_SetItem(args, 0, pyfilename);
-
-    PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_save, args);
-    if (!res) throw std::runtime_error("Call to save() failed.");
-
-    Py_DECREF(args);
-    Py_DECREF(res);
-}
-
+// 
+// inline void close()
+// {
+//     PyObject* res = PyObject_CallObject(
+//             detail::_interpreter::get().s_python_function_close,
+//             detail::_interpreter::get().s_python_empty_tuple);
+// 
+//     if (!res) throw std::runtime_error("Call to close() failed.");
+// 
+//     Py_DECREF(res);
+// }
+// 
+// inline void xkcd() {
+//     PyObject* res;
+//     PyObject *kwargs = PyDict_New();
+// 
+//     res = PyObject_Call(detail::_interpreter::get().s_python_function_xkcd,
+//             detail::_interpreter::get().s_python_empty_tuple, kwargs);
+// 
+//     Py_DECREF(kwargs);
+// 
+//     if (!res)
+//         throw std::runtime_error("Call to show() failed.");
+// 
+//     Py_DECREF(res);
+// }
+// 
+// inline void draw()
+// {
+//     PyObject* res = PyObject_CallObject(
+//         detail::_interpreter::get().s_python_function_draw,
+//         detail::_interpreter::get().s_python_empty_tuple);
+// 
+//     if (!res) throw std::runtime_error("Call to draw() failed.");
+// 
+//     Py_DECREF(res);
+// }
+// 
+// template<typename Numeric>
+// inline void pause(Numeric interval)
+// {
+//     PyObject* args = PyTuple_New(1);
+//     PyTuple_SetItem(args, 0, PyFloat_FromDouble(interval));
+// 
+//     PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_pause, args);
+//     if(!res) throw std::runtime_error("Call to pause() failed.");
+// 
+//     Py_DECREF(args);
+//     Py_DECREF(res);
+// }
+// 
+// inline void save(const std::string& filename)
+// {
+//     PyObject* pyfilename = PyString_FromString(filename.c_str());
+// 
+//     PyObject* args = PyTuple_New(1);
+//     PyTuple_SetItem(args, 0, pyfilename);
+// 
+//     PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_save, args);
+//     if (!res) throw std::runtime_error("Call to save() failed.");
+// 
+//     Py_DECREF(args);
+//     Py_DECREF(res);
+// }
+// 
 inline std::string getPNG()
 {
-    PyObject* bytesIO = PyObject_CallObject(detail::_interpreter::get().s_python_function_newbytesio, detail::_interpreter::get().s_python_empty_tuple);
-    if (!bytesIO) throw std::runtime_error("Creating bytesIO failed");
-    std::cout << "1" << std::endl;
-    std::cout << "3" << std::endl;
-    PyObject* kwargs = PyDict_New();
-    PyDict_SetItemString(kwargs, "transparent", Py_True);
-    std::cout << detail::_interpreter::get().s_python_function_save << std::endl;
-    std::cout << bytesIO << std::endl;
-    PyObject* res = NULL;
-    std::cout << "4" << std::endl;
-    PyObject* args = PyTuple_New(1);
-    try {
-        std::cout << "2" << std::endl;
-        PyTuple_SetItem(args, 0, bytesIO);
-        res = PyObject_Call(detail::_interpreter::get().s_python_function_save, args, kwargs);
-    } catch (std::exception &e) {
-        std::cout << "EXCEPTION " << e.what() << std::endl;
-    }
-    std::cout << "SHALL THROW" << std::endl;
-    if (!res) throw std::runtime_error("Call to save() failed.");
-    PyObject* getvalue = PyObject_GetAttrString(bytesIO, "getvalue");
-    PyObject* bytes = PyObject_CallObject(getvalue, detail::_interpreter::get().s_python_empty_tuple);
+    auto bytesIO = detail::_interpreter::get().s_python_function_newbytesio();
+    auto res = detail::_interpreter::get().s_python_function_save(bytesIO, "transparent"_a=true);
+
+    auto bytes = getMethod(bytesIO, "getvalue")();
+
     Py_ssize_t length;
     char* buffer;
-    PyBytes_AsStringAndSize(bytes, &buffer, &length);
-    std::cout << length << std::endl;
-
-    std::string ret;
-    ret.resize(length);
-    memcpy(ret.data(), buffer, length);
-    std::cout << "memcpy doone" << std::endl;
-    Py_DECREF(args);
-    std::cout << "decref args doone" << std::endl;
-    Py_DECREF(res);
-    std::cout << "decref res doone" << std::endl;
-    Py_DECREF(bytes);
-    std::cout << "decref bytes doone" << std::endl;
-    Py_DECREF(getvalue);
-    std::cout << "decref getvalue doone" << std::endl;
-    Py_DECREF(bytesIO);
-    std::cout << "decrefs done" << std::endl;
-    return ret;
+    PyBytes_AsStringAndSize(bytes.ptr(), &buffer, &length);
+    return std::string(buffer, length);
 }
-
-inline void clf() {
-    PyObject *res = PyObject_CallObject(
-        detail::_interpreter::get().s_python_function_clf,
-        detail::_interpreter::get().s_python_empty_tuple);
-
-    if (!res) throw std::runtime_error("Call to clf() failed.");
-
-    Py_DECREF(res);
-}
-
-    inline void ion() {
-    PyObject *res = PyObject_CallObject(
-        detail::_interpreter::get().s_python_function_ion,
-        detail::_interpreter::get().s_python_empty_tuple);
-
-    if (!res) throw std::runtime_error("Call to ion() failed.");
-
-    Py_DECREF(res);
-}
-
+// 
+// inline void clf() {
+//     PyObject *res = PyObject_CallObject(
+//         detail::_interpreter::get().s_python_function_clf,
+//         detail::_interpreter::get().s_python_empty_tuple);
+// 
+//     if (!res) throw std::runtime_error("Call to clf() failed.");
+// 
+//     Py_DECREF(res);
+// }
+// 
+//     inline void ion() {
+//     PyObject *res = PyObject_CallObject(
+//         detail::_interpreter::get().s_python_function_ion,
+//         detail::_interpreter::get().s_python_empty_tuple);
+// 
+//     if (!res) throw std::runtime_error("Call to ion() failed.");
+// 
+//     Py_DECREF(res);
+// }
+// 
 // Actually, is there any reason not to call this automatically for every plot?
-inline void tight_layout() {
-    PyObject *res = PyObject_CallObject(
-        detail::_interpreter::get().s_python_function_tight_layout,
-        detail::_interpreter::get().s_python_empty_tuple);
-
-    if (!res) throw std::runtime_error("Call to tight_layout() failed.");
-
-    Py_DECREF(res);
+inline void tight_layout()
+{
+    detail::_interpreter::get().s_python_function_tight_layout();
 }
 
 // #if __cplusplus > 199711L || _MSC_VER > 1800

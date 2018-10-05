@@ -21,58 +21,55 @@ namespace plt = matplotlibcpp;
 struct PyListBuilder
 {
 protected:
-    PyObject* list = NULL;
+    pybind11::list list;
     size_t ind = 0;
 public:
     PyListBuilder(size_t length)
-        : list(PyList_New(length))
+        : list(length)
     {
     }
     ~PyListBuilder()
-    {
-        if(list)
-            Py_DECREF(list);
-    }
+    {}
 
-    void append(PyObject *item)
+    void append(pybind11::object item)
     {
-        PyList_SetItem(list, ind++, item);
+        setAt(list, ind++, item);
     }
 
     void append(int64_t i)
     {
-        append(PyLong_FromLongLong(i));
+        append(pybind11::int_(i));
     }
 
     void append(double d)
     {
-        append(PyFloat_FromDouble(d));
+        append(pybind11::float_(d));
     }
 
     void append(std::string_view s)
     {
-        append(PyString_FromString(std::string(s).c_str()));
+        append(pybind11::str(s.data(), s.length()));
     }
 
     void append(Timestamp t)
     {
-        append(PythonInterpreter::instance().toPyDateTime(t).release().ptr());
+        append(PythonInterpreter::instance().toPyDateTime(t));
     }
 
     void appendNull()
     {
-        append(PyFloat_FromDouble(std::nan(" ")));
+        append(pybind11::float_(std::numeric_limits<double>::quiet_NaN()));
     }
 
     auto release()
     {
         assert(list);
-        assert(ind == PyList_Size(list));
-        return std::exchange(list, nullptr);
+        assert(ind == list.size());
+        return std::exchange(list, pybind11::list{});
     }
 };
 
-PyObject *toPyList(const arrow::ChunkedArray &arr)
+pybind11::list toPyList(const arrow::ChunkedArray &arr)
 {
     try
     {
@@ -88,7 +85,7 @@ PyObject *toPyList(const arrow::ChunkedArray &arr)
     }
 }
 
-PyObject *toPyList(const arrow::Column &column)
+pybind11::list toPyList(const arrow::Column &column)
 {
     try
     {
@@ -100,13 +97,15 @@ PyObject *toPyList(const arrow::Column &column)
     }
 }
 
-PyObject *toPyList(const arrow::Table &table)
+pybind11::list toPyList(const arrow::Table &table)
 {
-    // TODO resource safety
     auto cols = getColumns(table);
-    PyObject *result = PyList_New(table.num_columns());
+    pybind11::list result(table.num_columns());
     for(int i = 0; i < table.num_columns(); i++)
-        PyList_SetItem(result, i, toPyList(*(cols[i]->data())));
+    {
+        auto columnAsPyList = toPyList(*cols[i]);
+        pybind11::setAt(result, i, columnAsPyList);
+    }
 
     return result;
 }
@@ -126,6 +125,8 @@ extern "C"
         {
             auto xsarray = toPyList(*xs);
             auto ysarray = toPyList(*ys);
+            pybind11::print(xsarray);
+            pybind11::print(ysarray);
             plt::plot(xsarray, ysarray, label, style);
         };
     }
@@ -136,6 +137,8 @@ extern "C"
         {
             auto xsarray = toPyList(*xs);
             auto ysarray = toPyList(*ys);
+            pybind11::print(xsarray);
+            pybind11::print(ysarray);
             plt::plot_date(xsarray, ysarray);
         };
     }

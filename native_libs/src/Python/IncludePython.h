@@ -44,3 +44,9 @@
 #include <Core/Common.h>
 
 DFH_EXPORT pybind11::function getMethod(pybind11::object module, const std::string &attributeName);
+
+namespace pybind11
+{
+    DFH_EXPORT void insert(pybind11::dict dict, const char *key, pybind11::object value);
+    DFH_EXPORT void setAt(pybind11::list list, size_t index, pybind11::object value);
+}
