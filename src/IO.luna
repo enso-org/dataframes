@@ -71,7 +71,7 @@ class CSVParser:
         CustomNames l: l
         _: []
 
-    # Read CSV file from the hard drive, returning a `Table` value.
+    # Reads CSV file from the hard drive, returning a `Table` value.
     # 
     # It is assumed thath first row contain column names. Column types will are deduced. If deduction fails the `Text` type will be applied. 
     #

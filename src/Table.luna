@@ -121,7 +121,7 @@ class Table:
         columnWrapper = self.ptr.columnAt index
         Column.fromColumnWrapper columnWrapper
     
-    # Insert a single `Column` value to `Table` under given index.
+    # Inserts a single `Column` value to `Table` under given index.
     #
     # Columns are indexed from 0. After inserting the column under the `index` and all of the next columns will be shifted by 1. If the index will be increased by 1 number  of columns newly added column will be at the end of the table.
     # 
@@ -176,7 +176,7 @@ class Table:
     def at name:
         self.columns [name]
     
-    # Add a single `Column` value to `Table` with given name.
+    # Adds a single `Column` value to `Table` with given name.
     #
     # New column is always added at the end of the table.
     # 
@@ -300,7 +300,7 @@ class Table:
 
     def take count: self.slice 0 count
 
-    # Drop first `count` rows. 
+    # Drops first `count` rows. 
     #
     # If the number of elements to take will be higher than actual rows number empty table will be returned.
     # For negative `count` number the returned table will be the same as `self` table. TO BE FIXED https://github.com/luna/Dataframes/issues/63 
@@ -448,7 +448,7 @@ class Table:
         sortByColumns = sortBy.each (colName, order, pos): (self.column colName, order, pos)
         self.sortByColumn sortByColumns
 
-    # Remove rows with missing values.
+    # Removes rows with missing values.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -466,7 +466,7 @@ class Table:
     def dropNa:
         self.fromWrapper $ self.ptr.dropNa
 
-    # Remove rows where missing values occurs for given column.
+    # Removes rows where missing values occurs for given column.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -486,7 +486,7 @@ class Table:
     def dropNaAt columnName:
         self.fromWrapper $ self.ptr.dropNaByName columnName
 
-    # Fill null values with `valueToFillWith`.
+    # Fills null values with `valueToFillWith`.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -506,7 +506,7 @@ class Table:
     def fillNa valueToFillWith:
         self.fromWrapper $ self.ptr.fillNa valueToFillWith
 
-    # Fill null values with `valueToFillWith` in column `columnName`
+    # Fills null values with `valueToFillWith` in column `columnName`
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -565,7 +565,7 @@ class Table:
     def shortRep:
         "Table<" + self.columnCount.toText + "×" + self.rowCount.toText + ">"
 
-    # Compute pairwise Pearson's correlation of columns, excluding null values.
+    # Computes pairwise Pearson's correlation of columns, excluding null values.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -583,7 +583,7 @@ class Table:
     def corr:
         self.fromWrapper $ self.ptr.corr
 
-    # Compute pairwise Pearson's correlations with given column, excluding null values.
+    # Computes pairwise Pearson's correlations with given column, excluding null values.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -658,7 +658,7 @@ class Table:
         aggregationWithWrappers = aggregations.each (colname, aggrs): (self.column colname . ptr, aggrs.each .toInt)
         self.fromWrapper $ self.ptr.aggregateBy keyColumnWrapper aggregationWithWrappers
 
-    # Describe returns informations about whole table: standard deviation, minium, maximum, mean, median qunatile 0.25 and 0.75 for each column.
+    # Describes returns informations about whole table: standard deviation, minium, maximum, mean, median qunatile 0.25 and 0.75 for each column.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -720,7 +720,7 @@ class Table:
 class ChartBuilder:
     table :: Table
 
-    # Plot y versus x. Default style for plot is marker.
+    # Plots y versus x. Default style for plot is marker.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -753,7 +753,7 @@ class ChartBuilder:
         c2 = self.table.at columnName2 . toColumn
         Scatter c1 c2
 
-    # Plot a histogram.
+    # Plots a histogram.
     #
     # Compute and plot histogram of x.
     #
@@ -776,7 +776,7 @@ class ChartBuilder:
         c = self.table.at columnName . toColumn
         Histogram c 10 Map.empty
 
-    # Fit and plot a bivariate kernel density estimate.
+    # Fits and plots a bivariate kernel density estimate.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -799,7 +799,7 @@ class ChartBuilder:
         c2 = self.table.at columnName2 . toColumn
         KDE2 c1 c2 "Blues_r"
 
-    # Fit and plot a univariate kernel density estimate.
+    # Fits and plots a univariate kernel density estimate.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -820,7 +820,7 @@ class ChartBuilder:
         c = self.table.at columnName . dropNa . toColumn
         KDE c Nothing
 
-    # Plot rectangular data as a color-encoded matrix.
+    # Plots rectangular data as a color-encoded matrix.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
