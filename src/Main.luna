@@ -1,12 +1,15 @@
-import Std.Base
-import Std.Foreign.C.Value
-
-import Dataframes.Internal.Utils
-import Dataframes.Array
+import Dataframes.Table
 import Dataframes.Types
-import Dataframes.Internal.Test.Test
+import Dataframes.Column
 
+«0»def main:
+    «12»l1 = [1,2,3,4,5]
+    «13»l2 = [11,12,13,14,15]
+    «14»col1 = Column.fromList "col1" Int64Type l1
+    «15»col2 = Column.fromList "col2" Int64Type l2
+    «16»table = Table.fromColumns [col1 , col2]
+    «23»describeColumn1 = table . describe
+    «24»d1 = describeColumn1.toJSON
+    «25»print d1
 
-def main:
-    setHelperVerbosity False
-    benchmark "running tests" TestArrayBuilder.run
+### META {"metas":[{"marker":12,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":64,"_vector2_x":1888}}}},{"marker":13,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":64,"_vector2_x":2208}}}},{"marker":14,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":384,"_vector2_x":2208}}}},{"marker":15,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":64,"_vector2_x":2528}}}},{"marker":16,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":64,"_vector2_x":2848}}}},{"marker":23,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":64,"_vector2_x":3168}}}},{"marker":24,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":64,"_vector2_x":3488}}}},{"marker":25,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":64,"_vector2_x":3808}}}}]}
