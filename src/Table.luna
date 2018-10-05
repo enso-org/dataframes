@@ -172,6 +172,7 @@ class Table:
     # `name`: Label for column.
     #
     # `return`: `Table` value from the `table` for given name.
+    # ![](data/docs/docs4.png)
 
     def at name:
         self.columns [name]
@@ -197,6 +198,7 @@ class Table:
     # `column`: `Column` value to add.
     #
     # `return`: `Table` value containing previous `table` with newly added column.
+    # ![](data/docs/docs5.png)
 
     def setAt name column:
         cols = self.toList
@@ -227,6 +229,7 @@ class Table:
     # `name`: Name of the column to return.
     #
     # `return`: Single `Column` value selected from `self` table by name.
+    # ![](data/docs/docs6.png)
 
     def column name:
         ix = self.schema.getFieldIndexByName name
@@ -253,6 +256,7 @@ class Table:
     # `names`: List of column names to be returned.
     #
     # `return`: `Table` value with selected columns from `self` table.
+    # ![](data/docs/docs6.png)
 
     def columns names:
         columns = names.each self.column
@@ -297,6 +301,7 @@ class Table:
     # `count`: Number of rows to take.
     #
     # `return`: `Table` value with first `count` rows from `self` table.
+    # ![](data/docs/docs7.png)
 
     def take count: self.slice 0 count
 
@@ -319,6 +324,7 @@ class Table:
     # `count`: Number of rows to drop.
     #
     # `return`: `Table` value without first `count` rows from `self` table.
+    # ![](data/docs/docs8.png)
 
     def drop count:
         leftCount = self.rowCount - count
@@ -344,7 +350,7 @@ class Table:
     # > table = Table.fromColumns [col1 , col2]
     # > filteredTable = table.filter (x: x.at "col2" < 14)
     #
-    # `f`: The predicate (Boolean-valued function).
+    # `f`: The predicate.
     #
     # `return`: Table with elements satisfying predicate.
 
@@ -365,7 +371,7 @@ class Table:
     # > table = Table.fromColumns [col1 , col2]
     # > filteredTable = table.filterColumns .isNumeric
     #
-    # `f`: The predicate (Boolean-valued function).
+    # `f`: The predicate.
     #
     # `return`: Table with columns satisfying predicate.
 
