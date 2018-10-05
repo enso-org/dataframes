@@ -555,9 +555,14 @@ class Table:
     # >     newTable = table.fillNa 53
     # >     None 
     #
+    # errors:
+    # If the type of the `valueToFillWith` is not consistent with column type runtime error will appear.
+    # If the different columns of the table have different types runtime error will appear.
+    #
     # `valueToFillWith`: Value to use to fill nulls (e.g. 0).
     #
     # `return`: `Table` with nulls filled by `valueToFillWith`.
+    # ![](data/docs/docs16.png)
 
     def fillNa valueToFillWith:
         self.fromWrapper $ self.ptr.fillNa valueToFillWith
@@ -578,12 +583,13 @@ class Table:
     # >     None
     #
     # errors:
-    # 
+    # If the type of the `valueToFillWith` is not consistent with column type runtime error will appear. 
     #
     # `columnName`: Name of the column to fill nulls in.
     # `valueToFillWith`: Value to use to fill nulls (e.g. 0).
     #
     # `return`: `Table` with nulls in column `columnName` filled with `valueToFillWith `.
+    # ![](data/docs/docs17.png)
 
     def fillNaAt columnName valueToFillWith:
         self.fromWrapper $ self.ptr.fillNaAt columnName valueToFillWith
@@ -611,6 +617,7 @@ class Table:
     # >     None
     #
     # `return`: `Table` value with statistics of null values for each column.
+    # ![](data/docs/docs18.png)
 
     def describeNa:
         cols = self.toList
@@ -633,15 +640,17 @@ class Table:
     # > import Dataframes.Table 
     # >
     # > def main:
-    # >     l1 = [1,2,3,4,5]
+    # >     l1 = [5,3,3,47,5]
     # >     l2 = [11,12,13,14,15]
     # >     col1 = Column.fromList "col1" Int64Type l1
-    # >     col2 = Column.fromList "col2" StringType l2
+    # >     col2 = Column.fromList "col2" Int64Type l2
     # >     table = Table.fromColumns [col1 , col2]
     # >     correlations = table.corr
     # >     None
     #
     # `return`: `Table` value with pairwise correlations calculated for `self` table.
+    # ![](data/docs/docs19.png)
+
 
     def corr:
         numeric = self.filterColumns .isNumeric
@@ -654,7 +663,7 @@ class Table:
     # > import Dataframes.Table 
     # >
     # > def main:
-    # >     l1 = [1,2,3,4,5]
+    # >     l1 = [5,3,3,47,5]
     # >     l2 = [11,12,13,14,15]
     # >     col1 = Column.fromList "col1" Int64Type l1
     # >     col2 = Column.fromList "col2" StringType l2
@@ -668,6 +677,7 @@ class Table:
     # `columnName`: Column for which the correlations are calculated.
     #
     # `return`: `Table` value including correlations with `columnName` column calculated for `self` table.
+    # ![](data/docs/docs20.png)
 
     def corrWith columnName:
         numeric = self.filterColumns .isNumeric
@@ -706,6 +716,7 @@ class Table:
     # `columnName`: String value, name of the column to calculate the statistics for.
     #
     # `return`: `Table` value with the statistics for given column.
+    # ![](data/docs/docs21.png)
 
     def describeColumn columnName:
         col = self.at columnName . toColumn
@@ -743,6 +754,7 @@ class Table:
     # >     None
     #
     # `return`: `Table` value with the statistics for `self` table.
+    # ![](data/docs/docs22.png) BUG!
 
     def describe:
         numerics = self.filterColumns .isNumeric
@@ -752,11 +764,12 @@ class Table:
         stdVal = std.map .toList 
         stdFlatList = stdVal.concat
 
-        min = names.each (name: self.column name . min )
+        columns = numerics.toList 
+        min = columns.each .min 
         minVal = min.map .toList 
         minFlatList = minVal.concat
 
-        max = names.each (name: self.column name . max )
+        max = numerics.toList . each .max
         maxVal = max.map .toList 
         maxFlatList = maxVal.concat
 
