@@ -64,6 +64,7 @@ class Table:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
@@ -100,6 +101,7 @@ class Table:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
@@ -126,6 +128,7 @@ class Table:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
@@ -158,6 +161,7 @@ class Table:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
@@ -179,6 +183,7 @@ class Table:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
@@ -208,6 +213,7 @@ class Table:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
@@ -233,6 +239,7 @@ class Table:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
@@ -279,6 +286,7 @@ class Table:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
@@ -300,6 +308,7 @@ class Table:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
@@ -327,6 +336,7 @@ class Table:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
@@ -347,6 +357,7 @@ class Table:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = ["a", "b", "c", "d", "e"]
     # > col1 = Column.fromList "col1" Int64Type l1
@@ -368,10 +379,11 @@ class Table:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
-    # > col2 = Column.fromList "col2" StringType l2
+    # > col2 = Column.fromList "col2" Int64Type l2
     # > table = Table.fromColumns [col1 , col2]
     # > filteredTable = table.eachColumn .max
     #
@@ -389,10 +401,11 @@ class Table:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
-    # > col2 = Column.fromList "col2" StringType l2
+    # > col2 = Column.fromList "col2" Int64Type l2
     # > table = Table.fromColumns [col1 , col2]
     # > column = table.each (x: x.at "col1" * 10)
     #
@@ -410,10 +423,11 @@ class Table:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
-    # > col2 = Column.fromList "col2" StringType l2
+    # > col2 = Column.fromList "col2" Int64Type l2
     # > table = Table.fromColumns [col1 , col2]
     # > newTable = table.eachTo "col3" (x: x.at "col1" * 10)
     #
@@ -436,9 +450,15 @@ class Table:
 
     # Remove rows with missing values.
     #
-    # > import Dataframes.Table
-    # > import Dataframes.IO 
-    # > table = CSVParser.readFile "./data/simple_empty.csv"
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # >
+    # > l1 = [Just 1, Nothing, Just 3, Just 4, Just 5]
+    # > l2 = [Nothing, Just 12, Just 13, Just 14, Just 15]
+    # > col1 = Column.fromList "col1" MaybeInt64Type l1
+    # > col2 = Column.fromList "col2" MaybeInt64Type l2
+    # > table = Table.fromColumns [col1 , col2]
     # > newTable = table.dropNa
     #
     # `return`: `Table` value without rows containing NA records.
@@ -448,10 +468,16 @@ class Table:
 
     # Remove rows where missing values occurs for given column.
     #
-    # > import Dataframes.Table
-    # > import Dataframes.IO 
-    # > table = CSVParser.readFile "./data/simple_empty.csv"
-    # > newTable = table.dropNaAt "b"
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # >
+    # > l1 = [Just 1, Nothing, Just 3, Just 4, Just 5]
+    # > l2 = [Nothing, Just 12, Just 13, Just 14, Just 15]
+    # > col1 = Column.fromList "col1" MaybeInt64Type l1
+    # > col2 = Column.fromList "col2" MaybeInt64Type l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > newTable = table.dropNaAt "col2"
     #
     # `name`: Column name for which we check NA values.
     #
@@ -462,9 +488,15 @@ class Table:
 
     # Fill NA/NaN values with `valueToFillWith`.
     #
-    # > import Dataframes.Table
-    # > import Dataframes.IO 
-    # > table = CSVParser.readFile "./data/simple_empty.csv"
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # >
+    # > l1 = [Just 1, Nothing, Just 3, Just 4, Just 5]
+    # > l2 = [Nothing, Just 12, Just 13, Just 14, Just 15]
+    # > col1 = Column.fromList "col1" MaybeInt64Type l1
+    # > col2 = Column.fromList "col2" MaybeInt64Type l2
+    # > table = Table.fromColumns [col1 , col2]
     # > newTable = table.fillNa 53
     #
     # `valueToFillWith`: Value to use to fill holes (e.g. 0).
@@ -476,10 +508,18 @@ class Table:
 
     # Fill NA/NaN values with `valueToFillWith` in column `columnName`
     #
-    # > import Dataframes.Table
-    # > import Dataframes.IO 
-    # > table = CSVParser.readFile "./data/simple_empty.csv"
-    # > newTable = table.fillNaAt "b" 53
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # >
+    # > l1 = [Just 1, Nothing, Just 3, Just 4, Just 5]
+    # > l2 = [Nothing, Just 12, Just 13, Just 14, Just 15]
+    # > col1 = Column.fromList "col1" MaybeInt64Type l1
+    # > col2 = Column.fromList "col2" MaybeInt64Type l2
+    # > table = Table.fromColumns [col1 , col2]
+    # > newTable = table.fillNaAt "col1" 53
+    #
+    #
     #
     # `columnName`: Name of the column to fill holes in.
     # `valueToFillWith`: Value to use to fill holes (e.g. 0).
@@ -498,9 +538,15 @@ class Table:
 
     # Generates `Table` with number and ratio of NA/NaN values for each column.
     #
-    # > import Dataframes.Table
-    # > import Dataframes.IO 
-    # > table = CSVParser.readFile "./data/simple_empty.csv"
+    # > import Dataframes.Column 
+    # > import Dataframes.Types
+    # > import Dataframes.Table 
+    # >
+    # > l1 = [Just 1, Nothing, Just 3, Just 4, Just 5]
+    # > l2 = [Nothing, Just 12, Just 13, Just 14, Just 15]
+    # > col1 = Column.fromList "col1" MaybeInt64Type l1
+    # > col2 = Column.fromList "col2" MaybeInt64Type l2
+    # > table = Table.fromColumns [col1 , col2]
     # > newTable = table.describeNa
     #
     # `return`: `Table` value with statistics of NA/NaN values for each column.
@@ -524,6 +570,7 @@ class Table:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
@@ -541,12 +588,16 @@ class Table:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
     # > col2 = Column.fromList "col2" StringType l2
     # > table = Table.fromColumns [col1 , col2]
     # > correlations = table.corrWith "col2"
+    #
+    # errors: 
+    # If column to calculate statistics with will not be numerical runtime error will be returned.
     #
     # `columnName`: Column for which the correlations are calculated.
     #
@@ -567,11 +618,12 @@ class Table:
 
     # Generates descriptive statistics that summarize the central tendency, dispersion and shape of the values in given column distribution. 
     #
-    # Analyzes just numeric values, excluding NA/null values. Returns statistics like: mean, standard deviation, minimum, 1st quantile, median, 3rd quantile, maximum.
+    # Analyzes just the numeric values, excluding NA/null values. Returns statistics: mean, standard deviation, minimum, 1st quantile, median, 3rd quantile, maximum.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
@@ -579,9 +631,12 @@ class Table:
     # > table = Table.fromColumns [col1 , col2]
     # > correlations = table.describeColumn "col2"
     #
-    # `columnName`: String value, name of the column to calculate statistics for.
+    # errors: 
+    # If column does not exist in table runtime error will be returned.
     #
-    # `return`: `Table` value with statistics for given column.
+    # `columnName`: String value, name of the column to calculate the statistics for.
+    #
+    # `return`: `Table` value with the statistics for given column.
 
     def describeColumn columnName:
         col = self.at columnName . toColumn
@@ -603,11 +658,12 @@ class Table:
         aggregationWithWrappers = aggregations.each (colname, aggrs): (self.column colname . ptr, aggrs.each .toInt)
         self.fromWrapper $ self.ptr.aggregateBy keyColumnWrapper aggregationWithWrappers
 
-    # Describe returns informations about whole table like standard deviation, minium, maximum, mean, median qunatile 0.25 and 0.75 for each column.
+    # Describe returns informations about whole table: standard deviation, minium, maximum, mean, median qunatile 0.25 and 0.75 for each column.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
@@ -615,7 +671,7 @@ class Table:
     # > table = Table.fromColumns [col1 , col2]
     # > correlations = table.describe
     #
-    # `return`: `Table` value with statistics for `self` table.
+    # `return`: `Table` value with the statistics for `self` table.
 
     def describe:
         numerics = self.filterColumns .isNumeric
@@ -664,15 +720,16 @@ class Table:
 class ChartBuilder:
     table :: Table
 
-    # Plot y versus x as markers or lines.
+    # Plot y versus x. Default style for plot is marker.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
-    # > col2 = Column.fromList "col2" StringType l2
+    # > col2 = Column.fromList "col2" Int64Type l2
     # > table = Table.fromColumns [col1 , col2]
     # > plot1 = table.chart.plot "col1" "col2"
     #
@@ -703,10 +760,11 @@ class ChartBuilder:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
-    # > col2 = Column.fromList "col2" StringType l2
+    # > col2 = Column.fromList "col2" Int64Type l2
     # > table = Table.fromColumns [col1 , col2]
     # > plot1 = table.chart.histogram "col1"
     #
@@ -723,10 +781,11 @@ class ChartBuilder:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
-    # > col2 = Column.fromList "col2" StringType l2
+    # > col2 = Column.fromList "col2" Int64Type l2
     # > table = Table.fromColumns [col1 , col2]
     # > plot1 = table.chart.kde2 "col1" "col2"
     #
@@ -745,14 +804,15 @@ class ChartBuilder:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
-    # > col2 = Column.fromList "col2" StringType l2
+    # > col2 = Column.fromList "col2" Int64Type l2
     # > table = Table.fromColumns [col1 , col2]
     # > plot1 = table.chart.kde "col1"
     #
-    # `columnName`: Input data.
+    # `columnName`: Input column name.
     #
     # `return`: [] SCREESHOT
 
@@ -765,10 +825,11 @@ class ChartBuilder:
     # > import Dataframes.Column 
     # > import Dataframes.Types
     # > import Dataframes.Table 
+    # >
     # > l1 = [1,2,3,4,5]
     # > l2 = [11,12,13,14,15]
     # > col1 = Column.fromList "col1" Int64Type l1
-    # > col2 = Column.fromList "col2" StringType l2
+    # > col2 = Column.fromList "col2" Int64Type l2
     # > table = Table.fromColumns [col1 , col2]
     # > correlations = table.corr 
     # > heatmapPlot = correlations.chart.heatmap 
