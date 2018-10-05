@@ -486,7 +486,7 @@ class Table:
     def dropNaAt columnName:
         self.fromWrapper $ self.ptr.dropNaByName columnName
 
-    # Fill NA/NaN values with `valueToFillWith`.
+    # Fill null values with `valueToFillWith`.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -499,14 +499,14 @@ class Table:
     # > table = Table.fromColumns [col1 , col2]
     # > newTable = table.fillNa 53
     #
-    # `valueToFillWith`: Value to use to fill holes (e.g. 0).
+    # `valueToFillWith`: Value to use to fill nulls (e.g. 0).
     #
-    # `return`: `Table` with holes filled by `valueToFillWith`.
+    # `return`: `Table` with nulls filled by `valueToFillWith`.
 
     def fillNa valueToFillWith:
         self.fromWrapper $ self.ptr.fillNa valueToFillWith
 
-    # Fill NA/NaN values with `valueToFillWith` in column `columnName`
+    # Fill null values with `valueToFillWith` in column `columnName`
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -521,10 +521,10 @@ class Table:
     #
     #
     #
-    # `columnName`: Name of the column to fill holes in.
-    # `valueToFillWith`: Value to use to fill holes (e.g. 0).
+    # `columnName`: Name of the column to fill nulls in.
+    # `valueToFillWith`: Value to use to fill nulls (e.g. 0).
     #
-    # `return`: `Table` with holes in column `columnName` filled with `valueToFillWith `.
+    # `return`: `Table` with nulls in column `columnName` filled with `valueToFillWith `.
 
     def fillNaAt columnName valueToFillWith:
         self.fromWrapper $ self.ptr.fillNaAt columnName valueToFillWith
@@ -536,7 +536,7 @@ class Table:
             [c]: c
             t: throw $ "Table.toColumn: table must have exactly 1 column, but has " + t.length.toText
 
-    # Generates `Table` with number and ratio of NA/NaN values for each column.
+    # Generates `Table` with number and percentage of null values for each column.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -549,7 +549,7 @@ class Table:
     # > table = Table.fromColumns [col1 , col2]
     # > newTable = table.describeNa
     #
-    # `return`: `Table` value with statistics of NA/NaN values for each column.
+    # `return`: `Table` value with statistics of null values for each column.
 
     def describeNa:
         cols = self.toList
@@ -565,7 +565,7 @@ class Table:
     def shortRep:
         "Table<" + self.columnCount.toText + "×" + self.rowCount.toText + ">"
 
-    # Compute pairwise Pearson's correlation of columns, excluding NA/null values.
+    # Compute pairwise Pearson's correlation of columns, excluding null values.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -583,7 +583,7 @@ class Table:
     def corr:
         self.fromWrapper $ self.ptr.corr
 
-    # Compute pairwise Pearson's correlations with given column, excluding NA/null values.
+    # Compute pairwise Pearson's correlations with given column, excluding null values.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
