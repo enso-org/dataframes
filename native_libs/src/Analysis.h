@@ -65,7 +65,31 @@ struct GroupedKeyInfo
 
 enum class AggregateFunction : int8_t
 {
-    Minimum, Maximum, Mean, Length, Median, First, Last
+    Minimum, Maximum, Mean, Length, Median, First, Last, Sum, RSI, StdDev
 };
 
-DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn, std::vector<std::pair<std::shared_ptr<arrow::Column>, std::vector<AggregateFunction>>> toAggregate);
+template<typename Function>
+auto dispatchAggregateByEnum(AggregateFunction aggregateEnum, Function &&f)
+{
+    switch(aggregateEnum)
+    {
+    CASE_DISPATCH(AggregateFunction::Minimum)
+    CASE_DISPATCH(AggregateFunction::Maximum)
+    CASE_DISPATCH(AggregateFunction::Mean)
+    CASE_DISPATCH(AggregateFunction::Length)
+    CASE_DISPATCH(AggregateFunction::Median)
+    CASE_DISPATCH(AggregateFunction::First)
+    CASE_DISPATCH(AggregateFunction::Last)
+    CASE_DISPATCH(AggregateFunction::Sum)
+    CASE_DISPATCH(AggregateFunction::RSI)
+    CASE_DISPATCH(AggregateFunction::StdDev)
+    default: throw std::runtime_error("not supported aggregate function " + std::to_string((int)aggregateEnum));
+    }
+}
+
+DFH_EXPORT std::string to_string(AggregateFunction a);
+
+DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_ptr<arrow::Column> keyColumn, std::vector<std::pair<std::shared_ptr<arrow::Column>, std::vector<AggregateFunction>>> toAggregate);
+
+DFH_EXPORT std::vector<int64_t> collectRollingIntervalSizes(std::shared_ptr<arrow::Column> keyColumn, DynamicField interval);
+DFH_EXPORT std::shared_ptr<arrow::Table> rollingInterval(std::shared_ptr<arrow::Column> keyColumn, DynamicField interval, std::vector<std::pair<std::shared_ptr<arrow::Column>, std::vector<AggregateFunction>>> toAggregate);

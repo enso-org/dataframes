@@ -1,5 +1,4 @@
 #include "ArrowUtilities.h"
-#include <date/date.h>
 
 using namespace std::literals;
 
@@ -25,6 +24,18 @@ std::vector<std::shared_ptr<arrow::Column>> getColumns(const arrow::Table &table
         columns.push_back(table.column(i));
     }
     return columns;
+}
+
+std::shared_ptr<arrow::Column> getColumn(const arrow::Table &table, std::string_view name)
+{
+    auto columns = getColumns(table);
+    for(auto &col : columns)
+        if(col->name() == name)
+            return col;
+
+    auto names = transformToVector(columns, [](auto &col) { return col->name(); });
+    THROW("Failed to find column by name `{}`. Available columns: `{}`", 
+        name, names);
 }
 
 std::unordered_map<std::string, std::shared_ptr<arrow::Column>> getColumnMap(const arrow::Table &table)
@@ -257,7 +268,8 @@ std::pair<const arrow::Array *, int32_t> ChunkAccessor::locate(int64_t index) co
     {
         auto chunkStart = itr - 1;
         auto chunkIndex = std::distance(chunkStartIndices.begin(), chunkStart);
-        return { chunks[chunkIndex].get(), index - *chunkStart };
+        auto indexWithinChunk = (int32_t)(index - *chunkStart);
+        return { chunks[chunkIndex].get(), indexWithinChunk };
     }
     else
         throw std::runtime_error("wrong index");
@@ -279,4 +291,30 @@ std::string std::to_string(const Timestamp &t)
 Timestamp::Timestamp(date::year_month_day ymd)
     : Base(date::sys_days(ymd))
 {
+}
+
+std::shared_ptr<arrow::Column> consolidate(std::shared_ptr<arrow::Column> column)
+{
+    if(column->data()->num_chunks() <= 1)
+        return column;
+
+    return visitType(*column->type(), [&](auto id)
+    {
+        using TD = TypeDescription<id.value>;
+        using ArrowT = typename TD::ArrowType;
+        using Builder = typename TD::BuilderType;
+
+        auto builder = makeBuilder(std::dynamic_pointer_cast<ArrowT>(column->type()));
+        iterateOver<id.value>(*column, [&](auto &&elem)
+        {
+            append(*builder, elem);
+        },
+            [&]()
+        {
+            builder->AppendNull();
+        });
+
+        auto arr = finish(*builder);
+        return std::make_shared<arrow::Column>(column->field(), arr);
+    });
 }

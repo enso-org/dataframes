@@ -291,7 +291,7 @@ BOOST_FIXTURE_TEST_CASE(GroupExperiments, DataGenerator)
     //generateCsv("F:/dev/trainSel.csv", *tableFromColumns({table->column(0), table->column(1)}));
     //saveTableToFeatherFile("F:/dev/train-nasze3.feather", *table);
     auto table = loadTableFromFeatherFile("F:/dev/train-nasze3.feather");
-    auto grouped = abominableGroupAggregate(table, table->column(0), {{table->column(1), {AggregateFunction::Minimum, AggregateFunction::Maximum, AggregateFunction::Mean, AggregateFunction::Length}}});
+    auto grouped = abominableGroupAggregate(table->column(0), {{table->column(1), {AggregateFunction::Minimum, AggregateFunction::Maximum, AggregateFunction::Mean, AggregateFunction::Length}}});
 
     const auto idCol = table->column(0);
     const auto timestampCol = table->column(1);
@@ -320,7 +320,7 @@ BOOST_FIXTURE_TEST_CASE(GroupExperiments, DataGenerator)
     measure("interpolating doubles with 30% nulls", p, [&]
     {
         std::vector<AggregateFunction> aggregates = {AggregateFunction::Minimum, AggregateFunction::Maximum, AggregateFunction::Mean, AggregateFunction::Length};
-        return abominableGroupAggregate(table, idCol, {{ timestampCol, aggregates}, { yCol, aggregates } });
+        return abominableGroupAggregate(idCol, {{ timestampCol, aggregates}, { yCol, aggregates } });
     });
 
     generateCsv("F:/dev/aggr.csv", *grouped);

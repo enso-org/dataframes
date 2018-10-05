@@ -131,7 +131,7 @@ PyObject* tableToPyObj(const arrow::Table &table)
 
 extern "C"
 {
-    void plot(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* label, const char *style) {
+    void plot(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* label, char* color, double alpha, const char *style) {
         std::string st(style);
         auto xsarray = chunkedArrayToPyObj(*xs);
         std::cout << "XS " << xsarray << std::endl;
@@ -139,7 +139,7 @@ extern "C"
         std::cout << "YS " << ysarray << std::endl;
         try {
             std::cout << "PLOT BEG" << std::endl;
-            plt::plot(xsarray, ysarray, label, st);
+            plt::plot(xsarray, ysarray, label, color, alpha, st);
             std::cout << "PLOT END" << std::endl;
         } catch (const runtime_error& e) {
           std::cout << e.what() << std::endl;
@@ -207,6 +207,22 @@ extern "C"
             std::cout << "HEATMAP BEG" << std::endl;
             plt::heatmap(xsarray, cmap, annot);
             std::cout << "HEATMAP END" << std::endl;
+        } catch (const runtime_error& e) {
+          std::cout << e.what() << std::endl;
+        }
+    }
+
+    void fill_between(arrow::ChunkedArray* xs, arrow::ChunkedArray* ys1, arrow::ChunkedArray* ys2, char* label, char* color, double alpha) {
+        auto xsarray = chunkedArrayToPyObj(*xs);
+        std::cout << "XS " << xsarray << std::endl;
+        auto ysarray1 = chunkedArrayToPyObj(*ys1);
+        std::cout << "YS1 " << ysarray1 << std::endl;
+        auto ysarray2 = chunkedArrayToPyObj(*ys2);
+        std::cout << "YS2 " << ysarray2 << std::endl;
+        try {
+            std::cout << "FILL BEG" << std::endl;
+            plt::fill_between(xsarray, ysarray1, ysarray2, label, color, alpha);
+            std::cout << "FILL END" << std::endl;
         } catch (const runtime_error& e) {
           std::cout << e.what() << std::endl;
         }

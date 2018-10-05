@@ -1,7 +1,9 @@
 # Dataframes implementation in Luna
-
 ## Purpose
 This project is a library with dataframes implementation. Dataframes are structures allowing more comfortable work with big datasets.
+
+## Build status
+[![CircleCI](https://circleci.com/gh/luna/Dataframes.svg?style=svg)](https://circleci.com/gh/luna/Dataframes)
 
 ## Third-party dependencies
 Required dependencies:
@@ -16,10 +18,10 @@ Required dependencies:
     * `matplotlib`
     * `seaborn`
   * [RapidJSON](https://github.com/Tencent/rapidjson) — needed for LQuery processing
+  * [{fmt}](http://fmtlib.net/) C++ library string formatting
 
 Optional dependencies:
 These dependencies are not required to compile the helper library, however without them certain functionalities shall be disabled.
-* [{fmt}](http://fmtlib.net/) C++ library — needed if C++ library logs are enabled (meant only for debugging purposes)
 * [xlnt library](https://github.com/mwu-tow/xlnt) C++ library — needed for .xlsx file format support. NOTE: On MacOS mwu-tow's fork is needed to fix the compilation issue. On other platforms, [official library repo](https://github.com/tfussell/xlnt) can be used.
 
 ## Build & Install
@@ -47,7 +49,7 @@ These dependencies are not required to compile the helper library, however witho
       cd build
       cmake -G"NMake Makefiles" ..\src
       nmake
-      ``` 
+      ```
     * on other platforms:
       ```
       cd Dataframes/native_libs
@@ -55,12 +57,12 @@ These dependencies are not required to compile the helper library, however witho
       cd build
       cmake ../src
       make
-      ``` 
+      ```
     where `Dataframes` refer to the local copy of this repo.
 * happily use the dataframes libray
 
 ## Overview
-The library currently provides wrappers for Apache Arrow structures. 
+The library currently provides wrappers for Apache Arrow structures.
 
 ### Storage types
 * `ArrayData` — type-erased storage for `Array` consisting of several contiguous memory buffers. The buffer count depends on stored type. Typically there are two buffers: one for values and one for masking nulls. More comples types (union, lists) will use more.
@@ -124,7 +126,7 @@ The CSV generator can be also configured whether the fields should be always enc
 * `corrWith columnName` — calculates Pearson correlation coefficient between given column in a table and its other columns.
 * `countValues columnName` — returns table with pairs (value, count).
 * `describeNa` — calculates count of null values and their ratio to the total row count.
-* `describe columnName` — calculates a number of statistics for a given column (mean, std, min, quartiles, max). 
+* `describe columnName` — calculates a number of statistics for a given column (mean, std, min, quartiles, max).
 
 ### Column
 * `countMissing` — returns the number of null values in the column.
@@ -138,7 +140,7 @@ The CSV generator can be also configured whether the fields should be always enc
   * `var` — variation of values.
   * `sum` — sum of values.
   * `quantile q` — value at given quantile, q belongs to <0,1>.
-* `describe` — calculates a number of statistics for a given column (mean, std, min, quartiles, max). 
+* `describe` — calculates a number of statistics for a given column (mean, std, min, quartiles, max).
 
 ## Tutorial
 TBD
