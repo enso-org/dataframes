@@ -75,7 +75,8 @@ struct _interpreter
         http://bytes.com/topic/python/answers/793370-multiple-independent-python-interpreters-c-c-program
        */
 
-    static _interpreter& get() {
+    static _interpreter& get()
+    {
         static _interpreter ctx;
         return ctx;
     }
@@ -953,12 +954,8 @@ inline std::string getPNG()
     auto bytesIO = detail::_interpreter::get().s_python_function_newbytesio();
     auto res = detail::_interpreter::get().s_python_function_save(bytesIO, "transparent"_a=true);
 
-    auto bytes = getMethod(bytesIO, "getvalue")();
-
-    Py_ssize_t length;
-    char* buffer;
-    PyBytes_AsStringAndSize(bytes.ptr(), &buffer, &length);
-    return std::string(buffer, length);
+    pybind11::bytes bytes = getMethod(bytesIO, "getvalue")();
+    return bytes;
 }
 // 
 // inline void clf() {
