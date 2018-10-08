@@ -302,7 +302,7 @@ class Table:
     # Returns the first `count` rows
     #
     # If the count of elements to take is greater than actual rows count, the returned table is tha same as the `self` table. 
-    # For `count` number negative the tabel with no data will be returned.
+    # For negative `count`, a table with no data will be returned.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -373,7 +373,7 @@ class Table:
     # >     filteredTable = table.filter (x: x.at "col2" < 14)
     # >     None
     #
-    # `f`: The LQuery predicate. [http://docs.luna-lang.org/#Std.Base] --- fixme proper link
+    # `f`: The LQuery predicate.
     #
     # `return`: Table with elements satisfying predicate.
     # ![](data/docs/docs9.png)
@@ -435,7 +435,7 @@ class Table:
         filtered = cols.each pred
         self.fromColumns filtered
 
-    # Returns `Column` value with results of function `f` application.
+    # Returns a `Column` as a result of applying the function `f` to each row of the table.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -641,7 +641,7 @@ class Table:
     # >     correlations = table.corr
     # >     None
     #
-    # `return`: `Table` value with pairwise correlations calculated for `self` table.
+    # `return`: The `self` table value with pairwise correlations calculated for `self` table.
     # ![](data/docs/docs19.png)
 
     def corr:
@@ -730,7 +730,7 @@ class Table:
         aggregationWithWrappers = aggregations.each (colname, aggrs): (self.column colname . ptr, aggrs.each .toInt)
         self.fromWrapper $ self.ptr.aggregateBy keyColumnWrapper aggregationWithWrappers
 
-    # Describes returns informations about whole table: standard deviation, minium, maximum, mean, median qunatile 0.25 and 0.75 for each column.
+    # Returns informations about whole table: standard deviation, minimum, maximum, mean, median qunatile 0.25 and 0.75 for each column.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -882,8 +882,8 @@ class ChartBuilder:
     # >     plot1 = table.chart.kde2 "col1" "col2"
     # >     None
     #
-    # `columnName1`: First input data.
-    # `columnName2`: Second input data.
+    # `columnName1`: First column name.
+    # `columnName2`: Second column name.
     #
     # `return`: ![](data/docs/docs24.png)
 
