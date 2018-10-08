@@ -83,7 +83,7 @@ class CSVParser:
     #
     # `filepath`: Path to the CSV file to read.
     #
-    # `return`: Table value containing the data from CSV file. 
+    # `return`: `Table` value containing the data from CSV file. 
     
     def readFile filepath:
         Table.fromWrapper $ callCsvParser (ParseCSVFile filepath) self.namePolicy self.typePolicy
