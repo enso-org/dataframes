@@ -211,7 +211,7 @@ class Table:
     # `column`: `Column` value to add.
     #
     # `return`: `Table` value containing previous `table` with newly added column.
-    # ![](data/docs/docs5.png) -----fix
+    # ![](data/docs/docs5.png)
 
     def setAt name column:
         cols = self.toList
@@ -555,6 +555,7 @@ class Table:
     # `valueToFillWith`: Value to use to fill nulls (e.g. 0).
     #
     # `return`: `Table` with nulls filled by `valueToFillWith`.
+    # ![](data/docs/docs16.png)
 
     def fillNa valueToFillWith:
         self.fromWrapper $ self.ptr.fillNa valueToFillWith
@@ -581,6 +582,7 @@ class Table:
     # `valueToFillWith`: Value to use to fill nulls (e.g. 0).
     #
     # `return`: `Table` with nulls in column `columnName` filled with `valueToFillWith `.
+    # ![](data/docs/docs17.png)
 
     def fillNaAt columnName valueToFillWith:
         self.fromWrapper $ self.ptr.fillNaAt columnName valueToFillWith
@@ -608,6 +610,7 @@ class Table:
     # >     None
     #
     # `return`: `Table` value with statistics of null values for each column.
+    # ![](data/docs/docs18.png)
 
     def describeNa:
         cols = self.toList
@@ -631,7 +634,7 @@ class Table:
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
-    # >     l2 = [11,12,13,14,15]
+    # >     l2 = [7,9,17,11,4]
     # >     col1 = Column.fromList "col1" Int64Type l1
     # >     col2 = Column.fromList "col2" Int64Type l2
     # >     table = Table.fromColumns [col1 , col2]
@@ -639,6 +642,7 @@ class Table:
     # >     None
     #
     # `return`: `Table` value with pairwise correlations calculated for `self` table.
+    # ![](data/docs/docs19.png)
 
     def corr:
         numeric = self.filterColumns .isNumeric
@@ -652,7 +656,7 @@ class Table:
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
-    # >     l2 = [11,12,13,14,15]
+    # >     l2 = [7,9,17,11,4]
     # >     col1 = Column.fromList "col1" Int64Type l1
     # >     col2 = Column.fromList "col2" Int64Type l2
     # >     table = Table.fromColumns [col1 , col2]
@@ -660,11 +664,12 @@ class Table:
     # >     None
     #
     # errors: 
-    # If column to calculate statistics with is not numerical, runtime error is returned.
+    # If column to calculate statistics with is not numerical, runtime error occurs.
     #
     # `columnName`: Column for which the correlations are calculated.
     #
     # `return`: `Table` value including correlations with `columnName` column calculated for `self` table.
+    # ![](data/docs/docs20.png)
 
     def corrWith columnName:
         numeric = self.filterColumns .isNumeric
@@ -682,7 +687,7 @@ class Table:
 
     # Generates descriptive statistics that summarize the central tendency, dispersion and shape of the values in given column distribution. 
     #
-    # Analyzes just the numeric values, excluding NA/null values. Returns statistics: mean, standard deviation, minimum, 1st quantile, median, 3rd quantile, maximum.
+    # Analyzes just the numeric values, excluding null values. Returns statistics: mean, standard deviation, minimum, 1st quantile, median, 3rd quantile, maximum.
     #
     # > import Dataframes.Column 
     # > import Dataframes.Types
@@ -703,6 +708,7 @@ class Table:
     # `columnName`: String value, name of the column to calculate the statistics for.
     #
     # `return`: `Table` value with the statistics for given column.
+    # ![](data/docs/docs21.png)
 
     def describeColumn columnName:
         col = self.at columnName . toColumn
@@ -740,6 +746,7 @@ class Table:
     # >     None
     #
     # `return`: `Table` value with the statistics for `self` table.
+    # ![](data/docs/docs22.png)
 
     def describe:
         numerics = self.filterColumns .isNumeric
