@@ -15,6 +15,7 @@ DFH_EXPORT std::shared_ptr<arrow::Column> calculateMax(const arrow::Column &colu
 DFH_EXPORT std::shared_ptr<arrow::Column> calculateMean(const arrow::Column &column);
 DFH_EXPORT std::shared_ptr<arrow::Column> calculateMedian(const arrow::Column &column);
 DFH_EXPORT std::shared_ptr<arrow::Column> calculateVariance(const arrow::Column &column);
+DFH_EXPORT std::shared_ptr<arrow::Column> calculateRSI(const arrow::Column &column);
 DFH_EXPORT std::shared_ptr<arrow::Column> calculateStandardDeviation(const arrow::Column &column);
 DFH_EXPORT std::shared_ptr<arrow::Column> calculateSum(const arrow::Column &column);
 DFH_EXPORT std::shared_ptr<arrow::Column> calculateQuantile(const arrow::Column &column, double q);
