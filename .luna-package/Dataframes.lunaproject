@@ -29,20 +29,29 @@ modulesSettings:
         contents:
         - PlotDate
         - []
-      - - ! 'LunaVisualizer: base: json'
-        - base/json/json.html
+      - - ! 'ProjectVisualizer: image: plot'
+        - image/image.html
     - - tag: TCons
         contents:
         - Table
         - []
       - - ! 'LunaVisualizer: base: table'
         - base/table/table.html
+    - - tag: TCons
+        contents:
+        - List
+        - - tag: TCons
+            contents:
+            - Int
+            - []
+      - - ! 'LunaVisualizer: base: table'
+        - base/table/table.html
     currentBreadcrumb: main
     breadcrumbsSettings:
     - - items: []
       - breadcrumbCameraSettings:
-          logicalToScreen: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[-344.0,83.0,0.0,1.0]]'
-          screenToLogical: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[344.0,-83.0,0.0,1.0]]'
+          logicalToScreen: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[-264.0,-24.0,0.0,1.0]]'
+          screenToLogical: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[264.0,24.0,0.0,1.0]]'
           lastInverse: 0
     - - items:
         - abs
@@ -95,8 +104,8 @@ modulesSettings:
     - - items:
         - foo
       - breadcrumbCameraSettings:
-          logicalToScreen: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[-742.0,-53.0,0.0,1.0]]'
-          screenToLogical: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[742.0,53.0,0.0,1.0]]'
+          logicalToScreen: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[-742.0,-32.0,0.0,1.0]]'
+          screenToLogical: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[742.0,32.0,0.0,1.0]]'
           lastInverse: 0
     - - items:
         - func1
@@ -131,14 +140,8 @@ modulesSettings:
     - - items:
         - main
       - breadcrumbCameraSettings:
-          logicalToScreen: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[-125.0,-68.5,0.0,1.0]]'
-          screenToLogical: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[125.0,68.5,0.0,1.0]]'
-          lastInverse: 0
-    - - items:
-        - test
-      - breadcrumbCameraSettings:
-          logicalToScreen: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[0.0,35.0,0.0,1.0]]'
-          screenToLogical: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[0.0,-35.0,0.0,1.0]]'
+          logicalToScreen: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[-994.0,-114.0,0.0,1.0]]'
+          screenToLogical: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[994.0,114.0,0.0,1.0]]'
           lastInverse: 0
     - - items:
         - main2

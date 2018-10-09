@@ -71,6 +71,20 @@ class CSVParser:
         CustomNames l: l
         _: []
 
+    # Reads CSV file from the hard drive, returning a `Table` value.
+    # 
+    # It is assumed thath first row contain column names. Column types will are deduced. If deduction fails the `Text` type will be applied. 
+    #
+    # > import Dataframes.IO 
+    # >
+    # > def main:
+    # >     CSVParser.readFile "./data/simple_empty.csv"
+    # >     None
+    #
+    # `filepath`: Path to the CSV file to read.
+    #
+    # `return`: `Table` value containing the data from CSV file. 
+    
     def readFile filepath:
         Table.fromWrapper $ callCsvParser (ParseCSVFile filepath) self.namePolicy self.typePolicy
 

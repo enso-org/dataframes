@@ -341,9 +341,6 @@ class TableWrapper:
     def corr:
         ptr = callHandlingError "tableCorrelationMatrix" (Pointer None) [self.ptr.toCArg]
         wrapReleasableResouce TableWrapper ptr
-    def corr:
-        ptr = callHandlingError "tableCorrelationMatrix" (Pointer None) [self.ptr.toCArg]
-        wrapReleasableResouce TableWrapper ptr
     def corrWith column:
         ptr = callHandlingError "tableCorrelationWithColumn" (Pointer None) [self.ptr.toCArg, column.ptr.toCArg]
         wrapReleasableResouce ColumnWrapper ptr
