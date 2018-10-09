@@ -260,6 +260,17 @@ void plot_date(pybind11::list xarray, pybind11::list yarray)
     detail::_interpreter::get().s_python_function_plot_date(xarray, yarray);
 }
 
+void fill_between(pybind11::list xarray, pybind11::list yarray1, pybind11::list yarray2, std::string_view label, std::string_view color, double alpha)
+{
+    pybind11::dict kwargs{ "alpha"_a = alpha };
+    if(!label.empty())
+        insert(kwargs, "label", label);
+    if(!color.empty())
+        insert(kwargs, "color", color);
+
+    detail::_interpreter::get().s_python_function_fill_between(xarray, yarray1, yarray2, **kwargs);
+}
+
 void scatter(pybind11::list xarray, pybind11::list yarray)
 {
     detail::_interpreter::get().s_python_function_scatter(xarray, yarray);
@@ -412,11 +423,14 @@ void kdeplot(pybind11::list xarray, const char* label)
     detail::_interpreter::get().s_python_function_kdeplot(xarray, **kwargs);
 }
 
-void plot(pybind11::list xarray, pybind11::list yarray, std::string_view label, std::string_view format = "")
+void plot(pybind11::list xarray, pybind11::list yarray, std::string_view label, std::string_view format = "", std::string_view color = "", double alpha = 1.0)
 {
-    pybind11::dict kwargs = label.empty()
-        ? pybind11::dict{}
-        : pybind11::dict{"label"_a=label};
+    pybind11::dict kwargs;
+    if(!label.empty())
+        insert(kwargs, "label", label);
+    if(!color.empty())
+        insert(kwargs, "color", color);
+    insert(kwargs, "alpha", pybind11::float_(alpha));
 
     auto lines = detail::_interpreter::get().s_python_function_plot(xarray, yarray, format, **kwargs);
 }

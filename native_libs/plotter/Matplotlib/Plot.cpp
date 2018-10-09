@@ -119,7 +119,7 @@ std::string getPNG()
 
 extern "C"
 {
-    void plot(const arrow::Column *xs, const arrow::Column *ys, const char* label, const char *style, const char **outError) noexcept
+    void plot(const arrow::Column *xs, const arrow::Column *ys, const char* label, const char *style, const char *color, double alpha, const char **outError) noexcept
     {
         return TRANSLATE_EXCEPTION(outError)
         {
@@ -127,7 +127,7 @@ extern "C"
             auto ysarray = toPyList(*ys);
             pybind11::print(xsarray);
             pybind11::print(ysarray);
-            plt::plot(xsarray, ysarray, label, style);
+            plt::plot(xsarray, ysarray, label, style, color, alpha);
         };
     }
 
@@ -169,6 +169,17 @@ extern "C"
             auto xsarray = toPyList(*xs);
             auto ysarray = toPyList(*ys);
             plt::kdeplot2(xsarray, ysarray, colormap);
+        };
+    }
+
+    void fillBetween(const arrow::Column *xs, const arrow::Column *ys1, const arrow::Column *ys2, const char *label, const char *color, double alpha, const char **outError) noexcept
+    {
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto xsarray = toPyList(*xs);
+            auto ysarray1 = toPyList(*ys1);
+            auto ysarray2 = toPyList(*ys2);
+            plt::fill_between(xsarray, ysarray1, ysarray2, label, color, alpha);
         };
     }
 
