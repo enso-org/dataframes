@@ -27,14 +27,12 @@ static const unsigned char base64_table[65] =
  */
 std::string base64_encode(std::string_view data)
 {
+    using namespace std::literals;
     const auto len = data.size();
-
-	size_t olen;
-
-	olen = len * 4 / 3 + 4; /* 3-byte blocks to 4-byte */
-	olen++; /* nul termination */
+    const auto olen = len * 4 / 3 + 4 /* 3-byte blocks to 4-byte */
+                      + 1;            /* nul termination */
 	if (olen < len)
-		return NULL; /* integer overflow */
+		throw std::runtime_error(__FUNCTION__ + ": integer overflow on length calculation!"s);
 
     std::string ret;
     ret.resize(olen);
