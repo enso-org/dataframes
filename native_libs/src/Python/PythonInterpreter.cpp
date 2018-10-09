@@ -6,7 +6,8 @@ PythonInterpreter::PythonInterpreter()
 {
     try
     {
-        Py_SetProgramName(L"Dataframes");
+        const auto programName = L"Dataframes";
+        Py_SetProgramName(const_cast<wchar_t *>(programName));
         pybind11::initialize_interpreter();
         PyDateTime_IMPORT;
         if(PyDateTimeAPI == nullptr)
