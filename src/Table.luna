@@ -92,7 +92,7 @@ class Table:
         ptrs = columns.each .ptr
         schema = Schema.fromFields fields
         self.fromWrapper $ createTableWrapper schema.ptr ptrs
-    def fromFile path:
+    def read path:
         self.fromWrapper $ readTableFromFile path
 
     def columnCount: self.ptr.columnCount
@@ -646,7 +646,7 @@ class Table:
 
     def corr:
         numeric = self.filterColumns .isNumeric
-        numeric.fromWrapper $ self.ptr.corr
+        numeric.fromWrapper $ numeric.ptr.corr
 
     # Computes pairwise Pearson's correlations with given column, excluding null values.
     #
@@ -959,3 +959,5 @@ class Heatmap:
 
     def setColorMap s: Heatmap self.data s self.annotations
     def setAnnotations s: Heatmap self.data self.colorMap (Just s)
+
+### META {"metas":[]}
