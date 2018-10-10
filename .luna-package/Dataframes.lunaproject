@@ -33,6 +33,15 @@ modulesSettings:
         - image/image.html
     - - tag: TCons
         contents:
+        - List
+        - - tag: TCons
+            contents:
+            - Column
+            - []
+      - - ! 'LunaVisualizer: base: table'
+        - base/table/table.html
+    - - tag: TCons
+        contents:
         - Table
         - []
       - - ! 'LunaVisualizer: base: table'
@@ -140,8 +149,13 @@ modulesSettings:
     - - items:
         - main
       - breadcrumbCameraSettings:
+<<<<<<< Updated upstream
           logicalToScreen: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[-412.0,145.0,0.0,1.0]]'
           screenToLogical: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[412.0,-145.0,0.0,1.0]]'
+=======
+          logicalToScreen: ! '[[0.7520833333333333,0.0,0.0,0.0],[0.0,0.7520833333333333,0.0,0.0],[0.0,0.0,1.0,0.0],[-2925.2666666666664,-314.7291666666667,0.0,1.0]]'
+          screenToLogical: ! '[[1.3296398891966759,0.0,0.0,0.0],[0.0,1.3296398891966759,0.0,0.0],[0.0,0.0,1.0,0.0],[3889.551246537396,418.4764542936288,0.0,1.0]]'
+>>>>>>> Stashed changes
           lastInverse: 0
     - - items:
         - main2
