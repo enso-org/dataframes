@@ -488,10 +488,17 @@ class Table:
     # sortBy :: [(Column, SortOrder, NullPosition)]
     def sortByColumn sortBy:
         self.fromWrapper $ self.ptr.sort (sortBy.each (col, b, c): (col.ptr, b, c))
+    
     # sortBy is list of triples: [(column name :: Text, SortOrder, NullPosition)]
-    def sort sortBy:
+    def sortMultiples sortBy:
         sortByColumns = sortBy.each (colName, order, pos): (self.column colName, order, pos)
         self.sortByColumn sortByColumns
+    
+    # sortBy :: column name :: Text 
+    def sortDescending columnName: sortMultiples [(columnName, Descending, NullsAfter)]
+
+    # sortBy :: column name :: Text 
+    def sortAscending columnName: sortMultiples [(columnName, Ascending, NullsAfter)]
 
     # Creates `Table` value from `self` table with removed rows with missing values.
     #
