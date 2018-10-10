@@ -1,12 +1,33 @@
+import Dataframes.Learn.LogisticRegression
+import Dataframes.Learn.LinearRegression
+import Dataframes.Learn.SKLearnWrapper
+import Dataframes.Column
+import Dataframes.Learn.Coach
+import Dataframes.Table
+import Dataframes.Main
+import Dataframes.IO
 import Std.Base
 import Std.Foreign.C.Value
+import Std.Foreign
 
-import Dataframes.Internal.Utils
-import Dataframes.Array
-import Dataframes.Types
-import Dataframes.Internal.Test.Test
+import Dataframes.Plot.Matplotlib
 
 
-def main:
-    setHelperVerbosity False
-    benchmark "running tests" TestArrayBuilder.run
+«35»def func1 remove1:
+    «36»corrWith1 = remove1 . corrWith "y"
+    «37»sort1 = corrWith1 . sort [("CORR_WITH_y", Descending, NullsAfter )]
+    «38»take1 = sort1 . take 4 . drop 1
+    «39»toList1 = take1 . column "column" . toList
+    toList1
+
+«1»def main:
+    «21»read1 = Table.read "./data/filtered2_half_append.csv"
+    «22»countValues1 = read1 . countValues "id"
+    «23»describe1 = read1 . describe
+    «24»fillNa1 = read1 . fillNa 0
+    «25»remove1 = fillNa1 . remove "id" . remove "timestamp"
+    «40»toList1 = func1 remove1
+    «43»each1 = toList1 . each (x: «44»fillNa1 . chart . plot "timestamp" x)
+    None
+
+### META {"metas":[{"marker":36,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":37,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":320}}}},{"marker":38,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":640}}}},{"marker":39,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":960}}}},{"marker":21,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-160,"_vector2_x":-464}}}},{"marker":22,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-192,"_vector2_x":-272}}}},{"marker":23,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-80,"_vector2_x":-272}}}},{"marker":24,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-160,"_vector2_x":-144}}}},{"marker":25,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-160,"_vector2_x":176}}}},{"marker":40,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-160,"_vector2_x":432}}}},{"marker":43,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":-160,"_vector2_x":752}}}},{"marker":44,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}}]}
