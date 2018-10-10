@@ -281,7 +281,7 @@ class Table:
     
     # removeByIndex :: Int -> Table
     def removeByIndex index:
-        self.fromWrapper $ self.ptr.removeByIndex index
+        self.fromWrapper $ self.ptr.removeColumn index
 
     # remove :: Text -> Table
     def remove name:
@@ -653,7 +653,7 @@ class Table:
 
     def correlations:
         numeric = self.filterColumns .isNumeric
-        numeric.fromWrapper $ numeric.ptr.correlations
+        numeric.fromWrapper $ numeric.ptr.corr
 
     # Computes pairwise Pearson's correlations with given column, excluding null values.
     #
@@ -681,7 +681,7 @@ class Table:
     def correlationsWith columnName:
         numeric = self.filterColumns .isNumeric
         column = numeric.at columnName . toColumn
-        corrCol = Column.fromColumnWrapper $ numeric.ptr.correlationsWith column.ptr
+        corrCol = Column.fromColumnWrapper $ numeric.ptr.corrWith column.ptr
         colNames = numeric.toList . each .name
         corrList = corrCol.toList
         l1 = colNames . zip corrList

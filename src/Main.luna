@@ -14,20 +14,36 @@ import Dataframes.Plot.Matplotlib
 
 
 «35»def func1 remove1:
-    «36»corrWith1 = remove1 . corrWith "y"
-    «37»sort1 = corrWith1 . sort [("CORR_WITH_y", Descending, NullsAfter )]
+    «36»corrWith1 = remove1 . correlationsWith "y"
+    «37»sort1 = corrWith1 . sortMultiples [("corr_with_y", Descending, NullsAfter )]
     «38»take1 = sort1 . take 4 . drop 1
     «39»toList1 = take1 . column "column" . toList
     toList1
 
+«68»def func2 fillNa1:
+    «69»remove1 = fillNa1 . remove "id" . remove "timestamp"
+    «70»correlationsWith1 = remove1 . correlationsWith "y"
+    «71»sortMultiples1 = correlationsWith1 . sortMultiples [("corr_with_y", Descending , NullsAfter )]
+    «72»take1 = sortMultiples1 . drop 1 . take 5
+    «73»toList1 = take1 . column "column" . toList
+    toList1
+
 «1»def main:
-    «21»read1 = Table.read "./data/filtered2_half_append.csv"
-    «22»countValues1 = read1 . countValues "id"
-    «23»describe1 = read1 . describe
-    «24»fillNa1 = read1 . fillNa 0
-    «25»remove1 = fillNa1 . remove "id" . remove "timestamp"
-    «40»toList1 = func1 remove1
-    «43»each1 = toList1 . each (x: «44»fillNa1 . chart . plot "timestamp" x)
+    «45»read1 = Table.read "./data/cut2.csv"
+    «50»describeNa1 = read1 . describeNa
+    «54»fillNa1 = read1 . fillNa 0
+    «75»aggregateBy1 = read1 . aggregateBy "id" [("fundamental_48", [Maximum])]
+    «51»histogram1 = describeNa1 . chart . histogram "ratio"
+    «76»sortDescending1 = aggregateBy1 . sortMultiples [("fundamental_48_max", Descending, NullsAfter )]
+    «77»toList2 = sortDescending1 . take 1 . column "id" . toList
+    «78»filter1 = read1 . filter (x: «79»(x.at "id" == 1652) . not)
+    «80»filter2 = read1.filter (x: «81»(x.at "id" == toList2.head.get) . not)
+    «74»toList1 = func2 fillNa1
+    «62»columns1 = fillNa1 . columns toList1
+    «63»correlations1 = columns1 . correlations
+    «65»each1 = toList1 . each (fillNa1.chart . plot "timestamp")
+    «67»appendVertical1 = Chart None . appendVertical each1
+    «64»heatmap1 = correlations1 . chart . heatmap
     None
 
-### META {"metas":[{"marker":36,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":37,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":320}}}},{"marker":38,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":640}}}},{"marker":39,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":960}}}},{"marker":21,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-160,"_vector2_x":-464}}}},{"marker":22,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-192,"_vector2_x":-272}}}},{"marker":23,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-80,"_vector2_x":-272}}}},{"marker":24,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-160,"_vector2_x":-144}}}},{"marker":25,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-160,"_vector2_x":176}}}},{"marker":40,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-160,"_vector2_x":432}}}},{"marker":43,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":-160,"_vector2_x":752}}}},{"marker":44,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}}]}
+### META {"metas":[{"marker":45,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-288,"_vector2_x":-944}}}},{"marker":50,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-608,"_vector2_x":-576}}}},{"marker":54,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-288,"_vector2_x":-64}}}},{"marker":75,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":32,"_vector2_x":-576}}}},{"marker":51,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-608,"_vector2_x":-256}}}},{"marker":76,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":32,"_vector2_x":-256}}}},{"marker":77,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":32,"_vector2_x":48}}}},{"marker":78,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-160,"_vector2_x":-384}}}},{"marker":79,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":80,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-80,"_vector2_x":208}}}},{"marker":74,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-320,"_vector2_x":448}}}},{"marker":62,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-176,"_vector2_x":576}}}},{"marker":63,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-176,"_vector2_x":768}}}},{"marker":65,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":-480,"_vector2_x":736}}}},{"marker":67,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-576,"_vector2_x":1008}}}},{"marker":64,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-176,"_vector2_x":1088}}}},{"marker":69,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":70,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":320}}}},{"marker":71,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":640}}}},{"marker":72,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":960}}}},{"marker":73,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1280}}}},{"marker":36,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":37,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":320}}}},{"marker":38,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":640}}}},{"marker":39,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":960}}}}]}
