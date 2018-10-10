@@ -92,7 +92,7 @@ class Table:
         ptrs = columns.each .ptr
         schema = Schema.fromFields fields
         self.fromWrapper $ createTableWrapper schema.ptr ptrs
-    def fromFile path:
+    def read path:
         self.fromWrapper $ readTableFromFile path
 
     def columnCount: self.ptr.columnCount
@@ -279,13 +279,13 @@ class Table:
         columns = names.each self.column
         self.fromColumns columns
     
-    # removeColumn :: Int -> Table
-    def removeColumn index:
-        self.fromWrapper $ self.ptr.removeColumn index
+    # removeByIndex :: Int -> Table
+    def removeByIndex index:
+        self.fromWrapper $ self.ptr.removeByIndex index
 
     # remove :: Text -> Table
     def remove name:
-        self.removeColumn $ self.schema.getFieldIndexByName name
+        self.removeByIndex $ self.schema.getFieldIndexByName name
     def toList:
         self.ptr.toList.each Column.fromColumnWrapper
     def toText:
@@ -638,15 +638,15 @@ class Table:
     # >     col1 = Column.fromList "col1" Int64Type l1
     # >     col2 = Column.fromList "col2" Int64Type l2
     # >     table = Table.fromColumns [col1 , col2]
-    # >     correlations = table.corr
+    # >     correlations = table.correlations
     # >     None
     #
     # `return`: The `self` table value with pairwise correlations calculated for `self` table.
     # ![](data/docs/docs19.png)
 
-    def corr:
+    def correlations:
         numeric = self.filterColumns .isNumeric
-        numeric.fromWrapper $ self.ptr.corr
+        numeric.fromWrapper $ numeric.ptr.correlations
 
     # Computes pairwise Pearson's correlations with given column, excluding null values.
     #
@@ -660,7 +660,7 @@ class Table:
     # >     col1 = Column.fromList "col1" Int64Type l1
     # >     col2 = Column.fromList "col2" Int64Type l2
     # >     table = Table.fromColumns [col1 , col2]
-    # >     correlations = table.corrWith "col2"
+    # >     correlations = table.correlationsWith "col2"
     # >     None
     #
     # errors: 
@@ -671,10 +671,10 @@ class Table:
     # `return`: `Table` value including correlations with `columnName` column calculated for `self` table.
     # ![](data/docs/docs20.png)
 
-    def corrWith columnName:
+    def correlationsWith columnName:
         numeric = self.filterColumns .isNumeric
         column = numeric.at columnName . toColumn
-        corrCol = Column.fromColumnWrapper $ numeric.ptr.corrWith column.ptr
+        corrCol = Column.fromColumnWrapper $ numeric.ptr.correlationsWith column.ptr
         colNames = numeric.toList . each .name
         corrList = corrCol.toList
         l1 = colNames . zip corrList
@@ -682,7 +682,7 @@ class Table:
         names = sorted.each .first
         vals  = sorted.each .second
         col1 = Column.fromList "column" StringType names
-        col2 = Column.fromList ("CORR_WITH_" + columnName) DoubleType vals
+        col2 = Column.fromList ("corr_with_" + columnName) DoubleType vals
         Table.fromColumns [col1, col2]
 
     # Generates descriptive statistics that summarize the central tendency, dispersion and shape of the values in given column distribution. 
