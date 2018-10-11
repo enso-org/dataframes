@@ -185,3 +185,14 @@ using is_detected = typename detail::is_detected<Trait, void, Args...>::type;
 
 template <template <class...> class Trait, class... Args>
 constexpr bool is_detected_v = is_detected<Trait, Args...>::value;
+
+template<typename Range, typename Functor, typename Value>
+Value maxElementValue(Range &&range, Value forEmptyRange, Functor &&f)
+{
+    if(std::empty(range))
+        return forEmptyRange;
+
+    auto minItr = std::max_element(std::begin(range), std::end(range), [&] (auto &&lhs, auto &&rhs) 
+        { return f(lhs) < f(rhs); });
+    return f(*minItr);
+}
