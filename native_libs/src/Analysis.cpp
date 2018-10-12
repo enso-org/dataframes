@@ -204,19 +204,18 @@ struct Last
 
 };
 
+template<typename T>
 struct RSI
 {
     static constexpr const char *name = "RSI";
     static constexpr int32_t RequiredSampleCount = 1;
 
-    Mean<double> down, up;
+    Mean<T> down, up;
 
-    void operator()(double value)
+    void operator()(T value)
     {
-        if(value > 0)
-            up(value);
-        else
-            down(value);
+        up(std::max<T>(value, 0.0));
+        down(std::min<T>(0.0, value));
     }
     void operator() () {}
 
@@ -224,7 +223,7 @@ struct RSI
     {
         const auto upMean = up.get();
         const auto downMean = down.get();
-        return 100 * upMean / (upMean - downMean);
+        return 100.0 * upMean / (upMean - downMean);
     }
 
 };
@@ -240,7 +239,7 @@ template<typename T> struct AggregatorFor<AggregateFunction::Median , T> { using
 template<typename T> struct AggregatorFor<AggregateFunction::First  , T> { using type = First<T>  ; };
 template<typename T> struct AggregatorFor<AggregateFunction::Last   , T> { using type = Last<T>   ; };
 template<typename T> struct AggregatorFor<AggregateFunction::Sum    , T> { using type = Sum<T>    ; };
-template<typename T> struct AggregatorFor<AggregateFunction::RSI    , T> { using type = RSI       ; };
+template<typename T> struct AggregatorFor<AggregateFunction::RSI    , T> { using type = RSI<T>    ; };
 template<typename T> struct AggregatorFor<AggregateFunction::StdDev , T> { using type = StdDev<T> ; };
 
 template<arrow::Type::type id, typename Processor>
@@ -352,6 +351,11 @@ std::shared_ptr<arrow::Column> columnFromArray(std::shared_ptr<arrow::Array> arr
 std::shared_ptr<arrow::Column> calculateVariance(const arrow::Column &column)
 {
     return calculateStat<Variance>(column);
+}
+
+std::shared_ptr<arrow::Column> calculateRSI(const arrow::Column &column)
+{
+    return calculateStat<RSI>(column);
 }
 
 std::shared_ptr<arrow::Column> calculateStandardDeviation(const arrow::Column &column)

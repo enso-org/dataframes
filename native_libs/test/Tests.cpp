@@ -909,6 +909,30 @@ BOOST_AUTO_TEST_CASE(Statistics)
 // 	calculateCorrelation(*toColumn(a), *toColumn(b));
 }
 
+struct RsiTestingFixture
+{
+    auto rsi(const std::vector<std::optional<double>> &vector)
+    {
+        auto col = toColumn(vector);
+        auto resultCol = calculateRSI(*col);
+        return toVector<std::optional<double>>(*resultCol);
+    }
+
+    auto test(const std::vector<std::optional<double>> &input, const std::vector<std::optional<double>> &expectedOutput)
+    {
+        auto actualOutput = rsi(input);
+        BOOST_CHECK_EQUAL_RANGES(expectedOutput, actualOutput);
+    }
+};
+
+BOOST_FIXTURE_TEST_CASE(RSI, RsiTestingFixture)
+{
+    test({ 5.0, 10.0, 6.0    }, { 100.0        });
+    test({ -5.0, -10.0, -6.0 }, { 0.0          });
+    test({                   }, { std::nullopt });
+    test({ std::nullopt      }, { std::nullopt });
+}
+
 template<typename T>
 void testInterpolation(std::vector<std::optional<T>> input, std::vector<std::optional<T>> expectedOutput)
 {
