@@ -16,13 +16,13 @@
 
 namespace
 {
-    std::shared_ptr<arrow::Table> readXlsxFile(const char *filepath, HeaderPolicy header, std::vector<ColumnType> columnTypes)
+    std::shared_ptr<arrow::Table> readXlsxInput(std::istream &input, HeaderPolicy header, std::vector<ColumnType> columnTypes)
     {
-        throw std::runtime_error("The library was compiled without XLSX support!");
+        THROW("The library was compiled without XLSX support!");
     }
     void writeXlsx(std::ostream &out, const arrow::Table &table, GeneratorHeaderPolicy headerPolicy)
     {
-        throw std::runtime_error("The library was compiled without XLSX support!");
+        THROW("The library was compiled without XLSX support!");
     }
 }
 
