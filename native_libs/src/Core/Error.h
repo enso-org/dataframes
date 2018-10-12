@@ -4,8 +4,8 @@
 #include "Common.h"
 #include "Logger.h"
 
-void setError(const char **outError, const char *errorToSet, const char *functionName) noexcept;
-void clearError(const char **outError) noexcept;
+DFH_EXPORT void setError(const char **outError, const char *errorToSet, const char *functionName) noexcept;
+DFH_EXPORT void clearError(const char **outError) noexcept;
 
 template<typename Function>
 auto translateExceptionToError(const char *functionName, const char **outError, Function &&f)

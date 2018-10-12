@@ -1,16 +1,18 @@
+#include "Learn.h"
 #include <cmath>
 #include <arrow/array.h>
 #include <Core/ArrowUtilities.h>
 #include "SKLearn.h"
-#include <numpy/arrayobject.h>
 #include <variant.h>
-#include <Python.h>
 #include <LifetimeManager.h>
 #include <Analysis.h>
+#include "Core/Error.h"
+#include "Python/PythonInterpreter.h"
 
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+COMPILATION_UNIT_USING_NUMPY;
 
-namespace skl = sklearn;
+namespace
+{
 
 struct NPArrayBuilder
 {
@@ -20,7 +22,10 @@ struct NPArrayBuilder
     {
         rows = _rows;
         cols = _cols;
+        // FIXME!!! I think this can leak
         data = (double*) malloc(sizeof(double)*rows*cols);
+        if(!data)
+            THROW("failed to allocate memory for numpy matrix of {} rows x {} columns", _rows, _cols);
     }
     void setAt(int64_t row, int64_t col, double d)
     {
@@ -28,14 +33,14 @@ struct NPArrayBuilder
     }
     void setAt(int64_t row, int64_t col, int64_t i)
     {
-        if (row==0) std::cout << (double) i << std::endl;
+        //if (row==0) std::cout << (double) i << std::endl;
         data[row*cols+col] = (double) i;
     }
-    void setAt(int64_t row, int64_t col, const std::string_view& s)
+    void setAt(int64_t row, int64_t col, std::string_view)
     {
         throw std::runtime_error("Cannot use strings with numpy array.");
     }
-    void setAt(int64_t row, int64_t col, const Timestamp&)
+    void setAt(int64_t row, int64_t col, Timestamp)
     {
         throw std::runtime_error("Cannot use timestamps with numpy array.");
     }
@@ -43,174 +48,226 @@ struct NPArrayBuilder
     {
         data[row*cols+col] = nan(" ");
     }
-    PyObject* getNPMatrix()
+    pybind11::array getNPMatrix()
     {
         npy_intp dims[2] = {(long) rows, (long) cols};
-        PyObject* r = PyArray_SimpleNewFromData(2, dims, NPY_DOUBLE, data);
-        return r;
+        pybind11::handle h = PyArray_SimpleNewFromData(2, dims, NPY_DOUBLE, data);
+        return pybind11::array{h, false};
     }
-    PyObject* getNPArr()
+    pybind11::array_t<double> getNPArr()
     {
         npy_intp dim = rows*cols;
-        PyObject* r = PyArray_SimpleNewFromData(1, &dim, NPY_DOUBLE, data);
-        return r;
+        pybind11::handle h = PyArray_SimpleNewFromData(1, &dim, NPY_DOUBLE, data);
+        return pybind11::array{ h, false };
+    }
+    template<typename Iterable>
+    void addColumn(int columnIndex, const Iterable &iterable)
+    {
+        // TODO? perhaps can relax rules and fill with nulls / ignore additional values
+        if(iterable.length() != rows)
+            THROW("failed to add column with index {} to numpy matrix: it has {} rows while expected {}", columnIndex, iterable.length(), rows);
+
+        int64_t rowIndex = 0;
+        iterateOverGeneric(iterable,
+            [&](auto&& elem)
+            {
+                setAt(rowIndex, columnIndex, elem);
+                rowIndex++;
+            },
+            [&]()
+            {
+                setNaAt(rowIndex, columnIndex);
+                rowIndex++;
+            });
     }
 };
 
-PyObject* tableToNpMatrix(const arrow::Table& table)
+auto fromC(PyObject *obj)
 {
-    Py_Initialize();
-    import_array();
+    return pybind11::reinterpret_borrow<pybind11::object>(obj);
+}
+
+auto passToC(pybind11::object obj)
+{
+    return obj.release().ptr();
+}
+
+} // anonymous namespace
+
+pybind11::array tableToNpMatrix(const arrow::Table& table)
+{
     NPArrayBuilder builder;
     builder.init(table.num_rows(), table.num_columns());
     auto cols = getColumns(table);
     int colIndex = 0;
     for (auto& col : cols)
     {
-        int rowIndex = 0;
-        iterateOverGeneric(*col,
-                [&](auto&& elem)
-                {
-                    builder.setAt(rowIndex, colIndex, elem);
-                    rowIndex++;
-                },
-                [&]()
-                {
-                    builder.setNaAt(rowIndex, colIndex);
-                    rowIndex++;
-                });
-        colIndex++;
+        builder.addColumn(colIndex++, *col);
     }
     auto res = builder.getNPMatrix();
-    PyObject_Print(res, stdout, 0);
+    //PyObject_Print(res, stdout, 0);
     return res;
 }
 
-PyObject* columnToNpArr(const arrow::Column& col)
+pybind11::array_t<double> columnToNpArr(const arrow::Column &col)
 {
-    Py_Initialize();
-    import_array();
     NPArrayBuilder builder;
     builder.init(col.length(), 1);
-    int rowIndex = 0;
-    iterateOverGeneric(col,
-            [&](auto&& elem)
-            {
-                builder.setAt(rowIndex, 0, elem);
-                rowIndex++;
-            },
-            [&]()
-            {
-                builder.setNaAt(rowIndex, 0);
-                rowIndex++;
-            });
+    builder.addColumn(0, col);
     auto res = builder.getNPArr();
-    PyObject_Print(res, stdout, 0);
+    //PyObject_Print(res, stdout, 0);
     return res;
 }
 
-arrow::Column* npArrayToColumn(PyObject* arO)
+std::shared_ptr<arrow::Column> npArrayToColumn(pybind11::array_t<double> arr, std::string name)
 {
-    PyArrayObject* ar = reinterpret_cast<PyArrayObject*>(PyArray_ContiguousFromObject(arO, NPY_DOUBLE, 0, 0));
-    std::cout << "MEAN IS: " << PyFloat_AsDouble(PyArray_Mean(ar, 0, NPY_DOUBLE, NULL)) << std::endl;
-    int size = PyArray_DIM(ar, 0);
-    double* data = (double*) PyArray_DATA(ar);
+    // TODO: check that this is 1-D array
+    // TODO: check that array contains doubles
+    auto size = arr.shape(0);
+    auto data = (const double *) arr.data();
+
+    // TODO: check that array is contiguous
     arrow::DoubleBuilder builder;
-    builder.AppendValues(data, size);
-    auto arr = finish(builder);
-    auto field = arrow::field("Predictions", arr->type(), arr->null_count());
-    auto p = std::make_shared<arrow::Column>(field, arr);
-    return LifetimeManager::instance().addOwnership(std::move(p));
+    for(size_t i = 0; i < size; ++i)
+    {
+        auto value = data[i];
+        if(std::isnan(value))
+            builder.AppendNull();
+        else
+            builder.Append(value);
+    }
+    return toColumn(finish(builder), name);
+}
+
+void sklearn::fit(pybind11::object model, const arrow::Table &xs, const arrow::Column &y)
+{
+    auto xsO = tableToNpMatrix(xs);
+    auto yO = columnToNpArr(y);
+    sklearn::fit(model, xsO, yO);
+}
+
+double sklearn::score(pybind11::object model, const arrow::Table &xs, const arrow::Column &y)
+{
+    auto xsO = tableToNpMatrix(xs);
+    auto yO = columnToNpArr(y);
+    return sklearn::score(model, xsO, yO);
+}
+
+std::shared_ptr<arrow::Column> sklearn::predict(pybind11::object model, const arrow::Table &xs)
+{
+    auto xsO = tableToNpMatrix(xs);
+    auto yO = sklearn::predict(model, xsO);
+    auto predictedColumn = npArrayToColumn(yO, "Predictions");
+    return predictedColumn;
+}
+
+std::shared_ptr<arrow::Table> sklearn::confusionMatrix(const arrow::Column &ytrue, const arrow::Column &ypred)
+{
+    auto c1 = columnToNpArr(ytrue);
+    auto c2 = columnToNpArr(ypred);
+    auto t1 = sklearn::confusion_matrix(c1, c2);
+    THROW("not implemented");
 }
 
 extern "C"
 {
 
-EXPORT void toNpArr(arrow::Table* tb)
+EXPORT void toNpArr(const arrow::Table* tb, const char **outError) noexcept
 {
-    tableToNpMatrix(*tb);
+    return TRANSLATE_EXCEPTION(outError)
+    {
+        tableToNpMatrix(*tb);
+    };
 }
 
-EXPORT void freePyObj(PyObject* o)
+EXPORT void freePyObj(PyObject* o, const char **outError) noexcept
 {
-    Py_DECREF(o);
+    return TRANSLATE_EXCEPTION(outError)
+    {
+        Py_XDECREF(o);
+    };
 }
 
-EXPORT PyObject* newLogisticRegression(double C)
+EXPORT PyObject* newLogisticRegression(double C, const char **outError) noexcept
 {
-    skl::interpreter::get();
-    return skl::newLogisticRegression(C);
+    return TRANSLATE_EXCEPTION(outError)
+    {
+        return passToC(sklearn::newLogisticRegression(C));
+    };
 }
 
-  EXPORT PyObject* newLinearRegression() {
-    skl::interpreter::get();
-    return skl::newLinearRegression();
-  }
-
-  EXPORT void fit(PyObject* model, arrow::Table *xs, arrow::Column *y) {
-    skl::interpreter::get();
-    PyObject* xsO = tableToNpMatrix(*xs);
-    PyObject* yO = columnToNpArr(*y);
-    skl::fit(model, xsO, yO);
+EXPORT PyObject* newLinearRegression(const char **outError) noexcept
+{
+    return TRANSLATE_EXCEPTION(outError)
+    {
+        return passToC(sklearn::newLinearRegression());
+    };
 }
 
-EXPORT double score(PyObject* model, arrow::Table* xs, arrow::Column* y)
+EXPORT void fit(PyObject* model, const arrow::Table *xs, const arrow::Column *y, const char **outError) noexcept
 {
-    skl::interpreter::get();
-    PyObject* xsO = tableToNpMatrix(*xs);
-    PyObject* yO = columnToNpArr(*y);
-    return skl::score(model, xsO, yO);
+    return TRANSLATE_EXCEPTION(outError)
+    {
+        return sklearn::fit(fromC(model), *xs, *y);
+    };
 }
 
-EXPORT arrow::Column* predict(PyObject* model, arrow::Table* xs)
+EXPORT double score(PyObject* model, const arrow::Table* xs, const arrow::Column* y, const char **outError) noexcept
 {
-    skl::interpreter::get();
-    PyObject* xsO = tableToNpMatrix(*xs);
-    PyObject* yO = skl::predict(model, xsO);
-    PyObject_Print(yO, stdout, 0);
-    return npArrayToColumn(yO);
+    return TRANSLATE_EXCEPTION(outError)
+    {
+        return sklearn::score(fromC(model), *xs, *y);
+    };
 }
 
-EXPORT arrow::Table* confusionMatrix(arrow::Column* ytrue, arrow::Column* ypred)
+EXPORT arrow::Column* predict(PyObject* model, const arrow::Table* xs, const char **outError) noexcept
 {
-    auto c1 = columnToNpArr(*ytrue);
-    auto c2 = columnToNpArr(*ypred);
-    auto t1 = skl::confusion_matrix(c1, c2);
-    std::cout << "\nBEFORE\n";
-    PyObject_Print(t1, stdout, 0);
-    std::cout << "\nAFTER\n";
-    return NULL;
+    return TRANSLATE_EXCEPTION(outError)
+    {
+        auto ret = sklearn::predict(fromC(model), *xs);
+        return LifetimeManager::instance().addOwnership(ret);
+    };
 }
 
-EXPORT arrow::Table* oneHotEncode(arrow::Column* col)
+EXPORT arrow::Table* confusionMatrix(const arrow::Column* ytrue, const arrow::Column* ypred, const char **outError) noexcept
 {
-    return [&] // NOTE: [MU] top-level faux-lambda is needed because extern-C function can't contain polymorphic lambdas (but for some reason they can contain lambdas containing polymorphic lambdas...)
+    return TRANSLATE_EXCEPTION(outError)
+    {
+        auto ret = sklearn::confusionMatrix(*ytrue, *ypred);
+        return LifetimeManager::instance().addOwnership(ret);
+    };
+}
+
+EXPORT arrow::Table* oneHotEncode(const arrow::Column* col, const char **outError) noexcept
+{
+    return TRANSLATE_EXCEPTION(outError)
     {
         std::unordered_map<std::string_view, int> valIndexes;
         int lastIndex = 0;
         iterateOver<arrow::Type::STRING>(*col,
-                [&](auto&& elem)
-                {
-                    if (valIndexes.find(elem)==valIndexes.end()) valIndexes[elem] = lastIndex++;
-                },
-                []() { });
+            [&](auto &&elem)
+            {
+                if (valIndexes.find(elem)==valIndexes.end()) 
+                    valIndexes[elem] = lastIndex++;
+            },
+            []() { });
         std::vector<arrow::DoubleBuilder> builders(valIndexes.size());
         iterateOver<arrow::Type::STRING>(*col,
-                [&](auto&& elem)
+            [&](auto &&elem)
+            {
+                int ind = valIndexes[elem];
+                for (int i = 0; i<builders.size(); i++)
                 {
-                    int ind = valIndexes[elem];
-                    for (int i = 0; i<builders.size(); i++)
-                    {
-                        builders[i].Append(i==ind ? 1 : 0);
-                    }
-                },
-                [&]()
+                    builders[i].Append(i==ind ? 1 : 0);
+                }
+            },
+            [&]()
+            {
+                for (int i = 0; i<builders.size(); i++)
                 {
-                    for (int i = 0; i<builders.size(); i++)
-                    {
-                        builders[i].Append(0);
-                    }
-                });
+                    builders[i].Append(0);
+                }
+            });
         std::vector<PossiblyChunkedArray> arrs;
         for (auto& bldr : builders)
         {
@@ -223,6 +280,13 @@ EXPORT arrow::Table* oneHotEncode(arrow::Column* col)
         }
         auto t = tableFromArrays(arrs, names);
         return LifetimeManager::instance().addOwnership(std::move(t));
-    }();
+    };
 }
+
+} // extern "C"
+
+sklearn::interpreter& sklearn::interpreter::get()
+{
+    static sklearn::interpreter ctx;
+    return ctx;
 }

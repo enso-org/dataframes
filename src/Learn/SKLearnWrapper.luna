@@ -39,7 +39,7 @@ class PyModel:
 
 class SKLearnWrapper:
     def call name ret args:
-        lookupSymbol "Learn" name . call ret args
+        callLibHandlingError "Learn" name ret args
 
     def newLogisticRegression c:
         self.call "newLogisticRegression" PyModel [CDouble.fromReal c . toCArg]
@@ -48,10 +48,10 @@ class SKLearnWrapper:
         self.call "newLinearRegression" PyModel []
 
     def fit model xs y:
-        lookupSymbol "Learn" "fit" . call None [model.toCArg, xs.ptr.ptr.toCArg, y.toColumn.ptr.ptr.toCArg]
+        self.call "fit" None [model.toCArg, xs.ptr.ptr.toCArg, y.toColumn.ptr.ptr.toCArg]
 
     def score model xs y:
-        r = lookupSymbol "Learn" "score" . call CDouble [model.toCArg, xs.ptr.ptr.toCArg, y.toColumn.ptr.ptr.toCArg]
+        r = self.call "score" CDouble [model.toCArg, xs.ptr.ptr.toCArg, y.toColumn.ptr.ptr.toCArg]
         r.toReal
 
     def predict model xs:

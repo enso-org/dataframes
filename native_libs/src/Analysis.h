@@ -23,7 +23,7 @@ DFH_EXPORT double calculateCorrelation(const arrow::Column &xCol, const arrow::C
 DFH_EXPORT std::shared_ptr<arrow::Column> calculateCorrelation(const arrow::Table &table, const arrow::Column &column);
 DFH_EXPORT std::shared_ptr<arrow::Table> calculateCorrelationMatrix(const arrow::Table &table);
 
-DFH_EXPORT double autoCorrelation(const std::shared_ptr<arrow::Column> &column, int lag = 1);
+DFH_EXPORT double autoCorrelation(const std::shared_ptr<arrow::Column> &column, int64_t lag = 1);
 
 template<typename ArrowType>
 struct GroupedKeyInfo

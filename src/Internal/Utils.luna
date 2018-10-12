@@ -19,9 +19,10 @@ def benchmark desc act:
 def releaseMethod:
     lookupHelper "release"
 
-def callHandlingError fname ret args:
+def callLibHandlingError library fname ret args:
     Pointer CString . with err:
-        result = callHelper fname ret (args + [err.toCArg])
+        symbol = lookupSymbol library fname
+        result = symbol.call ret (args + [err.toCArg])
         case err.read.isNull of
             True:
                 result
@@ -29,10 +30,13 @@ def callHandlingError fname ret args:
                 errorMsg = err.read.toText
                 throw errorMsg
 
+def callHandlingError fname ret args:
+    callLibHandlingError "DataframeHelper" fname ret args
+
 def withCStringArray texts f:
     bracket (texts.each CString.fromText) (_.each .free) textsCStringList:
         Array CString . with textsCStringList f
-        
+
 def setHelperVerbosity isVerbose:
     callHelper "setVerbosity" None [CInt8.fromInt (if isVerbose then 1 else 0) . toCArg]
 

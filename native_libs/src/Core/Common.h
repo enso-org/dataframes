@@ -32,7 +32,7 @@ using namespace std::chrono_literals;
 #if defined(_MSC_VER) && !defined(__INTELLISENSE__)
 #define EXPORT __declspec(dllexport)
 #else
-#define EXPORT
+#define EXPORT [[gnu::visibility ("default")]]
 #endif
 
 #ifdef BUILDING_DATAFRAME_HELPER
@@ -165,9 +165,9 @@ std::vector<T> iotaVector(size_t N, T from = T{})
 
 
 #define THROW(message, ...)  do {                                         \
-	auto msg_ =  fmt::format(message, __VA_ARGS__);                       \
+	auto msg_ =  fmt::format(message, ##__VA_ARGS__);                     \
 	std::cerr << __FILE__ << " " << __LINE__ << " " << msg_ << std::endl; \
-	std::runtime_error e_to_throw{fmt::format(message, __VA_ARGS__)};     \
+	std::runtime_error e_to_throw{fmt::format(message, ##__VA_ARGS__)};   \
 	throw e_to_throw;                                                     \
 } while(0)
 

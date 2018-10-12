@@ -78,6 +78,14 @@ std::ofstream openFileToWrite(const char *filepath)
     return out;
 }
 
+void writeFile(const char *filepath, std::string_view contents)
+{
+    auto out = openFileToWrite(filepath);
+    out.write(contents.data(), contents.size());
+    if(!out)
+        THROW("Failed while writing file `{}`", filepath);
+}
+
 std::ifstream openFileToRead(const char *filepath)
 {
     // see comment in the function above

@@ -83,6 +83,15 @@ if(NOT DATE_INCLUDE)
     message(WARNING "Cannot find date library include dir with date/date.h. If it is present, consider setting CMAKE_PREFIX_PATH or CMAKE_INCLUDE_PATH.")
 endif()
 
+find_path(PYBIND_INCLUDE pybind11/embed.h)
+if(NOT PYBIND_INCLUDE)
+    message(WARNING "Cannot find pybind11 library include dir with pybind11/embed.h. If it is present, consider setting CMAKE_PREFIX_PATH or CMAKE_INCLUDE_PATH.")
+endif()
+
+find_package(PythonLibs 3.6)
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR};${CMAKE_MODULE_PATH}")
+find_package(NumPy)
+
 # Glob for the project files
 file(GLOB_RECURSE HEADER_FILES ${PROJECT_SOURCE_DIR}/*.h)
 file(GLOB_RECURSE SRC_FILES ${PROJECT_SOURCE_DIR}/*.cpp)
@@ -93,7 +102,9 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE BUILDING_DATAFRAME_HELPER)
 target_compile_definitions(${PROJECT_NAME} PUBLIC _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS) # rapidjson is so deprecated)
 
 # Includes path: project root, arrow, third-party any-lite
-target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR} ${ARROW_INCLUDE} ${PROJECT_SOURCE_DIR}/../third-party/any-lite ${PROJECT_SOURCE_DIR}/../third-party/optional-lite ${PROJECT_SOURCE_DIR}/../third-party/variant ${RAPIDJSON_INCLUDE} ${DATE_INCLUDE} ${FMT_INCLUDE})
+target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR} ${ARROW_INCLUDE} ${PROJECT_SOURCE_DIR}/../third-party/any-lite ${PROJECT_SOURCE_DIR}/../third-party/optional-lite ${PROJECT_SOURCE_DIR}/../third-party/variant ${RAPIDJSON_INCLUDE} ${DATE_INCLUDE} ${FMT_INCLUDE} ${PYTHON_INCLUDE_DIRS} ${PYTHON_NUMPY_INCLUDE_DIR} ${PYBIND_INCLUDE})
+target_link_libraries(${PROJECT_NAME} ${PYTHON_LIBRARIES})
+
 if(WIN32)
     target_compile_definitions(${PROJECT_NAME} PUBLIC FMT_HEADER_ONLY)
 else()
@@ -132,11 +143,8 @@ file(GLOB_RECURSE PLOTTER_SRC_FILES    ${PROJECT_SOURCE_DIR}/../plotter/*.cpp)
 
 add_library(DataframePlotter SHARED ${PLOTTER_HEADER_FILES} ${PLOTTER_SRC_FILES})
 
-find_package(PythonLibs 3.6)
-target_include_directories(DataframePlotter PRIVATE ${PYTHON_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/../third-party/matplotlib-cpp)
-
-target_link_libraries(DataframePlotter ${PROJECT_NAME} ${PYTHON_LIBRARIES})
-target_compile_definitions(DataframePlotter PRIVATE WITHOUT_NUMPY)
+target_include_directories(DataframePlotter PRIVATE ${PROJECT_SOURCE_DIR}/../third-party/matplotlib-cpp)
+target_link_libraries(DataframePlotter ${PROJECT_NAME})
 
 ###################
 
@@ -144,10 +152,9 @@ file(GLOB_RECURSE LEARN_HEADER_FILES ${PROJECT_SOURCE_DIR}/../learn/*.h)
 file(GLOB_RECURSE LEARN_SRC_FILES    ${PROJECT_SOURCE_DIR}/../learn/*.cpp)
 
 add_library(Learn SHARED ${LEARN_HEADER_FILES} ${LEARN_SRC_FILES})
-set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR};${CMAKE_MODULE_PATH}")
-find_package(NumPy)
-target_include_directories(Learn PRIVATE ${PYTHON_INCLUDE_DIRS} ${PYTHON_NUMPY_INCLUDE_DIR})
-target_link_libraries(Learn ${PROJECT_NAME} ${PYTHON_LIBRARIES})
+
+# target_include_directories(Learn PUBLIC )
+target_link_libraries(Learn ${PROJECT_NAME})
 
 ##################
 # TESTS & BENCHMARKS
@@ -156,5 +163,5 @@ file(GLOB_RECURSE TEST_SRC_FILES    ${PROJECT_SOURCE_DIR}/../test/*.cpp)
 
 add_executable(DataframeHelperTests ${TEST_HEADER_FILES} ${TEST_SRC_FILES})
 target_include_directories(DataframeHelperTests PRIVATE ${Boost_INCLUDE_DIRS})
-target_link_libraries(DataframeHelperTests ${PROJECT_NAME} DataframePlotter Boost::unit_test_framework)
+target_link_libraries(DataframeHelperTests Learn ${PROJECT_NAME} DataframePlotter Boost::unit_test_framework)
 ###################

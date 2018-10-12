@@ -10,11 +10,19 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\learn\Learn.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\learn\Learn.h" />
+    <ClInclude Include="..\learn\SKLearn.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
-    <ProjectGuid>{DB21CF45-ED79-4996-A2BD-BEC689322DD7}</ProjectGuid>
-    <RootNamespace>DataframePlotter</RootNamespace>
+    <ProjectGuid>{80A9D1EE-D7AE-4F89-A3E2-6600C7874E36}</ProjectGuid>
+    <RootNamespace>DataframeLearn</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <ProjectName>Learn</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -39,31 +47,21 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="Dataframe.props" />
   </ImportGroup>
-  <PropertyGroup>
-    <IncludePath>$(SolutionDir)\..\third-party\matplotlib-cpp;$(IncludePath)</IncludePath>
-  </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <PreprocessorDefinitions>Py_ENABLE_SHARED=1;MS_NO_COREDLL;WITHOUT_NUMPY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>Py_ENABLE_SHARED=1;MS_NO_COREDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <Link>
-      <AdditionalDependencies>python37.lib;DataframeHelper.lib;xlntd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>python37.lib;DataframeHelper.lib;arrowd.lib;xlntd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <Link>
-      <AdditionalDependencies>python37.lib;DataframeHelper.lib;xlnt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>python37.lib;DataframeHelper.lib;arrow.lib;xlnt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="..\plotter\Matplotlib\Plot.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\plotter\Matplotlib\B64.h" />
-    <ClInclude Include="..\plotter\Matplotlib\Plot.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

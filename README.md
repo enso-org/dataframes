@@ -14,6 +14,7 @@ Required dependencies:
   * [Apache Arrow](https://arrow.apache.org/) — from it [C++ library](https://github.com/apache/arrow/tree/master/cpp) component must be installed
   * [Boost C++ Libraries](https://www.boost.org/) — also required by Apache Arrow.
   * [date library](https://github.com/HowardHinnant/date) — for calendar support for timestamps.
+  * [pybind11](https://github.com/pybind/pybind11) — C++ Python bindings
   * [Python 3.6+](https://www.python.org/) with some packages:
     * `matplotlib`
     * `seaborn`
