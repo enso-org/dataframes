@@ -495,10 +495,12 @@ class Table:
         self.sortByColumn sortByColumns
     
     # sortBy :: column name :: Text 
-    def sortDescending columnName: sortMultiples [(columnName, Descending, NullsAfter)]
+    def sortDescending columnName: self.sortMultiples [(columnName, Descending, NullsAfter)]
 
     # sortBy :: column name :: Text 
-    def sortAscending columnName: sortMultiples [(columnName, Ascending, NullsAfter)]
+    def sortAscending columnName: self.sortMultiples [(columnName, Ascending, NullsAfter)]
+
+    def sort columnName: self.sortAscending columnName
 
     # Creates `Table` value from `self` table with removed rows with missing values.
     #
@@ -812,6 +814,14 @@ class Table:
         newTable
 
     def chart: ChartBuilder self
+    def plot: self.chart.plot 
+    def histogram: self.chart.histogram 
+    def scatter: self.chart.scatter 
+    def kde: self.chart.kde
+    def kde2: self.chart.kde2
+    def plotDate: self.chart.plotDate
+    def heatmap: self.chart.heatmap
+
 
 class ChartBuilder:
     table :: Table

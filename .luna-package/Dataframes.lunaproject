@@ -12,6 +12,7 @@ modulesSettings:
     typeRepToVisMap:
     - - tag: TCons
         contents:
+<<<<<<< Updated upstream
         - Column
         - []
       - - ! 'LunaVisualizer: base: table'
@@ -42,25 +43,18 @@ modulesSettings:
         - base/table/table.html
     - - tag: TCons
         contents:
+=======
+>>>>>>> Stashed changes
         - Table
         - []
-      - - ! 'LunaVisualizer: base: table'
-        - base/table/table.html
-    - - tag: TCons
-        contents:
-        - List
-        - - tag: TCons
-            contents:
-            - Int
-            - []
       - - ! 'LunaVisualizer: base: table'
         - base/table/table.html
     currentBreadcrumb: main
     breadcrumbsSettings:
     - - items: []
       - breadcrumbCameraSettings:
-          logicalToScreen: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[-264.0,-24.0,0.0,1.0]]'
-          screenToLogical: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[264.0,24.0,0.0,1.0]]'
+          logicalToScreen: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[-218.0,36.0,0.0,1.0]]'
+          screenToLogical: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[218.0,-36.0,0.0,1.0]]'
           lastInverse: 0
     - - items:
         - abs
@@ -149,9 +143,8 @@ modulesSettings:
     - - items:
         - main
       - breadcrumbCameraSettings:
-
-          logicalToScreen: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[-412.0,145.0,0.0,1.0]]'
-          screenToLogical: ! '[[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,1.0,0.0],[412.0,-145.0,0.0,1.0]]'
+          logicalToScreen: ! '[[0.47879394362954525,0.0,0.0,0.0],[0.0,0.47879394362954525,0.0,0.0],[0.0,0.0,1.0,0.0],[-111.29094794217275,198.0461016542771,0.0,1.0]]'
+          screenToLogical: ! '[[2.088581138724104,0.0,0.0,0.0],[0.0,2.088581138724104,0.0,0.0],[0.0,0.0,1.0,0.0],[232.4401747827481,-413.6353525129597,0.0,1.0]]'
           lastInverse: 0
     - - items:
         - main2
