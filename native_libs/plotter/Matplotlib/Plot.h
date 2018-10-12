@@ -4,21 +4,25 @@
 
 namespace arrow
 {
-	class ChunkedArray;
+    class ChunkedArray;
+    class Column;
 	class Table;
 }
 
+EXPORT std::string getPNG();
+
 extern "C"
 {
-	EXPORT void plot_date(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys);
-	EXPORT void plot(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* label, char* color, double alpha, const char *style);
-	EXPORT void kdeplot2(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys, char* colormap);
-	EXPORT void kdeplot(arrow::ChunkedArray *xs, char* label);
-	EXPORT void filled_between(arrow::ChunkedArray *xs, arrow::ChunkedArray *ys1, arrow::ChunkedArray *ys2, char* label, char* color, double alpha);
-	EXPORT void heatmap(arrow::Table* xs, char* cmap, char* annot);
-	EXPORT void histogram(arrow::ChunkedArray *xs, size_t bins);
-	EXPORT void show();
-	EXPORT void init(size_t w, size_t h);
-	EXPORT void subplot(long nrows, long ncols, long plot_number);
-	EXPORT char* getPNG();
+    EXPORT void plot(const arrow::Column *xs, const arrow::Column *ys, const char *label, const char *style, const char *color, double alpha, const char **outError) noexcept;
+	EXPORT void plotDate(const arrow::Column *xs, const arrow::Column *ys, const char **outError) noexcept;
+    EXPORT void scatter(const arrow::Column *xs, const arrow::Column *ys, const char **outError) noexcept;
+    EXPORT void kdeplot(const arrow::Column *xs, const char *label, const char **outError) noexcept;
+	EXPORT void kdeplot2(const arrow::Column *xs, const arrow::Column *ys, const char *colormap, const char **outError) noexcept;
+    EXPORT void fillBetween(const arrow::Column *xs, const arrow::Column *ys1, const arrow::Column *ys2, const char *label, const char *color, double alpha, const char **outError) noexcept;
+	EXPORT void heatmap(const arrow::Table* xs, const char* cmap, const char* annot, const char **outError) noexcept;
+	EXPORT void histogram(const arrow::Column *xs, size_t bins, const char **outError) noexcept;
+	EXPORT void show(const char **outError) noexcept;
+	EXPORT void init(size_t w, size_t h, const char **outError) noexcept;
+	EXPORT void subplot(long nrows, long ncols, long plot_number, const char **outError) noexcept;
+	EXPORT const char* getPngBase64(const char **outError) noexcept;
 }

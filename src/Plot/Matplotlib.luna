@@ -3,88 +3,71 @@ import Std.Foreign
 import Std.Base
 
 import Dataframes.Column
+import Dataframes.Internal.Utils
 import Dataframes.Table
 
 class Matplotlib:
+    def libraryName: "DataframePlotter"
+
     def call n ret args:
-        lookupSymbol "DataframePlotter" n . call ret args
+        lookupSymbol self.libraryName n . call ret args
+
+    def callHandlingError n ret args:
+        callLibHandlingError self.libraryName n ret args
 
     def histogram data bins params:
-        self.call "histogram" None [data.toCArg, CInt.fromInt bins . toCArg]
+        self.callHandlingError "histogram" None [data.toCArg, CInt.fromInt bins . toCArg]
 
-    def plotDate s1 s2: 
-        self.call "plot_date" None [s1.toCArg, s2.toCArg]
-    
-    def scatter s1 s2: 
-        self.call "scatter" None [s1.toCArg, s2.toCArg]
+    def plotDate s1 s2:
+        self.callHandlingError "plotDate" None [s1.toCArg, s2.toCArg]
+
+    def scatter s1 s2:
+        self.callHandlingError "scatter" None [s1.toCArg, s2.toCArg]
 
     def plot s1 s2 style label color alpha:
-        cstr = CString.fromText style
-        lbl = case label of 
-            Nothing: CString.null 
-            Just t: CString.fromText t
-        col = case color of 
-            Nothing: CString.null 
-            Just c: CString.fromText c
-        al = case alpha of 
-            Nothing: CDouble.fromReal 1.0 
-            Just a: CDouble.fromReal a
-        self.call "plot" None [s1.toCArg, s2.toCArg, lbl.toCArg, col.toCArg, al.toCArg, cstr.toCArg]
-
-    def kdeplot2 s1 s2 style:
-        cstr = CString.fromText style
-        self.call "kdeplot2" None [s1.toCArg, s2.toCArg, cstr.toCArg]
-
-    def heatmap s1 style annot:
-        annotc = case annot of
-            Nothing: CString.null
-            Just t: CString.fromText t
-        cstr = CString.fromText style
-        self.call "heatmap" None [s1.toCArg, cstr.toCArg, annotc.toCArg]
-    
-    def fillBetween s1 s2 s3 label color alpha:
-        lbl = case label of 
-            Nothing: CString.null 
-            Just t: CString.fromText t
-        col = case color of 
-            Nothing: CString.null 
-            Just c: CString.fromText c
-        al = case alpha of 
-            Nothing: CDouble.fromReal 1.0 
-            Just a: CDouble.fromReal a
-        self.call "fill_between" None [s1.toCArg, s2.toCArg, s3.toCArg, lbl.toCArg, col.toCArg, al.toCArg]
+        CString.with style styleC:
+            CString.with (label.withDefault "") labelC:
+                CString.with (color.withDefault "") colorC:
+                    self.callHandlingError "plot" None [s1.toCArg, s2.toCArg, labelC.toCArg, styleC.toCArg, colorC.toCArg, CDouble.fromReal (alpha.withDefault 1.0) . toCArg]
 
     def kdeplot s label:
-        cstr = case label of
-            Nothing: CString.null
-            Just t: CString.fromText t
-        self.call "kdeplot" None [s.toCArg, cstr.toCArg]
+        CString.with (label.withDefault "") labelC:
+            self.callHandlingError "kdeplot" None [s.toCArg, labelC.toCArg]
+
+    def kdeplot2 s1 s2 style:
+        CString.with style styleC:
+            self.callHandlingError "kdeplot2" None [s1.toCArg, s2.toCArg, styleC.toCArg]
+
+    def heatmap s1 style annot:
+        CString.with (annot.withDefault "") annotC:
+            CString.with style styleC:
+                self.callHandlingError "heatmap" None [s1.toCArg, styleC.toCArg, annotC.toCArg]
+
+    def fillBetween s1 s2 s3 label color alpha:
+        CString.with (label.withDefault "") labelC:
+            CString.with (color.withDefault "") colorC:
+                self.callHandlingError "fillBetween" None [s1.toCArg, s2.toCArg, s3.toCArg, labelC.toCArg, colorC.toCArg, CDouble.fromReal (alpha.withDefault 1.0) . toCArg]
 
     def subplot nrows ncols iplot:
-        self.call "subplot" None [CLong.fromInt nrows . toCArg, CLong.fromInt ncols . toCArg, CLong.fromInt iplot . toCArg]
+        self.callHandlingError "subplot" None [CLong.fromInt nrows . toCArg, CLong.fromInt ncols . toCArg, CLong.fromInt iplot . toCArg]
 
     def init w h:
-        self.call "init" None [CSize.fromInt w . toCArg, CSize.fromInt h . toCArg]
+        self.callHandlingError "init" None [CSize.fromInt w . toCArg, CSize.fromInt h . toCArg]
 
     def getPNG:
-        cstr = self.call "getPNG" CString []
-        case cstr.isNull of
-            True: throw "Matplotlib: getPNG call failed."
-            False:
-                t = cstr.toText
-                cstr.free
-                t
+        result = self.callHandlingError "getPngBase64" CString []
+        result.toText
 
 class Chart:
     render :: None
 
     def appendVertical list:
-        plotsList = list.map (x: x.toChart) 
+        plotsList = list.map (x: x.toChart)
         n = plotsList.length
         elems = 1.upto n
         zipped = plotsList.zip elems
-        seqRend = zipped.map (x: 
-            Matplotlib.subplot n 1 (x.second) 
+        seqRend = zipped.map (x:
+            Matplotlib.subplot n 1 (x.second)
             x.first . render)
         Chart seqRend.sequence
 
@@ -112,7 +95,7 @@ class Histogram:
     options :: Map Text Text
 
     def render:
-        Matplotlib.histogram self.data.ptr.data.ptr self.bins self.options
+        Matplotlib.histogram self.data.ptr self.bins self.options
 
     def toChart: Chart self.render
 
@@ -127,12 +110,12 @@ class PlotDate:
     series1 :: Column
     series2 :: Column
 
-    def render: 
-        Matplotlib.plotDate self.series1.ptr.data.ptr self.series2.ptr.data.ptr
-    
-    def toChart: Chart self.render 
+    def render:
+        Matplotlib.plotDate self.series1.ptr self.series2.ptr
 
-    def + that: self.toChart.+that 
+    def toChart: Chart self.render
+
+    def + that: self.toChart.+that
 
     def toJSON: self.toChart.toJSON
 
@@ -140,12 +123,12 @@ class Scatter:
     series1 :: Column
     series2 :: Column
 
-    def render: 
-        Matplotlib.scatter self.series1.ptr.data.ptr self.series2.ptr.data.ptr
-    
-    def toChart: Chart self.render 
+    def render:
+        Matplotlib.scatter self.series1.ptr self.series2.ptr
 
-    def + that: self.toChart.+that 
+    def toChart: Chart self.render
+
+    def + that: self.toChart.+that
 
     def toJSON: self.toChart.toJSON
 
@@ -158,7 +141,7 @@ class Plot:
     alpha :: Maybe Double
 
     def render:
-        Matplotlib.plot self.series1.ptr.data.ptr self.series2.ptr.data.ptr self.style self.label self.color self.alpha
+        Matplotlib.plot self.series1.ptr self.series2.ptr self.style self.label self.color self.alpha
 
     def toChart: Chart self.render
 
@@ -178,25 +161,25 @@ class Plot:
 class FillBetween:
     series1 :: Column
     series2 :: Column
-    series3 :: Column 
+    series3 :: Column
     label :: Maybe Text
     color :: Maybe Text
     alpha :: Maybe Double
 
     def render:
-        Matplotlib.fillBetween self.series1.ptr.data.ptr self.series2.ptr.data.ptr self.series3.ptr.data.ptr self.label self.color self.alpha
+        Matplotlib.fillBetween self.series1.ptr self.series2.ptr self.series3.ptr self.label self.color self.alpha
 
-    def toChart: Chart self.render 
+    def toChart: Chart self.render
 
-    def + that: 
-        self.toChart.+ that 
-    
+    def + that:
+        self.toChart.+ that
+
     def toJSON: self.toChart.toJSON
 
     def setLabel l: FillBetween self.series1 self.series2 self.series3 (Just l) self.color self.alpha
 
     def setColor c: FillBetween self.series1 self.series2 self.series3 self.label (Just c) self.alpha
-    
+
     def setAplha a: FillBetween self.series1 self.series2 self.style self.label self.color (Just a)
 
 class KDE2:
@@ -205,7 +188,7 @@ class KDE2:
     colorMap :: Text
 
     def render:
-        Matplotlib.kdeplot2 self.series1.ptr.data.ptr self.series2.ptr.data.ptr self.colorMap
+        Matplotlib.kdeplot2 self.series1.ptr self.series2.ptr self.colorMap
 
     def toChart: Chart self.render
 
@@ -221,7 +204,7 @@ class KDE:
     label :: Maybe Text
 
     def render:
-        Matplotlib.kdeplot self.data.ptr.data.ptr self.label
+        Matplotlib.kdeplot self.data.ptr self.label
 
     def toChart: Chart self.render
 

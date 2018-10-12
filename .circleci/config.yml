@@ -2,7 +2,7 @@ version: 2
 jobs:
   "GCC-7": &job
     docker: # use the docker executor type; machine and macos executors are also supported
-      - image: murbanczyk/dataframesci:1.0.6 # the primary container, where your job's commands are run
+      - image: murbanczyk/dataframesci:1.0.9 # the primary container, where your job's commands are run
     steps:
       - checkout # check out the code in the project directory
       - run:

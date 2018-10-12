@@ -909,6 +909,30 @@ BOOST_AUTO_TEST_CASE(Statistics)
 // 	calculateCorrelation(*toColumn(a), *toColumn(b));
 }
 
+struct RsiTestingFixture
+{
+    auto rsi(const std::vector<std::optional<double>> &vector)
+    {
+        auto col = toColumn(vector);
+        auto resultCol = calculateRSI(*col);
+        return toVector<std::optional<double>>(*resultCol);
+    }
+
+    auto test(const std::vector<std::optional<double>> &input, const std::vector<std::optional<double>> &expectedOutput)
+    {
+        auto actualOutput = rsi(input);
+        BOOST_CHECK_EQUAL_RANGES(expectedOutput, actualOutput);
+    }
+};
+
+BOOST_FIXTURE_TEST_CASE(RSI, RsiTestingFixture)
+{
+    test({ 5.0, 10.0, 6.0    }, { 100.0        });
+    test({ -5.0, -10.0, -6.0 }, { 0.0          });
+    test({                   }, { std::nullopt });
+    test({ std::nullopt      }, { std::nullopt });
+}
+
 template<typename T>
 void testInterpolation(std::vector<std::optional<T>> input, std::vector<std::optional<T>> expectedOutput)
 {
@@ -1001,6 +1025,23 @@ BOOST_AUTO_TEST_CASE(AutoCorrelation)
     BOOST_CHECK(std::isnan(autoCorrelation(intsCol, 50)));
     BOOST_CHECK(std::isnan(autoCorrelation(intsCol, -50)));
     // Note: values above are calculated by pandas.
+}
+
+BOOST_AUTO_TEST_CASE(TableFromColumnsWithVaryingLengths)
+{
+    std::vector<int64_t> ints = { 1, 2, 3 };
+    std::vector<std::optional<double>> doubles = {1.0, 2.0, std::nullopt, 4.0};
+
+    auto table = tableFromColumns({toColumn(ints), toColumn(doubles)});
+    BOOST_CHECK_EQUAL(table->num_rows(), 4);
+    for(auto col : getColumns(*table))
+        BOOST_CHECK_EQUAL(col->length(), table->num_rows());
+
+    auto [ints2, doubles2] = toVectors<std::optional<int64_t>, std::optional<double>>(*table);
+    std::vector<std::optional<int64_t>> expectedInts2{ 1, 2, 3, std::nullopt };
+    std::vector<std::optional<double>> expectedDoubles2{ 1.0, 2.0, std::nullopt, 4.0 };
+    BOOST_CHECK_EQUAL_RANGES(ints2, expectedInts2);
+    BOOST_CHECK_EQUAL_RANGES(doubles2, expectedDoubles2);
 }
 
 BOOST_AUTO_TEST_CASE(Rolling, *boost::unit_test_framework::disabled())

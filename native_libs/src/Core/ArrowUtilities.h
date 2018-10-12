@@ -829,11 +829,10 @@ struct FixedSizeArrayBuilder
 template<typename F>
 auto dispatch(bool value, F &&f)
 {
-    switch(value)
-    {
-        CASE_DISPATCH(false);
-        CASE_DISPATCH(true);
-    }
+    if(value)
+        return f(MAKE_INTEGRAL_CONSTANT(true));
+    else
+        return f(MAKE_INTEGRAL_CONSTANT(false));
 }
 
 
