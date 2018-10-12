@@ -40,12 +40,6 @@ arrow::Type::type deduceType(std::string_view text)
     return arrow::Type::STRING;
 }
 
-ParsedCsv parseCsvFile(const char *filepath, char fieldSeparator, char recordSeparator, char quote)
-{
-    auto buffer = getFileContents(filepath);
-    return parseCsvData(std::move(buffer), fieldSeparator, recordSeparator, quote);
-}
-
 ParsedCsv parseCsvData(std::string data, char fieldSeparator /*= ','*/, char recordSeparator /*= '\n'*/, char quote /*= '"'*/)
 {
     auto bufferPtr = std::make_unique<std::string>(std::move(data));
@@ -257,12 +251,6 @@ std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy
     return buildTable(names, arrays, columnTypes);
 }
 
-std::shared_ptr<arrow::Table> loadTableFromCsvFile(const char *filepath, std::vector<ColumnType> columnTypes)
-{
-    auto csv = parseCsvFile(filepath);
-    return csvToArrowTable(csv, TakeFirstRowAsHeaders{}, columnTypes);
-}
-
 ParsedCsv::ParsedCsv(std::unique_ptr<std::string> buffer, Table records_)
     : buffer(std::move(buffer))
     , records(std::move(records_))
@@ -468,12 +456,6 @@ void generateCsv(std::ostream &out, const arrow::Table &table, GeneratorHeaderPo
     }
 }
 
-void generateCsv(const char *filepath, const arrow::Table &table, GeneratorHeaderPolicy headerPolicy, GeneratorQuotingPolicy quotingPolicy, char fieldSeparator /*= ','*/, char recordSeparator /*= '\n'*/, char quote /*= '"'*/)
-{
-    auto out = openFileToWrite(filepath);
-    generateCsv(out, table, headerPolicy, quotingPolicy);
-}
-
 std::string_view CsvParser::parseField()
 {
     if(bufferIterator == bufferEnd)
@@ -576,4 +558,35 @@ std::vector<std::vector<std::string_view>> CsvParser::parseCsvTable()
     }
 
     return ret;
+}
+
+std::shared_ptr<arrow::Table> FormatCSV::readString(std::string data, const CsvReadOptions &options) const
+{
+    auto csv = parseCsvData(std::move(data), options.fieldSeparator, options.recordSeparator, options.quote);
+    return csvToArrowTable(csv, options.header, options.columnTypes, options.typeDeductionDepth);
+}
+
+std::string FormatCSV::writeToString(const arrow::Table &table, const CsvWriteOptions &options) const
+{
+    std::ostringstream out;
+    generateCsv(out, table, options.headerPolicy, options.quotingPolicy, options.fieldSeparator, options.recordSeparator, options.quote);
+    return out.str();
+}
+
+std::string FormatCSV::fileSignature() const
+{
+    // return empty string
+    return {};
+}
+
+std::shared_ptr<arrow::Table> FormatCSV::read(std::string_view filePath, const CsvReadOptions &options) const
+{
+    auto buffer = getFileContents(filePath);
+    return readString(std::move(buffer), options);
+}
+
+void FormatCSV::write(std::string_view filePath, const arrow::Table &table, const CsvWriteOptions &options) const
+{
+    auto out = openFileToWrite(filePath);
+    generateCsv(out, table, options.headerPolicy, options.quotingPolicy, options.fieldSeparator, options.recordSeparator, options.quote);
 }

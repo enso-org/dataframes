@@ -7,6 +7,23 @@ namespace arrow
     class Table;
 }
 
-DFH_EXPORT std::shared_ptr<arrow::Table> readXlsxFile(const char *filepath, HeaderPolicy header = TakeFirstRowAsHeaders{}, std::vector<ColumnType> columnTypes = {});
-DFH_EXPORT void writeXlsx(const char *filepath, const arrow::Table &table, GeneratorHeaderPolicy headerPolicy = GeneratorHeaderPolicy::GenerateHeaderLine);
-DFH_EXPORT void writeXlsx(std::ostream &out, const arrow::Table &table, GeneratorHeaderPolicy headerPolicy = GeneratorHeaderPolicy::GenerateHeaderLine);
+struct XlsxReadOptions
+{
+    HeaderPolicy header = TakeFirstRowAsHeaders{};
+    std::vector<ColumnType> columnTypes = {};
+};
+
+struct XlsxWriteOptions
+{
+    GeneratorHeaderPolicy headerPolicy = GeneratorHeaderPolicy::GenerateHeaderLine;
+};
+
+struct DFH_EXPORT FormatXLSX : TableFileHandlerWithOptions<XlsxReadOptions, XlsxWriteOptions>
+{
+    using TableFileHandler::read;
+    using TableFileHandler::write;
+
+    virtual std::string fileSignature() const override;
+    virtual std::shared_ptr<arrow::Table> read(std::string_view filePath, const XlsxReadOptions &options) const override;
+    virtual void write(std::string_view filePath, const arrow::Table &table, const XlsxWriteOptions &options) const override;
+};

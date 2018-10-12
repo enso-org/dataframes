@@ -1291,11 +1291,11 @@ extern "C"
 
 arrow::Table *readTableFromCSVFileContentsHelper(std::string data, const char **columnNames, int32_t columnNamesPolicy, int8_t *columnTypes, int8_t *columnIsNullableTypes, int32_t columnTypeInfoCount)
 {
-    const auto headerPolicy = headerPolicyFromC(columnNamesPolicy, columnNames);
-    const auto types = columnTypesFromC(columnTypeInfoCount, columnTypes, columnIsNullableTypes);
+    CsvReadOptions opts;
+    opts.header = headerPolicyFromC(columnNamesPolicy, columnNames);
+    opts.columnTypes = columnTypesFromC(columnTypeInfoCount, columnTypes, columnIsNullableTypes);
 
-    auto csv = parseCsvData(std::move(data));
-    auto table = csvToArrowTable(csv, headerPolicy, types);
+    auto table = FormatCSV{}.readString(std::move(data), opts);
     LOG("table has size {}x{}", table->num_columns(), table->num_rows());
     return LifetimeManager::instance().addOwnership(table);
 }
@@ -1309,10 +1309,7 @@ extern "C"
         LOG("@{}", filename);
         return TRANSLATE_EXCEPTION(outError)
         {
-            // assume csv
-            // TODO deduce separators
-            auto csv = parseCsvFile(filename);
-            auto table = csvToArrowTable(csv, TakeFirstRowAsHeaders{}, {});
+            auto table = readTableFromFile(filename);
             return LifetimeManager::instance().addOwnership(table);
         };
     }
@@ -1342,9 +1339,11 @@ extern "C"
         LOG("table={}", (void*)table);
         return TRANSLATE_EXCEPTION(outError)
         {
-            std::ostringstream out;
-            generateCsv(out, *table, headerPolicy, quotingPolicy);
-            return returnedString.store(out.str());
+            CsvWriteOptions opts;
+            opts.headerPolicy = headerPolicy;
+            opts.quotingPolicy = quotingPolicy;
+            auto ret = FormatCSV{}.writeToString(*table, opts);
+            return returnedString.store(std::move(ret));
         };
     }
 
@@ -1353,7 +1352,10 @@ extern "C"
         LOG("table={}, filepath={}", (void*)table, filename);
         return TRANSLATE_EXCEPTION(outError)
         {
-            generateCsv(filename, *table, headerPolicy, quotingPolicy);
+            CsvWriteOptions opts;
+            opts.headerPolicy = headerPolicy;
+            opts.quotingPolicy = quotingPolicy;
+            FormatCSV{}.write(filename, *table, opts);
         };
     }
 
@@ -1362,9 +1364,10 @@ extern "C"
         LOG("@{} names={}, namesPolicyCode={}, typeInfoCount={}", filename, (void*)columnNames, columnNamesPolicy, columnTypeInfoCount);
         return TRANSLATE_EXCEPTION(outError)
         {
-            const auto headerPolicy = headerPolicyFromC(columnNamesPolicy, columnNames);
-            const auto columnTypesPolicy = columnTypesFromC(columnTypeInfoCount, columnTypes, columnIsNullableTypes);
-            auto table = readXlsxFile(filename, headerPolicy, columnTypesPolicy);
+            XlsxReadOptions opts;
+            opts.header = headerPolicyFromC(columnNamesPolicy, columnNames);
+            opts.columnTypes = columnTypesFromC(columnTypeInfoCount, columnTypes, columnIsNullableTypes);
+            auto table = FormatXLSX{}.read(filename, opts);
             return LifetimeManager::instance().addOwnership(std::move(table));
         };
     }
@@ -1375,8 +1378,10 @@ extern "C"
         return TRANSLATE_EXCEPTION(outError)
         {
             // NOTE: this will silently fail if the target directory does not exist
-            auto out = openFileToWrite(filename);
-            writeXlsx(out, *table, headerPolicy);
+            XlsxWriteOptions opts;
+            opts.headerPolicy = headerPolicy;
+
+            FormatXLSX{}.write(filename, *table, opts);
         };
     }
 
@@ -1385,7 +1390,7 @@ extern "C"
         LOG("{}", filename);
         return TRANSLATE_EXCEPTION(outError)
         {
-            auto table = loadTableFromFeatherFile(filename);
+            auto table = FormatFeather{}.read(filename);
             return LifetimeManager::instance().addOwnership(std::move(table));
         };
     }
@@ -1395,7 +1400,7 @@ extern "C"
         LOG("table={}, filepath={}", (void*)table, filename);
         return TRANSLATE_EXCEPTION(outError)
         {
-            saveTableToFeatherFile(filename, *table);
+            FormatFeather{}.write(filename, *table);
         };
     }
 }

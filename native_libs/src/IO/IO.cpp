@@ -1,4 +1,7 @@
 #include "IO.h"
+#include "XLSX.h"
+#include "csv.h"
+#include "Feather.h"
 
 #if __cpp_lib_filesystem >= 201703
 #include <filesystem>
@@ -62,7 +65,21 @@ std::shared_ptr<arrow::Table> buildTable(std::vector<std::string> names, std::ve
     return table;
 }
 
-std::ofstream openFileToWrite(const char *filepath)
+std::shared_ptr<arrow::Table> readTableFromFile(const char *filepath)
+{
+    std::vector<std::unique_ptr<TableFileHandler>> handlersToTry;
+    handlersToTry.push_back(std::make_unique<FormatXLSX>());
+    handlersToTry.push_back(std::make_unique<FormatFeather>());
+    handlersToTry.push_back(std::make_unique<FormatCSV>());
+
+    for(auto &&handler : handlersToTry)
+        if(auto table = handler->tryReading(filepath))
+            return table;
+
+    THROW("Failed to load file {}: it doesn't parse with default settings as any of the supported formats");
+}
+
+std::ofstream openFileToWrite(std::string_view filepath)
 {
     // what we care about is mostly MSVC because on Windows paths are not utf-8 by default
     // and fortunately MSVC implements C++17 filesystem library
@@ -73,12 +90,12 @@ std::ofstream openFileToWrite(const char *filepath)
 #endif
 
     if(!out)
-        throw std::runtime_error("Cannot open the file to write: "s + filepath);
+        THROW("Cannot open the file to write: {}", filepath);
 
     return out;
 }
 
-void writeFile(const char *filepath, std::string_view contents)
+void writeFile(std::string_view filepath, std::string_view contents)
 {
     auto out = openFileToWrite(filepath);
     out.write(contents.data(), contents.size());
@@ -86,7 +103,7 @@ void writeFile(const char *filepath, std::string_view contents)
         THROW("Failed while writing file `{}`", filepath);
 }
 
-std::ifstream openFileToRead(const char *filepath)
+std::ifstream openFileToRead(std::string_view filepath)
 {
     // see comment in the function above
 #if __cpp_lib_filesystem >= 201703
@@ -96,12 +113,12 @@ std::ifstream openFileToRead(const char *filepath)
 #endif
 
     if(!in)
-        throw std::runtime_error("Cannot open the file to read: "s + filepath);
+        THROW("Cannot open the file to read: {}", filepath);
 
     return in;
 }
 
-std::string getFileContents(const char *filepath)
+std::string getFileContents(std::string_view filepath)
 {
     try
     {
@@ -119,10 +136,7 @@ std::string getFileContents(const char *filepath)
     }
     catch(std::exception &e)
     {
-        // make sure that filename is recorded in the error message
-        std::stringstream errMsg;
-        errMsg << "Failed to load file `" << filepath << "`: " << e.what();
-        throw std::runtime_error(errMsg.str());
+        THROW("Failed to load file {}: {}", filepath, e.what());
     }
 }
 
@@ -134,4 +148,35 @@ ColumnType::ColumnType(std::shared_ptr<arrow::DataType> type, bool nullable, boo
 ColumnType::ColumnType(const arrow::Column &column, bool deduced) 
     : type(column.type()), nullable(column.field()->nullable()), deduced(deduced)
 {
+}
+
+std::shared_ptr<arrow::Table> TableFileHandler::tryReading(std::string_view filePath) const
+{
+    try
+    {
+        // short path: if the file header is wrong, don't bother reading the whole thing and parsing
+        if(!fileMightBeCompatible(filePath))
+            return nullptr;
+        
+        return read(filePath);
+    }
+    catch(...)
+    {
+        return nullptr;
+    }
+}
+
+bool TableFileHandler::fileMightBeCompatible(std::string_view filePath) const
+{
+    auto expectedSignature = fileSignature();
+    auto input = openFileToRead(filePath);
+
+    std::string buffer(expectedSignature.size(), '\0');
+    input.read(expectedSignature.data(), expectedSignature.size());
+    bool readOk = !!input;
+
+    // restore pristine input state
+    input.clear();
+    input.seekg(0);
+    return readOk && expectedSignature == buffer;
 }

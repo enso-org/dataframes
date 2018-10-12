@@ -48,7 +48,7 @@ BOOST_FIXTURE_TEST_CASE(MappingChunked, ChunkedFixture, *boost::unit_test_framew
 
 BOOST_AUTO_TEST_CASE(LoadCsvWithTimestamp, *boost::unit_test_framework::disabled())
 {
-    auto table = loadTableFromCsvFile("F:/usa.us.txt");
+    auto table = FormatCSV{}.read("F:/usa.us.txt");
     uglyPrint(*table);
 }
 
@@ -231,8 +231,7 @@ BOOST_AUTO_TEST_CASE(ParseCsv)
 BOOST_AUTO_TEST_CASE(ParseFile)
 {
 	auto path = "data/simple_empty.csv";
-	auto csv = parseCsvFile(path);
-	auto table = csvToArrowTable(csv, TakeFirstRowAsHeaders{}, {});
+	auto table = FormatCSV{}.read(path);
 }
 
 BOOST_AUTO_TEST_CASE(HelperConversionFunctions)
@@ -786,8 +785,9 @@ BOOST_AUTO_TEST_CASE(FilterWithNulls)
 
 BOOST_AUTO_TEST_CASE(TimestampParsingFromCsv)
 {
-    auto csv = parseCsvFile("data/variedColumn.csv");
-    auto table = csvToArrowTable(csv, GenerateColumnNames{}, {});
+    CsvReadOptions opts;
+    opts.header = GenerateColumnNames{};
+    auto table = FormatCSV{}.read("data/variedColumn.csv", opts);
     auto col = table->column(1);
     BOOST_CHECK_EQUAL(col->type()->id(), arrow::Type::TIMESTAMP);
     BOOST_CHECK_EQUAL(col->null_count(), 1);
@@ -795,14 +795,51 @@ BOOST_AUTO_TEST_CASE(TimestampParsingFromCsv)
     BOOST_CHECK_EQUAL(t0, Timestamp(2005_y/feb/25));
 
     // check that table with timestamps roundtrips
-    generateCsv("_Temp.csv", *table);
-    auto table2 = loadTableFromCsvFile("_Temp.csv");
+    FormatCSV{}.write("_Temp.csv", *table);
+    auto table2 = FormatCSV{}.read("_Temp.csv");
     BOOST_CHECK(table->Equals(*table2));
 
-    writeXlsx("_Temp.xlsx", *table);
-    auto tableXlsx = readXlsxFile("_Temp.xlsx", TakeFirstRowAsHeaders{}, transformToVector(getColumns(*table), [](auto col) 
-        { return ColumnType{*col, false}; }));
+    FormatXLSX{}.write("_Temp.xlsx", *table);
+    XlsxReadOptions xlsReadOpts;
+    xlsReadOpts.columnTypes = transformToVector(getColumns(*table), 
+        [](auto col) { return ColumnType{ *col, false }; });
+    auto tableXlsx = FormatXLSX{}.read("_Temp.xlsx", xlsReadOpts);
     BOOST_CHECK(table->Equals(*tableXlsx));
+}
+
+BOOST_AUTO_TEST_CASE(ReadTableDeducingFileType)
+{
+    std::vector<int64_t> ints{50,100};
+    auto table = tableFromVectors(ints);
+
+    const std::string filename = "ReadTableDeducingFileType";
+
+    // write to CSV and read
+    const auto filenameCsv = filename + ".csv";
+    FormatCSV{}.write(filenameCsv, *table);
+    auto table2 = FormatCSV{}.read(filenameCsv);
+    BOOST_CHECK(table->Equals(*table2));
+
+    // write to feather and read
+    const auto filenameFeather = filename + ".feather";
+    FormatFeather{}.write(filenameFeather, *table);
+    auto table3 = FormatFeather{}.read(filenameFeather);
+    // We can't just use Equals method, as feather format does not preserve information
+    // whether a field is allowed to contain null values.
+    BOOST_REQUIRE_EQUAL(table->num_columns(), 1);
+    auto [ints3] = toVectors<int64_t>(*table3);
+    BOOST_CHECK_EQUAL_RANGES(ints, ints3);
+
+    // write to XLSX and read
+    const auto filenameXlsx = filename + ".xlsx";
+    FormatXLSX{}.write(filenameXlsx, *table);
+    auto table4 = FormatXLSX{}.read(filenameXlsx);
+    // FIXME
+    // XLSX is not able yet to properly deduce column types, so we get string values
+    // test should be adjusted after https://github.com/luna/Dataframes/issues/34
+    auto [ints4] = toVectors<std::string>(*table4);
+    std::vector strings{ "50", "100" };
+    BOOST_CHECK_EQUAL_RANGES(strings, ints4);
 }
 
 BOOST_AUTO_TEST_CASE(TimestampInterpolation)
@@ -840,8 +877,7 @@ BOOST_AUTO_TEST_CASE(TypeDeducing)
 	BOOST_CHECK_EQUAL(deduceType("five"), arrow::Type::STRING);
 	BOOST_CHECK_EQUAL(deduceType(""), arrow::Type::NA);
 
-	auto csv = parseCsvFile("data/variedColumn.csv"); 
-	auto table = csvToArrowTable(csv, GenerateColumnNames{}, {});
+	auto table = FormatCSV{}.read("data/variedColumn.csv");
     BOOST_REQUIRE_EQUAL(table->num_columns(), 7);
     BOOST_CHECK_EQUAL(table->column(0)->type()->id(), arrow::Type::STRING);
     BOOST_CHECK_EQUAL(table->column(1)->type()->id(), arrow::Type::TIMESTAMP);
@@ -974,8 +1010,8 @@ BOOST_AUTO_TEST_CASE(CsvWithUtf8Path)
     std::vector<int64_t> nums = { 1, 2, 3 };
     std::vector<Timestamp> dates = { 2018_y/sep/13, 2018_y/sep/14, 2018_y/sep/15 };
     auto table = tableFromVectors(nums, dates);
-    generateCsv(utfPath, *table);
-    auto table2 = loadTableFromCsvFile(utfPath);
+    FormatCSV{}.write(utfPath, *table);
+    auto table2 = FormatCSV{}.read(utfPath);
 
     auto [readInts, readDates] = toVectors<int64_t, Timestamp>(*table2);
     BOOST_CHECK_EQUAL_RANGES(nums, readInts);
