@@ -1,4 +1,5 @@
 #include "Feather.h"
+#include "IO.h"
 
 #include <arrow/io/file.h>
 #include <arrow/ipc/feather.h>
@@ -6,29 +7,15 @@
 
 #include "Core/ArrowUtilities.h"
 
-void saveTableToFeatherFile(const std::string &filepath, const arrow::Table &table)
+std::string FormatFeather::fileSignature() const
 {
-    std::shared_ptr<arrow::io::FileOutputStream> out;
-    checkStatus(arrow::io::FileOutputStream::Open(filepath, &out));
-
-    std::unique_ptr<arrow::ipc::feather::TableWriter> writer;
-    checkStatus(arrow::ipc::feather::TableWriter::Open(out, &writer));
-
-    writer->SetNumRows(table.num_rows());
-    for(auto columnIndex = 0; columnIndex < table.num_columns(); columnIndex++)
-    {
-        const auto column = table.column(columnIndex);
-        for(auto &chunk : column->data()->chunks())
-            checkStatus(writer->Append(column->name(), *chunk));
-    }
-
-    checkStatus(writer->Finalize());
+    return "FEA1";
 }
 
-std::shared_ptr<arrow::Table> loadTableFromFeatherFile(const std::string &filepath)
+std::shared_ptr<arrow::Table> FormatFeather::read(std::string_view filePath) const
 {
     std::shared_ptr<arrow::io::ReadableFile> out;
-    checkStatus(arrow::io::ReadableFile::Open(filepath, &out));
+    checkStatus(arrow::io::ReadableFile::Open((std::string)filePath, &out));
 
     std::unique_ptr<arrow::ipc::feather::TableReader> reader;
     checkStatus(arrow::ipc::feather::TableReader::Open(out, &reader));
@@ -48,4 +35,23 @@ std::shared_ptr<arrow::Table> loadTableFromFeatherFile(const std::string &filepa
     auto schema = std::make_shared<arrow::Schema>(fields);
     auto table = arrow::Table::Make(schema, columns);
     return table;
+}
+
+void FormatFeather::write(std::string_view filePath, const arrow::Table &table) const
+{
+    std::shared_ptr<arrow::io::FileOutputStream> out;
+    checkStatus(arrow::io::FileOutputStream::Open((std::string)filePath, &out));
+
+    std::unique_ptr<arrow::ipc::feather::TableWriter> writer;
+    checkStatus(arrow::ipc::feather::TableWriter::Open(out, &writer));
+
+    writer->SetNumRows(table.num_rows());
+    for(auto columnIndex = 0; columnIndex < table.num_columns(); columnIndex++)
+    {
+        const auto column = table.column(columnIndex);
+        for(auto &chunk : column->data()->chunks())
+            checkStatus(writer->Append(column->name(), *chunk));
+    }
+
+    checkStatus(writer->Finalize());
 }

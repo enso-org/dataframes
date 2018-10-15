@@ -65,10 +65,40 @@ struct DFH_EXPORT CsvParser
     std::vector<std::vector<std::string_view>> parseCsvTable();
 };
 
-DFH_EXPORT ParsedCsv parseCsvFile(const char *filepath, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');
 DFH_EXPORT ParsedCsv parseCsvData(std::string data, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');
-DFH_EXPORT std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy header, std::vector<ColumnType> columnTypes, int typeDeductionDepth = 50);
-DFH_EXPORT std::shared_ptr<arrow::Table> loadTableFromCsvFile(const char *filepath, std::vector<ColumnType> columnTypes = {});
+DFH_EXPORT std::shared_ptr<arrow::Table> csvToArrowTable(const ParsedCsv &csv, HeaderPolicy header, std::vector<ColumnType> columnTypes, int typeDeductionDepth);
 
 DFH_EXPORT void generateCsv(std::ostream &out, const arrow::Table &table, GeneratorHeaderPolicy headerPolicy, GeneratorQuotingPolicy quotingPolicy, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');
-DFH_EXPORT void generateCsv(const char *filepath, const arrow::Table &table, GeneratorHeaderPolicy headerPolicy = GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy quotingPolicy = GeneratorQuotingPolicy::QuoteWhenNeeded, char fieldSeparator = ',', char recordSeparator = '\n', char quote = '"');
+
+struct CsvCommonOptions
+{
+    char fieldSeparator = ',';
+    char recordSeparator = '\n';
+    char quote = '"';
+};
+
+struct CsvReadOptions : CsvCommonOptions
+{
+    HeaderPolicy header = TakeFirstRowAsHeaders{};
+    std::vector<ColumnType> columnTypes = {};
+    int typeDeductionDepth = 50;
+};
+
+struct CsvWriteOptions : CsvCommonOptions
+{
+    GeneratorHeaderPolicy headerPolicy = GeneratorHeaderPolicy::GenerateHeaderLine;
+    GeneratorQuotingPolicy quotingPolicy;    
+};
+
+struct DFH_EXPORT FormatCSV : TableFileHandlerWithOptions<CsvReadOptions, CsvWriteOptions>
+{
+    using TableFileHandler::read;
+    using TableFileHandler::write;
+
+    std::shared_ptr<arrow::Table> readString(std::string data, const CsvReadOptions &options) const;
+    std::string writeToString(const arrow::Table &table, const CsvWriteOptions &options) const;
+
+    virtual std::string fileSignature() const override;
+    virtual std::shared_ptr<arrow::Table> read(std::string_view filePath, const CsvReadOptions &options) const override;
+    virtual void write(std::string_view filePath, const arrow::Table &table, const CsvWriteOptions &options) const override;
+};
