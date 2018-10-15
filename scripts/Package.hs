@@ -105,6 +105,7 @@ main = do
         sequence $ copyToDir packageBinaries <$> builtExes
         copyDirectory repoDir packageRoot "src"
         copyDirectory repoDir packageRoot "visualizers"
+        copyDirectory repoDir packageRoot ".luna-package"
         pack7z [packageRoot] $ packageFile
         putStrLn $ "Packaging done, file saved to: " <> packageFile
         -- getLine
