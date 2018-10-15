@@ -147,6 +147,9 @@ private:
 
 } // end namespace detail
 
+
+void legendIfLabelPresent(std::string_view label);
+
 // must be called before the first regular call to matplotlib to have any effect
 inline void backend(const std::string& name)
 {
@@ -269,6 +272,7 @@ void fill_between(pybind11::list xarray, pybind11::list yarray1, pybind11::list 
         insert(kwargs, "color", color);
 
     detail::_interpreter::get().s_python_function_fill_between(xarray, yarray1, yarray2, **kwargs);
+    legendIfLabelPresent(label);
 }
 
 void scatter(pybind11::list xarray, pybind11::list yarray)
@@ -421,6 +425,7 @@ void kdeplot(pybind11::list xarray, const char* label)
         insert(kwargs, "label", pybind11::str(label));
 
     detail::_interpreter::get().s_python_function_kdeplot(xarray, **kwargs);
+    legendIfLabelPresent(label);
 }
 
 void plot(pybind11::list xarray, pybind11::list yarray, std::string_view label, std::string_view format = "", std::string_view color = "", double alpha = 1.0)
@@ -433,6 +438,7 @@ void plot(pybind11::list xarray, pybind11::list yarray, std::string_view label, 
     insert(kwargs, "alpha", pybind11::float_(alpha));
 
     auto lines = detail::_interpreter::get().s_python_function_plot(xarray, yarray, format, **kwargs);
+    legendIfLabelPresent(label);
 }
 // 
 // template<typename NumericX, typename NumericY>
@@ -746,10 +752,16 @@ inline void rotate_ticks(long rot)
 {
     detail::_interpreter::get().s_python_function_xticks("rotation"_a = rot, "ha"_a = "right");
 }
- 
+
 inline void legend()
 {
     detail::_interpreter::get().s_python_function_legend();
+}
+
+inline void legendIfLabelPresent(std::string_view label)
+{
+    if(!label.empty())
+        legend();
 }
 // 
 // template<typename Numeric>
