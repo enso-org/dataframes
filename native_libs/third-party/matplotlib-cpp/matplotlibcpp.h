@@ -407,15 +407,19 @@ void kdeplot2(pybind11::list xarray, pybind11::list yarray, const char* colorMap
     detail::_interpreter::get().s_python_function_kdeplot(xarray, yarray, "cmap"_a=colorMap);
 }
  
-void heatmap(pybind11::list xarray, const char* colorMap, const char* annot)
+void heatmap(pybind11::list xarray, std::string_view colorMap, std::string_view annot)
 {
-    pybind11::dict kwargs{"cmap"_a = colorMap};
-    if(annot)
+    pybind11::dict kwargs;
+
+    if(!colorMap.empty())
+        insert(kwargs, "cmap", colorMap);
+
+    if(!annot.empty())
     {
         insert(kwargs, "annot", pybind11::bool_(true));
-        insert(kwargs, "fmt", pybind11::str(annot));
+        insert(kwargs, "fmt", annot);
     }
-    detail::_interpreter::get().s_python_function_heatmap(xarray, "cmap", **kwargs);
+    detail::_interpreter::get().s_python_function_heatmap(xarray, **kwargs);
 }
  
 void kdeplot(pybind11::list xarray, const char* label)
