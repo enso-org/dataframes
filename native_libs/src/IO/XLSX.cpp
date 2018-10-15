@@ -194,7 +194,7 @@ namespace
                     auto ymd = year_month_day(daypoint);   // calendar date
                     time_of_day tod = make_time(field - daypoint); // Yields time_of_day type
 
-                                                                   // Obtain individual components as integers
+                    // Obtain individual components as integers
                     auto y = (int)ymd.year();
                     auto m = (int)(unsigned)ymd.month();
                     auto d = (int)(unsigned)ymd.day();
@@ -203,7 +203,7 @@ namespace
                     auto s = (int)tod.seconds().count();
                     auto us = (int)std::chrono::duration_cast<std::chrono::microseconds>(tod.subseconds()).count();
 
-                    xlnt::datetime timestamp{ y, m, d, h, min, s, us }; // TODO: microsecond
+                    xlnt::datetime timestamp{ y, m, d, h, min, s, us };
                     cell.value(timestamp);
                 }
                 else
