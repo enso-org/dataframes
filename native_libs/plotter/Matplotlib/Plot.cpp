@@ -113,7 +113,6 @@ pybind11::list toPyList(const arrow::Table &table)
 std::string getPNG()
 {
     plt::tight_layout();
-    plt::legend();
     return plt::getPNG();
 }
 
@@ -125,8 +124,6 @@ extern "C"
         {
             auto xsarray = toPyList(*xs);
             auto ysarray = toPyList(*ys);
-            pybind11::print(xsarray);
-            pybind11::print(ysarray);
             plt::plot(xsarray, ysarray, label, style, color, alpha);
         };
     }
@@ -137,8 +134,6 @@ extern "C"
         {
             auto xsarray = toPyList(*xs);
             auto ysarray = toPyList(*ys);
-            pybind11::print(xsarray);
-            pybind11::print(ysarray);
             plt::plot_date(xsarray, ysarray);
         };
     }
