@@ -149,12 +149,15 @@ void uglyPrint(const arrow::Table &table, std::ostream &out, int rows /*= 20*/)
         out << std::endl;
     };
 
+
     int64_t partsSize = rows / 2;
 
-    for(int64_t row = 0; row < partsSize && row <= partsSize; row++)
+    for(int64_t row = 0; row < partsSize && row < (int64_t)cells.size(); row++)
         printRow(row);
 
-    out << "... " << (table.num_rows() - partsSize * 2) << " more rows ...\n";
+    auto skippedRows = table.num_rows() - partsSize * 2;
+    if(skippedRows > 0)
+        out << "... " << skippedRows << " more rows ...\n";
 
     for(int64_t row = partsSize + 1; row < (int64_t)cells.size(); row++)
         printRow(row);

@@ -69,7 +69,40 @@ inline constexpr auto defaultValue()
 std::vector<std::string> decideColumnNames(int count, const HeaderPolicy &policy, std::function<std::string(int)> readHeaderCell);
 std::shared_ptr<arrow::Table> buildTable(std::vector<std::string> names, std::vector<std::shared_ptr<arrow::Array>> arrays, std::vector<ColumnType> columnTypes);
 
-DFH_EXPORT std::ofstream openFileToWrite(const char *filepath);
-DFH_EXPORT void writeFile(const char *filepath, std::string_view contents);
-DFH_EXPORT std::ifstream openFileToRead(const char *filepath);
-DFH_EXPORT std::string getFileContents(const char *filepath);
+DFH_EXPORT std::shared_ptr<arrow::Table> readTableFromFile(const char *filepath);
+DFH_EXPORT std::ofstream openFileToWrite(std::string_view filepath);
+DFH_EXPORT void writeFile(std::string_view, std::string_view contents);
+DFH_EXPORT std::ifstream openFileToRead(std::string_view filepath);
+DFH_EXPORT std::string getFileContents(std::string_view filepath);
+
+// Basic interface for classes that perform table IO for specific file formats
+struct TableFileHandler
+{
+    virtual ~TableFileHandler() = default;
+
+    virtual std::string fileSignature() const = 0;
+    virtual std::shared_ptr<arrow::Table> read(std::string_view filePath) const = 0;  // throws on failure
+    virtual void write(std::string_view filePath, const arrow::Table &table) const = 0;
+
+    std::shared_ptr<arrow::Table> tryReading(std::string_view filePath) const; // returns nullptr on failure
+    bool fileMightBeCompatible(std::string_view filePath) const; // might give false positive (just checks signature)
+};
+
+template<typename ReadOptions, typename WriteOptions>
+struct TableFileHandlerWithOptions : TableFileHandler
+{
+    using TableFileHandler::read;
+    using TableFileHandler::write;
+
+    virtual std::shared_ptr<arrow::Table> read(std::string_view filePath) const
+    {
+        return read(filePath, ReadOptions{});
+    }
+    virtual void write(std::string_view filePath, const arrow::Table &table) const
+    {
+        return write(filePath, table, WriteOptions{});
+    }
+
+    virtual std::shared_ptr<arrow::Table> read(std::string_view filePath, const ReadOptions &options) const = 0;
+    virtual void write(std::string_view filePath, const arrow::Table &table, const WriteOptions &options) const = 0;
+};

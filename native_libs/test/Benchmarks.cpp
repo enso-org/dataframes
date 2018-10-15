@@ -61,8 +61,8 @@ BOOST_FIXTURE_TEST_SUITE(Bench, BenchmarkingFixture, *disabled());
 
 BOOST_AUTO_TEST_CASE(GeneralBenchmark)
 {
-	benchmark("write feather", [&] { return saveTableToFeatherFile("numtable-temp.feather", *numericTable); });
-	benchmark("read feather", [&] { return loadTableFromFeatherFile("numtable-temp.feather"); });
+	benchmark("write feather", [&] { return FormatFeather{}.write("numtable-temp.feather", *numericTable); });
+	benchmark("read feather", [&] { return FormatFeather{}.read("numtable-temp.feather"); });
 	benchmark("count values", [&] { return countValues(*numericTable->column(1)); });
 	benchmark("calculate min", [&] { return calculateMin(*numericTable->column(1)); });
 	benchmark("calculate max", [&] { return calculateMax(*numericTable->column(1)); });
@@ -73,8 +73,8 @@ BOOST_AUTO_TEST_CASE(GeneralBenchmark)
 	benchmark("calculate sum", [&] { return calculateSum(*numericTable->column(1)); });
 	benchmark("calculate quantile 1/3", [&] { return calculateQuantile(*numericTable->column(1), 1.0/3.0); });
 	benchmark("calculate correlationMatrix", [&] { return calculateCorrelationMatrix(*numericTable); });
- 	benchmark("num table to csv", [&] { return generateCsv("numtable-temp.csv", *numericTable);});
- 	benchmark("num table from csv", [&] { return parseCsvFile("numtable-temp.csv");});
+ 	benchmark("num table to csv", [&] { return FormatCSV{}.write("numtable-temp.csv", *numericTable);});
+ 	benchmark("num table from csv", [&] { return FormatCSV{}.read("numtable-temp.csv");});
 
 	auto intColumn1 = g.generateColumn(arrow::Type::INT64, 10'000'000, "intsNonNull");
 	BOOST_CHECK_EQUAL(intColumn1->null_count(), 0);
@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(GeneralBenchmark)
 BOOST_AUTO_TEST_CASE(FilterBigFile0)
 {
 	const auto jsonQuery = R"({"predicate": "gt", "arguments": [ {"column": "NUM_INSTALMENT_NUMBER"}, 50 ] } )";
-	auto table = loadTableFromFeatherFile("C:/installments_payments.feather");
+	auto table = FormatFeather{}.read("C:/installments_payments.feather");
 	for(int i  = 0; i < 2000; i++)
 	{
 		measure("filter installments_payments", [&]
@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(FilterBigFile0)
 BOOST_AUTO_TEST_CASE(MapBigFile)
 {
 	const auto jsonQuery = R"({"operation": "plus", "arguments": [ {"column": "NUM_INSTALMENT_NUMBER"}, 50 ] } )";
-	auto table = loadTableFromFeatherFile("C:/installments_payments.feather");
+	auto table = FormatFeather{}.read("C:/installments_payments.feather");
 	for(int i  = 0; i < 2000; i++)
 	{
 		measure("map installments_payments", [&]
@@ -119,7 +119,7 @@ BOOST_AUTO_TEST_CASE(FilterBigFile1)
 {
 	const auto jsonQuery = R"({"predicate": "eq", "arguments": [ {"column": "NAME_TYPE_SUITE"}, "Unaccompanied" ] } )";
 
-	auto table = loadTableFromFeatherFile("C:/temp/application_train.feather");
+	auto table = FormatFeather{}.read("C:/temp/application_train.feather");
 
 
 	for(int i  = 0; i < 2000; i++)
@@ -136,8 +136,7 @@ BOOST_AUTO_TEST_CASE(FilterBigFile1)
 
 BOOST_AUTO_TEST_CASE(DropNABigFile)
 {
-	auto csv = parseCsvFile("F:/dev/csv/application_train.csv");
-	auto table = csvToArrowTable(std::move(csv), TakeFirstRowAsHeaders{}, {});
+	auto table = FormatCSV{}.read("F:/dev/csv/application_train.csv");
 
 	auto table2 = dropNA(table);
 
@@ -156,8 +155,7 @@ BOOST_AUTO_TEST_CASE(DropNABigFile)
 
 BOOST_AUTO_TEST_CASE(FillNABigFile)
 {
-	auto csv = parseCsvFile("F:/dev/csv/application_train.csv");
-	auto table = csvToArrowTable(std::move(csv), TakeFirstRowAsHeaders{}, {});
+	auto table = FormatCSV{}.read("F:/dev/csv/application_train.csv");
 
 	std::unordered_map<std::string, DynamicField> valuesToFillWith;
 	for(auto column : getColumns(*table))
@@ -174,7 +172,7 @@ BOOST_AUTO_TEST_CASE(FillNABigFile)
 BOOST_AUTO_TEST_CASE(FilterBigFile)
 {
 	const auto jsonQuery = R"({"predicate": "gt", "arguments": [ {"column": "NUM_INSTALMENT_NUMBER"}, {"operation": "plus", "arguments": [50, 1]} ] } )";
-	auto table = loadTableFromFeatherFile("C:/installments_payments.feather");
+	auto table = FormatFeather{}.read("C:/installments_payments.feather");
 	measure("filter installments_payments", 2000, [&]
 	{
 		auto table2 = filter(table, jsonQuery);
@@ -187,7 +185,7 @@ BOOST_AUTO_TEST_CASE(FilterBigFile)
 BOOST_AUTO_TEST_CASE(StatisticsBigFile)
 {
 	const auto jsonQuery = R"({"predicate": "gt", "arguments": [ {"column": "NUM_INSTALMENT_NUMBER"}, {"operation": "plus", "arguments": [50, 1]} ] } )";
-	auto table = loadTableFromFeatherFile("C:/installments_payments.feather");
+	auto table = FormatFeather{}.read("C:/installments_payments.feather");
 	measure("median installments_payments", 2000, [&]
 	{
 		calculateCorrelationMatrix(*table);
@@ -203,10 +201,9 @@ BOOST_AUTO_TEST_CASE(ParseBigFile)
 {
 	measure("parse big file", 20, [&]
 	{
-		auto csv = parseCsvFile("C:/installments_payments.csv");
-		auto table = csvToArrowTable(std::move(csv), TakeFirstRowAsHeaders{}, {});
+		auto table = FormatCSV{}.read("C:/installments_payments.csv");
 
-		//saveTableToFeatherFile("C:/installments_payments.feather", *table);
+		//FormatFeather{}.write("C:/installments_payments.feather", *table);
 	});
 
 	auto integerType = std::make_shared<arrow::Int64Type>();
@@ -224,8 +221,8 @@ BOOST_AUTO_TEST_CASE(ParseBigFile)
 		ColumnType{ doubleType , false, true },
 		ColumnType{ doubleType , false, true },
 	};
-	auto csv = parseCsvFile("C:/installments_payments.csv");
-	auto table = csvToArrowTable(std::move(csv), TakeFirstRowAsHeaders{}, {});
+
+	auto table = FormatCSV{}.read("C:/installments_payments.csv");
 
 	//std::vector<ColumnType> typesEncountered;
 	for(int i = 0; i < table->num_columns(); i++)
@@ -242,8 +239,7 @@ BOOST_AUTO_TEST_CASE(ParseBigFile)
 BOOST_AUTO_TEST_CASE(WriteBigFile)
 {
 	const auto path = R"(E:/hmda_lar-florida.csv)";
-	auto csv = parseCsvFile(path);
-	auto table = csvToArrowTable(csv, TakeFirstRowAsHeaders{}, {});
+	auto table = FormatCSV{}.read(path);
 	// 	for(int i  = 0; i < 20; i++)
 	// 	{
 	// 		measure("load big file contents1", getFileContents, path);
@@ -254,8 +250,7 @@ BOOST_AUTO_TEST_CASE(WriteBigFile)
 	{
 		measure("write big file", [&]
 		{
-			auto out = openFileToWrite("ffffff.csv");
-			generateCsv(out, *table, GeneratorHeaderPolicy::GenerateHeaderLine, GeneratorQuotingPolicy::QueteAllFields);
+            FormatCSV{}.write("ffffff.csv", *table);
 		});
 	}
 }
@@ -289,8 +284,8 @@ BOOST_FIXTURE_TEST_CASE(GroupExperiments, DataGenerator)
     //std::cout << "table rows " << table->num_rows() << std::endl;
     //auto table = loadTableFromCsvFile("F:/dev/train.csv", types);
     //generateCsv("F:/dev/trainSel.csv", *tableFromColumns({table->column(0), table->column(1)}));
-    //saveTableToFeatherFile("F:/dev/train-nasze3.feather", *table);
-    auto table = loadTableFromFeatherFile("F:/dev/train-nasze3.feather");
+    //FormatFeather{}.write("F:/dev/train-nasze3.feather", *table);
+    auto table = FormatFeather{}.read("F:/dev/train-nasze3.feather");
     auto grouped = abominableGroupAggregate(table->column(0), {{table->column(1), {AggregateFunction::Minimum, AggregateFunction::Maximum, AggregateFunction::Mean, AggregateFunction::Length}}});
 
     const auto idCol = table->column(0);
@@ -323,7 +318,7 @@ BOOST_FIXTURE_TEST_CASE(GroupExperiments, DataGenerator)
         return abominableGroupAggregate(idCol, {{ timestampCol, aggregates}, { yCol, aggregates } });
     });
 
-    generateCsv("F:/dev/aggr.csv", *grouped);
+    FormatCSV{}.write("F:/dev/aggr.csv", *grouped);
 }
 
 BOOST_FIXTURE_TEST_CASE(GroupBy, DataGenerator)
