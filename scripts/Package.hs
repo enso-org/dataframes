@@ -30,8 +30,9 @@ download :: String -> FilePath -> IO ()
 download url destPath = callProcess "curl" ["-fSL", "-o", destPath, url]
 
 find7z :: IO (Maybe FilePath)
-find7z = findProgram [ProgramSearchPathDefault, ProgramSearchPathDir default7zPath] "7z"
-    where default7zPath = "C:\\Program Files\\7-Zip"
+find7z = do
+    let default7zPath = "C:\\Program Files\\7-Zip"
+    findProgram [ProgramSearchPathDefault, ProgramSearchPathDir default7zPath] "7z"
 
 get7z :: IO FilePath
 get7z = find7z >>= \case
@@ -61,16 +62,39 @@ copyToDir destDir sourcePath = do
 pushArtifact path = do
     callProcess "appveyor" ["PushArtifact", path]
 
+-- We need to extract the package with dev libraries and set the environment
+-- variable DATAFRAMES_DEPS_DIR so the MSBuild project recognizes it.
+--
+-- The package contains all dependencies except for Python (with numpy).
+-- Python needs to be provided by CI environment and pointed to by `PythonDir`
+-- environemt variable.
+prepareEnvironment :: FilePath -> IO ()
+prepareEnvironment tempDir = do
+    let depsArchiveUrl = "https://s3-us-west-2.amazonaws.com/packages-luna/dataframes/libs-dev-v140.7z"
+    let depsArchiveLocal = tempDir </> "libs-dev-v140.7z"
+    let depsDirLocal = tempDir </> "deps"
+    download depsArchiveUrl depsArchiveLocal
+    unpack7z depsArchiveLocal depsDirLocal
+    setEnv "DATAFRAMES_DEPS_DIR" depsDirLocal
+
+-- Copies subdirectory with all its contents between two directories
+copyDirectory sourceDirectory targetDirectory subdirectoryFilename = do
+    let from = sourceDirectory </> subdirectoryFilename
+    let to = targetDirectory </> subdirectoryFilename
+    copyDirectoryRecursive silent from to
+
 main = do
-    repoDir <- getEnvDefault "APPVEYOR_BUILD_FOLDER" "C:\\dev\\Dataframes"
-    buildWithMsBuild (repoDir </> "native_libs" </> "src" </> "DataframeHelper.sln")
     withSystemTempDirectory "" $ \stagingDir -> do
+        prepareEnvironment stagingDir
+
+        repoDir <- getEnvDefault "APPVEYOR_BUILD_FOLDER" "C:\\dev\\Dataframes"
+        buildWithMsBuild (repoDir </> "native_libs" </> "src" </> "DataframeHelper.sln")
+
         let packageRoot = stagingDir </> "Dataframes"
         let packageBinaries = packageRoot </> "native_libs" </> "windows"
         let packageArchive = stagingDir </> "package.7z"
         let builtBinariesDir = repoDir </> "native_libs" </> "src" </> "x64" </> "Release"
         let packageFile = "Dataframes-Win-x64-v141" <.> "7z"
-
         download packageBaseUrl packageArchive
         unpack7z packageArchive packageBinaries
         builtDlls <- glob (builtBinariesDir </> "*.dll")
@@ -79,8 +103,8 @@ main = do
         when (null builtExes) $ error "Missing built EXE!"
         sequence $ copyToDir packageBinaries <$> builtDlls
         sequence $ copyToDir packageBinaries <$> builtExes
-        copyDirectoryRecursive silent (repoDir </> "src") (packageRoot </> "src")
-        copyDirectoryRecursive silent (repoDir </> "visualizers") (packageRoot </> "visualizers")
+        copyDirectory repoDir packageRoot "src"
+        copyDirectory repoDir packageRoot "visualizers"
         pack7z [packageRoot] $ packageFile
         putStrLn $ "Packaging done, file saved to: " <> packageFile
         -- getLine
