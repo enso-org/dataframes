@@ -738,6 +738,9 @@ class Table:
         keyColumnWrapper = self.column keyColumnName . ptr
         aggregationWithWrappers = aggregations.each (colname, aggrs): (self.column colname . ptr, aggrs.each .toInt)
         self.fromWrapper $ self.ptr.aggregateBy keyColumnWrapper aggregationWithWrappers
+    
+    def aggregate keyColumnName columnToAggregateName aggregateFunction: 
+        self.aggregateBy keyColumnName [(columnToAggregateName,[aggregateFunction])]
 
     # Returns informations about whole table: standard deviation, minimum, maximum, mean, median qunatile 0.25 and 0.75 for each column.
     #
@@ -953,7 +956,7 @@ class ChartBuilder:
     def heatmap:
         Heatmap self.table "RdBu_r" Nothing
 
-    def fill cname1 cname2 cname3:
+    def fillBetween cname1 cname2 cname3:
         c1 = self.table.at cname1 . toColumn
         c2 = self.table.at cname2 . toColumn
         c3 = self.table.at cname3 . toColumn

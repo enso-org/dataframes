@@ -61,14 +61,16 @@ class Matplotlib:
 class Chart:
     render :: None
 
-    def appendVertical list:
-        plotsList = list.map (x: x.toChart)
+    def verticalLayout list:
+        plotsList = list
         n = plotsList.length
         elems = 1.upto n
         zipped = plotsList.zip elems
         seqRend = zipped.map (x:
             Matplotlib.subplot n 1 (x.second)
-            x.first . render)
+ 
+            lbl = x.first . setLabel "lbl"
+            lbl . toChart . render)
         Chart seqRend.sequence
 
     def + that:
@@ -106,6 +108,8 @@ class Histogram:
 
     def setBins b: Histogram self.data b self.options
 
+    def verticalLayout: Chart None . verticalLayout
+
 class PlotDate:
     series1 :: Column
     series2 :: Column
@@ -119,6 +123,8 @@ class PlotDate:
 
     def toJSON: self.toChart.toJSON
 
+    def verticalLayout: Chart None . verticalLayout
+
 class Scatter:
     series1 :: Column
     series2 :: Column
@@ -131,6 +137,8 @@ class Scatter:
     def + that: self.toChart.+that
 
     def toJSON: self.toChart.toJSON
+
+    def verticalLayout: Chart None . verticalLayout
 
 class Plot:
     series1 :: Column
@@ -158,6 +166,8 @@ class Plot:
 
     def setAplha a: Plot self.series1 self.series2 self.style self.label self.color (Just a)
 
+    def verticalLayout: Chart None . verticalLayout
+
 class FillBetween:
     series1 :: Column
     series2 :: Column
@@ -180,7 +190,9 @@ class FillBetween:
 
     def setColor c: FillBetween self.series1 self.series2 self.series3 self.label (Just c) self.alpha
 
-    def setAplha a: FillBetween self.series1 self.series2 self.style self.label self.color (Just a)
+    def setAlpha a: FillBetween self.series1 self.series2 self.series3 self.label self.color (Just a)
+
+    def verticalLayout: Chart None . verticalLayout
 
 class KDE2:
     series1 :: Column
@@ -199,6 +211,8 @@ class KDE2:
 
     def setColorMap s: KDE2 self.series1 self.series2 s
 
+    def verticalLayout: Chart None . verticalLayout
+
 class KDE:
     data :: Column
     label :: Maybe Text
@@ -215,6 +229,8 @@ class KDE:
 
     def setLabel l: KDE self.data (Just l)
 
+    def verticalLayout: Chart None . verticalLayout
+
 class Grid:
     data :: List (List Chart)
 
@@ -229,3 +245,5 @@ class Grid:
     def toJSON: self.toChart.toJSON
 
     def setLabel l: self.label = (Just l)
+
+    def verticalLayout: Chart None . verticalLayout
