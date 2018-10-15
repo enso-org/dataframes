@@ -62,14 +62,13 @@ class Chart:
     render :: None
 
     def verticalLayout list:
-        plotsList = list
+        plotsList = list.map (x: x.toChart)
         n = plotsList.length
         elems = 1.upto n
         zipped = plotsList.zip elems
         seqRend = zipped.map (x:
             Matplotlib.subplot n 1 (x.second)
- 
-            x.first . toChart . render)
+            x.first . render)
         Chart seqRend.sequence
 
     def + that:
