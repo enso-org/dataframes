@@ -86,7 +86,7 @@ std::ofstream openFileToWrite(std::string_view filepath)
 #if __cpp_lib_filesystem >= 201703
     std::ofstream out{ std::filesystem::u8path(filepath), std::ios::binary };
 #else
-    std::ofstream out{ filepath, std::ios::binary };
+    std::ofstream out{ (std::string)filepath, std::ios::binary };
 #endif
 
     if(!out)
@@ -109,7 +109,7 @@ std::ifstream openFileToRead(std::string_view filepath)
 #if __cpp_lib_filesystem >= 201703
     std::ifstream in{ std::filesystem::u8path(filepath), std::ios::binary };
 #else
-    std::ifstream in{ filepath, std::ios::binary };
+    std::ifstream in{ (std::string)filepath, std::ios::binary };
 #endif
 
     if(!in)
