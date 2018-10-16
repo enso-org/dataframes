@@ -65,7 +65,7 @@ std::shared_ptr<arrow::Table> buildTable(std::vector<std::string> names, std::ve
     return table;
 }
 
-std::shared_ptr<arrow::Table> readTableFromFile(const char *filepath)
+std::shared_ptr<arrow::Table> readTableFromFile(std::string_view filepath)
 {
     std::vector<std::unique_ptr<TableFileHandler>> handlersToTry;
     handlersToTry.push_back(std::make_unique<FormatXLSX>());
