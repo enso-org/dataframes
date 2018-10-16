@@ -20,7 +20,8 @@ import System.IO.Temp
 packageBaseUrl = "https://s3-us-west-2.amazonaws.com/packages-luna/dataframes/windows-package-base.7z"
 
 getEnvDefault :: String -> String -> IO String
-getEnvDefault variableName defaultValue = fromMaybe defaultValue <$> lookupEnv variableName
+getEnvDefault variableName defaultValue =
+    fromMaybe defaultValue <$> lookupEnv variableName
 
 findProgram :: ProgramSearchPath -> String -> IO (Maybe FilePath)
 findProgram whereToSearch name = do
@@ -34,19 +35,20 @@ find7z = do
     let default7zPath = "C:\\Program Files\\7-Zip"
     findProgram [ProgramSearchPathDefault, ProgramSearchPathDir default7zPath] "7z"
 
-get7z :: IO FilePath
-get7z = find7z >>= \case
+get7zPath :: IO FilePath
+get7zPath = find7z >>= \case
     Just programPath -> return programPath
-    Nothing          -> error "cannot find 7z, please install from https://7-zip.org.pl/ or make sure that program is visible in PATH"
+    Nothing          -> error errorMsg
+    where errorMsg = "cannot find 7z, please install from https://7-zip.org.pl/ or make sure that program is visible in PATH"
 
 unpack7z :: FilePath -> FilePath -> IO ()
 unpack7z archive outputDirectory = do
-    programPath <- get7z
+    programPath <- get7zPath
     callProcess programPath ["x", "-y", "-o" <> outputDirectory, archive]
 
 pack7z :: [FilePath] -> FilePath -> IO ()
 pack7z packedPaths outputArchivePath = do
-    programPath <- get7z
+    programPath <- get7zPath
     callProcess programPath $ ["a", "-y", outputArchivePath] <> packedPaths
 
 buildWithMsBuild solutionPath = do
@@ -88,7 +90,8 @@ main = do
         prepareEnvironment stagingDir
 
         repoDir <- getEnvDefault "APPVEYOR_BUILD_FOLDER" "C:\\dev\\Dataframes"
-        buildWithMsBuild (repoDir </> "native_libs" </> "src" </> "DataframeHelper.sln")
+        let dataframesSolutionPath = repoDir </> "native_libs" </> "src" </> "DataframeHelper.sln"
+        buildWithMsBuild dataframesSolutionPath
 
         let packageRoot = stagingDir </> "Dataframes"
         let packageBinaries = packageRoot </> "native_libs" </> "windows"
