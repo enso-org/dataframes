@@ -18,4 +18,13 @@ build_script:
 
 artifacts:
 - path: Dataframes-Win-x64-v141.7z
-  name: Dataframes package
+  name: Dataframes-Win-x64-v141
+
+deploy:
+  - provider: S3
+    access_key_id: AKIAIFQRMRF6E4OOZNMQ
+    secret_access_key:
+      secure: cQn33zlkEHmPJHNplsHXEUyYeTZrHf2nVcSh2XbQlSo6jVrGhFtFt0AUcAJmqfyJ
+    bucket: packages-luna
+    folder: dataframes/nightly/$(APPVEYOR_REPO_COMMIT)
+    artifact: Dataframes-Win-x64-v141
