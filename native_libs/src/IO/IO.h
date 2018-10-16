@@ -69,7 +69,7 @@ inline constexpr auto defaultValue()
 std::vector<std::string> decideColumnNames(int count, const HeaderPolicy &policy, std::function<std::string(int)> readHeaderCell);
 std::shared_ptr<arrow::Table> buildTable(std::vector<std::string> names, std::vector<std::shared_ptr<arrow::Array>> arrays, std::vector<ColumnType> columnTypes);
 
-DFH_EXPORT std::shared_ptr<arrow::Table> readTableFromFile(const char *filepath);
+DFH_EXPORT std::shared_ptr<arrow::Table> readTableFromFile(std::string_view filepath);
 DFH_EXPORT std::ofstream openFileToWrite(std::string_view filepath);
 DFH_EXPORT void writeFile(std::string_view, std::string_view contents);
 DFH_EXPORT std::ifstream openFileToRead(std::string_view filepath);
