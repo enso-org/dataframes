@@ -172,7 +172,7 @@ bool TableFileHandler::fileMightBeCompatible(std::string_view filePath) const
     auto input = openFileToRead(filePath);
 
     std::string buffer(expectedSignature.size(), '\0');
-    input.read(expectedSignature.data(), expectedSignature.size());
+    input.read(buffer.data(), buffer.size());
     bool readOk = !!input;
 
     // restore pristine input state
