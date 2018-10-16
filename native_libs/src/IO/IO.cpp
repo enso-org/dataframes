@@ -65,7 +65,7 @@ std::shared_ptr<arrow::Table> buildTable(std::vector<std::string> names, std::ve
     return table;
 }
 
-std::shared_ptr<arrow::Table> readTableFromFile(const char *filepath)
+std::shared_ptr<arrow::Table> readTableFromFile(std::string_view filepath)
 {
     std::vector<std::unique_ptr<TableFileHandler>> handlersToTry;
     handlersToTry.push_back(std::make_unique<FormatXLSX>());
@@ -172,7 +172,7 @@ bool TableFileHandler::fileMightBeCompatible(std::string_view filePath) const
     auto input = openFileToRead(filePath);
 
     std::string buffer(expectedSignature.size(), '\0');
-    input.read(expectedSignature.data(), expectedSignature.size());
+    input.read(buffer.data(), buffer.size());
     bool readOk = !!input;
 
     // restore pristine input state

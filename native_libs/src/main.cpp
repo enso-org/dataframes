@@ -989,14 +989,14 @@ extern "C"
 // TABLE
 extern "C"
 {
-    DFH_EXPORT arrow::Table *tableNewFromSchamColumns(arrow::Schema *schema, const arrow::Column **columns, int32_t columnCount, const char **outError) noexcept
+    DFH_EXPORT arrow::Table *tableNewFromSchemaAndColumns(const arrow::Schema *schema, const arrow::Column **columns, int32_t columnCount, const char **outError) noexcept
     {
         LOG("{} {} {}", (void*)schema, (void*)columns, columnCount);
         return TRANSLATE_EXCEPTION(outError)
         {
             auto managedSchema = LifetimeManager::instance().accessOwned(schema);
             auto managedColumns = LifetimeManager::instance().accessOwnedArray(columns, columnCount);
-            auto ret = arrow::Table::Make(managedSchema, managedColumns);
+            auto ret = tableFromColumns(managedColumns, managedSchema);
             return LifetimeManager::instance().addOwnership(std::move(ret));
         };
     }

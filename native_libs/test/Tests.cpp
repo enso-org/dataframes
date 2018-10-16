@@ -817,13 +817,13 @@ BOOST_AUTO_TEST_CASE(ReadTableDeducingFileType)
     // write to CSV and read
     const auto filenameCsv = filename + ".csv";
     FormatCSV{}.write(filenameCsv, *table);
-    auto table2 = FormatCSV{}.read(filenameCsv);
+    auto table2 = readTableFromFile(filenameCsv);
     BOOST_CHECK(table->Equals(*table2));
 
     // write to feather and read
     const auto filenameFeather = filename + ".feather";
     FormatFeather{}.write(filenameFeather, *table);
-    auto table3 = FormatFeather{}.read(filenameFeather);
+    auto table3 = readTableFromFile(filenameFeather);
     // We can't just use Equals method, as feather format does not preserve information
     // whether a field is allowed to contain null values.
     BOOST_REQUIRE_EQUAL(table->num_columns(), 1);
@@ -833,7 +833,7 @@ BOOST_AUTO_TEST_CASE(ReadTableDeducingFileType)
     // write to XLSX and read
     const auto filenameXlsx = filename + ".xlsx";
     FormatXLSX{}.write(filenameXlsx, *table);
-    auto table4 = FormatXLSX{}.read(filenameXlsx);
+    auto table4 = readTableFromFile(filenameXlsx);
     // FIXME
     // XLSX is not able yet to properly deduce column types, so we get string values
     // test should be adjusted after https://github.com/luna/Dataframes/issues/34
