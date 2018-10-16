@@ -388,7 +388,7 @@ class TableWrapper:
 
 def createTableWrapper schemaWrapper columnWrappers:
     Array (Pointer None) . with (columnWrappers.each (_.ptr . ptr)) columnsCArray:
-        ptr = callHandlingError "tableNewFromSchamColumns" (Pointer None) [schemaWrapper.ptr . toCArg, columnsCArray.ptr.toCArg, CInt32.fromInt columnsCArray.size . toCArg]
+        ptr = callHandlingError "tableNewFromSchemaAndColumns" (Pointer None) [schemaWrapper.ptr . toCArg, columnsCArray.ptr.toCArg, CInt32.fromInt columnsCArray.size . toCArg]
         wrapReleasableResouce TableWrapper ptr
 
 def readTableFromFile path:

@@ -105,8 +105,14 @@ std::shared_ptr<arrow::Table> tableFromArrays(std::vector<PossiblyChunkedArray> 
 
 std::shared_ptr<arrow::Table> tableFromColumns(const std::vector<std::shared_ptr<arrow::Column>> &columns)
 {
-    auto rowCount = maxElementValue(columns, int64_t(0), [] (auto &&col) { return col->length(); });
     auto fields = transformToVector(columns, [](auto &&col) { return col->field(); });
+    auto schema = arrow::schema(fields);
+    return tableFromColumns(columns, schema);
+}
+
+std::shared_ptr<arrow::Table> tableFromColumns(const std::vector<std::shared_ptr<arrow::Column>> &columns, const std::shared_ptr<arrow::Schema> &schema)
+{
+    auto rowCount = maxElementValue(columns, int64_t(0), [](auto &&col) { return col->length(); });
     auto tableColumns = transformToVector(columns, [&](auto &&col)
     {
         // Columns with proper length can go into table as-is
@@ -123,7 +129,7 @@ std::shared_ptr<arrow::Table> tableFromColumns(const std::vector<std::shared_ptr
         return std::make_shared<arrow::Column>(field, chunks);
     });
 
-    return arrow::Table::Make(arrow::schema(fields), tableColumns);
+    return arrow::Table::Make(schema, tableColumns);
 }
 
 DynamicJustVector toJustVector(const arrow::ChunkedArray &chunkedArray)
