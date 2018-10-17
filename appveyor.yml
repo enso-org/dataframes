@@ -11,7 +11,7 @@ cache:
 init:
 
 build_script:
-- python -mpip install numpy
+- python -m pip install numpy
 - curl -sS -ostack.zip -L --insecure https://get.haskellstack.org/stable/windows-i386.zip
 - 7z x stack.zip stack.exe
 - stack --arch x86_64 %APPVEYOR_BUILD_FOLDER%\scripts\Package.hs
