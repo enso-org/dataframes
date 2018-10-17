@@ -7,7 +7,7 @@ class ChunkedArray a:
 
     def typeTag: case self of
         ChunkedArrayVal t _: t
-        
+
     def ptr: case self of
         ChunkedArrayVal _ ptr: ptr
 

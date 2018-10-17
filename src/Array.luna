@@ -8,7 +8,7 @@ class Array a:
     def typeTag: case self of
         Array t: t
         ArrayVal t _: t
-        
+
     def ptr: case self of
         ArrayVal _ ptr: ptr
 
@@ -24,7 +24,7 @@ class Array a:
     def data:
         self.ptr.data
 
-    def length: 
+    def length:
         self.ptr.length
     def valueAt index:
         isNull = self.typeTag.nullable.and (self.nullAt index)
@@ -38,10 +38,10 @@ class Array a:
         self.toList.toJSON
     def nullAt index:
         self.ptr.nullAt index
-    
+
     # NOTE: method is provisional and low-performance
     def mapSame f: self.map self.typeTag f
-    
+
     # NOTE: method is provisional and low-performance
     def map typeTag f:
         Array typeTag . fromList $ self.toList.each f

@@ -8,7 +8,7 @@ class ArrayBuilder a:
     def typeTag: case self of
         ArrayBuilder t: t
         ArrayBuilderVal t _: t
-        
+
     def ptr: case self of
         ArrayBuilderVal _ ptr: ptr
 
@@ -20,7 +20,7 @@ class ArrayBuilder a:
         self.typeTag.append self.ptr value
     def appendMany values:
         values . each self.append
-    
+
     # NOTE: returns ArrayWrapper, to not introduce dependency on Array
     # presumed to be used from Array's fromList
     def finish:
