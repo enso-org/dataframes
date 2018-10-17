@@ -100,8 +100,8 @@ copyDirectory sourceDirectory targetDirectory subdirectoryFilename = do
 
 main :: IO ()
 main = do
---     withSystemTempDirectory "" $ \stagingDir -> do
-        let stagingDir = "C:\\Users\\mwurb\\AppData\\Local\\Temp\\-777f232250ff9e9c"
+    withSystemTempDirectory "" $ \stagingDir -> do
+        -- let stagingDir = "C:\\Users\\mwurb\\AppData\\Local\\Temp\\-777f232250ff9e9c"
         prepareEnvironment stagingDir
 
         repoDir <- getEnvDefault "APPVEYOR_BUILD_FOLDER" "C:\\dev\\Dataframes"
