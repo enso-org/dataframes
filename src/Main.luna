@@ -1,28 +1,12 @@
-import Dataframes.Internal.CWrappers
-import Dataframes.Learn.LogisticRegression
-import Dataframes.Learn.LinearRegression
-import Dataframes.Learn.SKLearnWrapper
-import Dataframes.Column
-import Dataframes.Learn.Coach
-import Dataframes.Table
-import Dataframes.Main
-import Dataframes.IO
 import Std.Base
 import Std.Foreign.C.Value
-import Std.Foreign
 
-import Dataframes.Plot.Matplotlib
+import Dataframes.Internal.Utils
+import Dataframes.Array
+import Dataframes.Types
+import Dataframes.Internal.Test.Test
 
-«12»def abs name x:
-    «13»var = x.at name
-    «14»t = if var < 0 then (-var) else var
-    «21»t
 
-«1»def main:
-    «7»read1 = Table.fromFile "./data/twosigma.csv"
-    «26»fillNa1 = read1 . fillNa 0
-    «27»correlationsWith1 = fillNa1 . corrWith "y"
-    «28»eachTo1 = correlationsWith1 . eachTo "abs" (_.at "CORR_WITH_y" . abs)
-    None
-
-### META {"metas":[{"marker":13,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":14,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":320}}}},{"marker":21,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":640}}}},{"marker":7,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-624,"_vector2_x":-1072}}}},{"marker":26,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-624,"_vector2_x":-752}}}},{"marker":27,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-624,"_vector2_x":-432}}}},{"marker":28,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":-624,"_vector2_x":-112}}}}]}
+def main:
+    setHelperVerbosity False
+    benchmark "running tests" TestArrayBuilder.run
