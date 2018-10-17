@@ -17,6 +17,9 @@ import System.FilePath.Glob
 import System.IO.Temp
 import System.Process
 
+depsArchiveUrl :: String
+depsArchiveUrl = "https://s3-us-west-2.amazonaws.com/packages-luna/dataframes/libs-dev-v140.7z"
+
 packageBaseUrl :: String
 packageBaseUrl = "https://s3-us-west-2.amazonaws.com/packages-luna/dataframes/windows-package-base.7z"
 
@@ -68,6 +71,14 @@ pushArtifact :: FilePath -> IO ()
 pushArtifact path = do
     callProcess "appveyor" ["PushArtifact", path]
 
+-- Function downloads 7z to temp folder, so it doesn't leave any trash behind.
+downloadAndUnpack7z :: FilePath -> FilePath -> IO ()
+downloadAndUnpack7z archiveUrl targetDirectory = do
+    withSystemTempDirectory "" $ \tmpDir -> do
+        let archiveLocalPath = tmpDir </> takeFileName archiveUrl
+        download archiveUrl archiveLocalPath
+        unpack7z archiveLocalPath targetDirectory
+
 -- We need to extract the package with dev libraries and set the environment
 -- variable DATAFRAMES_DEPS_DIR so the MSBuild project recognizes it.
 --
@@ -76,11 +87,8 @@ pushArtifact path = do
 -- environemt variable.
 prepareEnvironment :: FilePath -> IO ()
 prepareEnvironment tempDir = do
-    let depsArchiveUrl = "https://s3-us-west-2.amazonaws.com/packages-luna/dataframes/libs-dev-v140.7z"
-    let depsArchiveLocal = tempDir </> "libs-dev-v140.7z"
     let depsDirLocal = tempDir </> "deps"
-    download depsArchiveUrl depsArchiveLocal
-    unpack7z depsArchiveLocal depsDirLocal
+    downloadAndUnpack7z depsArchiveUrl depsDirLocal
     setEnv "DATAFRAMES_DEPS_DIR" depsDirLocal
 
 -- Copies subdirectory with all its contents between two directories
@@ -92,7 +100,8 @@ copyDirectory sourceDirectory targetDirectory subdirectoryFilename = do
 
 main :: IO ()
 main = do
-    withSystemTempDirectory "" $ \stagingDir -> do
+--     withSystemTempDirectory "" $ \stagingDir -> do
+        let stagingDir = "C:\\Users\\mwurb\\AppData\\Local\\Temp\\-777f232250ff9e9c"
         prepareEnvironment stagingDir
 
         repoDir <- getEnvDefault "APPVEYOR_BUILD_FOLDER" "C:\\dev\\Dataframes"
@@ -101,18 +110,24 @@ main = do
 
         let packageRoot = stagingDir </> "Dataframes"
         let packageBinaries = packageRoot </> "native_libs" </> "windows"
-        let packageArchive = stagingDir </> "package.7z"
         let builtBinariesDir = repoDir </> "native_libs" </> "src" </> "x64" </> "Release"
         let packageFile = "Dataframes-Win-x64-v141" <.> "7z"
-        download packageBaseUrl packageArchive
-        unpack7z packageArchive packageBinaries
+        downloadAndUnpack7z packageBaseUrl packageBinaries
         builtDlls <- glob (builtBinariesDir </> "*.dll")
-        builtExes <- glob (builtBinariesDir </> "*.exe")
-        when (null builtDlls) $ error "Missing built DLL!"
-        when (null builtExes) $ error "Missing built EXE!"
-        mapM (copyToDir packageBinaries) (builtDlls <> builtExes)
+        when (null builtDlls) $ error "failed to found built .dll files"
+        mapM (copyToDir packageBinaries) builtDlls
         let dirsToCopy = ["src", "visualizers", ".luna-package"]
         mapM (copyDirectory repoDir packageRoot) dirsToCopy
         pack7z [packageRoot] $ packageFile
         putStrLn $ "Packaging done, file saved to: " <> packageFile
-        -- getLine
+
+        -- Run tests
+        -- The test executable must be placed in the package directory
+        -- so all the dependencies are properly visible.
+        -- The CWD must be repository though for test to properly find
+        -- the data files.
+        let testsExeSrc = builtBinariesDir </> "DataframeHelperTests.exe"
+        let testsExeDst = packageBinaries </> takeFileName testsExeSrc
+        copyFile testsExeSrc testsExeDst
+        withCurrentDirectory repoDir $ do
+            callProcess testsExeDst ["--report_level=detailed"]

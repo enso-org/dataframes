@@ -14,9 +14,6 @@ build_script:
 - 7z x stack.zip stack.exe
 - stack --arch x86_64 %APPVEYOR_BUILD_FOLDER%\scripts\Package.hs
 
-test_script:
-- "%APPVEYOR_BUILD_FOLDER%\\native_libs\\src\\x64\\Release\\DataframeHelperTests --log_level=all"
-
 artifacts:
 - path: Dataframes-Win-x64-v141.7z
   name: Dataframes-Win-x64-v141
