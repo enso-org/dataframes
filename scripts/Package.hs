@@ -13,9 +13,9 @@ import Distribution.Verbosity
 import System.Directory
 import System.Environment
 import System.FilePath
-import System.Process
 import System.FilePath.Glob
 import System.IO.Temp
+import System.Process
 
 packageBaseUrl = "https://s3-us-west-2.amazonaws.com/packages-luna/dataframes/windows-package-base.7z"
 
