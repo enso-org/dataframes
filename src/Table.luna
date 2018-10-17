@@ -808,6 +808,10 @@ class Table:
         aggregationWithWrappers = aggregations.each (colname, aggrs): (self.column colname . ptr, aggrs.each .toInt)
         self.fromWrapper $ self.ptr.rollingInterval keyColumnWrapper (interval.toMicroseconds * 1000) aggregationWithWrappers
 
+    # rolling :: Text -> TimeInterval -> Text -> AggregateFunction -> Table
+    def rolling keyColumnName interval aggregateColumnName aggregateFunction: 
+        self.rollingInterval keyColumnName interval [(aggregateColumnName,[aggregateFunction])]
+
     # shift :: Text -> Int -> Table
     def shift columnName periods:
         columnToShift = self.column columnName
@@ -824,6 +828,7 @@ class Table:
     def kde2: self.chart.kde2
     def plotDate: self.chart.plotDate
     def heatmap: self.chart.heatmap
+    def fillBetween: self.chart.fillBetween
 
 
 class ChartBuilder:

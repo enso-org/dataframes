@@ -71,6 +71,8 @@ class Chart:
             x.first . render)
         Chart seqRend.sequence
 
+    def toChart: self
+
     def + that:
         def seqRend:
             self.render
@@ -88,6 +90,9 @@ class Chart:
         small = self.renderPNG 400 400
         big   = self.renderPNG 800 800
         JSON.empty.insert "small" (self.makeDataUrl small) . insert "big" (self.makeDataUrl big)
+
+class Subplot:
+    def verticalLayout: Chart None . verticalLayout 
 
 class Histogram:
     data :: Column
