@@ -26,5 +26,6 @@ deploy:
     secret_access_key:
       secure: /ALZ8SK6q7DFtIN1cU4+jM3KAIFY1/AVEZOyL3lCuSDynKxr/zDZLwAuPgieeE0r
     bucket: packages-luna
+    region: us-west-2
     folder: dataframes/nightly/$(APPVEYOR_REPO_COMMIT)
     artifact: Dataframes-Win-x64-v141
