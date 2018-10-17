@@ -110,7 +110,6 @@ main = do
         builtExes <- glob (builtBinariesDir </> "*.exe")
         when (null builtDlls) $ error "Missing built DLL!"
         when (null builtExes) $ error "Missing built EXE!"
-        sequence $ copyToDir packageBinaries <$> builtDlls
         mapM (copyToDir packageBinaries) (builtDlls <> builtExes)
         let dirsToCopy = ["src", "visualizers", ".luna-package"]
         mapM (copyDirectory repoDir packageRoot) dirsToCopy
