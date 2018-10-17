@@ -17,6 +17,7 @@ import System.FilePath.Glob
 import System.IO.Temp
 import System.Process
 
+packageBaseUrl :: String
 packageBaseUrl = "https://s3-us-west-2.amazonaws.com/packages-luna/dataframes/windows-package-base.7z"
 
 getEnvDefault :: String -> String -> IO String
@@ -51,16 +52,19 @@ pack7z packedPaths outputArchivePath = do
     programPath <- get7zPath
     callProcess programPath $ ["a", "-y", outputArchivePath] <> packedPaths
 
+buildWithMsBuild :: FilePath -> IO ()
 buildWithMsBuild solutionPath = do
     let msbuildPath = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\MSBuild\\15.0\\Bin\\amd64\\MSBuild.exe"
     callProcess msbuildPath ["/property:Configuration=Release", solutionPath]
 
+copyToDir :: FilePath -> FilePath -> IO ()
 copyToDir destDir sourcePath = do
     createDirectoryIfMissing True destDir
     putStrLn $ "Copy " ++ sourcePath ++ " to " ++ destDir
     let destPath = destDir </> takeFileName sourcePath
     copyFile sourcePath destPath
 
+pushArtifact :: FilePath -> IO ()
 pushArtifact path = do
     callProcess "appveyor" ["PushArtifact", path]
 
@@ -80,11 +84,13 @@ prepareEnvironment tempDir = do
     setEnv "DATAFRAMES_DEPS_DIR" depsDirLocal
 
 -- Copies subdirectory with all its contents between two directories
+copyDirectory :: FilePath -> FilePath -> FilePath -> IO ()
 copyDirectory sourceDirectory targetDirectory subdirectoryFilename = do
     let from = sourceDirectory </> subdirectoryFilename
     let to = targetDirectory </> subdirectoryFilename
     copyDirectoryRecursive silent from to
 
+main :: IO ()
 main = do
     withSystemTempDirectory "" $ \stagingDir -> do
         prepareEnvironment stagingDir
