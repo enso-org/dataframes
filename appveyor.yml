@@ -24,7 +24,7 @@ deploy:
   - provider: S3
     access_key_id: AKIAIFQRMRF6E4OOZNMQ
     secret_access_key:
-      secure: cQn33zlkEHmPJHNplsHXEUyYeTZrHf2nVcSh2XbQlSo6jVrGhFtFt0AUcAJmqfyJ
+      secure: /ALZ8SK6q7DFtIN1cU4+jM3KAIFY1/AVEZOyL3lCuSDynKxr/zDZLwAuPgieeE0r
     bucket: packages-luna
     folder: dataframes/nightly/$(APPVEYOR_REPO_COMMIT)
     artifact: Dataframes-Win-x64-v141
