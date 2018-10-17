@@ -37,7 +37,7 @@ modulesSettings:
         - []
       - - ! 'LunaVisualizer: base: table'
         - base/table/table.html
-    currentBreadcrumb: twosigma
+    currentBreadcrumb: main
     breadcrumbsSettings:
     - - items: []
       - breadcrumbCameraSettings:
@@ -65,8 +65,8 @@ modulesSettings:
     - - items:
         - main
       - breadcrumbCameraSettings:
-          logicalToScreen: ! '[[0.4308176100628931,0.0,0.0,0.0],[0.0,0.4308176100628931,0.0,0.0],[0.0,0.0,1.0,0.0],[-7.6981132075471805,274.29559748427675,0.0,1.0]]'
-          screenToLogical: ! '[[2.321167883211679,0.0,0.0,0.0],[0.0,2.321167883211679,0.0,0.0],[0.0,0.0,1.0,0.0],[17.868613138686158,-636.6861313868613,0.0,1.0]]'
+          logicalToScreen: ! '[[0.4308176100628931,0.0,0.0,0.0],[0.0,0.4308176100628931,0.0,0.0],[0.0,0.0,1.0,0.0],[59.836477987421404,309.97798742138366,0.0,1.0]]'
+          screenToLogical: ! '[[2.321167883211679,0.0,0.0,0.0],[0.0,2.321167883211679,0.0,0.0],[0.0,0.0,1.0,0.0],[-138.89051094890516,-719.5109489051096,0.0,1.0]]'
           lastInverse: 0
     - - items:
         - twosigma

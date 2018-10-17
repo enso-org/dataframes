@@ -1,51 +1,28 @@
+import Dataframes.Internal.CWrappers
+import Dataframes.Learn.LogisticRegression
+import Dataframes.Learn.LinearRegression
+import Dataframes.Learn.SKLearnWrapper
+import Dataframes.Column
+import Dataframes.Learn.Coach
+import Dataframes.Table
+import Dataframes.Main
+import Dataframes.IO
 import Std.Base
 import Std.Foreign.C.Value
+import Std.Foreign
 
-import Dataframes.Internal.Utils
-import Dataframes.Array
-import Dataframes.Types
-import Dataframes.Internal.Test.Test
+import Dataframes.Plot.Matplotlib
 
-<<<<<<< Updated upstream
-
-def main:
-    setHelperVerbosity False
-    benchmark "running tests" TestArrayBuilder.run
-=======
-«39»def func1 rollingInterval2 rollingInterval3:
-    «40»setAt1 = rollingInterval2 . setAt "Close_std" (rollingInterval3.column "Close_std dev")
-    «41»plot2 = setAt1 . plot "Date" "Close_mean" . setStyle "-" . setLabel "mean"
-    «42»eachTo2 = setAt1 . eachTo "BB_Upper_Band" (x: «29»x.at "Close_mean" + x.at "Close_std")
-    «43»eachTo3 = eachTo2 . eachTo "BB_Lower_Band" (x: «33»x.at "Close_mean" - x.at "Close_std")
-    «44»fillBetween1 = eachTo3 . chart . fillBetween "Date" "BB_Lower_Band" "BB_Upper_Band" . setAlpha 0.5 . setLabel "Band"
-    «45»expr1 = fillBetween1.+ plot2
-    expr1
+«12»def abs name x:
+    «13»var = x.at name
+    «14»t = if var < 0 then (-var) else var
+    «21»t
 
 «1»def main:
-    «7»read1 = Table.read "./data/Stocks/medp.us.txt"
-    «16»setStyle1 = read1 . chart . plot "Date" "Volume" . setStyle "-" . setLabel "Volume"
-    «17»shift1 = read1 . shift "Close" 1
-    «24»rollingInterval3 = read1 . rolling "Date" 20.days "Close" Std
-    «23»rollingInterval2 = read1 . rolling "Date" 20.days "Close" Mean
-    «18»eachTo1 = shift1 . eachTo "Momentum_1d" (x: «19»x.at "Close" - x.at "Close_shift_1")
-    «20»rollingInterval1 = eachTo1 . rolling "Date" 10.days "Momentum_1d" RSI
-    «21»plot1 = rollingInterval1 . chart . plot "Date" "Momentum_1d_RSI" . setStyle "-" . setLabel "RSI"
-    «36»toChart1 = plot1 . toChart
-    «46»expr1 = func1 rollingInterval2 rollingInterval3
-    «38»verticalLayout1 = Subplot . verticalLayout [toChart1 , expr1 ]
+    «7»read1 = Table.fromFile "./data/twosigma.csv"
+    «26»fillNa1 = read1 . fillNa 0
+    «27»correlationsWith1 = fillNa1 . corrWith "y"
+    «28»eachTo1 = correlationsWith1 . eachTo "abs" (_.at "CORR_WITH_y" . abs)
     None
 
-«47»def twosigma:
-    «48»read1 = Table.read "./data/twosigma.csv"
-    «49»countValues1 = read1 . countValues "id"
-    «53»fillNa1 = read1 . fillNa 0
-    «50»rowCount1 = countValues1 . rowCount
-    «54»correlationsWith1 = fillNa1 . correlationsWith "y"
-    «55»sortDescending1 = correlationsWith1 . sortDescending "corr_with_y"
-    «58»eachTo1 = correlationsWith1 . eachTo "abs" (x: «59»(x.at "corr_with_y").abs)
-    «56»take1 = sortDescending1 . drop 1 . take 4
-    «57»toList1 = take1 . column "column" . toList
-    None
-
-### META {"metas":[{"marker":48,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":32,"_vector2_x":-272}}}},{"marker":49,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":32,"_vector2_x":48}}}},{"marker":53,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":48}}}},{"marker":50,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":32,"_vector2_x":368}}}},{"marker":54,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":368}}}},{"marker":55,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":688}}}},{"marker":58,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":672,"_vector2_x":688}}}},{"marker":59,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":56,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":1008}}}},{"marker":57,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":352,"_vector2_x":1328}}}},{"marker":7,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-1088,"_vector2_x":-1072}}}},{"marker":16,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-1280,"_vector2_x":224}}}},{"marker":17,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-768,"_vector2_x":-752}}}},{"marker":24,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-128,"_vector2_x":-752}}}},{"marker":23,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-448,"_vector2_x":-752}}}},{"marker":18,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-768,"_vector2_x":-432}}}},{"marker":19,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":20,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-768,"_vector2_x":-112}}}},{"marker":21,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-768,"_vector2_x":208}}}},{"marker":36,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-768,"_vector2_x":528}}}},{"marker":46,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-304,"_vector2_x":384}}}},{"marker":38,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-1168,"_vector2_x":1312}}}},{"marker":40,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":41,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":320,"_vector2_x":960}}}},{"marker":42,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":320}}}},{"marker":29,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":43,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":640}}}},{"marker":33,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":44,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":960}}}},{"marker":45,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1280}}}}]}
->>>>>>> Stashed changes
+### META {"metas":[{"marker":13,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":14,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":320}}}},{"marker":21,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":640}}}},{"marker":7,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-624,"_vector2_x":-1072}}}},{"marker":26,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-624,"_vector2_x":-752}}}},{"marker":27,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-624,"_vector2_x":-432}}}},{"marker":28,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":-624,"_vector2_x":-112}}}}]}
