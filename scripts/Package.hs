@@ -105,7 +105,7 @@ main = do
         when (null builtDlls) $ error "Missing built DLL!"
         when (null builtExes) $ error "Missing built EXE!"
         sequence $ copyToDir packageBinaries <$> builtDlls
-        sequence $ copyToDir packageBinaries <$> builtExes
+        mapM (copyToDir packageBinaries) (builtDlls <> builtExes)
         copyDirectory repoDir packageRoot "src"
         copyDirectory repoDir packageRoot "visualizers"
         copyDirectory repoDir packageRoot ".luna-package"
