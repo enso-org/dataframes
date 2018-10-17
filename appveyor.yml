@@ -15,7 +15,7 @@ build_script:
 - stack --arch x86_64 %APPVEYOR_BUILD_FOLDER%\scripts\Package.hs
 
 test_script:
-- "%APPVEYOR_REPO_COMMIT%\\native_libs\\src\\x64\\Release\\DataframeHelperTests --log_level=all"
+- "%APPVEYOR_BUILD_FOLDER%\\native_libs\\src\\x64\\Release\\DataframeHelperTests --log_level=all"
 
 artifacts:
 - path: Dataframes-Win-x64-v141.7z
