@@ -13,17 +13,90 @@ import Std.Foreign
 
 import Dataframes.Plot.Matplotlib
 
-«12»def abs x:
-    «13»var = x.at "corr_with_y"
-    «14»table = var < 0 . switch (-var) var
-    table
+«0»def abs name x:
+    «5»(x.at name < 0) . switch (-(x.at name)) (x.at name)
 
-«1»def main:
-    «7»read1 = Table.read "./data/twosigma.csv"
-    «10»fillNa1 = read1 . fillNa 0
-    «18»setLabel1 = fillNa1 . plot "timestamp" "technical_30" . setLabel "technical_30"
-    «19»setLabel2 = fillNa1 . plot "timestamp" "technical_20" . setLabel "20"
-    «20»verticalLayout1 = setLabel1 . verticalLayout [setLabel1, setLabel2]
+«173»def filterOutlayers filledData colName:
+    «174»at1 = filledData . column colName
+    «175»meanValue1 = at1 . meanValue
+    «176»stdValue1 = at1 . stdValue
+    «177»at2 = filledData.at colName
+    «178»eachTo1 = at2 . eachTo "less_mean" (_.at colName - meanValue1 )
+    «179»eachTo2 = eachTo1 . eachTo "abs" (abs "less_mean")
+    «180»eachTo3 = eachTo2 . eachTo "filtered" (x: «171»(x.at "abs" < 3.0 * stdValue1 ).switch (x.at colName) meanValue1 )
+    «181»column1 = eachTo3 . column "filtered"
+    column1
+
+«2»def timeseries:
+    «200»read1 = Table.read "./ts.txt"
+    «203»rolling1 = read1 . rolling  "Date" 20.days "Close" Std
+    «204»rolling2 = read1 . rolling "Date" 20.days "Close" Mean
+    «205»at1 = rolling1 . at "Close_std dev"
+    «206»sum1 = rolling2 . + at1
+    «207»eachTo1 = sum1 . eachTo "close_std_2" (_.at "Close_std dev" * 2.0)
+    «208»eachTo2 = eachTo1 . eachTo "BB_Lower" (x: «209»x.at "Close_mean" - x.at "close_std_2")
+    «210»eachTo3 = eachTo2 . eachTo "BB_Upper" (x: «211»x.at "Close_mean" + x.at "close_std_2")
     None
 
-### META {"metas":[{"marker":13,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":14,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":320}}}},{"marker":7,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-624,"_vector2_x":-1072}}}},{"marker":10,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-624,"_vector2_x":-752}}}},{"marker":18,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-624,"_vector2_x":-432}}}},{"marker":19,"meta":{"_displayResult":false,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-304,"_vector2_x":-432}}}},{"marker":20,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-624,"_vector2_x":-112}}}}]}
+«237»def func1 fillNa1 number1:
+    «238»remove1 = fillNa1 . remove "id" . remove "timestamp"
+    «239»correlationsWith1 = remove1 . correlationsWith "y"
+    «240»eachTo1 = correlationsWith1 . eachTo "abs" (abs "corr_with_y")
+    «241»sortDescending1 = eachTo1 . sortDescending "abs"
+    «242»take1 = sortDescending1 . drop 1
+    «243»take2 = take1 . take number1
+    «244»toList1 = take2 . column "column" . toList
+    toList1
+
+«293»def func3 remove1 number1:
+    «294»correlationsWith1 = remove1 . correlationsWith "y"
+    «295»eachTo1 = correlationsWith1 . eachTo "abs" (abs "corr_with_y")
+    «296»sortDescending1 = eachTo1 . sortDescending "abs"
+    «297»drop1 = sortDescending1 . drop 1
+    «298»take1 = drop1 . take number1
+    «299»toList1 = take1 . column "column" . toList
+    toList1
+
+«278»def foo:
+    «279»read1 = Table.read "./twosigma.csv"
+    «305»filterOutlayers1 = filterOutlayers read1 "fundamental_48"
+    «284»fillNa1 = read1 . interpolate
+    «291»number1 = 5
+    «306»setAt1 = fillNa1 . setAt "fundamental_48" filterOutlayers1
+    «285»remove1 = setAt1 . remove "id" . remove "timestamp"
+    «300»toList1 = func3 remove1 number1
+    «301»columns1 = setAt1 . columns toList1
+    «304»plotAll1 = plotAll toList1 setAt1
+    «302»correlations1 = columns1 . correlations
+    «303»heatmap1 = correlations1 . heatmap
+    None
+
+«252»def plotAll namesList data:
+    «253»each1 = namesList . each (x: «250»(data.plot "timestamp" x) . setLabel x)
+    «254»verticalLayout1 = Subplot.verticalLayout each1
+    verticalLayout1
+
+«264»def func2 remove1 number1:
+    «265»correlationsWith1 = remove1 . correlationsWith "y"
+    «266»eachTo1 = correlationsWith1 . eachTo "abs" (abs "corr_with_y")
+    «274»sortDescending1 = eachTo1 . sortDescending "abs"
+    «267»drop1 = sortDescending1 . drop 1
+    «268»take1 = drop1 . take number1
+    «269»toList1 = take1 . column "column" . toList
+    toList1
+
+«215»def twosigma:
+    «255»read1 = Table.read "./twosigma.csv"
+    «256»filledData = read1 . fillNa 0
+    «275»filterOutlayers1 = filterOutlayers filledData "fundamental_48"
+    «276»setAt1 = filledData . setAt "fundamental_48" filterOutlayers1
+    «257»remove1 = filledData . remove "id" . remove "timestamp"
+    «262»number1 = 4
+    «270»toList1 = func2 remove1 number1
+    «271»columns1 = filledData . columns toList1
+    «272»correlations1 = columns1 . correlations
+    «277»plotAll1 = plotAll toList1 filledData
+    «273»heatmap1 = correlations1 . heatmap
+    None
+
+### META {"metas":[{"marker":238,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":239,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":320}}}},{"marker":240,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":640}}}},{"marker":241,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":960}}}},{"marker":242,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1280}}}},{"marker":243,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1600}}}},{"marker":244,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1920}}}},{"marker":174,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":320,"_vector2_x":0}}}},{"marker":175,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":640,"_vector2_x":320}}}},{"marker":176,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":320,"_vector2_x":320}}}},{"marker":177,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":320}}}},{"marker":178,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":640}}}},{"marker":179,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":960}}}},{"marker":180,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1280}}}},{"marker":171,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":181,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1600}}}},{"marker":200,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-48,"_vector2_x":3696}}}},{"marker":203,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-48,"_vector2_x":4016}}}},{"marker":204,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":272,"_vector2_x":4016}}}},{"marker":205,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-48,"_vector2_x":4336}}}},{"marker":206,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":272,"_vector2_x":4336}}}},{"marker":207,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":272,"_vector2_x":4656}}}},{"marker":208,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":272,"_vector2_x":4976}}}},{"marker":209,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":210,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":272,"_vector2_x":5264}}}},{"marker":211,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":255,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":96,"_vector2_x":-32}}}},{"marker":256,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":96,"_vector2_x":288}}}},{"marker":275,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":320,"_vector2_x":96}}}},{"marker":276,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":320,"_vector2_x":304}}}},{"marker":257,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":96,"_vector2_x":608}}}},{"marker":262,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":-64,"_vector2_x":544}}}},{"marker":270,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":96,"_vector2_x":928}}}},{"marker":271,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":416,"_vector2_x":608}}}},{"marker":272,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":416,"_vector2_x":928}}}},{"marker":277,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":32,"_vector2_x":1232}}}},{"marker":273,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":416,"_vector2_x":1248}}}},{"marker":294,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":295,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":320}}}},{"marker":296,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":640}}}},{"marker":297,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":960}}}},{"marker":298,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1280}}}},{"marker":299,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1600}}}},{"marker":279,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":208,"_vector2_x":960}}}},{"marker":305,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":624,"_vector2_x":1200}}}},{"marker":284,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":208,"_vector2_x":1280}}}},{"marker":291,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":64,"_vector2_x":1552}}}},{"marker":306,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":208,"_vector2_x":1408}}}},{"marker":285,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":208,"_vector2_x":1600}}}},{"marker":300,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":208,"_vector2_x":1920}}}},{"marker":301,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":560,"_vector2_x":1968}}}},{"marker":304,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":80,"_vector2_x":2272}}}},{"marker":302,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":560,"_vector2_x":2288}}}},{"marker":303,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":560,"_vector2_x":2608}}}},{"marker":253,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":250,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":254,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":320}}}},{"marker":5,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":265,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":266,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":320}}}},{"marker":274,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":48,"_vector2_x":512}}}},{"marker":267,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":640}}}},{"marker":268,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":960}}}},{"marker":269,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1280}}}}]}

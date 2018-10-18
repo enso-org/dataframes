@@ -182,6 +182,14 @@ class Column:
         self.fromColumnWrapper $ self.ptr.shift periods
     def autoCorr lag:
         self.ptr.autoCorr lag
+    
+    def minValue: self.min.toList.head.get
+    def maxValue: self.max.toList.head.get
+    def meanValue: self.mean.toList.head.get
+    def medianValue: self.median.toList.head.get
+    def stdValue: self.std.toList.head.get
+    def varValue: self.var.toList.head.get
+    def sumValue: self.sum.toList.head.get
 
     def describe:
         min = self.min

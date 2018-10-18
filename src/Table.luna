@@ -352,7 +352,7 @@ class Table:
         self.slice count leftCount
     def toJSON:
         maxCount = 1000 / self.columnCount
-        mc = if maxCount < 10 then 10 else maxCount
+        mc = if maxCount < 10 then 35 else maxCount
         rowCount = if self.rowCount < mc then self.rowCount else mc
         cols = self.toList
         columnValueLists = cols.each (_ . slice 0 rowCount . toList)
