@@ -22,7 +22,9 @@ The script can be called from any location, the artifacts will appear in current
   * Python 3 with numpy package installed under a path stored in `PythonDir` environment variable.
 * hand-made resources:
   * archive with build-time dependencies (import libraries, headers, binaries), currently assumed at: `https://s3-us-west-2.amazonaws.com/packages-luna/dataframes/libs-dev-v140.7z`
+    * it contains .props file (property sheet) — this file will be included by MSBuild script. It is required that this sheet provides all the build-time dependencies of C++ parts of Dataframes
   * archive with package skeleton (i. e. package sans Dataframes library itself), currently assumed at: `https://s3-us-west-2.amazonaws.com/packages-luna/dataframes/windows-package-base.7z`
+    * this archive will be a skeleton for `Dataframes\native_libs\windows` directory in the redistributable package
 
 ## Output
 In the current working directory:
@@ -39,7 +41,7 @@ Contains the following libraries:
 * rapidjson
 * pybind11
 
-Each library comes with its own MS Build project property sheet that makes library visible to build system (by adjusting include/library dirs).
+Each library comes with its own MS Build project property sheet that makes library visible to build system (by adjusting include/library dirs). The archive provides all-in-one .props file in its root path. It is required that Dataframes can be built with MSVC when the file is included.
 
 Dependencies were built manually and appropriately structured. The process should eventually become fully automated.
 
@@ -53,6 +55,7 @@ It basically consists of three parts:
 * Other C/C++ library dependencies binaries
 * runtime binaries
 
+It is expected that Dataframes binaries placed in the directory with package skeleton can be run by system without any additional environment requirements.
 
 #### Python
 Python parts can packaged using the following batch script:
