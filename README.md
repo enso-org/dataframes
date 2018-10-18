@@ -19,7 +19,7 @@ Required dependencies:
     * `matplotlib`
     * `seaborn`
   * [RapidJSON](https://github.com/Tencent/rapidjson) — needed for LQuery processing
-  * [{fmt}](http://fmtlib.net/) C++ library string formatting
+  * [{fmt}](http://fmtlib.net/) - **version 5.2.0 does not work, use 5.2.1** -  C++ library string formatting
 
 Optional dependencies:
 These dependencies are not required to compile the helper library, however without them certain functionalities shall be disabled.
