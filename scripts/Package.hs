@@ -18,10 +18,10 @@ import System.IO.Temp
 import System.Process
 
 depsArchiveUrl :: String
-depsArchiveUrl = "https://packages.luna-lang.org/dataframes/libs-dev-v140.7z"
+depsArchiveUrl = "https://s3-us-west-2.amazonaws.com/packages-luna/dataframes/libs-dev-v140.7z"
 
 packageBaseUrl :: String
-packageBaseUrl = "https://packages.luna-lang.org/dataframes/windows-package-base.7z"
+packageBaseUrl = "https://s3-us-west-2.amazonaws.com/packages-luna/dataframes/windows-package-base.7z"
 
 getEnvDefault :: String -> String -> IO String
 getEnvDefault variableName defaultValue =
