@@ -17,10 +17,8 @@ import System.FilePath.Glob
 import System.IO.Temp
 import System.Process
 
-depsArchiveUrl :: String
+depsArchiveUrl, packageBaseUrl :: String
 depsArchiveUrl = "https://s3-us-west-2.amazonaws.com/packages-luna/dataframes/libs-dev-v140.7z"
-
-packageBaseUrl :: String
 packageBaseUrl = "https://s3-us-west-2.amazonaws.com/packages-luna/dataframes/windows-package-base.7z"
 
 getEnvDefault :: String -> String -> IO String
@@ -40,9 +38,7 @@ find7z = do
     findProgram [ProgramSearchPathDefault, ProgramSearchPathDir default7zPath] "7z"
 
 get7zPath :: IO FilePath
-get7zPath = find7z >>= \case
-    Just programPath -> return programPath
-    Nothing          -> error errorMsg
+get7zPath = fromMaybe (error errorMsg) <$> find7z
     where errorMsg = "cannot find 7z, please install from https://7-zip.org.pl/ or make sure that program is visible in PATH"
 
 unpack7z :: FilePath -> FilePath -> IO ()
@@ -68,8 +64,7 @@ copyToDir destDir sourcePath = do
     copyFile sourcePath destPath
 
 pushArtifact :: FilePath -> IO ()
-pushArtifact path = do
-    callProcess "appveyor" ["PushArtifact", path]
+pushArtifact path = callProcess "appveyor" ["PushArtifact", path]
 
 -- Function downloads 7z to temp folder, so it doesn't leave any trash behind.
 downloadAndUnpack7z :: FilePath -> FilePath -> IO ()
