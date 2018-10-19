@@ -3,8 +3,11 @@
 This project is a library with dataframes implementation. Dataframes are structures allowing more comfortable work with big datasets.
 
 ## Build status
-[![CircleCI](https://circleci.com/gh/luna/Dataframes.svg?style=svg)](https://circleci.com/gh/luna/Dataframes)
 
+| Environment                 | Build status |
+|-----------------------------|--------------|
+| Linux, GCC-7 & GCC-8        | [![CircleCI](https://circleci.com/gh/luna/Dataframes.svg?style=svg)](https://circleci.com/gh/luna/Dataframes)            |
+| Windows, Visual Studio 2017 | [![Build status](https://ci.appveyor.com/api/projects/status/vna6martcp4nlb77/branch/master?svg=true)](https://ci.appveyor.com/project/lunalangCI/dataframes/branch/master) |
 ## Third-party dependencies
 Required dependencies:
 * C++ build tools:
