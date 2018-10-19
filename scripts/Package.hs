@@ -2,6 +2,7 @@
 -- stack --resolver lts-12.12 script --package Cabal,directory,extra,filepath,Glob,process,temporary
 
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 import Control.Monad
 import Control.Monad.Extra
@@ -17,6 +18,11 @@ import System.FilePath.Glob
 import System.IO.Temp
 import System.Process
 
+import Program
+import qualified Program.Curl     as Curl
+import qualified Program.MsBuild  as MsBuild
+import qualified Program.SevenZip as SevenZip
+
 depsArchiveUrl, packageBaseUrl :: String
 depsArchiveUrl = "https://s3-us-west-2.amazonaws.com/packages-luna/dataframes/libs-dev-v140.7z"
 packageBaseUrl = "https://s3-us-west-2.amazonaws.com/packages-luna/dataframes/windows-package-base.7z"
@@ -25,37 +31,6 @@ getEnvDefault :: String -> String -> IO String
 getEnvDefault variableName defaultValue =
     fromMaybe defaultValue <$> lookupEnv variableName
 
-findProgram :: ProgramSearchPath -> String -> IO (Maybe FilePath)
-findProgram whereToSearch name = do
-    fmap fst <$> findProgramOnSearchPath silent whereToSearch name
-
-download :: String -> FilePath -> IO ()
-download url destPath = callProcess "curl" ["-fSL", "-o", destPath, url]
-
-find7z :: IO (Maybe FilePath)
-find7z = do
-    let default7zPath = "C:\\Program Files\\7-Zip"
-    findProgram [ProgramSearchPathDefault, ProgramSearchPathDir default7zPath] "7z"
-
-get7zPath :: IO FilePath
-get7zPath = fromMaybe (error errorMsg) <$> find7z
-    where errorMsg = "cannot find 7z, please install from https://7-zip.org.pl/ or make sure that program is visible in PATH"
-
-unpack7z :: FilePath -> FilePath -> IO ()
-unpack7z archive outputDirectory = do
-    programPath <- get7zPath
-    callProcess programPath ["x", "-y", "-o" <> outputDirectory, archive]
-
-pack7z :: [FilePath] -> FilePath -> IO ()
-pack7z packedPaths outputArchivePath = do
-    programPath <- get7zPath
-    callProcess programPath $ ["a", "-y", outputArchivePath] <> packedPaths
-
-buildWithMsBuild :: FilePath -> IO ()
-buildWithMsBuild solutionPath = do
-    let msbuildPath = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\MSBuild\\15.0\\Bin\\amd64\\MSBuild.exe"
-    callProcess msbuildPath ["/property:Configuration=Release", solutionPath]
-
 copyToDir :: FilePath -> FilePath -> IO ()
 copyToDir destDir sourcePath = do
     createDirectoryIfMissing True destDir
@@ -63,16 +38,13 @@ copyToDir destDir sourcePath = do
     let destPath = destDir </> takeFileName sourcePath
     copyFile sourcePath destPath
 
-pushArtifact :: FilePath -> IO ()
-pushArtifact path = callProcess "appveyor" ["PushArtifact", path]
-
 -- Function downloads 7z to temp folder, so it doesn't leave any trash behind.
 downloadAndUnpack7z :: FilePath -> FilePath -> IO ()
 downloadAndUnpack7z archiveUrl targetDirectory = do
     withSystemTempDirectory "" $ \tmpDir -> do
         let archiveLocalPath = tmpDir </> takeFileName archiveUrl
-        download archiveUrl archiveLocalPath
-        unpack7z archiveLocalPath targetDirectory
+        Curl.download archiveUrl archiveLocalPath
+        SevenZip.unpack archiveLocalPath targetDirectory
 
 -- We need to extract the package with dev libraries and set the environment
 -- variable DATAFRAMES_DEPS_DIR so the MSBuild project recognizes it.
@@ -101,7 +73,7 @@ main = do
 
         repoDir <- getEnvDefault "APPVEYOR_BUILD_FOLDER" "C:\\dev\\Dataframes"
         let dataframesSolutionPath = repoDir </> "native_libs" </> "src" </> "DataframeHelper.sln"
-        buildWithMsBuild dataframesSolutionPath
+        MsBuild.build dataframesSolutionPath
 
         let packageRoot = stagingDir </> "Dataframes"
         let packageBinaries = packageRoot </> "native_libs" </> "windows"
@@ -113,7 +85,7 @@ main = do
         mapM (copyToDir packageBinaries) builtDlls
         let dirsToCopy = ["src", "visualizers", ".luna-package"]
         mapM (copyDirectory repoDir packageRoot) dirsToCopy
-        pack7z [packageRoot] $ packageFile
+        SevenZip.pack [packageRoot] $ packageFile
         putStrLn $ "Packaging done, file saved to: " <> packageFile
 
         -- Run tests
