@@ -178,7 +178,6 @@ namespace ast
             {"divide", ValueOperator::Divide},
             {"mod"   , ValueOperator::Modulo},
             {"negate", ValueOperator::Negate},
-            {"abs"   , ValueOperator::Abs   },
             {"day"   , ValueOperator::Day   },
             {"month" , ValueOperator::Month },
             {"year"  , ValueOperator::Year  },

@@ -135,26 +135,6 @@ struct Negate
         throw std::runtime_error("negate does not support operand of type: "s + typeid(lhs).name());
     }
 };
-
-struct Abs
-{
-    template<typename Lhs>
-    static constexpr Lhs exec(const Lhs &lhs)
-    {
-        if constexpr(std::is_arithmetic_v<Lhs>)
-            if (lhs < 0) 
-                return -lhs;
-            else lhs;
-        else
-            throw std::runtime_error("abs does not support operand of type: "s + typeid(lhs).name());
-    }
-
-    static int64_t exec(const std::string_view &lhs)
-    {
-        throw std::runtime_error("abs does not support operand of type: "s + typeid(lhs).name());
-    }
-};
-
 struct Day
 {
     template<typename Lhs>

@@ -388,16 +388,6 @@ BOOST_FIXTURE_TEST_CASE(MapToNegated, FilteringFixture)
 	testMap<double>(jsonQuery, { 1, -2, -3, 4, -5 });
 }
 
-BOOST_FIXTURE_TEST_CASE(MapToAbs, FilteringFixture)
-{
-	const auto jsonQuery = R"(
-		{
-			"operation": "abs", 
-			"arguments": [ {"column": "a"} ]
-		})";
-	testMap<double>(jsonQuery, { 1, 2, 3, 4, 5 });
-}
-
 BOOST_FIXTURE_TEST_CASE(MapToAbsByCondition, FilteringFixture)
 {
  	// (a > 0) ? a : -a
