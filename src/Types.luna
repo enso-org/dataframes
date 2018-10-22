@@ -15,7 +15,7 @@ class StringType:
         val.toText
     def nullable: False
     def makeColumn typedColumn: ColumnText typedColumn
-    def useColumn column f: 
+    def useColumn column f:
         case column of
             ColumnText tc: f tc
             _: throw ("wrong column type, expected " + self.typename)
@@ -31,12 +31,12 @@ class MaybeStringType:
     def fromC isNull val:
         case isNull of
             True: Nothing
-            False: 
+            False:
                 text = val.toText
                 Just text
     def nullable: True
     def makeColumn typedColumn: ColumnMaybeText typedColumn
-    def useColumn column f: 
+    def useColumn column f:
         case column of
             ColumnMaybeText tc: f tc
             _: throw ("wrong column type, expected Maybe " + self.typename)
@@ -75,7 +75,7 @@ class Int64Type:
         val.toInt
     def nullable: False
     def makeColumn typedColumn: ColumnInt typedColumn
-    def useColumn column f: 
+    def useColumn column f:
         case column of
             ColumnInt tc: f tc
             _: throw ("wrong column type, expected " + self.typename)
@@ -95,7 +95,7 @@ class MaybeInt64Type:
             False: Just val.toInt
     def nullable: True
     def makeColumn typedColumn: ColumnMaybeInt typedColumn
-    def useColumn column f: 
+    def useColumn column f:
         case column of
             ColumnMaybeInt tc: f tc
             _: throw ("wrong column type, expected Maybe " + self.typename)
@@ -111,7 +111,7 @@ class DoubleType:
         val.toReal
     def nullable: False
     def makeColumn typedColumn: ColumnReal typedColumn
-    def useColumn column f: 
+    def useColumn column f:
         case column of
             ColumnReal tc: f tc
             _: throw ("wrong column type, expected " + self.typename)
@@ -130,7 +130,7 @@ class MaybeDoubleType:
             False: Just val.toReal
     def nullable: True
     def makeColumn typedColumn: ColumnMaybeReal typedColumn
-    def useColumn column f: 
+    def useColumn column f:
         case column of
             ColumnMaybeReal tc: f tc
             _: throw ("wrong column type, expected " + self.typename)
@@ -146,7 +146,7 @@ class TimestampType:
         Time.fromEpoch (val.toInt / 1000000000)
     def nullable: False
     def makeColumn typedColumn: ColumnTimestamp typedColumn
-    def useColumn column f: 
+    def useColumn column f:
         case column of
             ColumnTimestamp tc: f tc
             _: throw ("wrong column type, expected " + self.typename)
@@ -166,7 +166,7 @@ class MaybeTimestampType:
             False: Just $ Time.fromEpoch (val.toInt / 1000000000)
     def nullable: True
     def makeColumn typedColumn: ColumnMaybeTimestamp typedColumn
-    def useColumn column f: 
+    def useColumn column f:
         case column of
             ColumnMaybeTimestamp tc: f tc
             _: throw ("wrong column type, expected Maybe " + self.typename)
