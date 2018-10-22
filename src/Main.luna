@@ -1,76 +1,12 @@
-import Dataframes.Internal.CWrappers
-import Dataframes.Learn.SKLearnWrapper
-import Dataframes.Column
-import Dataframes.Table
-import Dataframes.Main
-import Dataframes.IO
 import Std.Base
 import Std.Foreign.C.Value
-import Std.Foreign
 
-import Dataframes.Plot.Matplotlib
+import Dataframes.Internal.Utils
+import Dataframes.Array
+import Dataframes.Types
+import Dataframes.Internal.Test.Test
 
-«0»def abs name x:
-    «5»(x.at name < 0) . switch (-(x.at name)) (x.at name)
 
-«173»def filterOutlayers filledData colName:
-    «174»at1 = filledData . column colName
-    «175»meanValue1 = at1 . meanValue
-    «176»stdValue1 = at1 . stdValue
-    «177»at2 = filledData.at colName
-    «178»eachTo1 = at2 . eachTo "less_mean" (_.at colName - meanValue1 )
-    «179»eachTo2 = eachTo1 . eachTo "abs" (abs "less_mean")
-    «180»eachTo3 = eachTo2 . eachTo "filtered" (x: «171»(x.at "abs" < 3.0 * stdValue1 ).switch (x.at colName) meanValue1 )
-    «181»column1 = eachTo3 . column "filtered"
-    column1
-
-«307»def bollingerBands sum1:
-    «308»eachTo1 = sum1 . eachTo "close_std_2" (_.at "Close_std dev" * 2.0)
-    «309»eachTo2 = eachTo1 . eachTo "BB_Lower" (x: «209»x.at "Close_mean" - x.at "close_std_2")
-    «310»eachTo3 = eachTo2 . eachTo "BB_Upper" (x: «211»x.at "Close_mean" + x.at "close_std_2")
-    eachTo3
-
-«2»def timeseries:
-    «200»read1 = Table.read "./ts.txt"
-    «203»rolling1 = read1 . rolling  "Date" 20.days "Close" Std
-    «204»rolling2 = read1 . rolling "Date" 20.days "Close" Mean
-    «205»at1 = rolling1 . at "Close_std dev"
-    «206»sum1 = rolling2 . + at1
-    «311»eachTo3 = bollingerBands sum1
-    «321»fillBetween1 = eachTo3 . fillBetween "Date" "BB_Lower" "BB_Upper" . setAlpha 0.5
-    «322»plot1 = eachTo3 . plot "Date" "Close_mean" . setStyle "-"
-    «323»sum2 = plot1 . + fillBetween1
-    None
-
-«252»def plotAll namesList data:
-    «253»each1 = namesList . each (x: «250»(data.plot "timestamp" x) . setLabel x)
-    «254»verticalLayout1 = Subplot.verticalLayout each1
-    verticalLayout1
-
-«332»def func1 filledData number1:
-    «333»remove1 = filledData . remove "id" . remove "timestamp"
-    «334»correlationsWith1 = remove1 . correlationsWith "y"
-    «335»eachTo1 = correlationsWith1 . eachTo "abs" (abs "corr_with_y")
-    «336»sortDescending1 = eachTo1 . sortDescending "abs"
-    «337»drop1 = sortDescending1 . drop 1
-    «338»take1 = drop1 . take number1
-    «339»toList1 = take1 . column "column" . toList
-    toList1
-
-«215»def twosigma:
-    «255»read1 = Table.read "./twosigma.csv"
-    «256»filledData = read1 . interpolate
-    «275»filterOutlayers1 = filterOutlayers filledData "fundamental_48"
-    «276»setAt1 = filledData . setAt "fundamental_48" filterOutlayers1
-    «330»number1 = 3
-    «340»toList1 = func1 setAt1 number1
-    «271»columns1 = setAt1 . columns toList1
-    «272»correlations1 = columns1 . correlations
-    «273»heatmap1 = correlations1 . heatmap
-    «277»plotAll1 = plotAll toList1 setAt1
-    None
-
-«324»def main:
-    None
-
-### META {"metas":[{"marker":5,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":255,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-224,"_vector2_x":384}}}},{"marker":256,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-224,"_vector2_x":704}}}},{"marker":275,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":736}}}},{"marker":276,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-240,"_vector2_x":864}}}},{"marker":330,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":-416,"_vector2_x":832}}}},{"marker":340,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-208,"_vector2_x":1120}}}},{"marker":271,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":96,"_vector2_x":1344}}}},{"marker":272,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":96,"_vector2_x":1664}}}},{"marker":273,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":96,"_vector2_x":1984}}}},{"marker":277,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-320,"_vector2_x":1488}}}},{"marker":342,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":1072,"_vector2_x":4624}}}},{"marker":345,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":944,"_vector2_x":4976}}}},{"marker":346,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":1392,"_vector2_x":4944}}}},{"marker":347,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":1392,"_vector2_x":5264}}}},{"marker":348,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":944,"_vector2_x":5296}}}},{"marker":350,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":944,"_vector2_x":5520}}}},{"marker":351,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":800,"_vector2_x":5840}}}},{"marker":352,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":1264,"_vector2_x":5840}}}},{"marker":353,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":1264,"_vector2_x":6160}}}},{"marker":200,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-48,"_vector2_x":3696}}}},{"marker":203,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-48,"_vector2_x":4016}}}},{"marker":204,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":272,"_vector2_x":4016}}}},{"marker":205,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-48,"_vector2_x":4336}}}},{"marker":206,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":272,"_vector2_x":4336}}}},{"marker":311,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":272,"_vector2_x":4944}}}},{"marker":321,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":-48,"_vector2_x":5296}}}},{"marker":322,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":592,"_vector2_x":5264}}}},{"marker":323,"meta":{"_displayResult":true,"_selectedVisualizer":["ProjectVisualizer: image: plot","image/image.html"],"_position":{"fromPosition":{"_vector2_y":592,"_vector2_x":5584}}}},{"marker":333,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":334,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":320}}}},{"marker":335,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":640}}}},{"marker":336,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":960}}}},{"marker":337,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1280}}}},{"marker":338,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1600}}}},{"marker":339,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1920}}}},{"marker":355,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-128,"_vector2_x":-384}}}},{"marker":360,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-128,"_vector2_x":-64}}}},{"marker":361,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-128,"_vector2_x":256}}}},{"marker":362,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-128,"_vector2_x":576}}}},{"marker":363,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-128,"_vector2_x":896}}}},{"marker":364,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-128,"_vector2_x":1216}}}},{"marker":365,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-128,"_vector2_x":1536}}}},{"marker":366,"meta":{"_displayResult":true,"_selectedVisualizer":["LunaVisualizer: base: table","base/table/table.html"],"_position":{"fromPosition":{"_vector2_y":-128,"_vector2_x":1856}}}},{"marker":308,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":309,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":320}}}},{"marker":209,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":310,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":640}}}},{"marker":211,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":174,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":320,"_vector2_x":0}}}},{"marker":175,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":640,"_vector2_x":320}}}},{"marker":176,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":320,"_vector2_x":320}}}},{"marker":177,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":320}}}},{"marker":178,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":640}}}},{"marker":179,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":960}}}},{"marker":180,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1280}}}},{"marker":171,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":181,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1600}}}},{"marker":253,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":250,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":254,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":320}}}}]}
+def main:
+    setHelperVerbosity False
+    benchmark "running tests" TestArrayBuilder.run
