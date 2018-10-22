@@ -984,5 +984,3 @@ class Heatmap:
 
     def setColorMap s: Heatmap self.data s self.annotations
     def setAnnotations s: Heatmap self.data self.colorMap (Just s)
-
-### META {"metas":[]}
