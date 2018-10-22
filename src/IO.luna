@@ -29,7 +29,7 @@ class ElementType:
         MaybeIntElement: True
         MaybeRealElement: True
         MaybeTextElement: True
-    
+
     def toJSON: case self of
         IntElement: "IntElement".toJSON
         RealElement: "RealElement".toJSON
@@ -37,7 +37,7 @@ class ElementType:
         MaybeIntElement: "MaybeIntElement".toJSON
         MaybeRealElement: "MaybeRealElement".toJSON
         MaybeTextElement: "MaybeTextElement".toJSON
- 
+
 
 def listToMap list:
     def insert (k,v) m: m.insert k v
@@ -72,10 +72,10 @@ class CSVParser:
         _: []
 
     # Reads CSV file from the hard drive, returning a `Table` value.
-    # 
-    # It is assumed thath first row contain column names. Column types will are deduced. If deduction fails the `Text` type will be applied. 
     #
-    # > import Dataframes.IO 
+    # It is assumed thath first row contain column names. Column types will are deduced. If deduction fails the `Text` type will be applied.
+    #
+    # > import Dataframes.IO
     # >
     # > def main:
     # >     CSVParser.readFile "./data/simple_empty.csv"
@@ -83,8 +83,8 @@ class CSVParser:
     #
     # `filepath`: Path to the CSV file to read.
     #
-    # `return`: `Table` value containing the data from CSV file. 
-    
+    # `return`: `Table` value containing the data from CSV file.
+
     def readFile filepath:
         Table.fromWrapper $ callCsvParser (ParseCSVFile filepath) self.namePolicy self.typePolicy
 

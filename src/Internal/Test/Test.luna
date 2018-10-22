@@ -134,7 +134,7 @@ class TestArrayBuilder:
         assertEqual "built single elem array" builtArray.toList [Just "first", Nothing, Just "1", Just "2", Just "3"]
         print "================================="
         print (builtArray.mapSame elem:
-            case elem of 
+            case elem of
                 Just val: Just (val + "-suffix")
                 Nothing: Nothing)
 
@@ -163,7 +163,7 @@ class TestArrayBuilder:
         assertEqual "element [0]" el0 gotEl0
         assertEqual "element [0] epoch" el0.toEpoch gotEl0.toEpoch
         assertEqual "element [0] text" el0.toText gotEl0.toText
-        
+
     def testMaybeTimestampBuilder:
         print "=== Testing for (Maybe Timestamp) ==="
         el0 = Just $ (Time.fromTimeOfYear 2018 09 16 $ Just TimeZone.utc)
@@ -238,11 +238,11 @@ class TestArrayBuilder:
         typeInt64 = DataType.fromTypeTag Int64Type
         assertEqual "name" typeInt64.name "int64"
         assertEqual "bitWidth" typeInt64.bitWidth 64
-        
+
         typeDouble = DataType.fromTypeTag DoubleType
         assertEqual "name" typeDouble.name "double"
         assertEqual "bitWidth" typeDouble.bitWidth 64
-        
+
         typeString = DataType.fromTypeTag StringType
         assertEqual "name" typeString.name "utf8"
         assertThrow "bitWidth" typeString.bitWidth
@@ -287,7 +287,7 @@ class TestArrayBuilder:
         assertEqual "maybe int contents" colMappedMaybeInt.toList [Just 8, Just 9, Just 10]
         colMappedMaybeReal = colMappedMaybeInt.map MaybeInt64Type MaybeDoubleType "maybe strings" (maybeNum: Just (maybeNum.get.toReal + 0.5))
         assertEqual "maybe real contents" colMappedMaybeReal.toList [Just 8.5, Just 9.5, Just 10.5]
-        
+
         print "=== Creating index"
         colIndex = Column.createIndex 5
         assertEqual "index name" colIndex.name "index"
@@ -300,7 +300,7 @@ class TestArrayBuilder:
         z = Field.fromTypeTag "z" MaybeInt64Type
         name = Field.fromTypeTag "name" StringType
         value = Field.fromTypeTag "value" DoubleType
-        
+
         schema = Schema.fromFields [x, y, z, name]
         assertEqual "fieldCount" schema.fieldCount 4
         assertThrow "field negative index" (schema.fieldAt -1)
@@ -348,7 +348,7 @@ class TestArrayBuilder:
         assertEqual "field 0" (schema.fieldAt 0) colX.field
         assertEqual "field 1" (schema.fieldAt 1) colY.field
         assertEqual "field 2" (schema.fieldAt 2) colName.field
-        
+
         assertThrow "access column -1" (t.columnAt -1 . toText)
         assertThrow "access column 50" (t.columnAt 50 . toText)
 
@@ -358,7 +358,7 @@ class TestArrayBuilder:
 
         assertThrow "removing column by index -1" (t.removeColumn -1)
         assertThrow "removing column by index 3" (t.removeColumn 3)
-        
+
         t2 = t.removeColumn 2
         assertEqual "columnCount" t2.columnCount 2
         assertEqual "rowCount" t2.rowCount 4
@@ -366,13 +366,13 @@ class TestArrayBuilder:
 
         assertThrow "adding column at -1" (t2.addColumn -1 colName)
         assertThrow "adding column at 3" (t2.addColumn 3 colName)
-        
+
         t3 = t2.addColumn 1 colName
         assertEqual "names" t3.columnNames ["x", "name", "y"]
         t3b = t2.addColumn 2 colName
         assertEqual "names" t3b.columnNames ["x", "y", "name"]
-        assertEqual "add-remove equivalence" t t3b 
-        assertNE "order equivalence" t t3 
+        assertEqual "add-remove equivalence" t t3b
+        assertNE "order equivalence" t t3
 
         col0JSON = t.columnAt 0 . toJSON
         print $ "COLUMN 0 JSON: " + col0JSON.toText
@@ -383,7 +383,7 @@ class TestArrayBuilder:
 
         tableJson = t.toJSON
         assertEqual "header" (tableJson.lookup "header") (Just ["x", "y", "name"].toJSON)
- 
+
     def testIO:
         print "=== Testing IO ==="
         print "CSV parsing case 1"
@@ -435,7 +435,7 @@ class TestArrayBuilder:
         assertEqual "column 0" (te1.columnAt 0 . toList) ["1", "4", "7", "10"]
         assertEqual "column 1" (te1.columnAt 1 . toList) ["2", "", "8", "11"]
         assertEqual "column 2" (te1.columnAt 2 . toList) ["3", "6", "9", "12"]
-    
+
     def testFiltering:
         print "=== Testing filtering ==="
         numbersCol = Column.fromList "numbers" Int64Type $ 1.upto 10
@@ -467,7 +467,7 @@ class TestArrayBuilder:
         assertEqual "timestamp <" (timeTableLater.columnAt 0 . toList) [t0]
         timeTableLater = timeTable.filter row: row.at "time" == t1
         assertEqual "timestamp ==" (timeTableLater.columnAt 0 . toList) [t1]
-    
+
     def testMapping:
 
         print "=== Testing mapping with null ==="
@@ -493,7 +493,7 @@ class TestArrayBuilder:
         assertEqual "ints*2" mappedCol3.toList [2, 4, 6, 8, 10]
         mappedCol4 = intsTable.each (row: (row.at "ints") * (row.at "ints"))
         assertEqual "ints*ints" mappedCol4.toList [1, 4, 9, 16, 25]
-        
+
         print "=== Testing mapping with timestamp ==="
         t0 = Time.fromTimeOfYear 2018 10 16 $ Just TimeZone.utc
         t1 = Time.fromTimeOfYear 2017 11 17 $ Just TimeZone.utc
@@ -541,7 +541,7 @@ class TestArrayBuilder:
         assertEqual "filled with '4.0': b" (filled4S.columnAt 1 . toList) [0.0, 1.0, 4.0, 3.0]
         assertEqual "filled with '4.0': c" (filled4S.columnAt 2 . toList) ["0", "1", "2", "4.0"]
         assertThrow "filling non-string with non-parsable string" (table.fillNa "foo")
-        
+
         filledB8 = table.fillNaAt "b" 8
         assertEqual "filled at 'b' with 8: a" (filledB8.columnAt 0 . toList) [Just 0,   Nothing,  Just 2,   Just 3  ]
         assertEqual "filled at 'b' with 8: b" (filledB8.columnAt 1 . toList) [0.0, 1.0, 8.0, 3.0]
@@ -580,9 +580,9 @@ class TestArrayBuilder:
     def testStats:
         print "countValues: nullable int64"
         intCol = Column.fromList "a" MaybeInt64Type  [Just 1, Nothing,  Just 2, Just 4, Just 9]
-        
+
         minOnInts = intCol.min
-        assertEqual "ints min" minOnInts.toList [1]        
+        assertEqual "ints min" minOnInts.toList [1]
         maxOnInts = intCol.max
         assertEqual "ints max" maxOnInts.toList [9]
         meanOnInts = intCol.mean
@@ -613,7 +613,7 @@ class TestArrayBuilder:
         print "Testing conditionals in LQuery"
         ints = Column.fromList "a" Int64Type  [1, -2, 3, -4, 5]
         table = Table.fromColumns [ints]
-        result = table.each v: 
+        result = table.each v:
             (v.at "a" > 0).switch (v.at "a") (v.at "a" . negate)
         assertEqual "abs-on-if result" result.toList [1, 2, 3, 4, 5]
 
@@ -690,7 +690,7 @@ class TestArrayBuilder:
         assertThrow "wrong key column" (table.rollingInterval "val" 2.seconds [("val", [Sum])])
         tableResult = table.rollingInterval "time" 2.seconds [("val", [Sum])]
         assertEqual "result column count" tableResult.columnCount 2
-        assertEqual "result column 0" (tableResult.columnAt 0 . toList) times 
+        assertEqual "result column 0" (tableResult.columnAt 0 . toList) times
         assertEqual "result column 1" (tableResult.columnAt 1 . toList) [0.0, 1.0, 3.0, 0.0, 4.0]
 
     def run:

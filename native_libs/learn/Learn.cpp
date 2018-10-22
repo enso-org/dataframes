@@ -16,17 +16,12 @@ namespace
 
 struct NPArrayBuilder
 {
-    double* data = NULL;
-    size_t rows = 0, cols = 0;
-    void init(size_t _rows, size_t _cols)
-    {
-        rows = _rows;
-        cols = _cols;
-        // FIXME!!! I think this can leak
-        data = (double*) malloc(sizeof(double)*rows*cols);
-        if(!data)
-            THROW("failed to allocate memory for numpy matrix of {} rows x {} columns", _rows, _cols);
-    }
+    size_t rows, cols;
+    std::vector<double> data;
+
+    NPArrayBuilder(size_t _rows, size_t _cols)
+        : rows(_rows), cols(_cols), data(rows * cols)
+    {}
     void setAt(int64_t row, int64_t col, double d)
     {
         data[row*cols+col] = d;
@@ -50,15 +45,11 @@ struct NPArrayBuilder
     }
     pybind11::array getNPMatrix()
     {
-        npy_intp dims[2] = {(long) rows, (long) cols};
-        pybind11::handle h = PyArray_SimpleNewFromData(2, dims, NPY_DOUBLE, data);
-        return pybind11::array{h, false};
+        return pybind11::array_t<double>({rows, cols}, data.data());
     }
     pybind11::array_t<double> getNPArr()
     {
-        npy_intp dim = rows*cols;
-        pybind11::handle h = PyArray_SimpleNewFromData(1, &dim, NPY_DOUBLE, data);
-        return pybind11::array{ h, false };
+        return pybind11::array_t<double>(rows * cols, data.data());
     }
     template<typename Iterable>
     void addColumn(int columnIndex, const Iterable &iterable)
@@ -96,8 +87,7 @@ auto passToC(pybind11::object obj)
 
 pybind11::array tableToNpMatrix(const arrow::Table& table)
 {
-    NPArrayBuilder builder;
-    builder.init(table.num_rows(), table.num_columns());
+    NPArrayBuilder builder( table.num_rows(), table.num_columns() );
     auto cols = getColumns(table);
     int colIndex = 0;
     for (auto& col : cols)
@@ -111,8 +101,7 @@ pybind11::array tableToNpMatrix(const arrow::Table& table)
 
 pybind11::array_t<double> columnToNpArr(const arrow::Column &col)
 {
-    NPArrayBuilder builder;
-    builder.init(col.length(), 1);
+    NPArrayBuilder builder( col.length(), 1 );
     builder.addColumn(0, col);
     auto res = builder.getNPArr();
     //PyObject_Print(res, stdout, 0);

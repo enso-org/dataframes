@@ -66,13 +66,13 @@ class Table:
         self.fromWrapper $ createTableWrapper schema.ptr (columns.each .ptr)
 
     # Constructing `Table` from a list of `Column` values.
-    # 
+    #
     # If empty list is given the return value is equivalent to `Table.empty`.
     # If columns have different rows counts: Table with different amount of rows in different columns is returned. To be fixed by https://github.com/luna/Dataframes/issues/62
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -103,11 +103,11 @@ class Table:
 
     # Returns a single `Column` value from `Table` by integer index.
     #
-    # Columns are indexed from 0. 
-    # 
-    # > import Dataframes.Column 
+    # Columns are indexed from 0.
+    #
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -129,14 +129,14 @@ class Table:
     def columnAt index:
         columnWrapper = self.ptr.columnAt index
         Column.fromColumnWrapper columnWrapper
-    
+
     # Inserts a single `Column` value to `Table` under given index.
     #
     # Columns are indexed from 0. After inserting the column under the `index` and all of the next columns will be shifted by 1. If the index will be increased by 1 number  of columns newly added column will be at the end of the table.
-    # 
-    # > import Dataframes.Column 
+    #
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -145,7 +145,7 @@ class Table:
     # >     col2 = Column.fromList "col2" Int64Type l2
     # >     table = Table.fromColumns [col1 , col2]
     # >     l3 = [21,22,23,24,25]
-    # >     col3 = Column.fromList "col3" Int64Type l3 
+    # >     col3 = Column.fromList "col3" Int64Type l3
     # >     newTable = table.addColumn 1 col3
     # >     None
     #
@@ -169,9 +169,9 @@ class Table:
     #
     # If two columns will have the same name it is unspecified which one will be returned.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -189,12 +189,12 @@ class Table:
 
     def at name:
         self.columns [name]
-    
+
     # Replaces the column with the name `name` by `column`. If there is no column with such name in `self` it is appended at the end of the table.
-    # 
-    # > import Dataframes.Column 
+    #
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -203,7 +203,7 @@ class Table:
     # >     col2 = Column.fromList "col2" Int64Type l2
     # >     table = Table.fromColumns [col1 , col2]
     # >     l3 = [21,22,23,24,25]
-    # >     col3 = Column.fromList "col3" Int64Type l3 
+    # >     col3 = Column.fromList "col3" Int64Type l3
     # >     newTable = table.setAt "col2" col3
     # >     None
     #
@@ -225,9 +225,9 @@ class Table:
     #
     # If more columns than one have the same name, it is unspecified which one is returned.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -248,15 +248,15 @@ class Table:
 
     def column name:
         ix = self.schema.getFieldIndexByName name
-        self.columnAt ix    
-    
+        self.columnAt ix
+
     # Returns a `Table` value with subset of columns from `self` designated by the given name list.
     #
     # If name does not uniquely identify the column (when multiple columns share the same name) it is not specified which of the columns will be returned.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -264,7 +264,7 @@ class Table:
     # >     col1 = Column.fromList "col1" Int64Type l1
     # >     col2 = Column.fromList "col2" Int64Type l2
     # >     table = Table.fromColumns [col1 , col2]
-    # >     newTable = table.columns ["col1"] 
+    # >     newTable = table.columns ["col1"]
     # >     None
     #
     # errors:
@@ -278,7 +278,7 @@ class Table:
     def columns names:
         columns = names.each self.column
         self.fromColumns columns
-    
+
     # removeColumn :: Int -> Table
     def removeColumn index:
         self.fromWrapper $ self.ptr.removeColumn index
@@ -298,15 +298,15 @@ class Table:
         cols = self.toList
         slicedCols = cols.each (_.slice beg count)
         self.fromColumns slicedCols
-    
+
     # Returns the first `count` rows
     #
-    # If the count of elements to take is greater than actual rows count, the returned table is tha same as the `self` table. 
+    # If the count of elements to take is greater than actual rows count, the returned table is tha same as the `self` table.
     # For negative `count`, a table with no data will be returned.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -324,14 +324,14 @@ class Table:
 
     def take count: self.slice 0 count
 
-    # Drops first `count` rows. 
+    # Drops first `count` rows.
     #
     # If the number of elements to take is greater than actual rows number, empty table is returned.
-    # For negative `count` number the returned table is the same as `self` table. TO BE FIXED https://github.com/luna/Dataframes/issues/63 
+    # For negative `count` number the returned table is the same as `self` table. TO BE FIXED https://github.com/luna/Dataframes/issues/63
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -351,18 +351,18 @@ class Table:
         leftCount = self.rowCount - count
         self.slice count leftCount
     def toJSON:
-        maxCount = 1000 / self.columnCount
+        maxCount = 1000 / (if self.columnCount > 0 then self.columnCount else 1)
         mc = if maxCount < 10 then 10 else maxCount
         rowCount = if self.rowCount < mc then self.rowCount else mc
         cols = self.toList
         columnValueLists = cols.each (_ . slice 0 rowCount . toList)
         JSON.empty . insert "header" self.columnNames . insert "data" columnValueLists
-    
+
     # Returns `Table` value with records for which the given predicate returns `True`.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -381,12 +381,12 @@ class Table:
     def filter f:
         pred = f TableHandle
         self.fromWrapper $ self.ptr.filter pred
-    
+
     # Returns `Table` value with columns for which the given predicate returns `True`.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -406,12 +406,12 @@ class Table:
         cols = self.toList
         filtered = cols.filter pred
         self.fromColumns filtered
-    
+
     # Returns `Table` value with results of applied functions on each of the columns from `self` table.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -437,9 +437,9 @@ class Table:
 
     # Returns a `Column` as a result of applying the function `f` to each row of the table.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -459,12 +459,12 @@ class Table:
         mapper = f TableHandle
         columnWrapper = self.ptr.eachToColumn "Result" mapper
         Column.fromColumnWrapper columnWrapper
-    
+
     # Creates a table with columns from `self` and an additional column named `name` being a result of application function `f` on the `self` table.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -495,9 +495,9 @@ class Table:
 
     # Creates `Table` value from `self` table with removed rows with missing values.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [Just 1, Nothing, Just 3, Just 4, Just 5]
@@ -505,7 +505,7 @@ class Table:
     # >     col1 = Column.fromList "col1" MaybeInt64Type l1
     # >     col2 = Column.fromList "col2" MaybeInt64Type l2
     # >     table = Table.fromColumns [col1 , col2]
-    # >     newTable = table.dropNa 
+    # >     newTable = table.dropNa
     # >     None
     #
     # `return`: `Table` value without rows containing null records.
@@ -516,9 +516,9 @@ class Table:
 
     # Creates `Table` value from `self` table with removed rows where null values occur for given column.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [Just 1, Nothing, Just 3, Just 4, Just 5]
@@ -539,9 +539,9 @@ class Table:
 
     # Creates `Table` value from `self` table with null values replaced with `valueToFillWith`.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [Just 1, Nothing, Just 3, Just 4, Just 5]
@@ -550,7 +550,7 @@ class Table:
     # >     col2 = Column.fromList "col2" MaybeInt64Type l2
     # >     table = Table.fromColumns [col1 , col2]
     # >     newTable = table.fillNa 53
-    # >     None 
+    # >     None
     #
     # `valueToFillWith`: Value to use to fill nulls (e.g. 0).
     #
@@ -562,9 +562,9 @@ class Table:
 
     # Creates `Table` value from `self` table with null values replaced with `valueToFillWith` in column `columnName`
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [Just 1, Nothing, Just 3, Just 4, Just 5]
@@ -596,9 +596,9 @@ class Table:
 
     # Generates `Table` with number and percentage of null values for each column.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [Just 1, Nothing, Just 3, Just 4, Just 5]
@@ -628,9 +628,9 @@ class Table:
 
     # Computes pairwise Pearson's correlation of columns, excluding null values.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -650,9 +650,9 @@ class Table:
 
     # Computes pairwise Pearson's correlations with given column, excluding null values.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -663,7 +663,7 @@ class Table:
     # >     correlations = table.corrWith "col2"
     # >     None
     #
-    # errors: 
+    # errors:
     # If column to calculate statistics with is not numerical, runtime error occurs.
     #
     # `columnName`: Column for which the correlations are calculated.
@@ -685,13 +685,13 @@ class Table:
         col2 = Column.fromList ("CORR_WITH_" + columnName) DoubleType vals
         Table.fromColumns [col1, col2]
 
-    # Generates descriptive statistics that summarize the central tendency, dispersion and shape of the values in given column distribution. 
+    # Generates descriptive statistics that summarize the central tendency, dispersion and shape of the values in given column distribution.
     #
     # Analyzes just the numeric values, excluding null values. Returns statistics: mean, standard deviation, minimum, 1st quantile, median, 3rd quantile, maximum.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -702,7 +702,7 @@ class Table:
     # >     correlations = table.describeColumn "col2"
     # >     None
     #
-    # errors: 
+    # errors:
     # If column does not exist in table runtime error will be returned.
     #
     # `columnName`: String value, name of the column to calculate the statistics for.
@@ -732,9 +732,9 @@ class Table:
 
     # Returns informations about whole table: standard deviation, minimum, maximum, mean, median qunatile 0.25 and 0.75 for each column.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -750,10 +750,10 @@ class Table:
 
     def describe:
         numerics = self.filterColumns .isNumeric
-        names = numerics.columnNames 
+        names = numerics.columnNames
 
         std = names.each (name: self.column name . std )
-        stdVal = std.map .toList 
+        stdVal = std.map .toList
         stdFlatList = stdVal.concat
 
         min = names.each (name: self.column name . min )
@@ -761,33 +761,33 @@ class Table:
         minFlatList = minVal.concat
 
         max = names.each (name: self.column name . max )
-        maxVal = max.map (col: col.toList.each (elem: elem.toReal)) 
+        maxVal = max.map (col: col.toList.each (elem: elem.toReal))
         maxFlatList = maxVal.concat
 
         mean = names.each (name: self.column name . mean )
-        meanVal = mean.map .toList 
+        meanVal = mean.map .toList
         meanFlatList = meanVal.concat
 
         quart1 = names.each (name: self.column name . quantile 0.25 )
-        quart1Val = quart1.map .toList 
+        quart1Val = quart1.map .toList
         quart1FlatList = quart1Val.concat
 
         median = names.each (name: self.column name . median )
-        medianVal = median.map .toList 
+        medianVal = median.map .toList
         medianFlatList = medianVal.concat
 
         quart3 = names.each (name: self.column name . quantile 0.75 )
-        quart3Val = quart3.map .toList 
+        quart3Val = quart3.map .toList
         quart3FlatList = quart3Val.concat
 
-        col1 = Column.fromList "column" StringType names 
-        col2 = Column.fromList "Mean" DoubleType meanFlatList 
-        col3 = Column.fromList "Std dev" DoubleType stdFlatList 
-        col4 = Column.fromList "Min" DoubleType minFlatList 
-        col5 = Column.fromList "Quantile 0.25" DoubleType quart1FlatList 
-        col6 = Column.fromList "Median" DoubleType medianFlatList 
-        col7 = Column.fromList "Quantile 0.75" DoubleType quart3FlatList 
-        col8 = Column.fromList "Max" DoubleType maxFlatList 
+        col1 = Column.fromList "column" StringType names
+        col2 = Column.fromList "Mean" DoubleType meanFlatList
+        col3 = Column.fromList "Std dev" DoubleType stdFlatList
+        col4 = Column.fromList "Min" DoubleType minFlatList
+        col5 = Column.fromList "Quantile 0.25" DoubleType quart1FlatList
+        col6 = Column.fromList "Median" DoubleType medianFlatList
+        col7 = Column.fromList "Quantile 0.75" DoubleType quart3FlatList
+        col8 = Column.fromList "Max" DoubleType maxFlatList
         Table.fromColumns [col1, col2, col3, col4, col5, col6, col7, col8]
 
     # rollingInterval :: Text -> TimeInterval -> [(Text, [AggregateFunction])] -> Table
@@ -799,7 +799,7 @@ class Table:
     # shift :: Text -> Int -> Table
     def shift columnName periods:
         columnToShift = self.column columnName
-        shiftedColumn = columnToShift.shift periods 
+        shiftedColumn = columnToShift.shift periods
         newColumnname = columnName + "_shift_" + periods.toText
         newTable = self.setAt newColumnname shiftedColumn
         newTable
@@ -811,9 +811,9 @@ class ChartBuilder:
 
     # Plots y versus x. Default style for plot is marker.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -834,12 +834,12 @@ class ChartBuilder:
         c2 = self.table.at columnName2 . toColumn
         Plot c1 c2 "o" Nothing Nothing Nothing
 
-    def plotDate columnName1 columnName2: 
+    def plotDate columnName1 columnName2:
         c1 = self.table.at columnName1 . toColumn
         c2 = self.table.at columnName2 . toColumn
         PlotDate c1 c2
 
-    def scatter columnName1 columnName2: 
+    def scatter columnName1 columnName2:
         c1 = self.table.at columnName1 . toColumn
         c2 = self.table.at columnName2 . toColumn
         Scatter c1 c2
@@ -848,9 +848,9 @@ class ChartBuilder:
     #
     # Compute and plot histogram of x.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = l1 = [1,23,78,4,12,7,89,6,7,19,17,13,15,56,89,23,0,1,45,30]
@@ -869,9 +869,9 @@ class ChartBuilder:
 
     # Fits and plots a bivariate kernel density estimate.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -894,9 +894,9 @@ class ChartBuilder:
 
     # Fits and plots a univariate kernel density estimate.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -917,9 +917,9 @@ class ChartBuilder:
 
     # Plots rectangular data as a color-encoded matrix.
     #
-    # > import Dataframes.Column 
+    # > import Dataframes.Column
     # > import Dataframes.Types
-    # > import Dataframes.Table 
+    # > import Dataframes.Table
     # >
     # > def main:
     # >     l1 = [1,2,3,4,5]
@@ -927,8 +927,8 @@ class ChartBuilder:
     # >     col1 = Column.fromList "col1" Int64Type l1
     # >     col2 = Column.fromList "col2" Int64Type l2
     # >     table = Table.fromColumns [col1 , col2]
-    # >     correlations = table.corr 
-    # >     heatmapPlot = correlations.chart.heatmap 
+    # >     correlations = table.corr
+    # >     heatmapPlot = correlations.chart.heatmap
     # >     None
     #
     # `return`: [] ![](data/docs/docs26.png)
