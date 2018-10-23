@@ -8,6 +8,7 @@ native_libs/linux/**
 .idea/
 .luna-package/
 .obj/
+.stack-work/
 
 *.vcxproj.user
 *.vspx
