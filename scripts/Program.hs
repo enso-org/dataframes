@@ -35,3 +35,6 @@ class Program a where
     call args = do
         programPath <- getProgram @a
         callProcess programPath args
+
+    readProgram :: [String] -> IO String
+    readProgram args = readProcess (executableName @a) args ""

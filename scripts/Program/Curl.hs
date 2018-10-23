@@ -6,7 +6,6 @@ import Program
 
 data Curl
 instance Program Curl where
-    defaultLocations = ["C:\\Program Files\\7-Zip"]
     executableName = "curl"
 
 download :: String -> FilePath -> IO ()

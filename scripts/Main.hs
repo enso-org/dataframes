@@ -1,9 +1,3 @@
-#!/usr/bin/env stack
--- stack --resolver lts-12.12 script --package Cabal,directory,extra,filepath,Glob,process,temporary
-
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
-
 import Control.Monad
 import Control.Monad.Extra
 import Data.Maybe
@@ -20,6 +14,8 @@ import System.Process
 
 import Program
 import qualified Program.Curl     as Curl
+import qualified Program.Ldd      as Ldd
+import qualified Program.Patchelf as Patchelf
 import qualified Program.MsBuild  as MsBuild
 import qualified Program.SevenZip as SevenZip
 
@@ -31,12 +27,13 @@ getEnvDefault :: String -> String -> IO String
 getEnvDefault variableName defaultValue =
     fromMaybe defaultValue <$> lookupEnv variableName
 
-copyToDir :: FilePath -> FilePath -> IO ()
+copyToDir :: FilePath -> FilePath -> IO FilePath
 copyToDir destDir sourcePath = do
     createDirectoryIfMissing True destDir
     putStrLn $ "Copy " ++ sourcePath ++ " to " ++ destDir
     let destPath = destDir </> takeFileName sourcePath
     copyFile sourcePath destPath
+    return destPath
 
 -- Function downloads 7z to temp folder, so it doesn't leave any trash behind.
 downloadAndUnpack7z :: FilePath -> FilePath -> IO ()
@@ -64,6 +61,42 @@ copyDirectory sourceDirectory targetDirectory subdirectoryFilename = do
     let from = sourceDirectory </> subdirectoryFilename
     let to = targetDirectory </> subdirectoryFilename
     copyDirectoryRecursive silent from to
+
+-- shortRelativePath requires normalised paths to work correctly.
+-- this is helper function because we don't want to bother with checking
+-- whether path is normalised everywhere else
+relativeNormalisedPath :: FilePath -> FilePath -> FilePath
+relativeNormalisedPath (normalise -> p1) (normalise -> p2) = shortRelativePath p1 p2
+
+foo :: IO ()
+foo = do
+    let bindir = "/home/mwu/Dataframes/native_libs/linux/"
+    dataframeBinaries <- glob $ bindir </> "*"
+    dependencies <- Ldd.sharedDependenciesOfBinaries dataframeBinaries
+    let librariesDir = bindir </> ".libs"
+    createDirectoryIfMissing True librariesDir
+    
+    -- Blacklist is the list of libraries that are not to be copied into distributable package
+    let libraryBlacklist = [
+            "libX11", "libXext", "libXau", "libXdamage", "libXfixes", "libX11-xcb",
+            "libXxf86vm", "libXdmcp", "libGL", "libdl", "libc", "librt", "libm", "libpthread",
+            "libXcomposite",
+            "libnvidia-tls", "libnvidia-glcore", "libnvidia-glsi",
+            "libXrender", "libXi",
+            "libdrm",
+            "libutil",
+            "libgbm", "libdbus-1",
+            "libselinux"
+            ]
+    let libsToCopy = filter (\libPath -> notElem (dropExtensions $ takeFileName libPath) libraryBlacklist) dependencies
+    
+    let placeDependency srcPath = do
+        newSoPath <- copyToDir librariesDir srcPath
+        Patchelf.setRpath newSoPath $ "$ORIGIN" </> relativeNormalisedPath librariesDir librariesDir
+
+    mapM placeDependency libsToCopy
+
+    print dependencies
 
 main :: IO ()
 main = do
