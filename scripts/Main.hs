@@ -111,7 +111,7 @@ makePackage repoDir stagingDir = do
     let libsDirectory = packageRoot </> "lib"
     dependencies <- Ldd.sharedDependenciesOfBinaries builtDlls
     mapM (installDependencyTo libsDirectory) (filter isDependencyToPack dependencies)
-    mapM (installBinary packageBinaries libsDirectory) (builtDlls <> ["/home/mwu/Dataframes/native_libs/build/DataframeHelperTests"])
+    mapM (installBinary packageBinaries libsDirectory) (builtDlls <> [stagingDir </> "build/DataframeHelperTests"])
 
 
     SevenZip.pack [packageRoot] $ packageFile
