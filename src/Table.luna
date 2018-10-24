@@ -739,6 +739,9 @@ class Table:
         aggregationWithWrappers = aggregations.each (colname, aggrs): (self.column colname . ptr, aggrs.each .toInt)
         self.fromWrapper $ self.ptr.aggregateBy keyColumnWrapper aggregationWithWrappers
     
+    # Aggregate using `aggregateFunction` over specific column.
+    #
+    # aggregate :: Text -> Text -> AggregateFunction -> Table
     def aggregate keyColumnName columnToAggregateName aggregateFunction: 
         self.aggregateBy keyColumnName [(columnToAggregateName,[aggregateFunction])]
 
