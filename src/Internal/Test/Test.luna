@@ -687,8 +687,8 @@ class TestArrayBuilder:
         timesCol = Column.fromList "time" TimestampType times
         numsCol = Column.fromList "val" MaybeDoubleType [Just 0.0, Just 1.0, Just 2.0, Nothing, Just 4.0]
         table = Table.fromColumns [timesCol, numsCol]
-        assertThrow "wrong key column" (table.rollingInterval "val" 2.seconds [("val", [Sum])])
-        tableResult = table.rollingInterval "time" 2.seconds [("val", [Sum])]
+        assertThrow "wrong key column" (table.rollingIntervalMultiple "val" 2.seconds [("val", [Sum])])
+        tableResult = table.rollingIntervalMultiple "time" 2.seconds [("val", [Sum])]
         assertEqual "result column count" tableResult.columnCount 2
         assertEqual "result column 0" (tableResult.columnAt 0 . toList) times
         assertEqual "result column 1" (tableResult.columnAt 1 . toList) [0.0, 1.0, 3.0, 0.0, 4.0]
