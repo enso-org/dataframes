@@ -105,13 +105,15 @@ makePackage repoDir stagingDir = do
             "ld-linux-x86-64"
             ]
     let isDependencyToPack path = notElem (dropExtensions $ takeFileName path) libraryBlacklist
-
+    let testBuiltExe = stagingDir </> "build/DataframeHelperTests"
     builtDlls <- glob (builtBinariesDir </> "*.so")
+    let builtBinaries = testBuiltExe : builtDlls
+
     when (null builtDlls) $ error "failed to found built .dll files"
     let libsDirectory = packageRoot </> "lib"
-    dependencies <- Ldd.sharedDependenciesOfBinaries builtDlls
+    dependencies <- Ldd.sharedDependenciesOfBinaries builtBinaries
     mapM (installDependencyTo libsDirectory) (filter isDependencyToPack dependencies)
-    mapM (installBinary packageBinaries libsDirectory) (builtDlls <> [stagingDir </> "build/DataframeHelperTests"])
+    mapM (installBinary packageBinaries libsDirectory) builtBinaries
 
 
     SevenZip.pack [packageRoot] $ packageFile
