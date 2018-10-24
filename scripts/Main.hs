@@ -69,15 +69,29 @@ copyDirectory sourceDirectory targetDirectory subdirectoryFilename = do
 relativeNormalisedPath :: FilePath -> FilePath -> FilePath
 relativeNormalisedPath (normalise -> p1) (normalise -> p2) = shortRelativePath p1 p2
 
-foo :: IO ()
-foo = do
-    let bindir = "/home/mwu/Dataframes/native_libs/linux/"
-    dataframeBinaries <- glob $ bindir </> "*"
-    dependencies <- Ldd.sharedDependenciesOfBinaries dataframeBinaries
-    let librariesDir = bindir </> ".libs"
-    createDirectoryIfMissing True librariesDir
+relativeRpath :: FilePath -> FilePath -> String
+relativeRpath binaryPath dependenciesDir = "$ORIGIN" </> relativeNormalisedPath binaryPath dependenciesDir
 
-    -- Blacklist is the list of libraries that are not to be copied into distributable package
+setRpath :: FilePath -> [FilePath] -> IO ()
+setRpath binaryPath depsDirectories = Patchelf.setRpath binaryPath $ relativeRpath (takeDirectory binaryPath) <$> depsDirectories
+
+installBinary outputDirectory dependenciesDirectory sourcePath = do
+    newBinaryPath <- copyToDir outputDirectory sourcePath
+    setRpath newBinaryPath [dependenciesDirectory, outputDirectory]
+
+installDependencyTo targetDirectory sourcePath = installBinary targetDirectory targetDirectory sourcePath
+
+makePackage repoDir stagingDir = do
+    -- Package
+    let builtBinariesDir = repoDir </> "native_libs" </> "linux"
+    let packageFile = "Dataframes-Linux-x64-v141" <.> "7z"
+    let packageRoot = stagingDir </> "Dataframes"
+    let packageBinaries = packageRoot </> "native_libs" </> "linux"
+
+
+    let dirsToCopy = ["src", "visualizers", ".luna-package"]
+    mapM (copyDirectory repoDir packageRoot) dirsToCopy
+
     let libraryBlacklist = [
             "libX11", "libXext", "libXau", "libXdamage", "libXfixes", "libX11-xcb",
             "libXxf86vm", "libXdmcp", "libGL", "libdl", "libc", "librt", "libm", "libpthread",
@@ -87,17 +101,22 @@ foo = do
             "libdrm",
             "libutil",
             "libgbm", "libdbus-1",
-            "libselinux"
+            "libselinux",
+            "ld-linux-x86-64"
             ]
-    let libsToCopy = filter (\libPath -> notElem (dropExtensions $ takeFileName libPath) libraryBlacklist) dependencies
+    let isDependencyToPack path = notElem (dropExtensions $ takeFileName path) libraryBlacklist
 
-    let placeDependency srcPath = do
-            newSoPath <- copyToDir librariesDir srcPath
-            Patchelf.setRpath newSoPath $ "$ORIGIN" </> relativeNormalisedPath librariesDir librariesDir
+    builtDlls <- glob (builtBinariesDir </> "*.so")
+    when (null builtDlls) $ error "failed to found built .dll files"
+    let libsDirectory = packageRoot </> "lib"
+    dependencies <- Ldd.sharedDependenciesOfBinaries builtDlls
+    mapM (installDependencyTo libsDirectory) (filter isDependencyToPack dependencies)
+    mapM (installBinary packageBinaries libsDirectory) (builtDlls <> ["/home/mwu/Dataframes/native_libs/build/DataframeHelperTests"])
 
-    mapM placeDependency libsToCopy
 
-    print dependencies
+    SevenZip.pack [packageRoot] $ packageFile
+    putStrLn $ "Packaging done, file saved to: " <> packageFile
+
 
 main :: IO ()
 main = do
@@ -108,16 +127,17 @@ main = do
     let cmakeProjectDir = repoDir </> "native_libs" </> "src"
     let buildDir = stagingDir </> "build"
 
-    CMake.cmake buildDir cmakeProjectDir [
-          ("CMAKE_BUILD_TYPE", "RelWithDebInfo")
-        , ("PYTHON_LIBRARY", "/python-dist/lib/libpython3.7m.so")
-        , ("PYTHON_NUMPY_INCLUDE_DIR"
-        , "/python-dist/lib/python3.7/site-packages/numpy/core/include")]
-
-    callProcessCwd buildDir "make" ["-j", 16]
+    -- Build
+    let cmakeVariables = CMake.OptionSetVariable <$> [ ("PYTHON_LIBRARY", "/python-dist/lib/libpython3.7m.so")
+                                                     , ("PYTHON_NUMPY_INCLUDE_DIR", "/python-dist/lib/python3.7/site-packages/numpy/core/include")]
+    let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo : cmakeVariables
+    CMake.cmake buildDir cmakeProjectDir options
+    callProcessCwd buildDir "make" ["-j", "16"]
     callProcessCwd repoDir (buildDir </> "DataframeHelperTests") []
 
-    -- Build
+    -- Package
+    makePackage repoDir stagingDir
+
     return ()
 
 mainWin :: IO ()

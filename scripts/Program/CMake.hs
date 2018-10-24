@@ -2,6 +2,7 @@ module Program.CMake where
 
 import Program
 import System.Directory
+import Text.Printf
 
 data CMake
 instance Program CMake where
@@ -10,10 +11,14 @@ instance Program CMake where
 type VariableName = String
 type VariableValue = String
 
-data Option = Variable (VariableName, VariableValue)
+data BuildType = Debug | ReleaseWithDebInfo
+
+data Option = OptionSetVariable (VariableName, VariableValue)
+            | OptionBuildType BuildType
 
 formatOption :: Option -> [String]
-formatOption (Variable (name, value)) = ["-D" <> name <> "=" <> value]
+formatOption (OptionSetVariable (name, value)) = [printf "-D%s=%s" name value]
+formatOption (OptionBuildType ReleaseWithDebInfo) = formatOption $ OptionSetVariable ("CMAKE_BUILD_TYPE", "RelWithDebInfo")
 
 formatOptions :: [Option] -> [String]
 formatOptions opts = concat $ formatOption <$> opts
