@@ -220,7 +220,6 @@ extern "C"
         return TRANSLATE_EXCEPTION(outError)
         {
             plt::subplot(nrows, ncols, plot_number);
-            plt::legend();
         };
     }
 
