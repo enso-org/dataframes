@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
-
 module Program.Patchelf where
 
 import Data.String.Utils
@@ -10,10 +8,10 @@ import Program
 data Patchelf
 instance Program Patchelf where
     executableName = "patchelf"
-    
+
 -- returns runpath if present, or secondarily rpath if present, or fails if neither present
 getRpath :: FilePath -> IO String
-getRpath binaryPath = 
+getRpath binaryPath =
     strip <$> readProgram @Patchelf ["--print-rpath", binaryPath]
 
 -- sets runpath on executable (overwriting if present)
@@ -25,4 +23,3 @@ setRpath binaryPath rpath = do
 -- NOTE: requires relatively new version of patchelf (likely 0.9), otherwise fail with stupid message "stat: No such file or directory"
 removeRpath :: FilePath -> IO ()
 removeRpath binaryPath = call @Patchelf ["--remove-rpath", binaryPath]
-    

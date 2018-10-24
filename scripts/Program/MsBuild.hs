@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
-
 module Program.MsBuild where
 
 import Program

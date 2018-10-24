@@ -13,6 +13,7 @@ import System.IO.Temp
 import System.Process
 
 import Program
+import qualified Program.CMake    as CMake
 import qualified Program.Curl     as Curl
 import qualified Program.Ldd      as Ldd
 import qualified Program.Patchelf as Patchelf
@@ -75,7 +76,7 @@ foo = do
     dependencies <- Ldd.sharedDependenciesOfBinaries dataframeBinaries
     let librariesDir = bindir </> ".libs"
     createDirectoryIfMissing True librariesDir
-    
+
     -- Blacklist is the list of libraries that are not to be copied into distributable package
     let libraryBlacklist = [
             "libX11", "libXext", "libXau", "libXdamage", "libXfixes", "libX11-xcb",
@@ -89,10 +90,10 @@ foo = do
             "libselinux"
             ]
     let libsToCopy = filter (\libPath -> notElem (dropExtensions $ takeFileName libPath) libraryBlacklist) dependencies
-    
+
     let placeDependency srcPath = do
-        newSoPath <- copyToDir librariesDir srcPath
-        Patchelf.setRpath newSoPath $ "$ORIGIN" </> relativeNormalisedPath librariesDir librariesDir
+            newSoPath <- copyToDir librariesDir srcPath
+            Patchelf.setRpath newSoPath $ "$ORIGIN" </> relativeNormalisedPath librariesDir librariesDir
 
     mapM placeDependency libsToCopy
 
@@ -100,6 +101,27 @@ foo = do
 
 main :: IO ()
 main = do
+    -- Prepare environment
+    let repoDir = "/Dataframes"
+    let stagingDir = "/home/mwu/staging"
+
+    let cmakeProjectDir = repoDir </> "native_libs" </> "src"
+    let buildDir = stagingDir </> "build"
+
+    CMake.cmake buildDir cmakeProjectDir [
+          ("CMAKE_BUILD_TYPE", "RelWithDebInfo")
+        , ("PYTHON_LIBRARY", "/python-dist/lib/libpython3.7m.so")
+        , ("PYTHON_NUMPY_INCLUDE_DIR"
+        , "/python-dist/lib/python3.7/site-packages/numpy/core/include")]
+
+    callProcessCwd buildDir "make" ["-j", 16]
+    callProcessCwd repoDir (buildDir </> "DataframeHelperTests") []
+
+    -- Build
+    return ()
+
+mainWin :: IO ()
+mainWin = do
     withSystemTempDirectory "" $ \stagingDir -> do
         -- let stagingDir = "C:\\Users\\mwurb\\AppData\\Local\\Temp\\-777f232250ff9e9c"
         prepareEnvironment stagingDir

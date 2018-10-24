@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
-
 module Program.SevenZip where
 
 import Program

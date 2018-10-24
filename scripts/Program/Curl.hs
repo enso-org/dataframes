@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
-
 module Program.Curl where
 
 import Program
