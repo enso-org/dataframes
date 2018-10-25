@@ -123,7 +123,9 @@ makePackage repoDir stagingDir = do
 main :: IO ()
 main = do
     withSystemTempDirectory "" $ \stagingDir -> do
-        repoDir <- getEnvDefault "CIRCLE_WORKING_DIRECTORY" "/Dataframes"
+        inCircleCI <- (==) (Just "true") <$> lookupEnv "CIRCLECI"
+        let repoDir = if inCircleCI then "/root/project" else "/Dataframes"
+
         putStrLn $ "Repository path: " <> repoDir
         putStrLn $ "Staging path: " <> stagingDir
 
