@@ -132,7 +132,7 @@ main = do
                                                         , ("PYTHON_NUMPY_INCLUDE_DIR", "/python-dist/lib/python3.7/site-packages/numpy/core/include")]
         let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo : cmakeVariables
         CMake.cmake buildDir cmakeProjectDir options
-        callProcessCwd buildDir "make" ["-j", "16"]
+        callProcessCwd buildDir "make" ["-j", "2"]
         callProcessCwd repoDir (buildDir </> "DataframeHelperTests") []
 
         -- Package
