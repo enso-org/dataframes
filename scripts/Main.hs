@@ -81,7 +81,7 @@ installBinary outputDirectory dependenciesDirectory sourcePath = do
 
 installDependencyTo targetDirectory sourcePath = installBinary targetDirectory targetDirectory sourcePath
 
-makePackage repoDir stagingDir = do
+makePackage repoDir stagingDir pythonPrefix = do
     -- Package
     let builtBinariesDir = repoDir </> "native_libs" </> "linux"
     let packageFile = "Dataframes-Linux-x64-v141" <.> "7z"
@@ -114,7 +114,7 @@ makePackage repoDir stagingDir = do
     dependencies <- Ldd.sharedDependenciesOfBinaries builtBinaries
     mapM (installDependencyTo libsDirectory) (filter isDependencyToPack dependencies)
     mapM (installBinary packageBinaries libsDirectory) builtBinaries
-
+    copyDirectoryRecursive silent (pythonPrefix </> "lib/python3.7") (packageRoot </> "python-libs")
 
     SevenZip.pack [packageRoot] $ packageFile
     putStrLn $ "Packaging done, file saved to: " <> packageFile
@@ -133,15 +133,16 @@ main = do
         let buildDir = stagingDir </> "build"
 
         -- Build
-        let cmakeVariables = CMake.OptionSetVariable <$> [ ("PYTHON_LIBRARY", "/python-dist/lib/libpython3.7m.so")
-                                                        , ("PYTHON_NUMPY_INCLUDE_DIR", "/python-dist/lib/python3.7/site-packages/numpy/core/include")]
+        let pythonPrefix = "/python-dist"
+        let cmakeVariables = CMake.OptionSetVariable <$> [ ("PYTHON_LIBRARY", pythonPrefix </> "lib/libpython3.7m.so")
+                                                         , ("PYTHON_NUMPY_INCLUDE_DIR", pythonPrefix </>  "lib/python3.7/site-packages/numpy/core/include")]
         let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo : cmakeVariables
         CMake.cmake buildDir cmakeProjectDir options
         callProcessCwd buildDir "make" ["-j", "2"]
         -- callProcessCwd repoDir (buildDir </> "DataframeHelperTests") []
 
         -- Package
-        makePackage repoDir stagingDir
+        makePackage repoDir stagingDir pythonPrefix
 
         return ()
 
