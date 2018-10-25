@@ -14,6 +14,7 @@ PythonInterpreter::PythonInterpreter()
 {
     try
     {
+        std::cout << "Python interpreter setup" << std::endl;
         const auto programName = L"Dataframes";
         Py_SetProgramName(const_cast<wchar_t *>(programName));
         pybind11::initialize_interpreter();
@@ -109,6 +110,7 @@ boost::filesystem::path pythonInterprerLibraryPath(std::string_view libraryName)
 
 void PythonInterpreter::setEnvironment()
 {
+    std::cout << "Will prepare Python environemt" << std::endl;
     // Python interpreter library typically lies in path like: /home/mwu/Dataframes/lib/libpython3.6m.so
     // In such case we want to set following paths:
     // PYTHONHOME=/home/mwu/Dataframes/lib/
