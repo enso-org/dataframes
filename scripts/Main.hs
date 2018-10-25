@@ -122,25 +122,23 @@ makePackage repoDir stagingDir = do
 
 main :: IO ()
 main = do
-    -- Prepare environment
-    let repoDir = "/Dataframes"
-    let stagingDir = "/home/mwu/staging"
+    withSystemTempDirectory "" $ \stagingDir -> do
+        let repoDir = getEnvDefault "CIRCLE_WORKING_DIRECTORY" "/Dataframes"
+        let cmakeProjectDir = repoDir </> "native_libs" </> "src"
+        let buildDir = stagingDir </> "build"
 
-    let cmakeProjectDir = repoDir </> "native_libs" </> "src"
-    let buildDir = stagingDir </> "build"
+        -- Build
+        let cmakeVariables = CMake.OptionSetVariable <$> [ ("PYTHON_LIBRARY", "/python-dist/lib/libpython3.7m.so")
+                                                        , ("PYTHON_NUMPY_INCLUDE_DIR", "/python-dist/lib/python3.7/site-packages/numpy/core/include")]
+        let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo : cmakeVariables
+        CMake.cmake buildDir cmakeProjectDir options
+        callProcessCwd buildDir "make" ["-j", "16"]
+        callProcessCwd repoDir (buildDir </> "DataframeHelperTests") []
 
-    -- Build
-    let cmakeVariables = CMake.OptionSetVariable <$> [ ("PYTHON_LIBRARY", "/python-dist/lib/libpython3.7m.so")
-                                                     , ("PYTHON_NUMPY_INCLUDE_DIR", "/python-dist/lib/python3.7/site-packages/numpy/core/include")]
-    let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo : cmakeVariables
-    CMake.cmake buildDir cmakeProjectDir options
-    callProcessCwd buildDir "make" ["-j", "16"]
-    callProcessCwd repoDir (buildDir </> "DataframeHelperTests") []
+        -- Package
+        makePackage repoDir stagingDir
 
-    -- Package
-    makePackage repoDir stagingDir
-
-    return ()
+        return ()
 
 mainWin :: IO ()
 mainWin = do
