@@ -123,7 +123,7 @@ makePackage repoDir stagingDir = do
 main :: IO ()
 main = do
     withSystemTempDirectory "" $ \stagingDir -> do
-        let repoDir = getEnvDefault "CIRCLE_WORKING_DIRECTORY" "/Dataframes"
+        repoDir <- getEnvDefault "CIRCLE_WORKING_DIRECTORY" "/Dataframes"
         let cmakeProjectDir = repoDir </> "native_libs" </> "src"
         let buildDir = stagingDir </> "build"
 
