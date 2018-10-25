@@ -40,7 +40,7 @@ jobs:
             stack build
             stack exec dataframes-package
       - store_artifacts:
-          path: scripts\Dataframes-Linux-x64-v141.7z
+          path: scripts/Dataframes-Linux-x64-v141.7z
 
 workflows:
   version: 2
