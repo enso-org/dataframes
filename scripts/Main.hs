@@ -124,6 +124,9 @@ main :: IO ()
 main = do
     withSystemTempDirectory "" $ \stagingDir -> do
         repoDir <- getEnvDefault "CIRCLE_WORKING_DIRECTORY" "/Dataframes"
+        putStrLn $ "Repository path: " <> repoDir
+        putStrLn $ "Staging path: " <> stagingDir
+
         let cmakeProjectDir = repoDir </> "native_libs" </> "src"
         let buildDir = stagingDir </> "build"
 
@@ -133,7 +136,7 @@ main = do
         let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo : cmakeVariables
         CMake.cmake buildDir cmakeProjectDir options
         callProcessCwd buildDir "make" ["-j", "2"]
-        callProcessCwd repoDir (buildDir </> "DataframeHelperTests") []
+        -- callProcessCwd repoDir (buildDir </> "DataframeHelperTests") []
 
         -- Package
         makePackage repoDir stagingDir
