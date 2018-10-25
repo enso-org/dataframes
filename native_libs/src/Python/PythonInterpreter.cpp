@@ -130,7 +130,7 @@ void PythonInterpreter::setEnvironment()
     auto pythonHome = pythonSo.parent_path();
 
     auto pythonLibs = pythonHome.parent_path() / "python-libs";
-    auto pythonPath = fmt::format("{}:{}:{}", pythonLibs, pythonLibs / "lib-dynload", pythonLibs / "site-packages");
+    auto pythonPath = fmt::format("{}:{}:{}", pythonLibs.c_str(), (pythonLibs / "lib-dynload").c_str(), (pythonLibs / "site-packages").c_str());
 
     std::cout << "home " << pythonHome << std::endl;
     std::cout << "path " << pythonPath << std::endl;
