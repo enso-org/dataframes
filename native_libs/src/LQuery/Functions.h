@@ -142,9 +142,9 @@ struct Abs
     static constexpr Lhs exec(const Lhs &lhs)
     {
         if constexpr(std::is_arithmetic_v<Lhs>)
-            if (lhs < 0) 
+            if (lhs < 0)
                 return -lhs;
-            else lhs;
+            else return lhs;
         else
             throw std::runtime_error("abs does not support operand of type: "s + typeid(lhs).name());
     }
