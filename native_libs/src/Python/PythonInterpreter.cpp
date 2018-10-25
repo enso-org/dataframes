@@ -1,6 +1,14 @@
 #include <date/date.h>
+#include <fstream>
+
 #include "Core/Common.h"
 #include "PythonInterpreter.h"
+#include "IO/IO.h"
+#include <cstdlib>
+
+#ifdef __linux__
+#include <boost/filesystem.hpp>
+#endif
 
 PythonInterpreter::PythonInterpreter()
 {
@@ -15,6 +23,10 @@ PythonInterpreter::PythonInterpreter()
 
         if(_import_array() < 0)
             throw pybind11::error_already_set();
+
+#ifdef __linux__
+        setEnvironment();
+#endif
     }
     catch(std::exception &e)
     {
@@ -60,6 +72,61 @@ pybind11::object PythonInterpreter::toPyDateTime(Timestamp timestamp) const
 
     return pybind11::reinterpret_steal<pybind11::object>(ret);
 }
+
+#ifdef __linux__
+std::string PythonInterpreter::libraryName()
+{
+    return fmt::format("libpython{}.{}m.so", PY_MAJOR_VERSION, PY_MINOR_VERSION);
+}
+
+boost::filesystem::path pythonInterprerLibraryPath(std::string_view libraryName)
+{
+    auto pid = getpid();
+    auto mapsIn = openFileToRead(fmt::format("/proc/{}/maps", pid));
+
+    std::string line;
+    while (std::getline(mapsIn, line))
+    {
+        if(line.find(libraryName) == std::string::npos)
+            continue;
+
+        // we expect line like that below:
+        // 7f568cd8a000-7f568d17c000 r-xp 00000000 08:01 11543023                   /usr/lib/x86_64-linux-gnu/libpython3.6m.so.1.0
+        // we assume that path is from the first slash to the end of line
+        auto firstSlash = line.find('/');
+        if(firstSlash == std::string::npos)
+        {
+            // should not happen, as the paths are absolute
+            std::cerr << "Unexpected entry in /proc/pid/maps: " << line << std::endl;
+            continue;
+        }
+
+        return line.substr(firstSlash);
+    }
+
+    THROW("Failed to found {}", libraryName);
+}
+
+void PythonInterpreter::setEnvironment()
+{
+    // Python interpreter library typically lies in path like: /home/mwu/Dataframes/lib/libpython3.6m.so
+    // In such case we want to set following paths:
+    // PYTHONHOME=/home/mwu/Dataframes/lib/
+    // PYTHONPATH=/home/mwu/Dataframes/python-libs:/home/mwu/Dataframes/python-libs/lib-dynload:/home/mwu/Dataframes/python-libs/site-packages
+    auto pythonSo = pythonInterprerLibraryPath(PythonInterpreter::libraryName());
+    std::cout << "Deduced Python library location is " << pythonSo << std::endl;
+
+    auto pythonHome = pythonSo.parent_path();
+
+    auto pythonLibs = pythonHome.parent_path() / "python-libs";
+    auto pythonPath = fmt::format("{}:{}:{}", pythonLibs, pythonLibs / "lib-dynload", pythonLibs / "site-packages");
+
+    std::cout << "home " << pythonHome << std::endl;
+    std::cout << "path " << pythonPath << std::endl;
+    setenv("PYTHONHOME", pythonHome.c_str(), 1);
+    setenv("PYTHONPATH", pythonPath.c_str(), 1);
+}
+#endif
 
 namespace
 {

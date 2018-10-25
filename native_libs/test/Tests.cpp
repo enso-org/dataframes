@@ -27,8 +27,17 @@
 #include "Core/Utils.h"
 #include "IO/XLSX.h"
 
+#include <sys/types.h>
+#include <unistd.h>
+
 using namespace std::literals;
 using namespace date::literals;
+
+BOOST_AUTO_TEST_CASE(FooBar, *boost::unit_test_framework::disabled())
+{
+    auto pythonPath = std::getenv("{PYTHONPATH");
+    std::cout << pythonPath << std::endl;
+}
 
 // TODO: fails now, because lquery interpreter was implemented without support for chunked arrays
 BOOST_FIXTURE_TEST_CASE(MappingChunked, ChunkedFixture, *boost::unit_test_framework::disabled())
