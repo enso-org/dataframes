@@ -17,6 +17,19 @@ PythonInterpreter::PythonInterpreter()
         std::cout << "Python interpreter setup" << std::endl;
         const auto programName = L"Dataframes";
         Py_SetProgramName(const_cast<wchar_t *>(programName));
+
+#ifdef __linux__
+        // If needed, environment must be set before initializing the interpreter.
+        // Otherwise, we'll get tons of error like:
+        // Could not find platform independent libraries <prefix>
+        // Could not find platform dependent libraries <exec_prefix>
+        // Consider setting $PYTHONHOME to <prefix>[:<exec_prefix>]
+        // Fatal Python error: initfsencoding: unable to load the file system codec
+        // ModuleNotFoundError: No module named 'encodings'
+
+        setEnvironment();
+#endif
+
         pybind11::initialize_interpreter();
         PyDateTime_IMPORT;
         if(PyDateTimeAPI == nullptr)
@@ -24,10 +37,6 @@ PythonInterpreter::PythonInterpreter()
 
         if(_import_array() < 0)
             throw pybind11::error_already_set();
-
-#ifdef __linux__
-        setEnvironment();
-#endif
     }
     catch(std::exception &e)
     {
