@@ -28,7 +28,19 @@ jobs:
     environment:
       CC: gcc-8
       CXX: g++-8
-
+  "Centos-7":
+    docker:
+      - image: murbanczyk/dataframes-package
+    steps:
+      - checkout
+      - run:
+          name: Run package script
+          command: |
+            cd scripts
+            stack build
+            stack exec dataframes-package
+      - store_artifacts:
+          path: scripts\Dataframes-Linux-x64-v141.7z
 
 workflows:
   version: 2
@@ -36,3 +48,6 @@ workflows:
     jobs:
       - "GCC-7"
       - "GCC-8"
+  build_and_package:
+    jobs:
+      - "Centos-7"
