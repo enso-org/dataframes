@@ -1,10 +1,12 @@
 module Program.SevenZip where
 
+import Distribution.System 
+
 import Program
 
 data SevenZip
 instance Program SevenZip where
-    defaultLocations = ["C:\\Program Files\\7-Zip"]
+    defaultLocations = ["C:\\Program Files\\7-Zip" | buildOS == Windows]
     executableName = "7za"
     notFoundError = "cannot find 7z, please install from https://7-zip.org.pl/ or make sure that program is visible in PATH"
 
