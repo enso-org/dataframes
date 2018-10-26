@@ -28,14 +28,14 @@ PythonInterpreter::PythonInterpreter()
         // (that will be made by e.g. when importing modules, like multiarray)
         // will end up in failure due to undefined symbol (like PyFloat_Type).
         // See also:
-        // *
+        // * https://github.com/luna/Dataframes/issues/48
         // * https://bugs.python.org/issue4434
         // * https://github.com/Kitware/kwiver/pull/388
 #ifdef __linux__
         // NOTE: [MWU] It's not really clear to me why we have to pass the whole path to the library instead of just library name.
         // Library name fails to be resolved by dlopen even though this library has RPATH set to the library's location.
-        // Perhaps it is that because dlopen uses our loder process (typically shell luna or luna-empire) RPATH?
-        // Not really sure. It works with just a name when I try to run our (RPATH-adjusted) test executables
+        // Perhaps it is that because dlopen uses our process executable (typically shell luna or luna-empire) RPATH?
+        // Not really sure. It works with just a name when I try to run our (RPATH-adjusted) test executable
         // but doesn't work when doing exactly the same from Luna.
         // Well, the approach below seemingly does work for all cases, so let's just be happy with that.
         boost::filesystem::path pythonInterprerLibraryPath(std::string_view libraryName);
@@ -44,11 +44,8 @@ PythonInterpreter::PythonInterpreter()
             THROW("Failed to load {}: {}", pythonLibraryPath, dlerror());
 #endif
 
-
-        std::cout << "Python interpreter setup" << std::endl;
         const auto programName = L"Dataframes";
         Py_SetProgramName(const_cast<wchar_t *>(programName));
-//        printPyEnv();
 
 #ifdef __linux__
         // If needed, environment must be set before initializing the interpreter.
@@ -61,21 +58,13 @@ PythonInterpreter::PythonInterpreter()
         setEnvironment();
 #endif
 
-        std::cout << "will initialize\n";
-//        printPyEnv();
         pybind11::initialize_interpreter();
         PyDateTime_IMPORT;
         if(PyDateTimeAPI == nullptr)
             throw pybind11::error_already_set();
 
-//        printPyEnv();
-        std::cout << "will import array\n";
         if(_import_array() < 0)
-        {
-            PyErr_PrintEx(1);
-            THROW("failed to import array!");
-        }
-//            throw pybind11::error_already_set();
+            throw pybind11::error_already_set();
     }
     catch(std::exception &e)
     {
@@ -164,19 +153,13 @@ void PythonInterpreter::setEnvironment()
     // PYTHONHOME=/home/mwu/Dataframes/lib/
     // PYTHONPATH=/home/mwu/Dataframes/python-libs:/home/mwu/Dataframes/python-libs/lib-dynload:/home/mwu/Dataframes/python-libs/site-packages
     auto pythonSo = pythonInterprerLibraryPath(PythonInterpreter::libraryName());
-    std::cout << "Deduced Python library location is " << pythonSo << std::endl;
+    //std::cout << "Deduced Python library location is " << pythonSo << std::endl;
 
     auto pythonHome = pythonSo.parent_path();
-
     auto pythonLibs =  pythonHome.parent_path() / "python-libs";
     auto pythonPath = fmt::format("{}:{}:{}", pythonLibs.c_str(), (pythonLibs / "lib-dynload").c_str(), (pythonLibs / "site-packages").c_str());
-
     Py_SetPythonHome(widenString(pythonHome.c_str()).data());
     Py_SetPath(widenString(pythonPath.c_str()).data());
-
-
-//    std::cout << "home " << pythonHome << std::endl;
-//    std::cout << "path " << pythonPath << std::endl;
 }
 #endif
 
