@@ -7,6 +7,7 @@
 #include <cstdlib>
 
 #ifdef __linux__
+#include <dlfcn.h> // for dlopen
 #include <boost/filesystem.hpp>
 #endif
 
@@ -27,6 +28,21 @@ PythonInterpreter::PythonInterpreter()
 {
     try
     {
+        // Workaround - various shared libraries being part of Python packages depend on libpython symbols
+        // but to not declare an explicit dependency on libpython. Because of that an attempt to load them
+        // (that will be made by e.g. when importing modules, like multiarray)
+        // will end up in failure due to undefined symbol (like PyFloat_Type).
+        // See also:
+        // *
+        // * https://bugs.python.org/issue4434
+        // * https://github.com/Kitware/kwiver/pull/388
+#ifdef __linux__
+        auto pythonLibraryName = libraryName();
+        if(!dlopen(pythonLibraryName.c_str(), RTLD_LAZY | RTLD_GLOBAL))
+            THROW("Failed to load {}: {}", pythonLibraryName, dlerror());
+#endif
+
+
         std::cout << "Python interpreter setup" << std::endl;
         const auto programName = L"Dataframes";
         Py_SetProgramName(const_cast<wchar_t *>(programName));
