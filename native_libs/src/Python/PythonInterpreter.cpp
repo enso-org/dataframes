@@ -37,9 +37,10 @@ PythonInterpreter::PythonInterpreter()
         // * https://bugs.python.org/issue4434
         // * https://github.com/Kitware/kwiver/pull/388
 #ifdef __linux__
-        auto pythonLibraryName = libraryName();
-        if(!dlopen(pythonLibraryName.c_str(), RTLD_LAZY | RTLD_GLOBAL))
-            THROW("Failed to load {}: {}", pythonLibraryName, dlerror());
+        boost::filesystem::path pythonInterprerLibraryPath(std::string_view libraryName);
+        auto pythonLibraryPath = pythonInterprerLibraryPath(libraryName());
+        if(!dlopen(pythonLibraryPath.c_str(), RTLD_LAZY | RTLD_GLOBAL))
+            THROW("Failed to load {}: {}", pythonLibraryPath, dlerror());
 #endif
 
 
