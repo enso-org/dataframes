@@ -11,17 +11,12 @@
 #include <boost/filesystem.hpp>
 #endif
 
-void printPyEnv()
+std::wstring widenString(const char *narrow)
 {
-    auto printvar = [] (const char *var)
-    {
-        if(auto value = std::getenv(var))
-            std::cerr << var << "=" << value << std::endl;
-        else
-            std::cerr << var << " NOT SET" << std::endl;
-    };
-    printvar("PYTHONHOME");
-    printvar("PYTHONPATH");
+    auto tmp = Py_DecodeLocale(narrow, nullptr);
+    std::wstring ret = tmp;
+    PyMem_RawFree(tmp);
+    return ret;
 }
 
 PythonInterpreter::PythonInterpreter()
@@ -37,6 +32,12 @@ PythonInterpreter::PythonInterpreter()
         // * https://bugs.python.org/issue4434
         // * https://github.com/Kitware/kwiver/pull/388
 #ifdef __linux__
+        // NOTE: [MWU] It's not really clear to me why we have to pass the whole path to the library instead of just library name.
+        // Library name fails to be resolved by dlopen even though this library has RPATH set to the library's location.
+        // Perhaps it is that because dlopen uses our loder process (typically shell luna or luna-empire) RPATH?
+        // Not really sure. It works with just a name when I try to run our (RPATH-adjusted) test executables
+        // but doesn't work when doing exactly the same from Luna.
+        // Well, the approach below seemingly does work for all cases, so let's just be happy with that.
         boost::filesystem::path pythonInterprerLibraryPath(std::string_view libraryName);
         auto pythonLibraryPath = pythonInterprerLibraryPath(libraryName());
         if(!dlopen(pythonLibraryPath.c_str(), RTLD_LAZY | RTLD_GLOBAL))
@@ -47,7 +48,7 @@ PythonInterpreter::PythonInterpreter()
         std::cout << "Python interpreter setup" << std::endl;
         const auto programName = L"Dataframes";
         Py_SetProgramName(const_cast<wchar_t *>(programName));
-        printPyEnv();
+//        printPyEnv();
 
 #ifdef __linux__
         // If needed, environment must be set before initializing the interpreter.
@@ -57,18 +58,17 @@ PythonInterpreter::PythonInterpreter()
         // Consider setting $PYTHONHOME to <prefix>[:<exec_prefix>]
         // Fatal Python error: initfsencoding: unable to load the file system codec
         // ModuleNotFoundError: No module named 'encodings'
-
         setEnvironment();
 #endif
 
         std::cout << "will initialize\n";
-        printPyEnv();
+//        printPyEnv();
         pybind11::initialize_interpreter();
         PyDateTime_IMPORT;
         if(PyDateTimeAPI == nullptr)
             throw pybind11::error_already_set();
 
-        printPyEnv();
+//        printPyEnv();
         std::cout << "will import array\n";
         if(_import_array() < 0)
         {
@@ -168,14 +168,15 @@ void PythonInterpreter::setEnvironment()
 
     auto pythonHome = pythonSo.parent_path();
 
-    auto pythonLibs = pythonHome.parent_path() / "python-libs";
+    auto pythonLibs =  pythonHome.parent_path() / "python-libs";
     auto pythonPath = fmt::format("{}:{}:{}", pythonLibs.c_str(), (pythonLibs / "lib-dynload").c_str(), (pythonLibs / "site-packages").c_str());
 
-    std::cout << "home " << pythonHome << std::endl;
-    std::cout << "path " << pythonPath << std::endl;
-    setenv("PYTHONHOME", pythonHome.c_str(), 1);
-    setenv("PYTHONPATH", pythonPath.c_str(), 1);
-    printPyEnv();
+    Py_SetPythonHome(widenString(pythonHome.c_str()).data());
+    Py_SetPath(widenString(pythonPath.c_str()).data());
+
+
+//    std::cout << "home " << pythonHome << std::endl;
+//    std::cout << "path " << pythonPath << std::endl;
 }
 #endif
 
