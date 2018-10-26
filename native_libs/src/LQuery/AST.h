@@ -45,7 +45,7 @@ namespace ast
     enum class ValueOperator
     {
         Plus, Minus, Times, Divide, Modulo,
-        Negate,
+        Negate, Abs,
 
         // timestamp operations
         Day, Month, Year
