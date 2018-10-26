@@ -12,7 +12,13 @@
 
 void printPyEnv()
 {
-    auto printvar = [] (const char *var) {  std::cout << var << "=" << std::getenv(var) << std::endl; };
+    auto printvar = [] (const char *var)
+    {
+        if(auto value = std::getenv(var))
+            std::cerr << var << "=" << value << std::endl;
+        else
+            std::cerr << var << " NOT SET" << std::endl;
+    };
     printvar("PYTHONHOME");
     printvar("PYTHONPATH");
 }
