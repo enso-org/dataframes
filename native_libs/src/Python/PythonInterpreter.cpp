@@ -147,17 +147,24 @@ boost::filesystem::path pythonInterprerLibraryPath(std::string_view libraryName)
 
 void PythonInterpreter::setEnvironment()
 {
-    std::cout << "Will prepare Python environemt" << std::endl;
     // Python interpreter library typically lies in path like: /home/mwu/Dataframes/lib/libpython3.6m.so
     // In such case we want to set following paths:
     // PYTHONHOME=/home/mwu/Dataframes/lib/
     // PYTHONPATH=/home/mwu/Dataframes/python-libs:/home/mwu/Dataframes/python-libs/lib-dynload:/home/mwu/Dataframes/python-libs/site-packages
-    auto pythonSo = pythonInterprerLibraryPath(PythonInterpreter::libraryName());
-    //std::cout << "Deduced Python library location is " << pythonSo << std::endl;
+    const auto pythonSo = pythonInterprerLibraryPath(PythonInterpreter::libraryName());
 
-    auto pythonHome = pythonSo.parent_path();
-    auto pythonLibs =  pythonHome.parent_path() / "python-libs";
-    auto pythonPath = fmt::format("{}:{}:{}", pythonLibs.c_str(), (pythonLibs / "lib-dynload").c_str(), (pythonLibs / "site-packages").c_str());
+    // However, we want to set home and path only when we use our packaged python ditribution.
+    // If this is developer build using the system-wide Python, the we should not touch anything
+    // or else we will only break things.
+    // Current packaging scheme assumes that there's directory named Dataframes (package name).
+    // Typical Python installation from system repository doesn't have such folder in path.
+    // (for developer builds such heuristic should suffice just fine)
+    if(pythonSo.string().find("Dataframes") == std::string::npos)
+        return;
+
+    const auto pythonHome = pythonSo.parent_path();
+    const auto pythonLibs =  pythonHome.parent_path() / "python-libs";
+    const auto pythonPath = fmt::format("{}:{}:{}", pythonLibs.c_str(), (pythonLibs / "lib-dynload").c_str(), (pythonLibs / "site-packages").c_str());
     Py_SetPythonHome(widenString(pythonHome.c_str()).data());
     Py_SetPath(widenString(pythonPath.c_str()).data());
 }
