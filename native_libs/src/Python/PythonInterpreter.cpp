@@ -10,6 +10,13 @@
 #include <boost/filesystem.hpp>
 #endif
 
+void printPyEnv()
+{
+    auto printvar = [] (const char *var) {  std::cout << var << "=" << std::getenv(var) << std::endl; };
+    printvar("PYTHONHOME");
+    printvar("PYTHONPATH");
+}
+
 PythonInterpreter::PythonInterpreter()
 {
     try
@@ -17,6 +24,7 @@ PythonInterpreter::PythonInterpreter()
         std::cout << "Python interpreter setup" << std::endl;
         const auto programName = L"Dataframes";
         Py_SetProgramName(const_cast<wchar_t *>(programName));
+        printPyEnv();
 
 #ifdef __linux__
         // If needed, environment must be set before initializing the interpreter.
@@ -30,11 +38,15 @@ PythonInterpreter::PythonInterpreter()
         setEnvironment();
 #endif
 
+        std::cout << "will initialize\n";
+        printPyEnv();
         pybind11::initialize_interpreter();
         PyDateTime_IMPORT;
         if(PyDateTimeAPI == nullptr)
             throw pybind11::error_already_set();
 
+        printPyEnv();
+        std::cout << "will import array\n";
         if(_import_array() < 0)
             throw pybind11::error_already_set();
     }
@@ -136,6 +148,7 @@ void PythonInterpreter::setEnvironment()
     std::cout << "path " << pythonPath << std::endl;
     setenv("PYTHONHOME", pythonHome.c_str(), 1);
     setenv("PYTHONPATH", pythonPath.c_str(), 1);
+    printPyEnv();
 }
 #endif
 
