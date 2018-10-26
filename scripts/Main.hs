@@ -114,7 +114,12 @@ makePackage repoDir stagingDir pythonPrefix = do
     dependencies <- Ldd.sharedDependenciesOfBinaries builtBinaries
     mapM (installDependencyTo libsDirectory) (filter isDependencyToPack dependencies)
     mapM (installBinary packageBinaries libsDirectory) builtBinaries
+
     copyDirectoryRecursive silent (pythonPrefix </> "lib/python3.7") (packageRoot </> "python-libs")
+    pyCacheDirs <- glob $ packageRoot </> "python-libs" </> "**" </> "__pycache__" 
+    mapM removePathForcibly pyCacheDirs
+    removePathForcibly $ packageRoot </> "python-libs" </> "config-3.7m-x86_64-linux-gnu"
+    removePathForcibly $ packageRoot </> "python-libs" </> "test"
 
     SevenZip.pack [packageRoot] $ packageFile
     putStrLn $ "Packaging done, file saved to: " <> packageFile
