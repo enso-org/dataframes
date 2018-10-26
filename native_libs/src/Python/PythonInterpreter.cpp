@@ -54,7 +54,11 @@ PythonInterpreter::PythonInterpreter()
         printPyEnv();
         std::cout << "will import array\n";
         if(_import_array() < 0)
-            throw pybind11::error_already_set();
+        {
+            PyErr_PrintEx(1);
+            THROW("failed to import array!");
+        }
+//            throw pybind11::error_already_set();
     }
     catch(std::exception &e)
     {
