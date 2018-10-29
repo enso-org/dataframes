@@ -63,7 +63,7 @@ These dependencies are not required to compile the helper library, however witho
       make
       ```
     where `Dataframes` refer to the local copy of this repo.
-* happily use the dataframes libray
+* happily use the dataframes library
 
 ## Overview
 The library currently provides wrappers for Apache Arrow structures.
