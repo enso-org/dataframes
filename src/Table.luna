@@ -92,7 +92,7 @@ class Table:
         ptrs = columns.each .ptr
         schema = Schema.fromFields fields
         self.fromWrapper $ createTableWrapper schema.ptr ptrs
-    def fromFile path:
+    def read path:
         self.fromWrapper $ readTableFromFile path
 
     def columnCount: self.ptr.columnCount
@@ -278,14 +278,14 @@ class Table:
     def columns names:
         columns = names.each self.column
         self.fromColumns columns
-
-    # removeColumn :: Int -> Table
-    def removeColumn index:
+    
+    # removeByIndex :: Int -> Table
+    def removeByIndex index:
         self.fromWrapper $ self.ptr.removeColumn index
 
     # remove :: Text -> Table
     def remove name:
-        self.removeColumn $ self.schema.getFieldIndexByName name
+        self.removeByIndex $ self.schema.getFieldIndexByName name
     def toList:
         self.ptr.toList.each Column.fromColumnWrapper
     def toText:
@@ -488,10 +488,19 @@ class Table:
     # sortBy :: [(Column, SortOrder, NullPosition)]
     def sortByColumn sortBy:
         self.fromWrapper $ self.ptr.sort (sortBy.each (col, b, c): (col.ptr, b, c))
+    
     # sortBy is list of triples: [(column name :: Text, SortOrder, NullPosition)]
-    def sort sortBy:
+    def sortMultiples sortBy:
         sortByColumns = sortBy.each (colName, order, pos): (self.column colName, order, pos)
         self.sortByColumn sortByColumns
+    
+    # sortBy :: column name :: Text 
+    def sortDescending columnName: self.sortMultiples [(columnName, Descending, NullsAfter)]
+
+    # sortBy :: column name :: Text 
+    def sortAscending columnName: self.sortMultiples [(columnName, Ascending, NullsAfter)]
+
+    def sort columnName: self.sortAscending columnName
 
     # Creates `Table` value from `self` table with removed rows with missing values.
     #
@@ -638,15 +647,15 @@ class Table:
     # >     col1 = Column.fromList "col1" Int64Type l1
     # >     col2 = Column.fromList "col2" Int64Type l2
     # >     table = Table.fromColumns [col1 , col2]
-    # >     correlations = table.corr
+    # >     correlations = table.correlations
     # >     None
     #
     # `return`: The `self` table value with pairwise correlations calculated for `self` table.
     # ![](data/docs/docs19.png)
 
-    def corr:
+    def correlations:
         numeric = self.filterColumns .isNumeric
-        numeric.fromWrapper $ self.ptr.corr
+        numeric.fromWrapper $ numeric.ptr.corr
 
     # Computes pairwise Pearson's correlations with given column, excluding null values.
     #
@@ -660,7 +669,7 @@ class Table:
     # >     col1 = Column.fromList "col1" Int64Type l1
     # >     col2 = Column.fromList "col2" Int64Type l2
     # >     table = Table.fromColumns [col1 , col2]
-    # >     correlations = table.corrWith "col2"
+    # >     correlations = table.correlationsWith "col2"
     # >     None
     #
     # errors:
@@ -671,7 +680,7 @@ class Table:
     # `return`: `Table` value including correlations with `columnName` column calculated for `self` table.
     # ![](data/docs/docs20.png)
 
-    def corrWith columnName:
+    def correlationsWith columnName:
         numeric = self.filterColumns .isNumeric
         column = numeric.at columnName . toColumn
         corrCol = Column.fromColumnWrapper $ numeric.ptr.corrWith column.ptr
@@ -682,7 +691,7 @@ class Table:
         names = sorted.each .first
         vals  = sorted.each .second
         col1 = Column.fromList "column" StringType names
-        col2 = Column.fromList ("CORR_WITH_" + columnName) DoubleType vals
+        col2 = Column.fromList ("corr_with_" + columnName) DoubleType vals
         Table.fromColumns [col1, col2]
 
     # Generates descriptive statistics that summarize the central tendency, dispersion and shape of the values in given column distribution.
@@ -729,6 +738,12 @@ class Table:
         keyColumnWrapper = self.column keyColumnName . ptr
         aggregationWithWrappers = aggregations.each (colname, aggrs): (self.column colname . ptr, aggrs.each .toInt)
         self.fromWrapper $ self.ptr.aggregateBy keyColumnWrapper aggregationWithWrappers
+    
+    # Aggregate using `aggregateFunction` over specific column.
+    #
+    # aggregate :: Text -> Text -> AggregateFunction -> Table
+    def aggregate keyColumnName columnToAggregateName aggregateFunction: 
+        self.aggregateBy keyColumnName [(columnToAggregateName,[aggregateFunction])]
 
     # Returns informations about whole table: standard deviation, minimum, maximum, mean, median qunatile 0.25 and 0.75 for each column.
     #
@@ -790,11 +805,15 @@ class Table:
         col8 = Column.fromList "Max" DoubleType maxFlatList
         Table.fromColumns [col1, col2, col3, col4, col5, col6, col7, col8]
 
-    # rollingInterval :: Text -> TimeInterval -> [(Text, [AggregateFunction])] -> Table
-    def rollingInterval keyColumnName interval aggregations:
+    # rollingIntervalMultiple :: Text -> TimeInterval -> [(Text, [AggregateFunction])] -> Table
+    def rollingIntervalMultiple keyColumnName interval aggregations:
         keyColumnWrapper = self.column keyColumnName . ptr
         aggregationWithWrappers = aggregations.each (colname, aggrs): (self.column colname . ptr, aggrs.each .toInt)
         self.fromWrapper $ self.ptr.rollingInterval keyColumnWrapper (interval.toMicroseconds * 1000) aggregationWithWrappers
+
+    # rollingInterval :: Text -> TimeInterval -> Text -> AggregateFunction -> Table
+    def rollingInterval keyColumnName interval aggregateColumnName aggregateFunction: 
+        self.rollingIntervalMultiple keyColumnName interval [(aggregateColumnName,[aggregateFunction])]
 
     # shift :: Text -> Int -> Table
     def shift columnName periods:
@@ -805,6 +824,15 @@ class Table:
         newTable
 
     def chart: ChartBuilder self
+    def plot: self.chart.plot 
+    def histogram: self.chart.histogram 
+    def scatter: self.chart.scatter 
+    def kde: self.chart.kde
+    def kde2: self.chart.kde2
+    def plotDate: self.chart.plotDate
+    def heatmap: self.chart.heatmap
+    def fillBetween: self.chart.fillBetween
+
 
 class ChartBuilder:
     table :: Table
@@ -936,7 +964,7 @@ class ChartBuilder:
     def heatmap:
         Heatmap self.table "RdBu_r" Nothing
 
-    def fill cname1 cname2 cname3:
+    def fillBetween cname1 cname2 cname3:
         c1 = self.table.at cname1 . toColumn
         c2 = self.table.at cname2 . toColumn
         c3 = self.table.at cname3 . toColumn

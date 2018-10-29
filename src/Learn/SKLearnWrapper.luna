@@ -35,6 +35,7 @@ class PyModel:
         r = SKLearnWrapper . predict self xs
         Column.fromColumnWrapper r
 
+    def toJSON: "PyModel".toJSON
 
 
 class SKLearnWrapper:

@@ -356,10 +356,10 @@ class TestArrayBuilder:
         assertEqual "column 0 contents" col0.toList [0, 10, -10, 500]
         assertEqual "column 0 name" col0.name "x"
 
-        assertThrow "removing column by index -1" (t.removeColumn -1)
-        assertThrow "removing column by index 3" (t.removeColumn 3)
+        assertThrow "removing column by index -1" (t.removeByIndex -1)
+        assertThrow "removing column by index 3" (t.removeByIndex 3)
 
-        t2 = t.removeColumn 2
+        t2 = t.removeByIndex 2
         assertEqual "columnCount" t2.columnCount 2
         assertEqual "rowCount" t2.rowCount 4
         assertEqual "names" t2.columnNames ["x", "y"]
@@ -600,10 +600,10 @@ class TestArrayBuilder:
 
         doubleCol = Column.fromList "b" Int64Type [2, 4, 6, 5, 8]
         table2 = Table.fromColumns [intCol, doubleCol]
-        corrWithTable = table2.corrWith "a"
+        corrWithTable = table2.correlationsWith "a"
         namesCol = corrWithTable.columnAt 0
         corrCol = corrWithTable.columnAt 1
-        assertEqual "corrWith name" corrCol.name "CORR_WITH_a"
+        assertEqual "corrWith name" corrCol.name "corr_with_a"
         assertEqual "corrWith result[1]" (corrCol.toList.getAt 1) 1.0
         expected0 = 0.824
         diff = expected0 - corrCol.toList.getAt 0
@@ -639,7 +639,7 @@ class TestArrayBuilder:
         tableSorted4 = table.sortByColumn [(table.columnAt 0, Descending, NullsBefore)]
         assertEqual "sort desc before" (tableSorted4.columnAt 0 . toList) [Nothing, Just 5, Just 3, Just 1, Just -2]
 
-        tableSorted5 = table.sort [("a", Descending, NullsBefore)]
+        tableSorted5 = table.sortMultiples [("a", Descending, NullsBefore)]
         assertEqual "sort name desc before" (tableSorted5.column "a" . toList) [Nothing, Just 5, Just 3, Just 1, Just -2]
 
     def testInterpolate:
@@ -687,8 +687,8 @@ class TestArrayBuilder:
         timesCol = Column.fromList "time" TimestampType times
         numsCol = Column.fromList "val" MaybeDoubleType [Just 0.0, Just 1.0, Just 2.0, Nothing, Just 4.0]
         table = Table.fromColumns [timesCol, numsCol]
-        assertThrow "wrong key column" (table.rollingInterval "val" 2.seconds [("val", [Sum])])
-        tableResult = table.rollingInterval "time" 2.seconds [("val", [Sum])]
+        assertThrow "wrong key column" (table.rollingIntervalMultiple "val" 2.seconds [("val", [Sum])])
+        tableResult = table.rollingIntervalMultiple "time" 2.seconds [("val", [Sum])]
         assertEqual "result column count" tableResult.columnCount 2
         assertEqual "result column 0" (tableResult.columnAt 0 . toList) times
         assertEqual "result column 1" (tableResult.columnAt 1 . toList) [0.0, 1.0, 3.0, 0.0, 4.0]
