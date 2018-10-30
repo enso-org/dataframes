@@ -4,6 +4,7 @@ import Data.Maybe
 import Data.Monoid
 import Distribution.Simple.Program.Find
 import Distribution.Simple.Utils
+import Distribution.System
 import Distribution.Verbosity
 import System.Directory
 import System.Environment
@@ -21,13 +22,16 @@ import qualified Program.MsBuild  as MsBuild
 import qualified Program.SevenZip as SevenZip
 
 depsArchiveUrl, packageBaseUrl :: String
-depsArchiveUrl = "https://s3-us-west-2.amazonaws.com/packages-luna/dataframes/libs-dev-v140.7z"
-packageBaseUrl = "https://s3-us-west-2.amazonaws.com/packages-luna/dataframes/windows-package-base.7z"
+depsArchiveUrl = "https://packages.luna-lang.org/dataframes/libs-dev-v140.7z"
+packageBaseUrl = "https://packages.luna-lang.org/dataframes/windows-package-base.7z"
 
+-- Retrieves a value of environment variable, returning the provided default
+-- if the requested variable was not set.
 getEnvDefault :: String -> String -> IO String
 getEnvDefault variableName defaultValue =
     fromMaybe defaultValue <$> lookupEnv variableName
 
+-- Copies to the given directory file under given path. Returns the copied-to path.
 copyToDir :: FilePath -> FilePath -> IO FilePath
 copyToDir destDir sourcePath = do
     createDirectoryIfMissing True destDir
@@ -36,7 +40,8 @@ copyToDir destDir sourcePath = do
     copyFile sourcePath destPath
     return destPath
 
--- Function downloads 7z to temp folder, so it doesn't leave any trash behind.
+-- Function downloads archive from given URL and extracts it to the target dir.
+-- The archive is placed in temp folder, so function doesn't leave any trash behind.
 downloadAndUnpack7z :: FilePath -> FilePath -> IO ()
 downloadAndUnpack7z archiveUrl targetDirectory = do
     withSystemTempDirectory "" $ \tmpDir -> do
@@ -49,7 +54,7 @@ downloadAndUnpack7z archiveUrl targetDirectory = do
 --
 -- The package contains all dependencies except for Python (with numpy).
 -- Python needs to be provided by CI environment and pointed to by `PythonDir`
--- environemt variable.
+-- environment variable.
 prepareEnvironment :: FilePath -> IO ()
 prepareEnvironment tempDir = do
     let depsDirLocal = tempDir </> "deps"
@@ -81,14 +86,12 @@ installBinary outputDirectory dependenciesDirectory sourcePath = do
 
 installDependencyTo targetDirectory sourcePath = installBinary targetDirectory targetDirectory sourcePath
 
-makePackage repoDir stagingDir pythonPrefix = do
+makePackage repoDir stagingDir = do
     -- Package
     let builtBinariesDir = repoDir </> "native_libs" </> "linux"
     let packageFile = "Dataframes-Linux-x64-v141" <.> "7z"
     let packageRoot = stagingDir </> "Dataframes"
     let packageBinaries = packageRoot </> "native_libs" </> "linux"
-
-
     let dirsToCopy = ["src", "visualizers", ".luna-package"]
     mapM (copyDirectory repoDir packageRoot) dirsToCopy
 
@@ -116,7 +119,7 @@ makePackage repoDir stagingDir pythonPrefix = do
     mapM (installBinary packageBinaries libsDirectory) builtBinaries
 
     copyDirectoryRecursive silent (pythonPrefix </> "lib/python3.7") (packageRoot </> "python-libs")
-    pyCacheDirs <- glob $ packageRoot </> "python-libs" </> "**" </> "__pycache__" 
+    pyCacheDirs <- glob $ packageRoot </> "python-libs" </> "**" </> "__pycache__"
     mapM removePathForcibly pyCacheDirs
     removePathForcibly $ packageRoot </> "python-libs" </> "config-3.7m-x86_64-linux-gnu"
     removePathForcibly $ packageRoot </> "python-libs" </> "test"
@@ -124,9 +127,97 @@ makePackage repoDir stagingDir pythonPrefix = do
     SevenZip.pack [packageRoot] $ packageFile
     putStrLn $ "Packaging done, file saved to: " <> packageFile
 
+repoDir :: IO FilePath
+repoDir = do
+    case buildOS of
+        Windows -> getEnvDefault "APPVEYOR_BUILD_FOLDER" "C:\\dev\\Dataframes"
+        Linux   -> getEnvDefault "DATAFRAMES_REPO_PATH" "/root/project"
+        _       -> error $ "not implemented: repoDir for buildOS == " <> show buildOS
 
-main :: IO ()
+data DataframesBuildArtifacts = DataframesBuildArtifacts
+    { dataframesBinaries :: [FilePath]
+    , dataframesTests :: [FilePath]
+    }
+
+nativeLibsOsDir = case buildOS of
+    Windows -> "windows"
+    Linux -> "linux"
+    _ -> error $ "nativeLibsOsDir: not implemented: " <> show buildOS
+
+dataframesPackageName = case buildOS of
+    Windows -> "Dataframes-Win-x64-v141" <.> "7z"
+    Linux -> "Dataframes-Linux-x64" <.> "7z"
+    _ -> error $ "dataframesPackageName: not implemented: " <> show buildOS
+
+pythonPrefix = case buildOS of
+    Linux -> "/python-dist"
+    _ -> error $ "dataframesPackageName: not implemented: " <> show buildOS
+
+buildProject :: FilePath -> FilePath -> IO DataframesBuildArtifacts
+buildProject repoDir stagingDir = do
+    let dataframesLibPath = repoDir </> "native_libs" </> "src"
+    case buildOS of
+        Windows -> do
+            MsBuild.build $ dataframesLibPath </> "DataframeHelper.sln"
+
+            let builtBinariesDir = dataframesLibPath </> "x64" </> "Release"
+            builtDlls <- glob $ builtBinariesDir </> "*.dll"
+            pure $ DataframesBuildArtifacts
+                { dataframesBinaries = builtDlls
+                , dataframesTests = [builtBinariesDir </> "DataframeHelperTests.exe"]
+                }
+        Linux -> do
+            let buildDir = stagingDir </> "build"
+            let cmakeVariables = CMake.OptionSetVariable <$> [ ("PYTHON_LIBRARY", pythonPrefix </> "lib/libpython3.7m.so")
+                                                             , ("PYTHON_NUMPY_INCLUDE_DIR", pythonPrefix </>  "lib/python3.7/site-packages/numpy/core/include")]
+            let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo : cmakeVariables
+            CMake.cmake buildDir dataframesLibPath options
+            callProcessCwd buildDir "make" ["-j", "2"]
+
+            let builtBinariesDir = repoDir </> "native_libs" </> nativeLibsOsDir
+            builtDlls <- glob (builtBinariesDir </> "*.so")
+            pure $ DataframesBuildArtifacts
+                { dataframesBinaries = builtDlls
+                , dataframesTests = [buildDir </> "build/DataframeHelperTests"]
+                }
+
+        _ -> undefined
+
 main = do
+    withSystemTempDirectory "" $ \stagingDir -> do
+        -- let stagingDir = "C:\\Users\\mwurb\\AppData\\Local\\Temp\\-777f232250ff9e9c"
+        when (buildOS == Windows) (prepareEnvironment stagingDir)
+        repoDir <- repoDir
+        buildArtifacts <- buildProject repoDir stagingDir
+
+        let packageRoot = stagingDir </> "Dataframes"
+        let packageBinariesDir = packageRoot </> "native_libs" </> nativeLibsOsDir
+
+        case buildOS of
+            Windows -> do
+                let builtDlls = dataframesBinaries buildArtifacts
+                downloadAndUnpack7z packageBaseUrl packageBinariesDir
+                when (null builtDlls) $ error "failed to found built .dll files"
+                mapM (copyToDir packageBinariesDir) builtDlls
+                let dirsToCopy = ["src", "visualizers", ".luna-package"]
+                mapM (copyDirectory repoDir packageRoot) builtDlls
+                SevenZip.pack [packageRoot] $ dataframesPackageName
+                putStrLn $ "Packaging done, file saved to: " <> dataframesPackageName
+            Linux -> do
+                makePackage repoDir stagingDir
+
+        -- Run tests
+        -- The test executable must be placed in the package directory
+        -- so all the dependencies are properly visible.
+        -- The CWD must be repository though for test to properly find
+        -- the data files.
+        mapM (copyToDir packageBinariesDir) (dataframesTests buildArtifacts)
+        withCurrentDirectory repoDir $ do
+            mapM (flip callProcess ["--report_level=detailed"]) (dataframesTests buildArtifacts)
+
+
+mainLinux :: IO ()
+mainLinux = do
     withSystemTempDirectory "" $ \stagingDir -> do
         inCircleCI <- (==) (Just "true") <$> lookupEnv "CIRCLECI"
         let repoDir = if inCircleCI then "/root/project" else "/Dataframes"
@@ -138,7 +229,6 @@ main = do
         let buildDir = stagingDir </> "build"
 
         -- Build
-        let pythonPrefix = "/python-dist"
         let cmakeVariables = CMake.OptionSetVariable <$> [ ("PYTHON_LIBRARY", pythonPrefix </> "lib/libpython3.7m.so")
                                                          , ("PYTHON_NUMPY_INCLUDE_DIR", pythonPrefix </>  "lib/python3.7/site-packages/numpy/core/include")]
         let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo : cmakeVariables
@@ -147,7 +237,7 @@ main = do
         -- callProcessCwd repoDir (buildDir </> "DataframeHelperTests") []
 
         -- Package
-        makePackage repoDir stagingDir pythonPrefix
+        makePackage repoDir stagingDir
 
         return ()
 
