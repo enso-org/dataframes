@@ -120,20 +120,20 @@ pythonPrefix = case buildOS of
 dependenciesToPackage :: [FilePath] -> IO [FilePath]
 dependenciesToPackage binaries = do
     let libraryBlacklist = [
-        "libX11", "libXext", "libXau", "libXdamage", "libXfixes", "libX11-xcb",
-        "libXxf86vm", "libXdmcp", "libGL", "libdl", "libc", "librt", "libm", "libpthread",
-        "libXcomposite",
-        "libnvidia-tls", "libnvidia-glcore", "libnvidia-glsi",
-        "libXrender", "libXi",
-        "libdrm",
-        "libutil",
-        "libgbm", "libdbus-1",
-        "libselinux",
-        "ld-linux-x86-64"
-        ]
+            "libX11", "libXext", "libXau", "libXdamage", "libXfixes", "libX11-xcb",
+            "libXxf86vm", "libXdmcp", "libGL", "libdl", "libc", "librt", "libm", "libpthread",
+            "libXcomposite",
+            "libnvidia-tls", "libnvidia-glcore", "libnvidia-glsi",
+            "libXrender", "libXi",
+            "libdrm",
+            "libutil",
+            "libgbm", "libdbus-1",
+            "libselinux",
+            "ld-linux-x86-64"
+            ]
     let isDependencyToPack path = notElem (dropExtensions $ takeFileName path) libraryBlacklist
     dependencies <- Ldd.sharedDependenciesOfBinaries binaries
-    pure $ filter $ isDependencyToPack dependencies
+    pure $ filter isDependencyToPack dependencies
 
 
 
@@ -190,7 +190,7 @@ package repoDir stagingDir buildArtifacts = do
 
             dependencies <- dependenciesToPackage builtDlls
             let libsDirectory = packageRoot </> "lib"
-            mapM (installDependencyTo libsDirectory) (filter isDependencyToPack dependencies)
+            mapM (installDependencyTo libsDirectory) dependencies
             mapM (installBinary packageBinariesDir libsDirectory) builtDlls
 
             copyDirectoryRecursive silent (pythonPrefix </> "lib/python3.7") (packageRoot </> "python-libs")
