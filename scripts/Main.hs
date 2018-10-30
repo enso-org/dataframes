@@ -178,7 +178,7 @@ buildProject repoDir stagingDir = do
             builtDlls <- glob (builtBinariesDir </> "*.so")
             pure $ DataframesBuildArtifacts
                 { dataframesBinaries = builtDlls
-                , dataframesTests = [buildDir </> "build/DataframeHelperTests"]
+                , dataframesTests = [buildDir </> "DataframeHelperTests"]
                 }
 
         _ -> undefined
