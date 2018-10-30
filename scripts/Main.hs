@@ -218,6 +218,7 @@ main = do
         -- so all the dependencies are properly visible.
         -- The CWD must be repository though for test to properly find
         -- the data files.
-        tests <- mapM (copyToDir $ dataframesPackageDirectory packageArtifacts) (dataframesTests buildArtifacts)
+        let packageDirBinaries = dataframesPackageDirectory packageArtifacts </> "native_libs" </> nativeLibsOsDir
+        tests <- mapM (copyToDir packageDirBinaries) (dataframesTests buildArtifacts)
         withCurrentDirectory repoDir $ do
             mapM (flip callProcess ["--report_level=detailed"]) tests
