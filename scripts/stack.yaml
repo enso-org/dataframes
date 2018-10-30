@@ -1,4 +1,5 @@
-extra-deps: [] 
+extra-deps:
+- network-2.7.0.2
 resolver: lts-12.14
 flags: {}
 packages:
