@@ -38,7 +38,7 @@ copyToDir destDir sourcePath = do
     putStrLn $ "Copy " ++ sourcePath ++ " to " ++ destDir
     let destPath = destDir </> takeFileName sourcePath
     copyFile sourcePath destPath
-    return destPath
+    pure destPath
 
 -- Function downloads archive from given URL and extracts it to the target dir.
 -- The archive is placed in temp folder, so function doesn't leave any trash behind.
@@ -86,47 +86,6 @@ installBinary outputDirectory dependenciesDirectory sourcePath = do
 
 installDependencyTo targetDirectory sourcePath = installBinary targetDirectory targetDirectory sourcePath
 
-makePackage repoDir stagingDir = do
-    -- Package
-    let builtBinariesDir = repoDir </> "native_libs" </> "linux"
-    let packageFile = "Dataframes-Linux-x64-v141" <.> "7z"
-    let packageRoot = stagingDir </> "Dataframes"
-    let packageBinaries = packageRoot </> "native_libs" </> "linux"
-    let dirsToCopy = ["src", "visualizers", ".luna-package"]
-    mapM (copyDirectory repoDir packageRoot) dirsToCopy
-
-    let libraryBlacklist = [
-            "libX11", "libXext", "libXau", "libXdamage", "libXfixes", "libX11-xcb",
-            "libXxf86vm", "libXdmcp", "libGL", "libdl", "libc", "librt", "libm", "libpthread",
-            "libXcomposite",
-            "libnvidia-tls", "libnvidia-glcore", "libnvidia-glsi",
-            "libXrender", "libXi",
-            "libdrm",
-            "libutil",
-            "libgbm", "libdbus-1",
-            "libselinux",
-            "ld-linux-x86-64"
-            ]
-    let isDependencyToPack path = notElem (dropExtensions $ takeFileName path) libraryBlacklist
-    let testBuiltExe = stagingDir </> "build/DataframeHelperTests"
-    builtDlls <- glob (builtBinariesDir </> "*.so")
-    let builtBinaries = testBuiltExe : builtDlls
-
-    when (null builtDlls) $ error "failed to found built .dll files"
-    let libsDirectory = packageRoot </> "lib"
-    dependencies <- Ldd.sharedDependenciesOfBinaries builtBinaries
-    mapM (installDependencyTo libsDirectory) (filter isDependencyToPack dependencies)
-    mapM (installBinary packageBinaries libsDirectory) builtBinaries
-
-    copyDirectoryRecursive silent (pythonPrefix </> "lib/python3.7") (packageRoot </> "python-libs")
-    pyCacheDirs <- glob $ packageRoot </> "python-libs" </> "**" </> "__pycache__"
-    mapM removePathForcibly pyCacheDirs
-    removePathForcibly $ packageRoot </> "python-libs" </> "config-3.7m-x86_64-linux-gnu"
-    removePathForcibly $ packageRoot </> "python-libs" </> "test"
-
-    SevenZip.pack [packageRoot] $ packageFile
-    putStrLn $ "Packaging done, file saved to: " <> packageFile
-
 repoDir :: IO FilePath
 repoDir = do
     case buildOS of
@@ -137,6 +96,10 @@ repoDir = do
 data DataframesBuildArtifacts = DataframesBuildArtifacts
     { dataframesBinaries :: [FilePath]
     , dataframesTests :: [FilePath]
+    }
+data DataframesPackageArtifacts = DataframesPackageArtifacts
+    { dataframesPackageArchive :: FilePath
+    , dataframesPackageDirectory :: FilePath
     }
 
 nativeLibsOsDir = case buildOS of
@@ -183,94 +146,71 @@ buildProject repoDir stagingDir = do
 
         _ -> undefined
 
+package :: FilePath -> FilePath -> DataframesBuildArtifacts -> IO DataframesPackageArtifacts
+package repoDir stagingDir buildArtifacts = do
+    let packageRoot = stagingDir </> "Dataframes"
+    let packageBinariesDir = packageRoot </> "native_libs" </> nativeLibsOsDir
+
+    let dirsToCopy = ["src", "visualizers", ".luna-package"]
+    mapM (copyDirectory repoDir packageRoot) dirsToCopy
+
+    let builtDlls = dataframesBinaries buildArtifacts
+
+    case buildOS of
+        Windows -> do
+            downloadAndUnpack7z packageBaseUrl packageBinariesDir
+            when (null builtDlls) $ error "failed to found built .dll files"
+            mapM (copyToDir packageBinariesDir) builtDlls
+            mapM (copyDirectory repoDir packageRoot) builtDlls
+            return ()
+        Linux -> do
+            let libraryBlacklist = [
+                    "libX11", "libXext", "libXau", "libXdamage", "libXfixes", "libX11-xcb",
+                    "libXxf86vm", "libXdmcp", "libGL", "libdl", "libc", "librt", "libm", "libpthread",
+                    "libXcomposite",
+                    "libnvidia-tls", "libnvidia-glcore", "libnvidia-glsi",
+                    "libXrender", "libXi",
+                    "libdrm",
+                    "libutil",
+                    "libgbm", "libdbus-1",
+                    "libselinux",
+                    "ld-linux-x86-64"
+                    ]
+            let isDependencyToPack path = notElem (dropExtensions $ takeFileName path) libraryBlacklist
+            let testBuiltExe = stagingDir </> "build/DataframeHelperTests"
+            let builtBinaries = testBuiltExe : builtDlls
+
+            when (null builtDlls) $ error "failed to found built .dll files"
+            let libsDirectory = packageRoot </> "lib"
+            dependencies <- Ldd.sharedDependenciesOfBinaries builtBinaries
+            mapM (installDependencyTo libsDirectory) (filter isDependencyToPack dependencies)
+            mapM (installBinary packageBinariesDir libsDirectory) builtBinaries
+
+            copyDirectoryRecursive silent (pythonPrefix </> "lib/python3.7") (packageRoot </> "python-libs")
+            pyCacheDirs <- glob $ packageRoot </> "python-libs" </> "**" </> "__pycache__"
+            mapM removePathForcibly pyCacheDirs
+            removePathForcibly $ packageRoot </> "python-libs" </> "config-3.7m-x86_64-linux-gnu"
+            removePathForcibly $ packageRoot </> "python-libs" </> "test"
+
+    SevenZip.pack [packageRoot] dataframesPackageName
+    putStrLn $ "Packaging done, file saved to: " <> dataframesPackageName
+    pure $ DataframesPackageArtifacts
+        { dataframesPackageArchive = dataframesPackageName
+        , dataframesPackageDirectory = packageRoot
+        }
+
 main = do
     withSystemTempDirectory "" $ \stagingDir -> do
         -- let stagingDir = "C:\\Users\\mwurb\\AppData\\Local\\Temp\\-777f232250ff9e9c"
         when (buildOS == Windows) (prepareEnvironment stagingDir)
         repoDir <- repoDir
         buildArtifacts <- buildProject repoDir stagingDir
-
-        let packageRoot = stagingDir </> "Dataframes"
-        let packageBinariesDir = packageRoot </> "native_libs" </> nativeLibsOsDir
-
-        case buildOS of
-            Windows -> do
-                let builtDlls = dataframesBinaries buildArtifacts
-                downloadAndUnpack7z packageBaseUrl packageBinariesDir
-                when (null builtDlls) $ error "failed to found built .dll files"
-                mapM (copyToDir packageBinariesDir) builtDlls
-                let dirsToCopy = ["src", "visualizers", ".luna-package"]
-                mapM (copyDirectory repoDir packageRoot) builtDlls
-                SevenZip.pack [packageRoot] $ dataframesPackageName
-                putStrLn $ "Packaging done, file saved to: " <> dataframesPackageName
-            Linux -> do
-                makePackage repoDir stagingDir
-
+        packageArtifacts <- package repoDir stagingDir buildArtifacts
         -- Run tests
         -- The test executable must be placed in the package directory
         -- so all the dependencies are properly visible.
         -- The CWD must be repository though for test to properly find
         -- the data files.
-        mapM (copyToDir packageBinariesDir) (dataframesTests buildArtifacts)
+        tests <- mapM (copyToDir $ dataframesPackageDirectory packageArtifacts) (dataframesTests buildArtifacts)
         withCurrentDirectory repoDir $ do
-            mapM (flip callProcess ["--report_level=detailed"]) (dataframesTests buildArtifacts)
-
-
-mainLinux :: IO ()
-mainLinux = do
-    withSystemTempDirectory "" $ \stagingDir -> do
-        inCircleCI <- (==) (Just "true") <$> lookupEnv "CIRCLECI"
-        let repoDir = if inCircleCI then "/root/project" else "/Dataframes"
-
-        putStrLn $ "Repository path: " <> repoDir
-        putStrLn $ "Staging path: " <> stagingDir
-
-        let cmakeProjectDir = repoDir </> "native_libs" </> "src"
-        let buildDir = stagingDir </> "build"
-
-        -- Build
-        let cmakeVariables = CMake.OptionSetVariable <$> [ ("PYTHON_LIBRARY", pythonPrefix </> "lib/libpython3.7m.so")
-                                                         , ("PYTHON_NUMPY_INCLUDE_DIR", pythonPrefix </>  "lib/python3.7/site-packages/numpy/core/include")]
-        let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo : cmakeVariables
-        CMake.cmake buildDir cmakeProjectDir options
-        callProcessCwd buildDir "make" ["-j", "2"]
-        -- callProcessCwd repoDir (buildDir </> "DataframeHelperTests") []
-
-        -- Package
-        makePackage repoDir stagingDir
-
-        return ()
-
-mainWin :: IO ()
-mainWin = do
-    withSystemTempDirectory "" $ \stagingDir -> do
-        -- let stagingDir = "C:\\Users\\mwurb\\AppData\\Local\\Temp\\-777f232250ff9e9c"
-        prepareEnvironment stagingDir
-
-        repoDir <- getEnvDefault "APPVEYOR_BUILD_FOLDER" "C:\\dev\\Dataframes"
-        let dataframesSolutionPath = repoDir </> "native_libs" </> "src" </> "DataframeHelper.sln"
-        MsBuild.build dataframesSolutionPath
-
-        let packageRoot = stagingDir </> "Dataframes"
-        let packageBinaries = packageRoot </> "native_libs" </> "windows"
-        let builtBinariesDir = repoDir </> "native_libs" </> "src" </> "x64" </> "Release"
-        let packageFile = "Dataframes-Win-x64-v141" <.> "7z"
-        downloadAndUnpack7z packageBaseUrl packageBinaries
-        builtDlls <- glob (builtBinariesDir </> "*.dll")
-        when (null builtDlls) $ error "failed to found built .dll files"
-        mapM (copyToDir packageBinaries) builtDlls
-        let dirsToCopy = ["src", "visualizers", ".luna-package"]
-        mapM (copyDirectory repoDir packageRoot) dirsToCopy
-        SevenZip.pack [packageRoot] $ packageFile
-        putStrLn $ "Packaging done, file saved to: " <> packageFile
-
-        -- Run tests
-        -- The test executable must be placed in the package directory
-        -- so all the dependencies are properly visible.
-        -- The CWD must be repository though for test to properly find
-        -- the data files.
-        let testsExeSrc = builtBinariesDir </> "DataframeHelperTests.exe"
-        let testsExeDst = packageBinaries </> takeFileName testsExeSrc
-        copyFile testsExeSrc testsExeDst
-        withCurrentDirectory repoDir $ do
-            callProcess testsExeDst ["--report_level=detailed"]
+            mapM (flip callProcess ["--report_level=detailed"]) tests
