@@ -1,4 +1,4 @@
-﻿#ifndef  _MSC_VER
+#ifndef  _MSC_VER
 #define BOOST_TEST_DYN_LINK  // otherwise GCC gets undefined main error
 #endif // ! _MSC_VER
 
@@ -27,9 +27,6 @@
 #include "Core/Utils.h"
 #include "IO/XLSX.h"
 
-#include <sys/types.h>
-#include <unistd.h>
-
 using namespace std::literals;
 using namespace date::literals;
 
@@ -45,12 +42,12 @@ BOOST_FIXTURE_TEST_CASE(MappingChunked, ChunkedFixture, *boost::unit_test_framew
     // a + b
 	const auto jsonQuery = R"(
 		{
-			"operation": "plus", 
-			"arguments": 
-			[ 
+			"operation": "plus",
+			"arguments":
+			[
 				{"column": "a"},
 				{"column": "b"}
-			] 
+			]
 		})";
 	each(table, jsonQuery);
 }
@@ -95,7 +92,7 @@ BOOST_AUTO_TEST_CASE(SortSimple)
 
     testSort(
         { { table->column(0), SortOrder::Ascending, NullPosition::Before }
-        , { table->column(1), SortOrder::Ascending, NullPosition::Before }}, 
+        , { table->column(1), SortOrder::Ascending, NullPosition::Before }},
         { 3, 6, 0, 8, 1, 4, 2, 7, 5});
     testSort(
         { { table->column(0), SortOrder::Ascending, NullPosition::Before }
@@ -251,7 +248,7 @@ BOOST_AUTO_TEST_CASE(HelperConversionFunctions)
 	std::vector<std::optional<double>> numbersOD;
 	std::vector<std::optional<std::string>> numbersOS;
 
-	for(int i = 0; i < 50; i++) 
+	for(int i = 0; i < 50; i++)
 	{
 		numbers.push_back(i);
 		numbersD.push_back(i);
@@ -261,7 +258,7 @@ BOOST_AUTO_TEST_CASE(HelperConversionFunctions)
 			numbersOD.push_back(std::nullopt);
 	}
 
-	for(int i = 0; i < 40; i++) 
+	for(int i = 0; i < 40; i++)
 	{
 		numbersS.push_back(std::to_string(i));
 		if(i % 5)
@@ -355,12 +352,12 @@ BOOST_FIXTURE_TEST_CASE(MapToProduct, FilteringFixture)
     // a * b
 	const auto jsonQuery = R"(
 		{
-			"operation": "times", 
-			"arguments": 
-			[ 
+			"operation": "times",
+			"arguments":
+			[
 				{"column": "a"},
 				{"column": "b"}
-			] 
+			]
 		})";
 	testMap<double>(jsonQuery, { -5, 20, 0, 40, -25 });
 }
@@ -370,19 +367,19 @@ BOOST_FIXTURE_TEST_CASE(MapToSumWithProduct, FilteringFixture)
     // a*2 + 4
 	const auto jsonQuery = R"(
 		{
-			"operation": "plus", 
-			"arguments": 
-			[ 
+			"operation": "plus",
+			"arguments":
+			[
 				{
-					"operation": "times", 
-					"arguments": 
-					[ 
+					"operation": "times",
+					"arguments":
+					[
 						{"column": "a"},
 						2
-					] 
+					]
 				},
 				4
-			] 
+			]
 		})";
 	testMap<double>(jsonQuery, { 2, 8, 10, -4, 14 });
 }
@@ -391,7 +388,7 @@ BOOST_FIXTURE_TEST_CASE(MapToNegated, FilteringFixture)
 {
 	const auto jsonQuery = R"(
 		{
-			"operation": "negate", 
+			"operation": "negate",
 			"arguments": [ {"column": "a"} ]
 		})";
 	testMap<double>(jsonQuery, { 1, -2, -3, 4, -5 });
@@ -411,7 +408,7 @@ BOOST_FIXTURE_TEST_CASE(MapToAbsByCondition, FilteringFixture)
  				"operation": "negate",
  				"arguments": [{"column": "a"}]}
  		})";
- 
+
 	testMap<double>(jsonQuery, {1, 2, 3, 4, 5});
 }
 
@@ -420,11 +417,11 @@ BOOST_FIXTURE_TEST_CASE(MapTimestampDay, FilteringFixture)
     // day(e)
     const auto jsonQuery = R"(
  		{
-			"operation": "day", 
-			"arguments": 
-			[ 
+			"operation": "day",
+			"arguments":
+			[
 				{"column": "e"}
-			] 
+			]
  		})";
     testMap<std::optional<int64_t>>(jsonQuery, { 1, 2, std::nullopt, 4, std::nullopt });
 }
@@ -434,11 +431,11 @@ BOOST_FIXTURE_TEST_CASE(MapTimestampMonth, FilteringFixture)
     // month(e)
     const auto jsonQuery = R"(
  		{
-			"operation": "month", 
-			"arguments": 
-			[ 
+			"operation": "month",
+			"arguments":
+			[
 				{"column": "e"}
-			] 
+			]
  		})";
     testMap<std::optional<int64_t>>(jsonQuery, { 9, 9, std::nullopt, 11, std::nullopt });
 }
@@ -448,11 +445,11 @@ BOOST_FIXTURE_TEST_CASE(MapTimestampYear, FilteringFixture)
     // year(e)
     const auto jsonQuery = R"(
  		{
-			"operation": "year", 
-			"arguments": 
-			[ 
+			"operation": "year",
+			"arguments":
+			[
 				{"column": "e"}
-			] 
+			]
  		})";
     testMap<std::optional<int64_t>>(jsonQuery, { 2018, 2018, std::nullopt, 2020, std::nullopt });
 }
@@ -462,12 +459,12 @@ BOOST_FIXTURE_TEST_CASE(FilterGreaterThanLiteral, FilteringFixture)
 	// a > 0
 	const auto jsonQuery = R"(
 		{
-			"predicate": "gt", 
-			"arguments": 
-				[ 
-					{"column": "a"}, 
-					0 
-				] 
+			"predicate": "gt",
+			"arguments":
+				[
+					{"column": "a"},
+					0
+				]
 		})";
 	testQuery(jsonQuery, {1, 2, 4});
 }
@@ -478,12 +475,12 @@ BOOST_FIXTURE_TEST_CASE(FilterGreaterThanOtherColumn, FilteringFixture)
 	// tests not only using two columns but also mixed-type comparison
 	const auto jsonQuery = R"(
 		{
-			"predicate": "gt", 
-			"arguments": 
-				[ 
+			"predicate": "gt",
+			"arguments":
+				[
 					{"column": "a"},
 					{"column": "b"}
-				] 
+				]
 		})";
 
 	testQuery(jsonQuery, {2, 3, 4});
@@ -495,12 +492,12 @@ BOOST_FIXTURE_TEST_CASE(FilterEqualString, FilteringFixture)
 	// tests not only using two columns but also mixed-type comparison
 	const auto jsonQuery = R"(
 		{
-			"predicate": "eq", 
-			"arguments": 
-				[ 
+			"predicate": "eq",
+			"arguments":
+				[
 					{"column": "c"},
 					"baz"
-				] 
+				]
 		})";
 
 	testQuery(jsonQuery, {2});
@@ -512,12 +509,12 @@ BOOST_FIXTURE_TEST_CASE(FilterEqualInt, FilteringFixture)
 	// error: cannot compare string column against number literal
 	const auto jsonQuery = R"(
 		{
-			"predicate": "eq", 
-			"arguments": 
-				[ 
+			"predicate": "eq",
+			"arguments":
+				[
 					{"column": "c"},
 					8
-				] 
+				]
 		})";
 
 	BOOST_CHECK_THROW(filter(table, jsonQuery), std::exception);
@@ -528,12 +525,12 @@ BOOST_FIXTURE_TEST_CASE(FilterStringStartsWith, FilteringFixture)
 	// c.startsWith "f"
 	const auto jsonQuery = R"(
 		{
-			"predicate": "startsWith", 
-			"arguments": 
-				[ 
+			"predicate": "startsWith",
+			"arguments":
+				[
 					{"column": "c"},
 					"f"
-				] 
+				]
 		})";
 
 	testQuery(jsonQuery, {0});
@@ -544,12 +541,12 @@ BOOST_FIXTURE_TEST_CASE(FilterStartsWith2, FilteringFixture)
 	// c.startsWith "ba"
 	const auto jsonQuery = R"(
 		{
-			"predicate": "startsWith", 
-			"arguments": 
-				[ 
+			"predicate": "startsWith",
+			"arguments":
+				[
 					{"column": "c"},
 					"ba"
-				] 
+				]
 		})";
 
 	testQuery(jsonQuery, {1, 2});
@@ -560,12 +557,12 @@ BOOST_FIXTURE_TEST_CASE(FilterStartsWith3, FilteringFixture)
 	// c.startsWith "baa"
 	const auto jsonQuery = R"(
 		{
-			"predicate": "startsWith", 
-			"arguments": 
-				[ 
+			"predicate": "startsWith",
+			"arguments":
+				[
 					{"column": "c"},
 					"baa"
-				] 
+				]
 		})";
 
 	testQuery(jsonQuery, {});
@@ -576,12 +573,12 @@ BOOST_FIXTURE_TEST_CASE(FilterMatches, FilteringFixture)
 	// c.matches "ba."
 	const auto jsonQuery = R"(
 		{
-			"predicate": "matches", 
-			"arguments": 
-				[ 
+			"predicate": "matches",
+			"arguments":
+				[
 					{"column": "c"},
 					"ba."
-				] 
+				]
 		})";
 
 	testQuery(jsonQuery, {1, 2});
@@ -596,20 +593,20 @@ BOOST_FIXTURE_TEST_CASE(FilterPredicateOr, FilteringFixture)
 			"arguments":
 			[
 				{
-					"predicate": "gt", 
-					"arguments": 
-					[ 
+					"predicate": "gt",
+					"arguments":
+					[
 						{"column": "a"},
 						0
-					] 
+					]
 				},
 				{
-					"predicate": "lt", 
-					"arguments": 
-					[ 
+					"predicate": "lt",
+					"arguments":
+					[
 						{"column": "b"},
 						0
-					] 
+					]
 				}
 			]
 		})";
@@ -626,12 +623,12 @@ BOOST_FIXTURE_TEST_CASE(FilterPredicateNegate, FilteringFixture)
 			"arguments":
 			[
 				{
-					"predicate": "gt", 
-					"arguments": 
-					[ 
+					"predicate": "gt",
+					"arguments":
+					[
 						{"column": "a"},
 						0
-					] 
+					]
 				}
 			]
 		})";
@@ -649,12 +646,12 @@ BOOST_FIXTURE_TEST_CASE(FilterInvalidLQuery, FilteringFixture)
 			"arguments":
 			[
 				{
-					"predicate": "gt", 
-					"arguments": 
-					[ 
+					"predicate": "gt",
+					"arguments":
+					[
 						{"column": "a"},
 						0
-					] 
+					]
 				}
 			]
 		})";
@@ -669,24 +666,24 @@ BOOST_FIXTURE_TEST_CASE(FilterTimestampRelationalOps, FilteringFixture)
     // (e > 2018-09-02)
     const auto jsonQueryGt = R"(
 		{
-			"predicate": "gt", 
-			"arguments": 
-				[ 
+			"predicate": "gt",
+			"arguments":
+				[
 					{"column": "e"},
                     {"timestampNs" : 1535846400000000000 }
-				] 
+				]
 		})";
     testQuery(jsonQueryGt, { 3 });
 
     // (e < 2018-09-02)
     const auto jsonQueryLt = R"(
 		{
-			"predicate": "lt", 
-			"arguments": 
-				[ 
+			"predicate": "lt",
+			"arguments":
+				[
 					{"column": "e"},
                     {"timestampNs" : 1535846400000000000 }
-				] 
+				]
 		})";
     testQuery(jsonQueryLt, { 0 });
 
@@ -694,12 +691,12 @@ BOOST_FIXTURE_TEST_CASE(FilterTimestampRelationalOps, FilteringFixture)
     // (e == 2018-09-02)
     const auto jsonQueryEq = R"(
 		{
-			"predicate": "eq", 
-			"arguments": 
-				[ 
+			"predicate": "eq",
+			"arguments":
+				[
 					{"column": "e"},
                     {"timestampNs" : 1535846400000000000 }
-				] 
+				]
 		})";
     testQuery(jsonQueryEq, { 1 });
 }
@@ -747,19 +744,19 @@ BOOST_AUTO_TEST_CASE(FilterWithNulls)
 	// query: a%2 == 0
 	const auto jsonQuery = R"(
 			{
-				"predicate": "eq", 
-				"arguments": 
-					[ 
+				"predicate": "eq",
+				"arguments":
+					[
 						{
-							"operation": "mod", 
-							"arguments": 
-							[ 
+							"operation": "mod",
+							"arguments":
+							[
 								{"column": "a"},
 								2
-							] 
+							]
 						},
 						0
-					] 
+					]
 			})";
 
 	auto table = tableFromArrays({arrayI, arrayS}, {"a", "b"});
@@ -810,7 +807,7 @@ BOOST_AUTO_TEST_CASE(TimestampParsingFromCsv)
 
     FormatXLSX{}.write("_Temp.xlsx", *table);
     XlsxReadOptions xlsReadOpts;
-    xlsReadOpts.columnTypes = transformToVector(getColumns(*table), 
+    xlsReadOpts.columnTypes = transformToVector(getColumns(*table),
         [](auto col) { return ColumnType{ *col, false }; });
     auto tableXlsx = FormatXLSX{}.read("_Temp.xlsx", xlsReadOpts);
     BOOST_CHECK(table->Equals(*tableXlsx));
@@ -857,7 +854,7 @@ BOOST_AUTO_TEST_CASE(TimestampInterpolation)
     auto interpolatedTimes = toVector<std::optional<Timestamp>>(*interpolateNA(toColumn(times)));
     std::vector<std::optional<Timestamp>> expectedInterpolatedTimes
     {
-        {2018_y/sep/1}, {2018_y/sep/4}, {2018_y/sep/7}, {2018_y/sep/10} 
+        {2018_y/sep/1}, {2018_y/sep/4}, {2018_y/sep/7}, {2018_y/sep/10}
     };
 
     BOOST_CHECK_EQUAL_RANGES(interpolatedTimes, expectedInterpolatedTimes);
@@ -947,8 +944,8 @@ BOOST_AUTO_TEST_CASE(Statistics)
 	BOOST_CHECK_EQUAL(nullIntsMedian,  std::vector<std::optional<int64_t>>{std::nullopt});
 
 	calculateCorrelation(*intsColumn, *doublesColumn);
-// 
-// 	std::vector<double> a = {14.2, 16.4, 11.9, 15.2, 18.5, 22.1, 19.4, 
+//
+// 	std::vector<double> a = {14.2, 16.4, 11.9, 15.2, 18.5, 22.1, 19.4,
 // 	25.1, 23.4, 18.1, 22.6, 17.2};
 // 	std::vector<double> b = {215, 325, 185, 332, 406, 522, 412, 614, 544, 421, 445, 408};;
 // 	calculateCorrelation(*toColumn(a), *toColumn(b));
@@ -1116,4 +1113,3 @@ BOOST_AUTO_TEST_CASE(Rolling, *boost::unit_test_framework::disabled())
     BOOST_CHECK_EQUAL_RANGES(std::get<0>(sumsPerWindowV), ts); // timestamps column should not be modified
     BOOST_CHECK_EQUAL_RANGES(std::get<1>(sumsPerWindowV), expectedSumsPerWindow);
 }
-
