@@ -116,6 +116,27 @@ pythonPrefix = case buildOS of
     Linux -> "/python-dist"
     _ -> error $ "dataframesPackageName: not implemented: " <> show buildOS
 
+
+dependenciesToPackage :: [FilePath] -> IO [FilePath]
+dependenciesToPackage binaries = do
+    let libraryBlacklist = [
+        "libX11", "libXext", "libXau", "libXdamage", "libXfixes", "libX11-xcb",
+        "libXxf86vm", "libXdmcp", "libGL", "libdl", "libc", "librt", "libm", "libpthread",
+        "libXcomposite",
+        "libnvidia-tls", "libnvidia-glcore", "libnvidia-glsi",
+        "libXrender", "libXi",
+        "libdrm",
+        "libutil",
+        "libgbm", "libdbus-1",
+        "libselinux",
+        "ld-linux-x86-64"
+        ]
+    let isDependencyToPack path = notElem (dropExtensions $ takeFileName path) libraryBlacklist
+    dependencies <- Ldd.sharedDependenciesOfBinaries binaries
+    pure $ filter $ isDependencyToPack dependencies
+
+
+
 buildProject :: FilePath -> FilePath -> IO DataframesBuildArtifacts
 buildProject repoDir stagingDir = do
     let dataframesLibPath = repoDir </> "native_libs" </> "src"
@@ -155,36 +176,22 @@ package repoDir stagingDir buildArtifacts = do
     mapM (copyDirectory repoDir packageRoot) dirsToCopy
 
     let builtDlls = dataframesBinaries buildArtifacts
+    when (null builtDlls) $ error "Build action have not build any binaries despite declaring success!"
 
     case buildOS of
         Windows -> do
             downloadAndUnpack7z packageBaseUrl packageBinariesDir
             when (null builtDlls) $ error "failed to found built .dll files"
             mapM (copyToDir packageBinariesDir) builtDlls
-            mapM (copyDirectory repoDir packageRoot) builtDlls
             return ()
         Linux -> do
-            let libraryBlacklist = [
-                    "libX11", "libXext", "libXau", "libXdamage", "libXfixes", "libX11-xcb",
-                    "libXxf86vm", "libXdmcp", "libGL", "libdl", "libc", "librt", "libm", "libpthread",
-                    "libXcomposite",
-                    "libnvidia-tls", "libnvidia-glcore", "libnvidia-glsi",
-                    "libXrender", "libXi",
-                    "libdrm",
-                    "libutil",
-                    "libgbm", "libdbus-1",
-                    "libselinux",
-                    "ld-linux-x86-64"
-                    ]
-            let isDependencyToPack path = notElem (dropExtensions $ takeFileName path) libraryBlacklist
-            let testBuiltExe = stagingDir </> "build/DataframeHelperTests"
-            let builtBinaries = testBuiltExe : builtDlls
+            -- let testBuiltExe = stagingDir </> "build/DataframeHelperTests"
+            -- let builtBinaries = testBuiltExe : builtDlls
 
-            when (null builtDlls) $ error "failed to found built .dll files"
+            dependencies <- dependenciesToPackage builtDlls
             let libsDirectory = packageRoot </> "lib"
-            dependencies <- Ldd.sharedDependenciesOfBinaries builtBinaries
             mapM (installDependencyTo libsDirectory) (filter isDependencyToPack dependencies)
-            mapM (installBinary packageBinariesDir libsDirectory) builtBinaries
+            mapM (installBinary packageBinariesDir libsDirectory) builtDlls
 
             copyDirectoryRecursive silent (pythonPrefix </> "lib/python3.7") (packageRoot </> "python-libs")
             pyCacheDirs <- glob $ packageRoot </> "python-libs" </> "**" </> "__pycache__"

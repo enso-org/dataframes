@@ -1,5 +1,5 @@
 extra-deps:
-- network-2.7.0.2
+- network-2.7.0.2 # see https://github.com/haskell/network/issues/313
 resolver: lts-12.14
 flags: {}
 packages:
