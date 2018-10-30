@@ -14,6 +14,8 @@ import System.IO.Temp
 import System.Process
 
 import Program
+import Utils
+
 import qualified Program.CMake    as CMake
 import qualified Program.Curl     as Curl
 import qualified Program.Ldd      as Ldd
@@ -24,21 +26,6 @@ import qualified Program.SevenZip as SevenZip
 depsArchiveUrl, packageBaseUrl :: String
 depsArchiveUrl = "https://packages.luna-lang.org/dataframes/libs-dev-v140.7z"
 packageBaseUrl = "https://packages.luna-lang.org/dataframes/windows-package-base.7z"
-
--- Retrieves a value of environment variable, returning the provided default
--- if the requested variable was not set.
-getEnvDefault :: String -> String -> IO String
-getEnvDefault variableName defaultValue =
-    fromMaybe defaultValue <$> lookupEnv variableName
-
--- Copies to the given directory file under given path. Returns the copied-to path.
-copyToDir :: FilePath -> FilePath -> IO FilePath
-copyToDir destDir sourcePath = do
-    createDirectoryIfMissing True destDir
-    putStrLn $ "Copy " ++ sourcePath ++ " to " ++ destDir
-    let destPath = destDir </> takeFileName sourcePath
-    copyFile sourcePath destPath
-    pure destPath
 
 -- Function downloads archive from given URL and extracts it to the target dir.
 -- The archive is placed in temp folder, so function doesn't leave any trash behind.
@@ -57,32 +44,16 @@ downloadAndUnpack7z archiveUrl targetDirectory = do
 -- environment variable.
 prepareEnvironment :: FilePath -> IO ()
 prepareEnvironment tempDir = do
-    let depsDirLocal = tempDir </> "deps"
-    downloadAndUnpack7z depsArchiveUrl depsDirLocal
-    setEnv "DATAFRAMES_DEPS_DIR" depsDirLocal
-
--- Copies subdirectory with all its contents between two directories
-copyDirectory :: FilePath -> FilePath -> FilePath -> IO ()
-copyDirectory sourceDirectory targetDirectory subdirectoryFilename = do
-    let from = sourceDirectory </> subdirectoryFilename
-    let to = targetDirectory </> subdirectoryFilename
-    copyDirectoryRecursive silent from to
-
--- shortRelativePath requires normalised paths to work correctly.
--- this is helper function because we don't want to bother with checking
--- whether path is normalised everywhere else
-relativeNormalisedPath :: FilePath -> FilePath -> FilePath
-relativeNormalisedPath (normalise -> p1) (normalise -> p2) = shortRelativePath p1 p2
-
-relativeRpath :: FilePath -> FilePath -> String
-relativeRpath binaryPath dependenciesDir = "$ORIGIN" </> relativeNormalisedPath binaryPath dependenciesDir
-
-setRpath :: FilePath -> [FilePath] -> IO ()
-setRpath binaryPath depsDirectories = Patchelf.setRpath binaryPath $ relativeRpath (takeDirectory binaryPath) <$> depsDirectories
+    case buildOS of
+        Windows -> do
+            let depsDirLocal = tempDir </> "deps"
+            downloadAndUnpack7z depsArchiveUrl depsDirLocal
+            setEnv "DATAFRAMES_DEPS_DIR" depsDirLocal
+        _       -> return ()
 
 installBinary outputDirectory dependenciesDirectory sourcePath = do
     newBinaryPath <- copyToDir outputDirectory sourcePath
-    setRpath newBinaryPath [dependenciesDirectory, outputDirectory]
+    Patchelf.setRelativeRpath newBinaryPath [dependenciesDirectory, outputDirectory]
 
 installDependencyTo targetDirectory sourcePath = installBinary targetDirectory targetDirectory sourcePath
 
@@ -135,8 +106,6 @@ dependenciesToPackage binaries = do
     dependencies <- Ldd.sharedDependenciesOfBinaries binaries
     pure $ filter isDependencyToPack dependencies
 
-
-
 buildProject :: FilePath -> FilePath -> IO DataframesBuildArtifacts
 buildProject repoDir stagingDir = do
     let dataframesLibPath = repoDir </> "native_libs" </> "src"
@@ -185,9 +154,6 @@ package repoDir stagingDir buildArtifacts = do
             mapM (copyToDir packageBinariesDir) builtDlls
             return ()
         Linux -> do
-            -- let testBuiltExe = stagingDir </> "build/DataframeHelperTests"
-            -- let builtBinaries = testBuiltExe : builtDlls
-
             dependencies <- dependenciesToPackage builtDlls
             let libsDirectory = packageRoot </> "lib"
             mapM (installDependencyTo libsDirectory) dependencies
@@ -206,19 +172,22 @@ package repoDir stagingDir buildArtifacts = do
         , dataframesPackageDirectory = packageRoot
         }
 
+runTests repoDir buildArtifacts packageArtifacts = do
+    -- Run tests
+    -- The test executable must be placed in the package directory
+    -- so all the dependencies are properly visible.
+    -- The CWD must be repository though for test to properly find
+    -- the data files.
+    let packageDirBinaries = dataframesPackageDirectory packageArtifacts </> "native_libs" </> nativeLibsOsDir
+    tests <- mapM (copyToDir packageDirBinaries) (dataframesTests buildArtifacts)
+    withCurrentDirectory repoDir $ do
+        mapM (flip callProcess ["--report_level=detailed"]) tests
+
 main = do
     withSystemTempDirectory "" $ \stagingDir -> do
         -- let stagingDir = "C:\\Users\\mwurb\\AppData\\Local\\Temp\\-777f232250ff9e9c"
-        when (buildOS == Windows) (prepareEnvironment stagingDir)
+        prepareEnvironment stagingDir
         repoDir <- repoDir
         buildArtifacts <- buildProject repoDir stagingDir
         packageArtifacts <- package repoDir stagingDir buildArtifacts
-        -- Run tests
-        -- The test executable must be placed in the package directory
-        -- so all the dependencies are properly visible.
-        -- The CWD must be repository though for test to properly find
-        -- the data files.
-        let packageDirBinaries = dataframesPackageDirectory packageArtifacts </> "native_libs" </> nativeLibsOsDir
-        tests <- mapM (copyToDir packageDirBinaries) (dataframesTests buildArtifacts)
-        withCurrentDirectory repoDir $ do
-            mapM (flip callProcess ["--report_level=detailed"]) tests
+        runTests repoDir buildArtifacts packageArtifacts
