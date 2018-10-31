@@ -28,4 +28,4 @@ deploy:
     bucket: packages-luna
     region: us-west-2
     folder: dataframes/nightly/$(APPVEYOR_REPO_COMMIT)
-    artifact: Dataframes-Win-x64-v141
+    artifact: "%APPVEYOR_BUILD_FOLDER%\scripts\Dataframes-Win-x64-v141"
