@@ -123,8 +123,7 @@ buildProject repoDir stagingDir = do
             let cmakeVariables =  [ ("PYTHON_LIBRARY", pythonPrefix </> "lib/libpython3.7m.so")
                                   , ("PYTHON_NUMPY_INCLUDE_DIR", pythonPrefix </>  "lib/python3.7/site-packages/numpy/core/include")]
             let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo : (CMake.OptionSetVariable <$> cmakeVariables)
-            CMake.cmake buildDir dataframesLibPath options
-            callProcessCwd buildDir "make" ["-j", "2"]
+            CMake.build buildDir dataframesLibPath options
 
         _ -> undefined
 

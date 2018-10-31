@@ -1,8 +1,10 @@
 module Program.CMake where
 
-import Program
+import GHC.Core
 import System.Directory
 import Text.Printf
+
+import Program
 
 data CMake
 instance Program CMake where
@@ -28,3 +30,17 @@ cmake whereToRun whatToBuild opts = do
     createDirectoryIfMissing True whereToRun
     let varOptions = formatOptions opts
     callCwd @CMake whereToRun (varOptions <> [whatToBuild])
+
+build :: FilePath -> FilePath -> [Option] -> IO ()
+build whereToRun whatToBuild opts = do
+    CMake.cmake buildDir dataframesLibPath options
+    make buildDir
+
+data Make
+instance Program Make where
+    executableName = "make"
+
+make :: FilePath -> IO ()
+make location = do
+    jobCount <- getNumProcessors
+    callCwd @Make location ["-j", show jobCount]
