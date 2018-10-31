@@ -11,8 +11,8 @@ import System.Directory
 import System.Process (callProcess)
 import System.Process.Typed
 import Text.Printf
-    
--- import Programs.ProcessUtils
+
+import Program
 
 import qualified Data.Text.Lazy as TL
 import Data.Text.Lazy.Encoding (decodeUtf8)
@@ -20,42 +20,55 @@ import Data.Text.Lazy.Encoding (decodeUtf8)
 import Data.Set (Set)
 import qualified Data.Set as Set
 
+data Ldd
+instance Program Ldd where
+    executableName = "ldd"
+
 -- import qualified Data.ByteString.Lazy as BSL
 type Entry = (String, String, String)
 
 -- String that separates .so name and its absolute path
 arrow = " => " :: TL.Text
 
--- eg. called with "libgraphite2.so.3 => /lib64/libgraphite2.so.3" 
+-- eg. called with "libgraphite2.so.3 => /lib64/libgraphite2.so.3"
 -- returns ("libgraphite2.so.3", "/lib64/libgraphite2.so.3")
--- but if no " => " is present, then single path is assumed and returned as first (relative path) or second element (absolute path)
+-- but if no " => " is present, then single path is assumed and returned
+-- as first (relative path) or second element (absolute path)
 -- Note: the point is not to get tricked with irregular vdso and ld.so entries.
 parseNameAndPath :: TL.Text -> (TL.Text, TL.Text)
-parseNameAndPath (TL.strip -> input) = 
+parseNameAndPath (TL.strip -> input) =
         if TL.null afterArrow then fromSingle else (beforeArrow, afterArrow)
-    where 
+    where
         (beforeArrow, (TL.drop (TL.length arrow) -> afterArrow)) = TL.breakOn arrow input
         fromSingle = if TL.head input == '/' then ("", input) else (input, "")
 
 -- eg. called with "libc.so.6 => /lib64/libc.so.6 (0x00007f87e4e92000)"
 -- returns: ("libc.so.6","/lib64/libc.so.6","(0x00007f87e4e92000)")
 parseNamePathAddress :: TL.Text -> (TL.Text, TL.Text, TL.Text)
-parseNamePathAddress (TL.strip -> input) = if hasAddress then
+parseNamePathAddress (TL.strip -> input) =
+        if hasAddress then
             (p1, p2, afterLastSpace)
-        else (p1, p2, "") 
+        else
+            (p1, p2, "")
     where
         (beforeLastSpace, afterLastSpace) = TL.breakOnEnd " " input
         hasAddress = TL.isPrefixOf "(0x" afterLastSpace -- heuristics, in theory a file path can contain " (0x" — but if there is a path, there should be an address later anyway
         (p1, p2) = parseNameAndPath $ if hasAddress then beforeLastSpace else input
 
-sharedDependenciesOfBinaries :: [FilePath] -> IO [FilePath]
-sharedDependenciesOfBinaries binaries = do
-    let sharedDependenciesOfBinary binary = do
-            lddOutput <- decodeUtf8 <$> readProcessStdout_ (proc "ldd" [binary])
-            let parsedLibraryInfo = parseNamePathAddress <$> TL.lines lddOutput
-            return $ (\(_,b,_) -> TL.unpack b) <$> parsedLibraryInfo
+-- Returns list of shared libraries that are necessary to load given binary
+-- executable image.
+-- Note: this are not necessarily all the dependencies.
+dependenciesOfBinary :: FilePath -> IO [FilePath]
+dependenciesOfBinary binary = do
+    lddOutput <- TL.pack <$> readProgram @Ldd [binary]
+    let parsedLibraryInfo = parseNamePathAddress <$> TL.lines lddOutput
+    pure $ (\(_,b,_) -> TL.unpack b) <$> parsedLibraryInfo
 
-    listOfListOfDeps <- sequence $ sharedDependenciesOfBinary <$> binaries
+-- Returns list of shared libraries that are necessary to load given binary
+-- executable images.
+-- Note: this are not necessarily all the dependencies.
+dependenciesOfBinaries :: [FilePath] -> IO [FilePath]
+dependenciesOfBinaries binaries = do
+    listOfListOfDeps <- mapM dependenciesOfBinary binaries
     let listOfDeps = Set.toList $ Set.unions $ Set.fromList <$> listOfListOfDeps
     filterM doesFileExist listOfDeps
-    

@@ -1,6 +1,6 @@
 module Program.CMake where
 
-import GHC.Core
+import GHC.Conc
 import System.Directory
 import Text.Printf
 
@@ -26,15 +26,15 @@ formatOptions :: [Option] -> [String]
 formatOptions opts = concat $ formatOption <$> opts
 
 cmake :: FilePath -> FilePath -> [Option] -> IO ()
-cmake whereToRun whatToBuild opts = do
+cmake whereToRun whatToBuild options = do
     createDirectoryIfMissing True whereToRun
-    let varOptions = formatOptions opts
+    let varOptions = formatOptions options
     callCwd @CMake whereToRun (varOptions <> [whatToBuild])
 
 build :: FilePath -> FilePath -> [Option] -> IO ()
-build whereToRun whatToBuild opts = do
-    CMake.cmake buildDir dataframesLibPath options
-    make buildDir
+build whereToRun whatToBuild options = do
+    cmake whereToRun whatToBuild options
+    make whereToRun
 
 data Make
 instance Program Make where

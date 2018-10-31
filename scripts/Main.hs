@@ -93,7 +93,6 @@ pythonPrefix = case buildOS of
     Linux -> "/python-dist"
     _ -> error $ "pythonPrefix: not implemented: " <> show buildOS
 
-
 dependenciesToPackage :: [FilePath] -> IO [FilePath]
 dependenciesToPackage binaries = do
     let libraryBlacklist = [
@@ -109,8 +108,7 @@ dependenciesToPackage binaries = do
             "ld-linux-x86-64"
             ]
     let isDependencyToPack path = notElem (dropExtensions $ takeFileName path) libraryBlacklist
-    dependencies <- Ldd.sharedDependenciesOfBinaries binaries
-    pure $ filter isDependencyToPack dependencies
+    filter isDependencyToPack <$> Ldd.dependenciesOfBinaries binaries
 
 buildProject :: FilePath -> FilePath -> IO DataframesBuildArtifacts
 buildProject repoDir stagingDir = do
