@@ -34,6 +34,7 @@ jobs:
     environment:
       JOB_COUNT: 2 # otherwise more compilers will spawn and they will crash due memory limits
       PYTHON_PREFIX_PATH: /python-dist
+      DATAFRAMES_REPO_PATH: /root/project
     steps:
       - checkout
       - run:

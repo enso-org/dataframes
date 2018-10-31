@@ -13,11 +13,6 @@ import System.Exit
 import System.Process
 import Text.Printf
 
-lookupExecutable :: FilePath -> [FilePath] -> IO (Maybe FilePath)
-lookupExecutable exeName additionalDirs = do
-    let locations = ProgramSearchPathDefault : (ProgramSearchPathDir <$> additionalDirs)
-    fmap fst <$> findProgramOnSearchPath silent locations exeName
-
 class Program a where
     defaultLocations :: [FilePath]
     defaultLocations = []
@@ -46,6 +41,11 @@ class Program a where
     readProgram :: [String] -> IO String
     readProgram args = readProcess (executableName @a) args ""
 
+
+lookupExecutable :: FilePath -> [FilePath] -> IO (Maybe FilePath)
+lookupExecutable exeName additionalDirs = do
+    let locations = ProgramSearchPathDefault : (ProgramSearchPathDir <$> additionalDirs)
+    fmap fst <$> findProgramOnSearchPath silent locations exeName
 
 runProcessWait :: CreateProcess -> IO ()
 runProcessWait p = do

@@ -61,18 +61,6 @@ prepareEnvironment tempDir = do
         _     ->
             error $ "not implemented: prepareEnvironment for buildOS == " <> show buildOS
 
--- Copies the binary to the given directory and sets rpath relative path to another directory.
--- (the dependencies directory will be treated as relative to the output directory)
-installBinary :: FilePath -> FilePath -> FilePath -> IO ()
-installBinary outputDirectory dependenciesDirectory sourcePath = do
-    newBinaryPath <- copyToDir outputDirectory sourcePath
-    Patchelf.setRelativeRpath newBinaryPath [dependenciesDirectory, outputDirectory]
-
--- Installs binary to the folder and sets this folder as rpath.
--- Typically used with dependencies (when install-to deirectory and dependencies directory are same)
-installDependencyTo :: FilePath -> FilePath -> IO ()
-installDependencyTo targetDirectory sourcePath = installBinary targetDirectory targetDirectory sourcePath
-
 -- Gets path to the local copy of the Dataframes repo
 repoDir :: IO FilePath
 repoDir = getEnvRequired "DATAFRAMES_REPO_PATH" -- TODO: should be able to deduce from this packaging executable location
@@ -106,6 +94,15 @@ dataframesPackageName = case buildOS of
 pythonPrefix :: IO FilePath
 pythonPrefix = getEnvRequired "PYTHON_PREFIX_PATH"
 
+-- Linux-specific function.
+-- The function takes paths to shared libraries and returns the ones that
+-- should be distributed as the part of package. Libraries that are filtered
+-- out should be assumed to be present at end-user's machine.
+--
+-- It is based on a list of libraries that should not be shipped, that was
+-- written down based on previous experience. It mostly consists of low-level
+-- libraries that are "just present" on "all" systems or libraries that
+-- presumably would not work even if we shipped them.
 dependenciesToPackage :: [FilePath] -> IO [FilePath]
 dependenciesToPackage binaries = do
     let libraryBlacklist = [
@@ -165,8 +162,8 @@ package repoDir stagingDir buildArtifacts = do
         Linux -> do
             dependencies <- dependenciesToPackage builtDlls
             let libsDirectory = packageRoot </> "lib"
-            mapM (installDependencyTo libsDirectory) dependencies
-            mapM (installBinary packageBinariesDir libsDirectory) builtDlls
+            mapM (Patchelf.installDependencyTo libsDirectory) dependencies
+            mapM (Patchelf.installBinary packageBinariesDir libsDirectory) builtDlls
 
             -- Copy Python installation to the package and remove some parts that are heavy and not needed.
             pythonPrefix <- pythonPrefix
@@ -183,6 +180,7 @@ package repoDir stagingDir buildArtifacts = do
         , dataframesPackageDirectory = packageRoot
         }
 
+runTests :: FilePath -> DataframesBuildArtifacts -> DataframesPackageArtifacts -> IO ()
 runTests repoDir buildArtifacts packageArtifacts = do
     -- Run tests
     -- The test executable must be placed in the package directory
@@ -192,7 +190,7 @@ runTests repoDir buildArtifacts packageArtifacts = do
     let packageDirBinaries = dataframesPackageDirectory packageArtifacts </> "native_libs" </> nativeLibsOsDir
     tests <- mapM (copyToDir packageDirBinaries) (dataframesTests buildArtifacts)
     withCurrentDirectory repoDir $ do
-        mapM (flip callProcess ["--report_level=detailed"]) tests
+        mapM_ (flip callProcess ["--report_level=detailed"]) tests
 
 main = do
     withSystemTempDirectory "" $ \stagingDir -> do

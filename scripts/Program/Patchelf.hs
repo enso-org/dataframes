@@ -6,7 +6,7 @@ import System.FilePath
 import Text.Printf
 
 import Program
-import Utils (relativeNormalisedPath)
+import Utils
 
 data Patchelf
 instance Program Patchelf where
@@ -37,3 +37,17 @@ setRpath binaryPath rpath = do
 -- NOTE: requires relatively new version of patchelf (likely 0.9), otherwise fail with stupid message "stat: No such file or directory"
 removeRpath :: FilePath -> IO ()
 removeRpath binaryPath = call @Patchelf ["--remove-rpath", binaryPath]
+
+--------------------------------------------------------------------------------------
+
+-- Copies the binary to the given directory and sets rpath relative path to another directory.
+-- (the dependencies directory will be treated as relative to the output directory)
+installBinary :: FilePath -> FilePath -> FilePath -> IO ()
+installBinary outputDirectory dependenciesDirectory sourcePath = do
+    newBinaryPath <- copyToDir outputDirectory sourcePath
+    setRelativeRpath newBinaryPath [dependenciesDirectory, outputDirectory]
+
+-- Installs binary to the folder and sets this folder as rpath.
+-- Typically used with dependencies (when install-to directory and dependencies directory are same)
+installDependencyTo :: FilePath -> FilePath -> IO ()
+installDependencyTo targetDirectory sourcePath = installBinary targetDirectory targetDirectory sourcePath
