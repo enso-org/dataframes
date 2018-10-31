@@ -45,4 +45,4 @@ make :: FilePath -> IO ()
 make location = do
     cpuCount <- getNumProcessors
     jobCount <- getEnvDefault "JOB_COUNT" (show cpuCount)
-    callCwd @Make location ["-j", show jobCount]
+    callCwd @Make location ["-j", jobCount]
