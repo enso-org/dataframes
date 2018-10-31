@@ -49,6 +49,7 @@ prepareEnvironment tempDir = do
             let depsDirLocal = tempDir </> "deps"
             downloadAndUnpack7z depsArchiveUrl depsDirLocal
             setEnv "DATAFRAMES_DEPS_DIR" depsDirLocal
+
         _       -> return ()
 
 installBinary outputDirectory dependenciesDirectory sourcePath = do
@@ -73,6 +74,11 @@ data DataframesPackageArtifacts = DataframesPackageArtifacts
     , dataframesPackageDirectory :: FilePath
     }
 
+dynamicLibraryExtension = case buildOS of
+    Windows -> "dll"
+    Linux -> "so"
+    _ -> error $ "dynamicLibraryExtension: not implemented: " <> show buildOS
+
 nativeLibsOsDir = case buildOS of
     Windows -> "windows"
     Linux -> "linux"
@@ -85,7 +91,7 @@ dataframesPackageName = case buildOS of
 
 pythonPrefix = case buildOS of
     Linux -> "/python-dist"
-    _ -> error $ "dataframesPackageName: not implemented: " <> show buildOS
+    _ -> error $ "pythonPrefix: not implemented: " <> show buildOS
 
 
 dependenciesToPackage :: [FilePath] -> IO [FilePath]
@@ -112,29 +118,22 @@ buildProject repoDir stagingDir = do
     case buildOS of
         Windows -> do
             MsBuild.build $ dataframesLibPath </> "DataframeHelper.sln"
-
-            let builtBinariesDir = dataframesLibPath </> "x64" </> "Release"
-            builtDlls <- glob $ builtBinariesDir </> "*.dll"
-            pure $ DataframesBuildArtifacts
-                { dataframesBinaries = builtDlls
-                , dataframesTests = [builtBinariesDir </> "DataframeHelperTests.exe"]
-                }
         Linux -> do
             let buildDir = stagingDir </> "build"
-            let cmakeVariables = CMake.OptionSetVariable <$> [ ("PYTHON_LIBRARY", pythonPrefix </> "lib/libpython3.7m.so")
-                                                             , ("PYTHON_NUMPY_INCLUDE_DIR", pythonPrefix </>  "lib/python3.7/site-packages/numpy/core/include")]
-            let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo : cmakeVariables
+            let cmakeVariables =  [ ("PYTHON_LIBRARY", pythonPrefix </> "lib/libpython3.7m.so")
+                                  , ("PYTHON_NUMPY_INCLUDE_DIR", pythonPrefix </>  "lib/python3.7/site-packages/numpy/core/include")]
+            let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo : (CMake.OptionSetVariable <$> cmakeVariables)
             CMake.cmake buildDir dataframesLibPath options
             callProcessCwd buildDir "make" ["-j", "2"]
 
-            let builtBinariesDir = repoDir </> "native_libs" </> nativeLibsOsDir
-            builtDlls <- glob (builtBinariesDir </> "*.so")
-            pure $ DataframesBuildArtifacts
-                { dataframesBinaries = builtDlls
-                , dataframesTests = [buildDir </> "DataframeHelperTests"]
-                }
-
         _ -> undefined
+
+    let builtBinariesDir = repoDir </> "native_libs" </> nativeLibsOsDir
+    builtDlls <- glob $ builtBinariesDir </> "*.dll"
+    pure $ DataframesBuildArtifacts
+        { dataframesBinaries = builtDlls
+        , dataframesTests = [builtBinariesDir </> "DataframeHelperTests.exe"]
+        }
 
 package :: FilePath -> FilePath -> DataframesBuildArtifacts -> IO DataframesPackageArtifacts
 package repoDir stagingDir buildArtifacts = do
