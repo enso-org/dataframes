@@ -20,7 +20,7 @@ jobs:
           name: Test C++ parts
           command: |
             mkdir build/test_results
-            build/DataframeHelperTests --log_format=JUNIT --log_sink=build/test_results/junit.xml -r short
+            native_libs/linux/DataframeHelperTests --log_format=JUNIT --log_sink=build/test_results/junit.xml -r short
       - store_test_results:
           path: build/test_results
   "GCC-8":
