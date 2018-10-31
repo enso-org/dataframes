@@ -10,6 +10,8 @@ native_libs/linux/**
 .obj/
 .stack-work/
 
+*.cabal
+
 *.vcxproj.user
 *.vspx
 *.psess

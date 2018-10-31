@@ -23,11 +23,18 @@ copyToDir destDir sourcePath = do
     copyFile sourcePath destPath
     pure destPath
 
--- Retrieves a value of environment variable, returning the provided default
--- if the requested variable was not set.
+-- Retrieves the value of an environment variable, returning the provided
+-- default if the requested variable was not set.
 getEnvDefault :: String -> String -> IO String
 getEnvDefault variableName defaultValue =
     fromMaybe defaultValue <$> lookupEnv variableName
+
+-- Retrieves the value of an environment variable, throwing an exception if the
+-- variable was not set.
+getEnvRequired :: String -> IO String
+getEnvRequired variableName = lookupEnv variableName >>= \case
+    Just value -> pure value
+    Nothing    -> error $ "required environment variable `" <> variableName <> "` is not set!"
 
 -- shortRelativePath requires normalised paths to work correctly.
 -- this is helper function because we don't want to bother with checking

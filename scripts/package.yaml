@@ -1,7 +1,6 @@
 name: dataframes-package
-version: '0.9.0.0'
-synopsis: A general utility for building and developing Flowbox
-version: "1.1.4"
+synopsis: Utility program to build, test and create relocatable package with Dataframes library
+version: "1.0"
 author: New Byte Order <contact@newbyteorder.com>
 maintainer: New Byte Order <contact@newbyteorder.com>
 
