@@ -36,34 +36,46 @@ downloadAndUnpack7z archiveUrl targetDirectory = do
         Curl.download archiveUrl archiveLocalPath
         SevenZip.unpack archiveLocalPath targetDirectory
 
--- We need to extract the package with dev libraries and set the environment
--- variable DATAFRAMES_DEPS_DIR so the MSBuild project recognizes it.
---
--- The package contains all dependencies except for Python (with numpy).
--- Python needs to be provided by CI environment and pointed to by `PythonDir`
--- environment variable.
+-- This function purpose is to transform environment from its initial state
+-- to the state where build step can be executed - so all dependencies and
+-- other global state (like environment variable) that build script is using
+-- must be set.
 prepareEnvironment :: FilePath -> IO ()
 prepareEnvironment tempDir = do
     case buildOS of
         Windows -> do
+            -- We need to extract the package with dev libraries and set the environment
+            -- variable DATAFRAMES_DEPS_DIR so the MSBuild project recognizes it.
+            --
+            -- The package contains all dependencies except for Python (with numpy).
+            -- Python needs to be provided by CI environment and pointed to by `PythonDir`
+            -- environment variable.
             let depsDirLocal = tempDir </> "deps"
             downloadAndUnpack7z depsArchiveUrl depsDirLocal
             setEnv "DATAFRAMES_DEPS_DIR" depsDirLocal
+        Linux ->
+            -- On Linux all dependencies are assumed to be already installed. Such is the case
+            -- with the Docker image used to run Dataframes CI, and should be similarly with
+            -- developer machines.
+            return ()
+        _     ->
+            error $ "not implemented: prepareEnvironment for buildOS == " <> show buildOS
 
-        _       -> return ()
-
+-- Copies the binary to the given directory and sets rpath relative path to another directory.
+-- (the dependencies directory will be treated as relative to the output directory)
+installBinary :: FilePath -> FilePath -> FilePath -> IO ()
 installBinary outputDirectory dependenciesDirectory sourcePath = do
     newBinaryPath <- copyToDir outputDirectory sourcePath
     Patchelf.setRelativeRpath newBinaryPath [dependenciesDirectory, outputDirectory]
 
+-- Installs binary to the folder and sets this folder as rpath.
+-- Typically used with dependencies (when install-to deirectory and dependencies directory are same)
+installDependencyTo :: FilePath -> FilePath -> IO ()
 installDependencyTo targetDirectory sourcePath = installBinary targetDirectory targetDirectory sourcePath
 
+-- Gets path to the local copy of the Dataframes repo
 repoDir :: IO FilePath
-repoDir = do
-    case buildOS of
-        Windows -> getEnvDefault "APPVEYOR_BUILD_FOLDER" "C:\\dev\\Dataframes"
-        Linux   -> getEnvDefault "DATAFRAMES_REPO_PATH" "/root/project"
-        _       -> error $ "not implemented: repoDir for buildOS == " <> show buildOS
+repoDir = getEnvRequired "DATAFRAMES_REPO_PATH" -- TODO: should be able to deduce from this packaging executable location
 
 data DataframesBuildArtifacts = DataframesBuildArtifacts
     { dataframesBinaries :: [FilePath]
@@ -89,9 +101,10 @@ dataframesPackageName = case buildOS of
     Linux -> "Dataframes-Linux-x64" <.> "7z"
     _ -> error $ "dataframesPackageName: not implemented: " <> show buildOS
 
-pythonPrefix = case buildOS of
-    Linux -> "/python-dist"
-    _ -> error $ "pythonPrefix: not implemented: " <> show buildOS
+-- Path to directory with Python installation, should not contain other things
+-- (that was passed as --prefix to Python's configure script)
+pythonPrefix :: IO FilePath
+pythonPrefix = getEnvRequired "PYTHON_PREFIX_PATH"
 
 dependenciesToPackage :: [FilePath] -> IO [FilePath]
 dependenciesToPackage binaries = do
@@ -117,13 +130,13 @@ buildProject repoDir stagingDir = do
         Windows -> do
             MsBuild.build $ dataframesLibPath </> "DataframeHelper.sln"
         Linux -> do
+            pythonPrefix <- pythonPrefix
             let buildDir = stagingDir </> "build"
-            let cmakeVariables =  [ ("PYTHON_LIBRARY", pythonPrefix </> "lib/libpython3.7m.so")
-                                  , ("PYTHON_NUMPY_INCLUDE_DIR", pythonPrefix </>  "lib/python3.7/site-packages/numpy/core/include")]
+            let cmakeVariables =  [ ("PYTHON_LIBRARY",           pythonPrefix </> "lib/libpython3.7m.so")
+                                  , ("PYTHON_NUMPY_INCLUDE_DIR", pythonPrefix </> "lib/python3.7/site-packages/numpy/core/include")]
             let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo : (CMake.OptionSetVariable <$> cmakeVariables)
             CMake.build buildDir dataframesLibPath options
-
-        _ -> undefined
+        _ -> error $ "buildProject: not implemented: " <> show buildOS
 
     let builtBinariesDir = repoDir </> "native_libs" </> nativeLibsOsDir
     builtDlls <- glob $ builtBinariesDir </> "*" <.> dynamicLibraryExtension
@@ -155,6 +168,8 @@ package repoDir stagingDir buildArtifacts = do
             mapM (installDependencyTo libsDirectory) dependencies
             mapM (installBinary packageBinariesDir libsDirectory) builtDlls
 
+            -- Copy Python installation to the package and remove some parts that are heavy and not needed.
+            pythonPrefix <- pythonPrefix
             copyDirectoryRecursive silent (pythonPrefix </> "lib/python3.7") (packageRoot </> "python-libs")
             pyCacheDirs <- glob $ packageRoot </> "python-libs" </> "**" </> "__pycache__"
             mapM removePathForcibly pyCacheDirs

@@ -33,6 +33,7 @@ jobs:
       - image: murbanczyk/dataframes-package
     environment:
       JOB_COUNT: 2 # otherwise more compilers will spawn and they will crash due memory limits
+      PYTHON_PREFIX_PATH: /python-dist
     steps:
       - checkout
       - run:
