@@ -132,7 +132,7 @@ buildProject repoDir stagingDir = do
     builtDlls <- glob $ builtBinariesDir </> "*" <.> dynamicLibraryExtension
     pure $ DataframesBuildArtifacts
         { dataframesBinaries = builtDlls
-        , dataframesTests = [builtBinariesDir </> "DataframeHelperTests.exe"]
+        , dataframesTests = [builtBinariesDir </> "DataframeHelperTests" <.> exeExtension]
         }
 
 package :: FilePath -> FilePath -> DataframesBuildArtifacts -> IO DataframesPackageArtifacts
