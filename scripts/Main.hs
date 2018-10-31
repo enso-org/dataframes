@@ -129,7 +129,7 @@ buildProject repoDir stagingDir = do
         _ -> undefined
 
     let builtBinariesDir = repoDir </> "native_libs" </> nativeLibsOsDir
-    builtDlls <- glob $ builtBinariesDir </> "*.dll"
+    builtDlls <- glob $ builtBinariesDir </> "*" <.> dynamicLibraryExtension
     pure $ DataframesBuildArtifacts
         { dataframesBinaries = builtDlls
         , dataframesTests = [builtBinariesDir </> "DataframeHelperTests.exe"]
