@@ -31,6 +31,8 @@ jobs:
   "Centos-7":
     docker:
       - image: murbanczyk/dataframes-package
+    environment:
+      JOB_COUNT: 2 # otherwise more compilers will spawn and they will crash due memory limits
     steps:
       - checkout
       - run:

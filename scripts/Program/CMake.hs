@@ -5,6 +5,7 @@ import System.Directory
 import Text.Printf
 
 import Program
+import Utils
 
 data CMake
 instance Program CMake where
@@ -42,5 +43,6 @@ instance Program Make where
 
 make :: FilePath -> IO ()
 make location = do
-    jobCount <- getNumProcessors
+    cpuCount <- getNumProcessors
+    jobCount <- getEnvDefault "JOB_COUNT" (show cpuCount)
     callCwd @Make location ["-j", show jobCount]
