@@ -13,6 +13,8 @@ ENV PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH}" \
     LD_LIBRARY_PATH="/opt/rh/devtoolset-7/root:/usr/lib64:/usr/local/lib:/usr/local/lib64" \
     PYTHONPATH="/opt/rh/devtoolset-7/root/usr/lib64/python2.6/site-packages:/opt/rh/devtoolset-7/root/usr/lib/python2.6/site-packages"
 
+ENV PATH="/root/.local/bin:${PATH}"
+
 # needed for CMake scripts relying on pkg-config
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
@@ -39,7 +41,7 @@ RUN wget https://zlib.net/zlib-1.2.11.tar.gz &&\
 # install Python - it requires zlib and libffi
 # using pip requires libssl and it must be locatable in LD_LIBRARY_PATH (or perhaps through the configure flag)
 # having /python-dist/lib in LD_LIBRARY_PATH is necessary for Python executable to find the libpython3.7m.so.1.0 (as we use non-standard prefix)
-ENV LD_LIBRARY_PATH=/usr/local/lib64:/python-dist/lib
+ENV LD_LIBRARY_PATH=/python-dist/lib:${LD_LIBRARY_PATH}
 RUN wget https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tar.xz  &&\
     tar xf Python-3.7.0.tar.xz  &&\
     cd Python-3.7.0 &&\
@@ -96,8 +98,6 @@ RUN wget https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz &&
     cd .. &&\
     rm -rf patchelf-0.9 patchelf-0.9.tar.gz
 
-
-WORKDIR /
 RUN wget https://github.com/commercialhaskell/stack/releases/download/v1.9.1/stack-1.9.1-linux-x86_64.tar.gz &&\
     tar xf stack-1.9.1-linux-x86_64.tar.gz &&\
     cp stack-1.9.1-linux-x86_64/stack /usr/local/bin/stack &&\

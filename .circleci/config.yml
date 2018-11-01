@@ -30,7 +30,7 @@ jobs:
       CXX: g++-8
   "Centos-7":
     docker:
-      - image: murbanczyk/dataframes-package
+      - image: murbanczyk/dataframes-package:1.0.2
     environment:
       JOB_COUNT: 2 # otherwise more compilers will spawn and they will crash due memory limits
       PYTHON_PREFIX_PATH: /python-dist
@@ -44,7 +44,12 @@ jobs:
             stack build
             stack exec dataframes-package
       - store_artifacts:
-          path: scripts/Dataframes-Linux-x64-v141.7z
+          path: scripts/Dataframes-Linux-x64.7z
+      - run:
+          name: "S3 upload"
+          command: | 
+            /python-dist/bin/python3 -mpip install awscli --user
+            aws --region us-west-2 s3 cp scripts/Dataframes-Linux-x64.7z s3://packages-luna/dataframes/nightly/$CIRCLE_SHA1/Dataframes-Linux-x64.7z
 
 workflows:
   version: 2
