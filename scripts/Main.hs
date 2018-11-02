@@ -71,15 +71,21 @@ repoDir = getEnvRequired "DATAFRAMES_REPO_PATH" -- TODO: should be able to deduc
 -- 2) switch CWD so tar shall pack the fodler as archive's root
 --    (without maintaining directory's absolute path in archive)
 packDirectory :: FilePath -> FilePath -> IO ()
-packDirectory pathToPack outputArchive = withCurrentDirectory (takeDirectory pathToPack) $ do
-    let tarPack =  Tar.pack [pathToPack] $ takeFileName outputArchive
-    case takeExtension outputArchive of
-        ".7z"   -> SevenZip.pack [pathToPack] outputArchive
-        ".gz"   -> tarPack Tar.GZIP
-        ".bz2"  -> tarPack Tar.BZIP2
-        ".xz"   -> tarPack Tar.XZ
-        ".lzma" -> tarPack Tar.LZMA
-        _       -> fail $ "cannot deduce compression algorithm from extension: " <> takeExtension outputArchive
+packDirectory pathToPack outputArchive = do
+    -- As we switch cwd, relative path will not be enough
+    -- Output file must be an absolute path.
+    outputArchiveAbs <- makeAbsolute outputArchive
+    withCurrentDirectory (takeDirectory pathToPack) $ do
+        -- Input path must be relative though.
+        pathToPackRel <- makeRelativeToCurrentDirectory pathToPack
+        let tarPack =  Tar.pack [outputArchiveAbs] pathToPackRel
+        case takeExtension outputArchive of
+            ".7z"   -> SevenZip.pack [pathToPack] outputArchiveAbs
+            ".gz"   -> tarPack Tar.GZIP
+            ".bz2"  -> tarPack Tar.BZIP2
+            ".xz"   -> tarPack Tar.XZ
+            ".lzma" -> tarPack Tar.LZMA
+            _       -> fail $ "cannot deduce compression algorithm from extension: " <> takeExtension outputArchive
 
 data DataframesBuildArtifacts = DataframesBuildArtifacts
     { dataframesBinaries :: [FilePath]
