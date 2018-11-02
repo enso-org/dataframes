@@ -22,6 +22,7 @@ import qualified Program.Ldd      as Ldd
 import qualified Program.Patchelf as Patchelf
 import qualified Program.MsBuild  as MsBuild
 import qualified Program.SevenZip as SevenZip
+import qualified Program.Tar      as Tar
 
 depsArchiveUrl, packageBaseUrl :: String
 depsArchiveUrl = "https://packages.luna-lang.org/dataframes/libs-dev-v140.7z"
@@ -65,6 +66,15 @@ prepareEnvironment tempDir = do
 repoDir :: IO FilePath
 repoDir = getEnvRequired "DATAFRAMES_REPO_PATH" -- TODO: should be able to deduce from this packaging executable location
 
+pack :: [FilePath] -> FilePath -> IO ()
+pack pathsToPack outputArchive = case takeExtension outputArchive of
+    "7z"   -> SevenZip.pack pathsToPack outputArchive
+    "gz"   -> Tar.pack      pathsToPack outputArchive Tar.GZIP
+    "bz2"  -> Tar.pack      pathsToPack outputArchive Tar.BZIP2
+    "xz"   -> Tar.pack      pathsToPack outputArchive Tar.XZ
+    "lzma" -> Tar.pack      pathsToPack outputArchive Tar.LZMA
+    _      -> fail $ "cannot deduce compression algorithm from extension: " <> takeExtension outputArchive
+
 data DataframesBuildArtifacts = DataframesBuildArtifacts
     { dataframesBinaries :: [FilePath]
     , dataframesTests :: [FilePath]
@@ -76,18 +86,18 @@ data DataframesPackageArtifacts = DataframesPackageArtifacts
 
 dynamicLibraryExtension = case buildOS of
     Windows -> "dll"
-    Linux -> "so"
-    _ -> error $ "dynamicLibraryExtension: not implemented: " <> show buildOS
+    Linux   -> "so"
+    _       -> error $ "dynamicLibraryExtension: not implemented: " <> show buildOS
 
 nativeLibsOsDir = case buildOS of
     Windows -> "windows"
-    Linux -> "linux"
-    _ -> error $ "nativeLibsOsDir: not implemented: " <> show buildOS
+    Linux   -> "linux"
+    _       -> error $ "nativeLibsOsDir: not implemented: " <> show buildOS
 
 dataframesPackageName = case buildOS of
-    Windows -> "Dataframes-Win-x64-v141" <.> "7z"
-    Linux -> "Dataframes-Linux-x64" <.> "7z"
-    _ -> error $ "dataframesPackageName: not implemented: " <> show buildOS
+    Windows -> "Dataframes-Win-x64-v141.7z"
+    Linux   -> "Dataframes-Linux-x64.tar.gz"
+    _       -> error $ "dataframesPackageName: not implemented: " <> show buildOS
 
 -- Path to directory with Python installation, should not contain other things
 -- (that was passed as --prefix to Python's configure script)
@@ -173,7 +183,7 @@ package repoDir stagingDir buildArtifacts = do
             removePathForcibly $ packageRoot </> "python-libs" </> "config-3.7m-x86_64-linux-gnu"
             removePathForcibly $ packageRoot </> "python-libs" </> "test"
 
-    SevenZip.pack [packageRoot] dataframesPackageName
+    pack [packageRoot] dataframesPackageName
     putStrLn $ "Packaging done, file saved to: " <> dataframesPackageName
     pure $ DataframesPackageArtifacts
         { dataframesPackageArchive = dataframesPackageName
