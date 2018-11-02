@@ -78,7 +78,7 @@ packDirectory pathToPack outputArchive = do
     withCurrentDirectory (takeDirectory pathToPack) $ do
         -- Input path must be relative though.
         pathToPackRel <- makeRelativeToCurrentDirectory pathToPack
-        let tarPack =  Tar.pack [outputArchiveAbs] pathToPackRel
+        let tarPack =  Tar.pack [pathToPackRel] outputArchiveAbs
         case takeExtension outputArchive of
             ".7z"   -> SevenZip.pack [pathToPack] outputArchiveAbs
             ".gz"   -> tarPack Tar.GZIP
