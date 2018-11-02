@@ -17,7 +17,7 @@ build_script:
 - stack run
 
 artifacts:
-- path: $(APPVEYOR_BUILD_FOLDER)\scripts\Dataframes-Win-x64-v141.7z
+- path: scripts\Dataframes-Win-x64-v141.7z
   name: Dataframes-Win-x64-v141
 
 deploy:
