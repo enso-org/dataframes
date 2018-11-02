@@ -68,11 +68,11 @@ repoDir = getEnvRequired "DATAFRAMES_REPO_PATH" -- TODO: should be able to deduc
 
 pack :: [FilePath] -> FilePath -> IO ()
 pack pathsToPack outputArchive = case takeExtension outputArchive of
-    "7z"   -> SevenZip.pack pathsToPack outputArchive
-    "gz"   -> Tar.pack      pathsToPack outputArchive Tar.GZIP
-    "bz2"  -> Tar.pack      pathsToPack outputArchive Tar.BZIP2
-    "xz"   -> Tar.pack      pathsToPack outputArchive Tar.XZ
-    "lzma" -> Tar.pack      pathsToPack outputArchive Tar.LZMA
+    ".7z"   -> SevenZip.pack pathsToPack outputArchive
+    ".gz"   -> Tar.pack      pathsToPack outputArchive Tar.GZIP
+    ".bz2"  -> Tar.pack      pathsToPack outputArchive Tar.BZIP2
+    ".xz"   -> Tar.pack      pathsToPack outputArchive Tar.XZ
+    ".lzma" -> Tar.pack      pathsToPack outputArchive Tar.LZMA
     _      -> fail $ "cannot deduce compression algorithm from extension: " <> takeExtension outputArchive
 
 data DataframesBuildArtifacts = DataframesBuildArtifacts
