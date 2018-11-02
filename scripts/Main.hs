@@ -66,14 +66,20 @@ prepareEnvironment tempDir = do
 repoDir :: IO FilePath
 repoDir = getEnvRequired "DATAFRAMES_REPO_PATH" -- TODO: should be able to deduce from this packaging executable location
 
-pack :: [FilePath] -> FilePath -> IO ()
-pack pathsToPack outputArchive = case takeExtension outputArchive of
-    ".7z"   -> SevenZip.pack pathsToPack outputArchive
-    ".gz"   -> Tar.pack      pathsToPack outputArchive Tar.GZIP
-    ".bz2"  -> Tar.pack      pathsToPack outputArchive Tar.BZIP2
-    ".xz"   -> Tar.pack      pathsToPack outputArchive Tar.XZ
-    ".lzma" -> Tar.pack      pathsToPack outputArchive Tar.LZMA
-    _      -> fail $ "cannot deduce compression algorithm from extension: " <> takeExtension outputArchive
+-- Helper that does two things:
+-- 1) use file extension to deduce compression method
+-- 2) switch CWD so tar shall pack the fodler as archive's root
+--    (without maintaining directory's absolute path in archive)
+packDirectory :: FilePath -> FilePath -> IO ()
+packDirectory pathToPack outputArchive = withCurrentDirectory (takeDirectory pathToPack) $ do
+    let tarPack =  Tar.pack [pathToPack] $ takeFileName outputArchive
+    case takeExtension outputArchive of
+        ".7z"   -> SevenZip.pack [pathToPack] outputArchive
+        ".gz"   -> tarPack Tar.GZIP
+        ".bz2"  -> tarPack Tar.BZIP2
+        ".xz"   -> tarPack Tar.XZ
+        ".lzma" -> tarPack Tar.LZMA
+        _       -> fail $ "cannot deduce compression algorithm from extension: " <> takeExtension outputArchive
 
 data DataframesBuildArtifacts = DataframesBuildArtifacts
     { dataframesBinaries :: [FilePath]
@@ -183,7 +189,7 @@ package repoDir stagingDir buildArtifacts = do
             removePathForcibly $ packageRoot </> "python-libs" </> "config-3.7m-x86_64-linux-gnu"
             removePathForcibly $ packageRoot </> "python-libs" </> "test"
 
-    pack [packageRoot] dataframesPackageName
+    packDirectory packageRoot dataframesPackageName
     putStrLn $ "Packaging done, file saved to: " <> dataframesPackageName
     pure $ DataframesPackageArtifacts
         { dataframesPackageArchive = dataframesPackageName
