@@ -7,6 +7,7 @@ module Program where
 
 import Data.Maybe
 import Data.Monoid
+import Data.List
 import Distribution.Simple.Program.Find
 import Distribution.Verbosity
 import System.Exit
@@ -14,17 +15,27 @@ import System.Process
 import Text.Printf
 
 class Program a where
+    -- Path to directory where program executable might be found.
     defaultLocations :: [FilePath]
     defaultLocations = []
 
     executableName :: FilePath
+    executableName = head $ executableNames @a
+
+    executableNames :: [FilePath]
+    executableNames = [executableName @a]
 
     lookupProgram :: IO (Maybe FilePath)
-    lookupProgram = lookupExecutable (executableName @a) (defaultLocations @a)
+    lookupProgram = lookupExecutable (executableNames @a) (defaultLocations @a)
 
     notFoundError :: String
-    notFoundError = "failed to found program " <> executableName @a <> ", please make sure it is visible in PATH"
+    notFoundError = "failed to found program " <> prettyNames <> ", " <> notFoundFixSuggestion @a
+        where prettyNames = intercalate " nor " $ executableNames @a
 
+    notFoundFixSuggestion :: String
+    notFoundFixSuggestion = "please make sure it is visible in PATH"
+
+    -- Returns absolute path to the program, throws if not found
     getProgram :: IO FilePath
     getProgram = fromMaybe (error $ notFoundError @a) <$> lookupProgram @a
 
@@ -39,13 +50,18 @@ class Program a where
         callProcessCwd cwd programPath args
 
     readProgram :: [String] -> IO String
-    readProgram args = readProcess (executableName @a) args ""
+    readProgram args = do
+        programPath <- getProgram @a
+        readProcess programPath args ""
 
 
-lookupExecutable :: FilePath -> [FilePath] -> IO (Maybe FilePath)
-lookupExecutable exeName additionalDirs = do
+lookupExecutable :: [FilePath] -> [FilePath] -> IO (Maybe FilePath)
+lookupExecutable [] _ = pure Nothing
+lookupExecutable (exeName : exeNamesTail)  additionalDirs = do
     let locations = ProgramSearchPathDefault : (ProgramSearchPathDir <$> additionalDirs)
-    fmap fst <$> findProgramOnSearchPath silent locations exeName
+    fmap fst <$> findProgramOnSearchPath silent locations exeName >>= \case
+        Just path -> pure $ Just path
+        Nothing -> lookupExecutable exeNamesTail additionalDirs
 
 runProcessWait :: CreateProcess -> IO ()
 runProcessWait p = do
