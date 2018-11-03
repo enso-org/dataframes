@@ -45,6 +45,7 @@ jobs:
             stack exec dataframes-package
       - store_artifacts:
           path: scripts/Dataframes-Linux-x64.tar.gz
+          destination: /
       - run:
           name: "S3 upload"
           command: |
