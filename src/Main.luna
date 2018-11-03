@@ -4,14 +4,9 @@ import Std.Foreign.C.Value
 import Dataframes.Internal.Utils
 import Dataframes.Array
 import Dataframes.Types
-import Dataframes.Table
-import Dataframes.Column
 import Dataframes.Internal.Test.Test
 
 
-«0»def main:
-    «3»Column.fromList "doubles" DoubleType $ [3.0, 2.0, 1.0, 0.0, 1.0]
-    «1»u = 5+5
-    «2»u+1
-
-### META {"metas":[{"marker":3,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":640}}}},{"marker":1,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":2,"meta":{"_displayResult":false,"_selectedVisualizer":["LunaVisualizer: base: json","base/json/json.html"],"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":320}}}}]}
+def main:
+    setHelperVerbosity False
+    benchmark "running tests" TestArrayBuilder.run
