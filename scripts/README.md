@@ -6,8 +6,7 @@ Running this program builds the Dataframes library and creates a relocatable pac
 
 Program can be run by calling:
 ```
-stack build
-stack exec dataframes-package
+stack run
 ```
 
 The program can be called from any location, the artifacts will appear in current working directory.

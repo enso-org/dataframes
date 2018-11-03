@@ -2,7 +2,6 @@ import Control.Monad
 import Control.Monad.Extra
 import Data.Maybe
 import Data.Monoid
-import Distribution.Simple.Program.Find
 import Distribution.Simple.Utils
 import Distribution.System
 import Distribution.Verbosity
@@ -37,43 +36,18 @@ downloadAndUnpack7z archiveUrl targetDirectory = do
         Curl.download archiveUrl archiveLocalPath
         SevenZip.unpack archiveLocalPath targetDirectory
 
--- This function purpose is to transform environment from its initial state
--- to the state where build step can be executed - so all dependencies and
--- other global state (like environment variable) that build script is using
--- must be set.
-prepareEnvironment :: FilePath -> IO ()
-prepareEnvironment tempDir = do
-    case buildOS of
-        Windows -> do
-            -- We need to extract the package with dev libraries and set the environment
-            -- variable DATAFRAMES_DEPS_DIR so the MSBuild project recognizes it.
-            --
-            -- The package contains all dependencies except for Python (with numpy).
-            -- Python needs to be provided by CI environment and pointed to by `PythonDir`
-            -- environment variable.
-            let depsDirLocal = tempDir </> "deps"
-            downloadAndUnpack7z depsArchiveUrl depsDirLocal
-            setEnv "DATAFRAMES_DEPS_DIR" depsDirLocal
-        Linux ->
-            -- On Linux all dependencies are assumed to be already installed. Such is the case
-            -- with the Docker image used to run Dataframes CI, and should be similarly with
-            -- developer machines.
-            return ()
-        _     ->
-            error $ "not implemented: prepareEnvironment for buildOS == " <> show buildOS
-
 -- Gets path to the local copy of the Dataframes repo
 repoDir :: IO FilePath
 repoDir = getEnvRequired "DATAFRAMES_REPO_PATH" -- TODO: should be able to deduce from this packaging executable location
 
 -- Helper that does two things:
 -- 1) use file extension to deduce compression method
--- 2) switch CWD so tar shall pack the fodler as archive's root
+-- 2) switch CWD so tar shall pack the folder at archive's root
 --    (without maintaining directory's absolute path in archive)
 packDirectory :: FilePath -> FilePath -> IO ()
 packDirectory pathToPack outputArchive = do
-    -- As we switch cwd, relative path will not be enough
-    -- Output file must be an absolute path.
+    -- As we switch cwd, relative path to output might get affected.
+    -- Let's store it as absolute path first.
     outputArchiveAbs <- makeAbsolute outputArchive
     withCurrentDirectory (takeDirectory pathToPack) $ do
         -- Input path must be relative though.
@@ -85,27 +59,21 @@ packDirectory pathToPack outputArchive = do
             ".bz2"  -> tarPack Tar.BZIP2
             ".xz"   -> tarPack Tar.XZ
             ".lzma" -> tarPack Tar.LZMA
-            _       -> fail $ "cannot deduce compression algorithm from extension: " <> takeExtension outputArchive
+            _       -> fail $ "packDirectory: cannot deduce compression algorithm from extension: " <> takeExtension outputArchive
 
-data DataframesBuildArtifacts = DataframesBuildArtifacts
-    { dataframesBinaries :: [FilePath]
-    , dataframesTests :: [FilePath]
-    }
-data DataframesPackageArtifacts = DataframesPackageArtifacts
-    { dataframesPackageArchive :: FilePath
-    , dataframesPackageDirectory :: FilePath
-    }
-
+dynamicLibraryExtension :: String
 dynamicLibraryExtension = case buildOS of
     Windows -> "dll"
     Linux   -> "so"
     _       -> error $ "dynamicLibraryExtension: not implemented: " <> show buildOS
 
+nativeLibsOsDir :: String
 nativeLibsOsDir = case buildOS of
     Windows -> "windows"
     Linux   -> "linux"
     _       -> error $ "nativeLibsOsDir: not implemented: " <> show buildOS
 
+dataframesPackageName :: String
 dataframesPackageName = case buildOS of
     Windows -> "Dataframes-Win-x64-v141.7z"
     Linux   -> "Dataframes-Linux-x64.tar.gz"
@@ -142,6 +110,39 @@ dependenciesToPackage binaries = do
     let isDependencyToPack path = notElem (dropExtensions $ takeFileName path) libraryBlacklist
     filter isDependencyToPack <$> Ldd.dependenciesOfBinaries binaries
 
+-- This function purpose is to transform environment from its initial state
+-- to the state where build step can be executed - so all dependencies and
+-- other global state (like environment variable) that build script is using
+-- must be set.
+prepareEnvironment :: FilePath -> IO ()
+prepareEnvironment tempDir = do
+    case buildOS of
+        Windows -> do
+            -- We need to extract the package with dev libraries and set the environment
+            -- variable DATAFRAMES_DEPS_DIR so the MSBuild project recognizes it.
+            --
+            -- The package contains all dependencies except for Python (with numpy).
+            -- Python needs to be provided by CI environment and pointed to by `PythonDir`
+            -- environment variable.
+            let depsDirLocal = tempDir </> "deps"
+            downloadAndUnpack7z depsArchiveUrl depsDirLocal
+            setEnv "DATAFRAMES_DEPS_DIR" depsDirLocal
+        Linux ->
+            -- On Linux all dependencies are assumed to be already installed. Such is the case
+            -- with the Docker image used to run Dataframes CI, and should be similarly with
+            -- developer machines.
+            return ()
+        _     ->
+            error $ "not implemented: prepareEnvironment for buildOS == " <> show buildOS
+
+
+data DataframesBuildArtifacts = DataframesBuildArtifacts
+    { dataframesBinaries :: [FilePath]
+    , dataframesTests :: [FilePath]
+    }
+
+-- This function should be called only in a properly prepared build environment.
+-- It builds the project and produces build artifacts.
 buildProject :: FilePath -> FilePath -> IO DataframesBuildArtifacts
 buildProject repoDir stagingDir = do
     let dataframesLibPath = repoDir </> "native_libs" </> "src"
@@ -163,6 +164,11 @@ buildProject repoDir stagingDir = do
         { dataframesBinaries = builtDlls
         , dataframesTests = [builtBinariesDir </> "DataframeHelperTests" <.> exeExtension]
         }
+
+data DataframesPackageArtifacts = DataframesPackageArtifacts
+    { dataframesPackageArchive :: FilePath
+    , dataframesPackageDirectory :: FilePath
+    }
 
 package :: FilePath -> FilePath -> DataframesBuildArtifacts -> IO DataframesPackageArtifacts
 package repoDir stagingDir buildArtifacts = do
@@ -204,7 +210,6 @@ package repoDir stagingDir buildArtifacts = do
 
 runTests :: FilePath -> DataframesBuildArtifacts -> DataframesPackageArtifacts -> IO ()
 runTests repoDir buildArtifacts packageArtifacts = do
-    -- Run tests
     -- The test executable must be placed in the package directory
     -- so all the dependencies are properly visible.
     -- The CWD must be repository though for test to properly find
@@ -214,6 +219,7 @@ runTests repoDir buildArtifacts packageArtifacts = do
     withCurrentDirectory repoDir $ do
         mapM_ (flip callProcess ["--report_level=detailed"]) tests
 
+main :: IO ()
 main = do
     withSystemTempDirectory "" $ \stagingDir -> do
         -- let stagingDir = "C:\\Users\\mwurb\\AppData\\Local\\Temp\\-777f232250ff9e9c"

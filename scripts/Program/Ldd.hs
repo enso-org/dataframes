@@ -8,8 +8,7 @@ import Data.Monoid
 import Data.String.Utils
 import System.FilePath
 import System.Directory
-import System.Process (callProcess)
-import System.Process.Typed
+import System.Process
 import Text.Printf
 
 import Program
@@ -70,5 +69,6 @@ dependenciesOfBinary binary = do
 dependenciesOfBinaries :: [FilePath] -> IO [FilePath]
 dependenciesOfBinaries binaries = do
     listOfListOfDeps <- mapM dependenciesOfBinary binaries
+    -- get rid of duplicates by passing through set
     let listOfDeps = Set.toList $ Set.unions $ Set.fromList <$> listOfListOfDeps
     filterM doesFileExist listOfDeps
