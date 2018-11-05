@@ -15,6 +15,8 @@ import System.Process
 import Text.Printf
 
 class Program a where
+    {-# MINIMAL executableName | executableNames #-}
+
     -- Path to directory where program executable might be found.
     defaultLocations :: [FilePath]
     defaultLocations = []
