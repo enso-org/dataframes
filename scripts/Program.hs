@@ -29,7 +29,7 @@ class Program a where
     lookupProgram = lookupExecutable (executableNames @a) (defaultLocations @a)
 
     notFoundError :: String
-    notFoundError = "failed to found program " <> prettyNames <> ", " <> notFoundFixSuggestion @a
+    notFoundError = "failed to find program " <> prettyNames <> ", " <> notFoundFixSuggestion @a
         where prettyNames = intercalate " nor " $ executableNames @a
 
     notFoundFixSuggestion :: String
