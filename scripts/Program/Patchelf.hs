@@ -13,7 +13,7 @@ instance Program Patchelf where
     executableName = "patchelf"
 
 -- Given a path to a binary image and path to a dependencies folder, returns
--- an relative rpath entry using the $ORIGIN syntax.
+-- a relative rpath entry using the $ORIGIN syntax.
 relativeRpath :: FilePath -> FilePath -> String
 relativeRpath binaryPath dependenciesDir = "$ORIGIN" </> relativeNormalisedPath (takeDirectory binaryPath) dependenciesDir
 
