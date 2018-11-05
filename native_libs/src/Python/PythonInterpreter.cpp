@@ -142,7 +142,7 @@ boost::filesystem::path pythonInterprerLibraryPath(std::string_view libraryName)
         return line.substr(firstSlash);
     }
 
-    THROW("Failed to found {}", libraryName);
+    THROW("Failed to find {}", libraryName);
 }
 
 void PythonInterpreter::setEnvironment()
