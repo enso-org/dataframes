@@ -65,7 +65,6 @@ lookupExecutable (exeName : exeNamesTail)  additionalDirs = do
 
 runProcessWait :: CreateProcess -> IO ()
 runProcessWait p = do
-    -- print p
     (_, _, _, handle) <- createProcess p
     exitCode <- waitForProcess handle
     case exitCode of
