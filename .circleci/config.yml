@@ -8,42 +8,18 @@ jobs:
       #     keys:
       #       - source-v4
       - run:
-          name: Install fmt & cmake & wget
-          command: brew install fmt cmake wget
+          name: Install C++ dependencies
+          command: brew install fmt cmake apache-arrow boost rapidjson howard-hinnant-date pybind11
       - run:
-          name: Install conda
-          command: |
-            [ -d $HOME/anaconda3 ] && exit
-            curl https://repo.anaconda.com/archive/Anaconda3-5.2.0-MacOSX-x86_64.sh -o anaconda3.sh
-            bash anaconda3.sh -b -p $HOME/anaconda3
-            rm anaconda3.sh
-      - run:
-          name: Activate conda
-          command: |
-            echo ". $HOME/anaconda3/etc/profile.d/conda.sh" >> $BASH_ENV
-            echo "conda activate" >> $BASH_ENV
-      - run:
-          name: Install conda deps
-          command: |
-            conda install -c conda-forge circleci-helpers
-            conda activate dataframes || (conda create -n dataframes python=3.6 arrow-cpp=0.10.* pyarrow=0.10 numpy rapidjson -c conda-forge && conda activate dataframes)
-      # - save_cache:
-      #     key: source-v4
-      #     paths: ~/anaconda3
-      #     when: always
+          name: Install Python dependencies
+          command: pip3 install numpy seaborn sklearn
       - checkout
-      - run:
-          name: Download date dependency
-          command: |
-            mkdir -p include/date
-            cd include/date
-            wget https://raw.githubusercontent.com/HowardHinnant/date/master/include/date/date.h
       - run:
           name: Configure Dataframes CMake
           command: |
             mkdir build
             cd build
-            cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_LIBRARY_PATH=$HOME/anaconda3/envs/dataframes/lib -DCMAKE_INCLUDE_PATH="$HOME/anaconda3/envs/dataframes/include" -DCMAKE_PREFIX_PATH="$HOME/project/include" ../native_libs/src
+            cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ../native_libs/src
       - run:
           name: Build Dataframes C++ parts on macos
           command: |
