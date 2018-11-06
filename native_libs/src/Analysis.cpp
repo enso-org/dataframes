@@ -732,7 +732,7 @@ std::vector<int64_t> collectRollingWindowPositionsT(const Indexable &indexable, 
             if(!std::holds_alternative<IntervalType>(interval))
                 THROW("wrong interval type: `index {}`, expected: `{}`", interval.index(), typeid(IntervalType));
 
-#if __APPLE__
+#ifndef __APPLE__
             const auto intervalT = std::get<IntervalType>(interval);
 #else
             const auto intervalT = mpark::get<IntervalType>(interval);
