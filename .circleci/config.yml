@@ -1,12 +1,9 @@
 version: 2
 jobs:
-  macos-build:
+  xcode9: &xcode-job
     macos:
       xcode: "9.4.1"
     steps:
-      # - restore_cache:
-      #     keys:
-      #       - source-v4
       - run:
           name: Install C++ dependencies
           command: brew install fmt cmake apache-arrow boost rapidjson howard-hinnant-date pybind11
@@ -25,6 +22,10 @@ jobs:
           command: |
             cd build
             make -j 2
+  xcode10:
+    <<: *xcode-job
+    macos:
+      xcode: "10.0.0"
 
 
 

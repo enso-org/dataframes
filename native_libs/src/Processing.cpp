@@ -123,7 +123,7 @@ struct FilteredArrayBuilder
     template<bool nullable>
     FORCE_INLINE void addDynamic1(unsigned char maskCode, const Array &array, const T *arrayValues, int arrayIndex, int bitIndex)
     {
-        if((maskCode & (1 << bitIndex)) != 0) 
+        if((maskCode & (1 << bitIndex)) != 0)
             addElem<nullable>(array, arrayValues, arrayIndex);
     }
 
@@ -182,7 +182,7 @@ struct FilteredArrayBuilder
             const auto fullBytesOfMask = (N - leadingElementCount) / 8;
             const auto fullByteEncodedElementCount = fullBytesOfMask * 8;
             const auto trailingElementCount = N - leadingElementCount - fullByteEncodedElementCount;
-            
+
             // Start processing with leading elements
             {
                 const auto leadingMaskCode = mask[processedCount / 8];
@@ -273,7 +273,7 @@ struct InterpolatedColumnBuilder
 {
     using T = typename TypeDescription<id>::StorageValueType;
     static_assert(std::is_arithmetic_v<T>);
- 
+
     FixedSizeArrayBuilder<id, false> builder;
 
     bool hadGoodValue = false;
@@ -350,7 +350,7 @@ std::shared_ptr<arrow::Column> interpolateNA(std::shared_ptr<arrow::Column> colu
 
 std::shared_ptr<arrow::Table> interpolateNA(std::shared_ptr<arrow::Table> table)
 {
-    auto interpolatedColumns = transformToVector(getColumns(*table), [] (auto col) 
+    auto interpolatedColumns = transformToVector(getColumns(*table), [] (auto col)
         { return interpolateNA(col); });
     return arrow::Table::Make(setNullable(false, table->schema()), interpolatedColumns);
 }
@@ -393,9 +393,9 @@ std::shared_ptr<arrow::Array> fillNATyped(const Array &array, DynamicField value
             [] (const std::string &s) { return std::string_view(s); },
             [] (const auto &v) -> std::string_view { throw std::runtime_error("cannot fill string array with value of type "s + typeid(v).name()); }
             }, value);
-        
+
         arrow::StringBuilder builder;
-        iterateOver<arrow::Type::STRING>(array, 
+        iterateOver<arrow::Type::STRING>(array,
             [&] (auto &&s) { builder.Append(s.data(), s.size()); },
             [&] () { builder.Append(valueToFill.data(), valueToFill.size()); });
         return finish(builder);
@@ -404,20 +404,17 @@ std::shared_ptr<arrow::Array> fillNATyped(const Array &array, DynamicField value
     else
     {
         using T = typename Array::value_type;
-    #ifdef __clang__
-        auto valueToFill = mpark::get<T>(value);
-        std::shared_ptr<arrow::Buffer> buffer;
-        T *data;
-        std::tie(buffer, data) = allocateBuffer<T>(array.length());
-    #else
+    #ifdef __has_include(<variant>)
         auto valueToFill = std::get<T>(value);
-        auto [buffer, data] = allocateBuffer<T>(array.length());
+    #else
+        auto valueToFill = mpark::get<T>(value);
     #endif
+        auto [buffer, data] = allocateBuffer<T>(array.length());
         int row = 0;
         std::memcpy(data, array.raw_values(), buffer->size());
-        iterateOver<ArrayTypeDescription<Array>::id>(array, 
+        iterateOver<ArrayTypeDescription<Array>::id>(array,
             [&] (auto &&) { ++row; },
-            [&] () { data[row++] = valueToFill; });
+            [&, data=data] () { data[row++] = valueToFill; });
 
         return std::make_shared<Array>(array.type(), array.length(), buffer, nullptr);
     }
@@ -428,7 +425,7 @@ std::shared_ptr<arrow::Array> fillNA(std::shared_ptr<arrow::Array> array, Dynami
     if(array->null_count() == 0)
         return array;
 
-    return visitArray(*array, [&] (auto *array) 
+    return visitArray(*array, [&] (auto *array)
     {
         return std::visit([&] (auto value)
         {
@@ -476,8 +473,8 @@ std::shared_ptr<arrow::Table> fillNA(std::shared_ptr<arrow::Table> table, const 
         else
             return column;
     });
-    
-    auto newFields = transformToVector(newColumns, 
+
+    auto newFields = transformToVector(newColumns,
         [&](auto &&column) { return column->field(); });
     auto newSchema = arrow::schema(newFields, table->schema()->metadata());
     return arrow::Table::Make(newSchema, newColumns);
@@ -612,7 +609,7 @@ DFH_EXPORT std::shared_ptr<arrow::Table> groupBy(std::shared_ptr<arrow::Table> t
         std::vector<int64_t> nullRows;
 
         int64_t row = 0;
-        iterateOver<keyTypeID.value>(*keyColumn, 
+        iterateOver<keyTypeID.value>(*keyColumn,
             [&] (auto &&value)
             {
                 keyToRows[value].push_back(row++);
