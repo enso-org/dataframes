@@ -404,7 +404,7 @@ std::shared_ptr<arrow::Array> fillNATyped(const Array &array, DynamicField value
     else
     {
         using T = typename Array::value_type;
-    #ifdef __has_include(<variant>)
+    #ifndef __APPLE__
         auto valueToFill = std::get<T>(value);
     #else
         auto valueToFill = mpark::get<T>(value);

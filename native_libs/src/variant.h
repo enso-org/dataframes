@@ -1,5 +1,5 @@
 
-#if __has_include(<variant>)
+#ifndef __APPLE__
 
 #include <variant>
 
