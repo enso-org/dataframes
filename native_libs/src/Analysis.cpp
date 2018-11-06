@@ -732,7 +732,7 @@ std::vector<int64_t> collectRollingWindowPositionsT(const Indexable &indexable, 
             if(!std::holds_alternative<IntervalType>(interval))
                 THROW("wrong interval type: `index {}`, expected: `{}`", interval.index(), typeid(IntervalType));
 
-#if __has_include(<variant>)
+#if __APPLE__
             const auto intervalT = std::get<IntervalType>(interval);
 #else
             const auto intervalT = mpark::get<IntervalType>(interval);
@@ -811,7 +811,7 @@ std::vector<int64_t> collectRollingIntervalSizes(std::shared_ptr<arrow::Column> 
 {
     try
     {
-        return dispatchIndexable(keyColumn, [&] (auto &&indexable) 
+        return dispatchIndexable(keyColumn, [&] (auto &&indexable)
         {
             return collectRollingWindowPositionsT(*indexable, interval);
         });
