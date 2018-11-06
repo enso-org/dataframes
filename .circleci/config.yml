@@ -1,38 +1,59 @@
 version: 2
 jobs:
-  "GCC-7": &job
-    docker: # use the docker executor type; machine and macos executors are also supported
-      - image: murbanczyk/dataframesci:1.0.9 # the primary container, where your job's commands are run
+  macos-build:
+    macos:
+      xcode: "9.4.1"
     steps:
-      - checkout # check out the code in the project directory
+      # - restore_cache:
+      #     keys:
+      #       - source-v4
       - run:
-          name: Configure CMake
+          name: Install fmt & cmake & wget
+          command: brew install fmt cmake wget
+      - run:
+          name: Install conda
+          command: |
+            [ -d $HOME/anaconda3 ] && exit
+            curl https://repo.anaconda.com/archive/Anaconda3-5.2.0-MacOSX-x86_64.sh -o anaconda3.sh
+            bash anaconda3.sh -b -p $HOME/anaconda3
+            rm anaconda3.sh
+      - run:
+          name: Activate conda
+          command: |
+            echo ". $HOME/anaconda3/etc/profile.d/conda.sh" >> $BASH_ENV
+            echo "conda activate" >> $BASH_ENV
+      - run:
+          name: Install conda deps
+          command: |
+            conda install -c conda-forge circleci-helpers
+            conda activate dataframes || (conda create -n dataframes python=3.6 arrow-cpp=0.10.* pyarrow=0.10 numpy rapidjson -c conda-forge && conda activate dataframes)
+      # - save_cache:
+      #     key: source-v4
+      #     paths: ~/anaconda3
+      #     when: always
+      - checkout
+      - run:
+          name: Download date dependency
+          command: |
+            mkdir -p include/date
+            cd include/date
+            wget https://raw.githubusercontent.com/HowardHinnant/date/master/include/date/date.h
+      - run:
+          name: Configure Dataframes CMake
           command: |
             mkdir build
             cd build
-            cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ../native_libs/src
+            cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_LIBRARY_PATH=$HOME/anaconda3/envs/dataframes/lib -DCMAKE_INCLUDE_PATH="$HOME/anaconda3/envs/dataframes/include" -DCMAKE_PREFIX_PATH="$HOME/project/include" ../native_libs/src
       - run:
-          name: Build Dataframes C++ parts
+          name: Build Dataframes C++ parts on macos
           command: |
             cd build
             make -j 2
-      - run:
-          name: Test C++ parts
-          command: |
-            mkdir build/test_results
-            build/DataframeHelperTests --log_format=JUNIT --log_sink=build/test_results/junit.xml -r short
-      - store_test_results:
-          path: build/test_results
-  "GCC-8":
-    <<: *job
-    environment:
-      CC: gcc-8
-      CXX: g++-8
+
 
 
 workflows:
   version: 2
   build_and_test:
     jobs:
-      - "GCC-7"
-      - "GCC-8"
+      - macos-build
