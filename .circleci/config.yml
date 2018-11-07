@@ -10,6 +10,7 @@ jobs:
       - run:
           name: Install XLNT library
           command: |
+            cd ~
             git clone https://github.com/tfussell/xlnt.git
             cd xlnt
             mkdir build
