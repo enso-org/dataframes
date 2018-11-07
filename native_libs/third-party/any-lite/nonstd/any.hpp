@@ -49,7 +49,7 @@
 
 // use C++17 std::any if available and requested:
 
-#if any_CPP17_OR_GREATER && defined(__has_include ) && __has_include( <any> )
+#if any_CPP17_OR_GREATER && defined(__has_include ) && __has_include( <any> )  && !defined(__APPLE__)
 # define any_HAVE_STD_ANY  1
 #else
 # define any_HAVE_STD_ANY  0
