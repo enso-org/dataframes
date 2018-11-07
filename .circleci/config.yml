@@ -8,6 +8,16 @@ jobs:
           name: Install C++ dependencies
           command: brew install fmt cmake apache-arrow boost rapidjson howard-hinnant-date pybind11
       - run:
+          name: Install XLNT library
+          command: |
+            git clone https://github.com/tfussell/xlnt.git
+            cd xlnt
+            mkdir build
+            cd build
+            cmake .. -DTESTS=OFF
+            make -j 2
+            make install
+      - run:
           name: Install Python dependencies
           command: pip3 install numpy seaborn sklearn
       - checkout
