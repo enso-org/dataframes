@@ -22,6 +22,10 @@ jobs:
           command: |
             cd build
             make -j 2
+      - run:
+          name: Run tests
+          command: |
+            ./build/DataframeHelperTests --report_level=detailed
   xcode10:
     <<: *xcode-job
     macos:
