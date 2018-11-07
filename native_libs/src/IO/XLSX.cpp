@@ -120,7 +120,7 @@ namespace
             {
                 return sheet.cell(column + 1, 0 + 1).to_string();
             });
-            const bool useFirstRowAsHeaders = std::holds_alternative<TakeFirstRowAsHeaders>(header);
+            const bool useFirstRowAsHeaders = holds_alternative<TakeFirstRowAsHeaders>(header);
 
             // setup column builders
             std::vector<std::unique_ptr<ColumnBuilderBase>> columnBuilders;

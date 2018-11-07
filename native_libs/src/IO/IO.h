@@ -22,7 +22,7 @@ namespace arrow
 struct TakeFirstRowAsHeaders {};
 struct GenerateColumnNames {};
 
-using HeaderPolicy = std::variant<TakeFirstRowAsHeaders, GenerateColumnNames, std::vector<std::string>>;
+using HeaderPolicy = variant<TakeFirstRowAsHeaders, GenerateColumnNames, std::vector<std::string>>;
 
 struct DFH_EXPORT ColumnType
 {

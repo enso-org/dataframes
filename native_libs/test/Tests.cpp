@@ -1114,7 +1114,7 @@ BOOST_AUTO_TEST_CASE(Rolling, *boost::unit_test_framework::disabled())
     const auto sumsPerWindowT = rollingInterval(tsCol, 2s, { {numCol, {AggregateFunction::Sum}} });
     const auto sumsPerWindowV = toVectors<Timestamp, double>(*sumsPerWindowT);
     const auto expectedSumsPerWindow = std::vector<double>{ 0, 1, 3, 0, 4 };
-    BOOST_CHECK_EQUAL_RANGES(std::get<0>(sumsPerWindowV), ts); // timestamps column should not be modified
-    BOOST_CHECK_EQUAL_RANGES(std::get<1>(sumsPerWindowV), expectedSumsPerWindow);
+    BOOST_CHECK_EQUAL_RANGES(get<0>(sumsPerWindowV), ts); // timestamps column should not be modified
+    BOOST_CHECK_EQUAL_RANGES(get<1>(sumsPerWindowV), expectedSumsPerWindow);
 }
 

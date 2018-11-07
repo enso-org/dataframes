@@ -388,7 +388,7 @@ std::shared_ptr<arrow::Array> fillNATyped(const Array &array, DynamicField value
 {
     if constexpr(std::is_same_v<Array, arrow::StringArray>)
     {
-        std::string_view valueToFill = std::visit(overloaded{
+        std::string_view valueToFill = visit(overloaded{
             [] (const std::string_view &sv) { return sv; },
             [] (const std::string &s) { return std::string_view(s); },
             [] (const auto &v) -> std::string_view { throw std::runtime_error("cannot fill string array with value of type "s + typeid(v).name()); }
@@ -404,11 +404,7 @@ std::shared_ptr<arrow::Array> fillNATyped(const Array &array, DynamicField value
     else
     {
         using T = typename Array::value_type;
-    #ifndef __APPLE__
-        auto valueToFill = std::get<T>(value);
-    #else
-        auto valueToFill = mpark::get<T>(value);
-    #endif
+        auto valueToFill = get<T>(value);
         auto [buffer, data] = allocateBuffer<T>(array.length());
         int row = 0;
         std::memcpy(data, array.raw_values(), buffer->size());
@@ -427,7 +423,7 @@ std::shared_ptr<arrow::Array> fillNA(std::shared_ptr<arrow::Array> array, Dynami
 
     return visitArray(*array, [&] (auto *array)
     {
-        return std::visit([&] (auto value)
+        return visit([&] (auto value)
         {
             return fillNATyped(*array, value);
         }, value);
@@ -590,7 +586,7 @@ DynamicField adjustTypeForFilling(DynamicField valueGivenByUser, const arrow::Da
 {
     return visitType(type, [&] (auto id) -> DynamicField
     {
-        return std::visit(ConvertTo<id.value>{}, valueGivenByUser);
+        return visit(ConvertTo<id.value>{}, valueGivenByUser);
     });
 }
 
