@@ -50,7 +50,7 @@ jobs:
           name: "S3 upload"
           command: |
             /python-dist/bin/python3 -mpip install awscli --user
-            aws --region us-west-2 s3 cp scripts/Dataframes-Linux-x64.tar.gz s3://packages-luna/dataframes/nightly/$CIRCLE_SHA1/Dataframes-Linux-x64.tar.gz
+            aws --region us-west-2 s3 cp scripts/Dataframes-Linux-x64.tar.gz s3://packages-luna/dataframes/nightly/$CIRCLE_SHA1/Dataframes-Linux-x64.tar.gz --acl public-read
 
 workflows:
   version: 2
