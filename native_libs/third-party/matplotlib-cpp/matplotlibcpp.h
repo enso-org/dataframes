@@ -84,9 +84,6 @@ struct _interpreter
 private:
     _interpreter() 
     {
-#ifdef __linux__
-        dlopen("libpython3.6m.so", RTLD_LAZY | RTLD_GLOBAL);
-#endif
         auto matplotlib = pybind11::module::import("matplotlib");
         auto pystylemod = pybind11::module::import("matplotlib.style");
 

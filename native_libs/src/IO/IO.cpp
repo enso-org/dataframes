@@ -124,13 +124,17 @@ std::string getFileContents(std::string_view filepath)
     {
         auto input = openFileToRead(filepath);
 
-        std::string contents;
         input.seekg(0, std::ios::end);
+        auto length = input.tellg();
+        if(length == -1)
+            THROW("failed to tell the file's length");
+
+        std::string contents;
         contents.resize(input.tellg());
         input.seekg(0, std::ios::beg);
         input.read(&contents[0], contents.size());
         if(!input)
-            throw std::runtime_error("failed reading stream");
+            THROW("failed reading stream");
 
         return contents;
     }

@@ -20,7 +20,7 @@ jobs:
           name: Test C++ parts
           command: |
             mkdir build/test_results
-            build/DataframeHelperTests --log_format=JUNIT --log_sink=build/test_results/junit.xml -r short
+            native_libs/linux/DataframeHelperTests --log_format=JUNIT --log_sink=build/test_results/junit.xml -r short
       - store_test_results:
           path: build/test_results
   "GCC-8":
@@ -28,7 +28,29 @@ jobs:
     environment:
       CC: gcc-8
       CXX: g++-8
-
+  "Centos-7":
+    docker:
+      - image: murbanczyk/dataframes-package:1.0.2
+    environment:
+      JOB_COUNT: 2 # otherwise more compilers will spawn and they will crash due memory limits
+      PYTHON_PREFIX_PATH: /python-dist
+      DATAFRAMES_REPO_PATH: /root/project
+    steps:
+      - checkout
+      - run:
+          name: Run package script
+          command: |
+            cd scripts
+            stack build
+            stack exec dataframes-package
+      - store_artifacts:
+          path: scripts/Dataframes-Linux-x64.tar.gz
+          destination: /Dataframes-Linux-x64.tar.gz
+      - run:
+          name: "S3 upload"
+          command: |
+            /python-dist/bin/python3 -mpip install awscli --user
+            aws --region us-west-2 s3 cp scripts/Dataframes-Linux-x64.tar.gz s3://packages-luna/dataframes/nightly/$CIRCLE_SHA1/Dataframes-Linux-x64.tar.gz
 
 workflows:
   version: 2
@@ -36,3 +58,6 @@ workflows:
     jobs:
       - "GCC-7"
       - "GCC-8"
+  build_and_package:
+    jobs:
+      - "Centos-7"

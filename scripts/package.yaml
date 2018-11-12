@@ -1,0 +1,47 @@
+name: dataframes-package
+synopsis: Utility program to build, test and create relocatable package with Dataframes library
+version: "1.0"
+author: New Byte Order <contact@newbyteorder.com>
+maintainer: New Byte Order <contact@newbyteorder.com>
+
+default-extensions:
+- AllowAmbiguousTypes
+- ConstraintKinds
+- DataKinds
+- DefaultSignatures
+- DeriveGeneric
+- DuplicateRecordFields
+- FlexibleContexts
+- FlexibleInstances
+- FunctionalDependencies
+- GeneralizedNewtypeDeriving
+- LambdaCase
+- OverloadedStrings
+- RankNTypes
+- ScopedTypeVariables
+- StandaloneDeriving
+- TemplateHaskell
+- TupleSections
+- TypeApplications
+- TypeFamilies
+- TypeOperators
+- ViewPatterns
+
+executables:
+  dataframes-package:
+    main: Main.hs
+    source-dirs: .
+    ghc-options: -threaded -Werror=missing-fields
+
+dependencies:
+- base
+- Cabal
+- containers
+- directory
+- extra
+- filepath
+- Glob
+- MissingH
+- process
+- temporary
+- text

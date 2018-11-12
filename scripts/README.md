@@ -1,34 +1,47 @@
-This directory contains the `Package.hs` script.
+This directory contains the `dataframes-package` Haskell program.
 
-The script is provisional, Windows-only and relies on archives prepared beforehand. The aim is to iteratively improve and generalize it, in compliance with our long-term libraries package & distribution vision.
+The program is provisional, works only on Windows and Linux and relies on environment prepared beforehand. The aim is to iteratively improve and generalize it, in compliance with our long-term libraries package & distribution vision.
 
-# Package.hs
-Running this script builds the Dataframes library and creates a relocatable package with binary artifacts.
+Running this program builds the Dataframes library and creates a relocatable package with binary artifacts.
 
-Script can be run by calling:
+Program can be run by calling:
 ```
-stack repo\scripts\Package.hs
+stack run
 ```
 
-The script can be called from any location, the artifacts will appear in current working directory.
+The program can be called from any location, the artifacts will appear in current working directory.
+
+## General workings
+### Windows
+Runs in AppVeyor environment. Dependencies are provided by the pre-built archive. Build Dataframes. Extract them onto pre-built package skeleton.
+
+### Linux
+Runs in Docker environment with all dependencies pre-built. Build Dataframes. Build package from them, its ldd-found dependencied and Python distribution.
 
 ## Input
 * local environment:
-  * Dataframes repository copy under the path stored in environment variable `APPVEYOR_BUILD_FOLDER`
-  * Visual Studio C++ toolset (2017.8)
-  * MS Build binary under the path `C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\amd64\MSBuild.exe` (part of Visual Studio installation)
+  * Dataframes repository copy under the path stored in environment variable `DATAFRAMES_REPO_PATH`
   * `7z` program either available in `PATH` or installed in `C:\Program Files\7-Zip` (the default installation path)
   * `curl` program available in `PATH` (present by default on newer Windows)
   * Python 3 with numpy package installed under a path stored in `PythonDir` environment variable.
-* hand-made resources:
-  * archive with build-time dependencies (import libraries, headers, binaries), currently assumed at: `https://s3-us-west-2.amazonaws.com/packages-luna/dataframes/libs-dev-v140.7z`
+  * On Windows:
+    * Visual Studio C++ toolset (2017.8)
+    * MS Build binary under the path `C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\amd64\MSBuild.exe` (part of Visual Studio installation)
+  * On Linux:
+    * CMake and GCC-7 or newer
+    * ldd
+    * patchelf
+* external hand-made resources (needed on Windows only):
+  * archive with build-time dependencies (import libraries, headers, binaries), currently assumed at: `https://packages.luna-lang.org/dataframes/libs-dev-v140.7z`
     * it contains .props file (property sheet) — this file will be included by MSBuild script. It is required that this sheet provides all the build-time dependencies of C++ parts of Dataframes
-  * archive with package skeleton (i. e. package sans Dataframes library itself), currently assumed at: `https://s3-us-west-2.amazonaws.com/packages-luna/dataframes/windows-package-base.7z`
+  * archive with package skeleton (i. e. package sans Dataframes library itself), currently assumed at: `https://packages.luna-lang.org/dataframes/windows-package-base.7z`
     * this archive will be a skeleton for `Dataframes\native_libs\windows` directory in the redistributable package
+* also, obviously, to build this program `stack` is needed.
 
 ## Output
-In the current working directory:
+In the current working directory the archive will appear, depending on platform:
 * `Dataframes-Win-x64-v141.7z` file — relocatable Dataframe library package (and all its dependencies) for 64-bit Windows.
+* `Dataframes-Linux-x64.7z` file — relocatable Dataframe library package (and all its dependencies) for 64-bit Linux.
 
 ## How the input packages are built
 ### Build-time dependencies
