@@ -36,7 +36,7 @@ jobs:
       - run:
           name: Run tests
           command: |
-            ./build/DataframeHelperTests --report_level=detailed
+            ./native_libs/macos/DataframeHelperTests --report_level=detailed
   xcode10:
     <<: *xcode-job
     macos:
