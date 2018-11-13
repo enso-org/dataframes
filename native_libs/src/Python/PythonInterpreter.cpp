@@ -65,6 +65,20 @@ PythonInterpreter::PythonInterpreter()
 
         if(_import_array() < 0)
             throw pybind11::error_already_set();
+
+        // Without workaround below Dataframes behave like a fork-bomb on mac.
+        // multiprocessing package is our transitive dependency (through sklearn).
+        // upon initialization multiprocessing tries to spawn python process that
+        // will act as semaphore_tracker.
+        // To spawn process sys.executable is called. Which is fine... if it is a
+        // python interpreter. However, it fails with embedded interpreters.
+        // We don't want our process to start another luna-empire (or whatever
+        // executable uses dataframes libray), so we need explicitly tell it to use
+        // python3 as an executable name.
+#ifdef __apple__
+        auto multiprocessing = pybind11::module::import("multiprocessing");
+        multiprocessing.attr("set_executable")("python3");
+#endif
     }
     catch(std::exception &e)
     {
@@ -103,7 +117,7 @@ pybind11::object PythonInterpreter::toPyDateTime(Timestamp timestamp) const
     auto min = (int)tod.minutes().count();
     auto s = (int)tod.seconds().count();
     auto us = (int)std::chrono::duration_cast<std::chrono::microseconds>(tod.subseconds()).count();
-    
+
     auto ret = PyDateTime_FromDateAndTime(y, m, d, h, min, s, us);
     if(!ret)
         throw pybind11::error_already_set();
