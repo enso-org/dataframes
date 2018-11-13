@@ -40,7 +40,7 @@ Runs in Docker environment with all dependencies pre-built. Build Dataframes. Bu
 
 ## Output
 In the current working directory the archive will appear, depending on platform:
-* `Dataframes-Win-x64-v141.7z` file — relocatable Dataframe library package (and all its dependencies) for 64-bit Windows.
+* `Dataframes-Win-x64.7z` file — relocatable Dataframe library package (and all its dependencies) for 64-bit Windows.
 * `Dataframes-Linux-x64.7z` file — relocatable Dataframe library package (and all its dependencies) for 64-bit Linux.
 
 ## How the input packages are built
