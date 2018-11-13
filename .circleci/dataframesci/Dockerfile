@@ -19,7 +19,7 @@ RUN wget https://github.com/pybind/pybind11/archive/v2.2.4.zip && unzip v2.2.4.z
 # RUN git clone https://github.com/luna/Dataframes.git
 # RUN mkdir build
 # WORKDIR build
-# RUN cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ../Dataframes/native_libs/src 
+# RUN cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ../Dataframes/native_libs/src
 # RUN make -j 8
 # WORKDIR ../Dataframes
 # RUN ../build/DataframeHelperTests -p -r detailed

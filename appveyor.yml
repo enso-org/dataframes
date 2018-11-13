@@ -1,8 +1,9 @@
 version: 1.0.{build}
 image: Visual Studio 2017
 environment:
-  PATH: C:\Python37-x64;%PATH%
+  PATH: C:\Python37-x64;C:\stack;%PATH%
   PythonDir: C:\Python37-x64
+  DATAFRAMES_REPO_PATH: $(APPVEYOR_BUILD_FOLDER)
 
 cache:
 - C:\Users\appveyor\AppData\Roaming\stack\
@@ -10,13 +11,14 @@ cache:
 
 build_script:
 - python -m pip install numpy
-- curl -sS -o stack.zip -L --insecure https://get.haskellstack.org/stable/windows-i386.zip
-- 7z x stack.zip stack.exe
-- stack --arch x86_64 %APPVEYOR_BUILD_FOLDER%\scripts\Package.hs
+- curl -sS -o stack.zip -L --insecure https://get.haskellstack.org/stable/windows-x86_64.zip
+- 7z x stack.zip -y -oC:\stack stack.exe
+- cd %APPVEYOR_BUILD_FOLDER%\scripts\
+- stack run
 
 artifacts:
-- path: Dataframes-Win-x64-v141.7z
-  name: Dataframes-Win-x64-v141
+- path: scripts\Dataframes-Win-x64.7z
+  name: Dataframes-Win-x64
 
 deploy:
   - provider: S3
@@ -26,4 +28,5 @@ deploy:
     bucket: packages-luna
     region: us-west-2
     folder: dataframes/nightly/$(APPVEYOR_REPO_COMMIT)
-    artifact: Dataframes-Win-x64-v141
+    artifact: Dataframes-Win-x64
+    set_public: true

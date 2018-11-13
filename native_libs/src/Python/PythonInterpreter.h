@@ -10,6 +10,11 @@ struct DFH_EXPORT PythonInterpreter
 
     static PythonInterpreter &instance();
 
+#ifdef __linux__
+    static std::string libraryName();
+    static void setEnvironment();
+#endif
+
     pybind11::object toPyDateTime(Timestamp timestamp) const;
 };
 
