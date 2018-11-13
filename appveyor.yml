@@ -17,8 +17,8 @@ build_script:
 - stack run
 
 artifacts:
-- path: scripts\Dataframes-Win-x64-v141.7z
-  name: Dataframes-Win-x64-v141
+- path: scripts\Dataframes-Win-x64.7z
+  name: Dataframes-Win-x64
 
 deploy:
   - provider: S3
@@ -28,5 +28,5 @@ deploy:
     bucket: packages-luna
     region: us-west-2
     folder: dataframes/nightly/$(APPVEYOR_REPO_COMMIT)
-    artifact: $(APPVEYOR_BUILD_FOLDER)\scripts\Dataframes-Win-x64-v141
+    artifact: Dataframes-Win-x64
     set_public: true
