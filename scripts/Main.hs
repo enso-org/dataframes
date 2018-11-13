@@ -75,7 +75,7 @@ nativeLibsOsDir = case buildOS of
 
 dataframesPackageName :: String
 dataframesPackageName = case buildOS of
-    Windows -> "Dataframes-Win-x64-v141.7z"
+    Windows -> "Dataframes-Win-x64.7z"
     Linux   -> "Dataframes-Linux-x64.tar.gz"
     _       -> error $ "dataframesPackageName: not implemented: " <> show buildOS
 
