@@ -29,3 +29,4 @@ deploy:
     region: us-west-2
     folder: dataframes/nightly/$(APPVEYOR_REPO_COMMIT)
     artifact: $(APPVEYOR_BUILD_FOLDER)\scripts\Dataframes-Win-x64-v141
+    set_public: true
