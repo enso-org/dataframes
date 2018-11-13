@@ -75,7 +75,7 @@ PythonInterpreter::PythonInterpreter()
         // We don't want our process to start another luna-empire (or whatever
         // executable uses dataframes libray), so we need explicitly tell it to use
         // python3 as an executable name.
-#ifdef __apple__
+#ifdef __APPLE__
         auto multiprocessing = pybind11::module::import("multiprocessing");
         multiprocessing.attr("set_executable")("python3");
 #endif
