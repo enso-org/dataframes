@@ -16,8 +16,8 @@ jobs:
             ./configure --prefix ~/python-dist --enable-shared
             make -j 2
             make install
-            /python-dist/bin/python3.7 -mpip install --upgrade pip
-            /python-dist/bin/python3.7 -mpip install numpy matplotlib seaborn sklearn
+            ~/python-dist/bin/python3.7 -mpip install --upgrade pip
+            ~/python-dist/bin/python3.7 -mpip install numpy matplotlib seaborn sklearn
             cd .. &&\
             rm -rf Python-3.7.0.tar.xz Python-3.7.0
       - run:
