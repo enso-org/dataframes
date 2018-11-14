@@ -14,10 +14,12 @@ build_script:
 - curl -sS -o stack.zip -L --insecure https://get.haskellstack.org/stable/windows-x86_64.zip
 - 7z x stack.zip -y -oC:\stack stack.exe
 - cd %APPVEYOR_BUILD_FOLDER%\scripts\
-- stack run
+# Note: we want build artifacts to appear in root as apparently AppVeyor really
+# wants to preserve relative path from root to artifact when uploading to S3
+- stack run --cwd %APPVEYOR_BUILD_FOLDER%
 
 artifacts:
-- path: scripts\Dataframes-Win-x64.7z
+- path: Dataframes-Win-x64.7z
   name: Dataframes-Win-x64
 
 deploy:
