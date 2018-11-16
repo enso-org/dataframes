@@ -350,13 +350,16 @@ class Table:
     def drop count:
         leftCount = self.rowCount - count
         self.slice count leftCount
-    def toJSON:
-        maxCount = 1000 / (if self.columnCount > 0 then self.columnCount else 1)
-        mc = if maxCount < 10 then 10 else maxCount
-        rowCount = if self.rowCount < mc then self.rowCount else mc
-        cols = self.toList
-        columnValueLists = cols.each (_ . slice 0 rowCount . toList)
-        JSON.empty . insert "header" self.columnNames . insert "data" columnValueLists
+        
+    def toJSON: case self of
+        Table: JSON.empty
+        _:
+            maxCount = 1000 / (if self.columnCount > 0 then self.columnCount else 1)
+            mc = if maxCount < 10 then 10 else maxCount
+            rowCount = if self.rowCount < mc then self.rowCount else mc
+            cols = self.toList
+            columnValueLists = cols.each (_ . slice 0 rowCount . toList)
+            JSON.empty . insert "header" self.columnNames . insert "data" columnValueLists
 
     # Returns `Table` value with records for which the given predicate returns `True`.
     #
@@ -632,8 +635,9 @@ class Table:
         nullRatiosCol = Column.fromList "ratio"   DoubleType nullRatios
         self.fromColumns [namesCol, nullCountsCol, nullRatiosCol]
 
-    def shortRep:
-        "Table<" + self.columnCount.toText + "×" + self.rowCount.toText + ">"
+    def shortRep: case self of
+        Table: "Table"
+        _: "Table<" + self.columnCount.toText + "×" + self.rowCount.toText + ">"
 
     # Computes pairwise Pearson's correlation of columns, excluding null values.
     #
