@@ -955,7 +955,7 @@ class ChartBuilder:
     # >     col1 = Column.fromList "col1" Int64Type l1
     # >     col2 = Column.fromList "col2" Int64Type l2
     # >     table = Table.fromColumns [col1 , col2]
-    # >     correlations = table.corr
+    # >     correlations = table.correlations
     # >     heatmapPlot = correlations.chart.heatmap
     # >     None
     #
