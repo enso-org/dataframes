@@ -8,14 +8,13 @@ jobs:
           name: Install C++ dependencies
           command: |
             brew install fmt cmake apache-arrow boost rapidjson howard-hinnant-date pybind11 wget openssl
-            brew link --force openssl
       - run:
           name: Build Python
           command: |
             wget https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tar.xz
             tar xf Python-3.7.0.tar.xz
             cd Python-3.7.0
-            ./configure --prefix ~/python-dist --enable-shared
+            ./configure --prefix ~/python-dist --enable-shared --with-openssl=$(brew --prefix openssl)
             make -j 2
             make install
             ~/python-dist/bin/python3.7 -mpip install --upgrade pip
