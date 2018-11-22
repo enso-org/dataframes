@@ -9,9 +9,8 @@ struct DFH_EXPORT PythonInterpreter
     ~PythonInterpreter();
 
     static PythonInterpreter &instance();
-
-#ifdef __linux__
     static std::string libraryName();
+#ifndef _WIN32
     static void setEnvironment();
 #endif
 

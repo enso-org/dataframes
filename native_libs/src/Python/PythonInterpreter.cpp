@@ -125,13 +125,22 @@ pybind11::object PythonInterpreter::toPyDateTime(Timestamp timestamp) const
     return pybind11::reinterpret_steal<pybind11::object>(ret);
 }
 
-#ifdef __linux__
 std::string PythonInterpreter::libraryName()
 {
+
+#if defined(__APPLE__)
+    return fmt::format("libpython{}.{}m.dylib", PY_MAJOR_VERSION, PY_MINOR_VERSION);
+#elif defined(__linux__)
     return fmt::format("libpython{}.{}m.so", PY_MAJOR_VERSION, PY_MINOR_VERSION);
+#elif defined(_WIN32)
+    return fmt::format("python{}{}.dll", PY_MAJOR_VERSION, PY_MINOR_VERSION);
+#else
+    #error "unknown system"
+#endif
 }
 
-boost::filesystem::path pythonInterprerLibraryPath(std::string_view libraryName)
+#ifdef __linux__
+boost::filesystem::path loadedLibraryPath(std::string_view libraryName)
 {
     auto pid = getpid();
     auto mapsIn = openFileToRead(fmt::format("/proc/{}/maps", pid));
@@ -158,14 +167,54 @@ boost::filesystem::path pythonInterprerLibraryPath(std::string_view libraryName)
 
     THROW("Failed to find {}", libraryName);
 }
+#endif
 
+#ifdef __APPLE__
+
+
+boost::filesystem::path loadedLibraryPath(std::string libraryName)
+{
+    auto pid = getpid();
+    std::string command = fmt::format("vmmap", pid);
+    std::shared_ptr<FILE> pipe(popen(command.c_str(), "r"), pclose);
+    if (!pipe)
+        throw std::runtime_error("popen() failed, command was: " + command);
+
+    char line[4096];
+    while (!feof(pipe.get()))
+    {
+        if (fgets(line, std::size(line), pipe.get()) != nullptr)
+        {
+            if(std::strstr(line, libraryName.c_str()) != nullptr)
+            {
+                if (auto pos = std::strstr(line, " /"))
+                {
+                    return std::string(pos + 1);
+                }
+                else
+                {
+                    // unexpected
+                    std::cerr << "unexpected line in vmmap output: " << line << std::endl;
+                    continue;
+                }
+            }
+        }
+    }
+
+    THROW("Failed to find {}", libraryName);
+}
+
+#endif // __APPLE__
+
+
+#ifndef _WIN32
 void PythonInterpreter::setEnvironment()
 {
     // Python interpreter library typically lies in path like: /home/mwu/Dataframes/lib/libpython3.6m.so
     // In such case we want to set following paths:
     // PYTHONHOME=/home/mwu/Dataframes/lib/
     // PYTHONPATH=/home/mwu/Dataframes/python-libs:/home/mwu/Dataframes/python-libs/lib-dynload:/home/mwu/Dataframes/python-libs/site-packages
-    const auto pythonSo = pythonInterprerLibraryPath(PythonInterpreter::libraryName());
+    const auto pythonSo = loadedLibraryPath(PythonInterpreter::libraryName());
 
     // However, we want to set home and path only when we use our packaged python ditribution.
     // If this is developer build using the system-wide Python, the we should not touch anything
