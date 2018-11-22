@@ -39,6 +39,7 @@ jobs:
       - run:
           name: Configure Dataframes CMake
           command: |
+            curl -sSL https://get.haskellstack.org/ | sh
             export PYTHON_PREFIX_PATH=~/python-dist/
             export DATAFRAMES_REPO_PATH=$PWD
             cd scripts
