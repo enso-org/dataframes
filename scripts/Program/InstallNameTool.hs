@@ -21,3 +21,7 @@ addRpath input new = call @InstallNameTool ["-add_rpath", new, input]
 
 deleteRpath :: FilePath -> FilePath -> IO ()
 deleteRpath input old = call @InstallNameTool ["-delete_rpath", old, input]
+
+-- Sets the identification install name of the given Mach-O shared library.
+setInstallName :: FilePath -> FilePath -> IO ()
+setInstallName input new = call @InstallNameTool ["-id", new, input]
