@@ -229,8 +229,10 @@ void PythonInterpreter::setEnvironment()
         return;
 
     const auto pythonHome = pythonSo.parent_path();
-    const auto pythonLibs =  pythonHome.parent_path() / "python-libs";
+    const auto pythonLibs =  pythonHome.parent_path() / fmt::format("python{}.{}", PY_MAJOR_VERSION, PY_MINOR_VERSION);
     const auto pythonPath = fmt::format("{}:{}:{}", pythonLibs.c_str(), (pythonLibs / "lib-dynload").c_str(), (pythonLibs / "site-packages").c_str());
+    std::cout << "setting PYTHONHOME " << pythonHome << std::endl;
+    std::cout << "setting PYTHONPATH " << pythonPath << std::endl;
     Py_SetPythonHome(widenString(pythonHome.c_str()).data());
     Py_SetPath(widenString(pythonPath.c_str()).data());
 }

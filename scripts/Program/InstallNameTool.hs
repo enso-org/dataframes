@@ -2,12 +2,17 @@ module Program.InstallNameTool where
 
 import Control.Monad
 import Data.List
+import System.FilePath
 
 import Program
+import Utils
 
 data InstallNameTool
 instance Program InstallNameTool where
     executableName = "install_name_tool"
+
+relativeLoaderPath :: FilePath -> FilePath -> String
+relativeLoaderPath binaryPath dependency = "@loader_path" </> relativeNormalisedPath (takeDirectory binaryPath) dependency
 
 -- Changes the shared library dependency path (install name) in a Mach-O executable
 change :: FilePath -> FilePath -> FilePath -> IO ()

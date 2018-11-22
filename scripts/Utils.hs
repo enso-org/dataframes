@@ -23,11 +23,12 @@ fromJustVerbose msg maybeA = case maybeA of
     Nothing -> error msg
 
 -- Copies subdirectory with all its contents between two directories
-copyDirectory :: FilePath -> FilePath -> FilePath -> IO ()
+copyDirectory :: FilePath -> FilePath -> FilePath -> IO FilePath
 copyDirectory sourceDirectory targetDirectory subdirectoryFilename = do
     let from = sourceDirectory </> subdirectoryFilename
     let to = targetDirectory </> subdirectoryFilename
     copyDirectoryRecursive silent from to
+    pure to
 
 -- Copies to the given directory file under given path. Returns the copied-to path.
 copyToDir :: FilePath -> FilePath -> IO FilePath
