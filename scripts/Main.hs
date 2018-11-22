@@ -1,5 +1,6 @@
 import Control.Monad
 import Control.Monad.Extra
+import Data.List
 import Data.Maybe
 import Data.Monoid
 import Distribution.Simple.Utils
@@ -22,6 +23,10 @@ import qualified Program.Patchelf as Patchelf
 import qualified Program.MsBuild  as MsBuild
 import qualified Program.SevenZip as SevenZip
 import qualified Program.Tar      as Tar
+import qualified Program.Otool    as Otool
+import qualified Program.InstallNameTool as INT
+
+import qualified Platform.OSX as OSX
 
 depsArchiveUrl, packageBaseUrl :: String
 depsArchiveUrl = "https://packages.luna-lang.org/dataframes/libs-dev-v140.7z"
@@ -65,18 +70,21 @@ dynamicLibraryExtension :: String
 dynamicLibraryExtension = case buildOS of
     Windows -> "dll"
     Linux   -> "so"
+    OSX     -> "dylib"
     _       -> error $ "dynamicLibraryExtension: not implemented: " <> show buildOS
 
 nativeLibsOsDir :: String
 nativeLibsOsDir = case buildOS of
     Windows -> "windows"
     Linux   -> "linux"
+    OSX     -> "macos"
     _       -> error $ "nativeLibsOsDir: not implemented: " <> show buildOS
 
 dataframesPackageName :: String
 dataframesPackageName = case buildOS of
     Windows -> "Dataframes-Win-x64.7z"
     Linux   -> "Dataframes-Linux-x64.tar.gz"
+    OSX     -> "Dataframes-macOS-x64.tar.gz"
     _       -> error $ "dataframesPackageName: not implemented: " <> show buildOS
 
 -- Path to directory with Python installation, should not contain other things
@@ -132,6 +140,7 @@ prepareEnvironment tempDir = do
             -- with the Docker image used to run Dataframes CI, and should be similarly with
             -- developer machines.
             return ()
+        OSX  -> return ()
         _     ->
             error $ "not implemented: prepareEnvironment for buildOS == " <> show buildOS
 
@@ -156,6 +165,9 @@ buildProject repoDir stagingDir = do
                                   , ("PYTHON_NUMPY_INCLUDE_DIR", pythonPrefix </> "lib/python3.7/site-packages/numpy/core/include")]
             let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo : (CMake.OptionSetVariable <$> cmakeVariables)
             CMake.build buildDir dataframesLibPath options
+        OSX -> do
+            let buildDir = stagingDir </> "build"
+            CMake.build buildDir dataframesLibPath [CMake.OptionBuildType CMake.ReleaseWithDebInfo]
         _ -> error $ "buildProject: not implemented: " <> show buildOS
 
     let builtBinariesDir = repoDir </> "native_libs" </> nativeLibsOsDir
@@ -208,6 +220,49 @@ package repoDir stagingDir buildArtifacts = do
         , dataframesPackageDirectory = packageRoot
         }
 
+data OsxDependencyCategory = Local | Python | System deriving (Eq, Show)
+
+categorizeDependency dependencyFullPath =
+    if isInfixOf "/python/" dependencyFullPath 
+        then Python 
+        else if (isPrefixOf "/usr/lib/system/" dependencyFullPath) || (isPrefixOf "/System" dependencyFullPath) 
+            then System
+            else if takeDirectory dependencyFullPath == "/usr/lib"
+                then System
+                else Local
+
+osxpack repoDir stagingDir buildArtifacts = do
+    removeDirectoryRecursive stagingDir
+    createDirectoryIfMissing True stagingDir
+    let packageRoot = stagingDir </> "Dataframes"
+    let packageBinariesDir = packageRoot </> "native_libs" </> nativeLibsOsDir
+
+    let dirsToCopy = ["src", "visualizers", ".luna-package"]
+    mapM (copyDirectory repoDir packageRoot) dirsToCopy
+
+    let builtDlls = dataframesBinaries buildArtifacts
+    when (null builtDlls) $ error "Build action have not build any binaries despite declaring success!"
+
+    allEffectiveDeps <- OSX.getProgramDependencies (head $ dataframesTests buildArtifacts) ["--help"]
+    -- allEffectiveDeps <- OSX.getDependenciesOfDylibs $ dataframesBinaries buildArtifacts
+    let isLocalDep dep = categorizeDependency dep == Local
+    let resolveInstallName installName = find (\dep -> takeFileName installName == takeFileName dep) allEffectiveDeps
+
+    flip mapM (filter isLocalDep allEffectiveDeps) $ \dep -> do
+        installedDep <- copyToDir packageRoot dep
+        putStrLn $ "will patch " <> installedDep
+        callProcess "chmod" ["777", installedDep]
+        installNamesInDep <- Otool.usedLibraries installedDep
+        flip mapM installNamesInDep $ \installName -> do
+            let absolutePath = (fromJustVerbose "resolve install_name" . resolveInstallName) installName
+            when (isLocalDep absolutePath) (INT.change installedDep installName $ "@loader_path" </> takeFileName absolutePath)
+
+        -- putStrLn $ "Dependencies of " <> dep <> ": " <> show absolutePaths
+
+        return ()
+    pure $ (\dep -> (dep, categorizeDependency dep)) <$> allEffectiveDeps
+
+
 runTests :: FilePath -> DataframesBuildArtifacts -> DataframesPackageArtifacts -> IO ()
 runTests repoDir buildArtifacts packageArtifacts = do
     -- The test executable must be placed in the package directory
@@ -218,6 +273,7 @@ runTests repoDir buildArtifacts packageArtifacts = do
     tests <- mapM (copyToDir packageDirBinaries) (dataframesTests buildArtifacts)
     withCurrentDirectory repoDir $ do
         mapM_ (flip callProcess ["--report_level=detailed"]) tests
+
 
 main :: IO ()
 main = do

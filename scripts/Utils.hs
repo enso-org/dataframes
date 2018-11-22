@@ -7,6 +7,11 @@ import System.Directory
 import System.Environment
 import System.FilePath
 
+fromJustVerbose :: String -> Maybe a -> a
+fromJustVerbose msg maybeA = case maybeA of
+    Just a -> a
+    Nothing -> error msg
+
 -- Copies subdirectory with all its contents between two directories
 copyDirectory :: FilePath -> FilePath -> FilePath -> IO ()
 copyDirectory sourceDirectory targetDirectory subdirectoryFilename = do
