@@ -1,12 +1,22 @@
 module Utils where
 
+import Control.Exception
 import Data.Maybe
 import Distribution.Simple.Utils
 import Distribution.Verbosity
 import System.Directory
 import System.Environment
 import System.FilePath
+import System.IO.Error
 
+-- As removeDirectoryRecursive but doesn't fail when the path does not exist.
+removeDirectoryRecursiveIfExists :: FilePath -> IO ()
+removeDirectoryRecursiveIfExists path = catchJust
+    (\e -> if isDoesNotExistError e then Just () else Nothing)
+    (removeDirectoryRecursive path)
+    (const $ pure ())
+
+-- As fromJust but provides an error message if called on Nothing
 fromJustVerbose :: String -> Maybe a -> a
 fromJustVerbose msg maybeA = case maybeA of
     Just a -> a

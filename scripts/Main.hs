@@ -148,7 +148,7 @@ prepareEnvironment tempDir = do
 data DataframesBuildArtifacts = DataframesBuildArtifacts
     { dataframesBinaries :: [FilePath]
     , dataframesTests :: [FilePath]
-    }
+    } deriving (Eq, Show)
 
 -- This function should be called only in a properly prepared build environment.
 -- It builds the project and produces build artifacts.
@@ -180,7 +180,7 @@ buildProject repoDir stagingDir = do
 data DataframesPackageArtifacts = DataframesPackageArtifacts
     { dataframesPackageArchive :: FilePath
     , dataframesPackageDirectory :: FilePath
-    }
+    } deriving (Eq, Show)
 
 package :: FilePath -> FilePath -> DataframesBuildArtifacts -> IO DataframesPackageArtifacts
 package repoDir stagingDir buildArtifacts = do
@@ -207,11 +207,12 @@ package repoDir stagingDir buildArtifacts = do
 
             -- Copy Python installation to the package and remove some parts that are heavy and not needed.
             pythonPrefix <- pythonPrefix
-            copyDirectoryRecursive silent (pythonPrefix </> "lib/python3.7") (packageRoot </> "python-libs")
-            pyCacheDirs <- glob $ packageRoot </> "python-libs" </> "**" </> "__pycache__"
+            let pythonInPackage = packageRoot </> "python3.7"
+            copyDirectoryRecursive silent (pythonPrefix </> "lib/python3.7") pythonInPackage
+            pyCacheDirs <- glob $ pythonInPackage </> "**" </> "__pycache__"
             mapM removePathForcibly pyCacheDirs
-            removePathForcibly $ packageRoot </> "python-libs" </> "config-3.7m-x86_64-linux-gnu"
-            removePathForcibly $ packageRoot </> "python-libs" </> "test"
+            removePathForcibly $ pythonInPackage </> "config-3.7m-x86_64-linux-gnu"
+            removePathForcibly $ pythonInPackage </> "python-libs" </> "test"
 
     packDirectory packageRoot dataframesPackageName
     putStrLn $ "Packaging done, file saved to: " <> dataframesPackageName
@@ -223,16 +224,16 @@ package repoDir stagingDir buildArtifacts = do
 data OsxDependencyCategory = Local | Python | System deriving (Eq, Show)
 
 categorizeDependency dependencyFullPath =
-    if isInfixOf "/python/" dependencyFullPath 
-        then Python 
-        else if (isPrefixOf "/usr/lib/system/" dependencyFullPath) || (isPrefixOf "/System" dependencyFullPath) 
+    if isInfixOf "/lib/python3.7/" dependencyFullPath
+        then Python
+        else if (isPrefixOf "/usr/lib/system/" dependencyFullPath) || (isPrefixOf "/System" dependencyFullPath)
             then System
             else if takeDirectory dependencyFullPath == "/usr/lib"
                 then System
                 else Local
 
 osxpack repoDir stagingDir buildArtifacts = do
-    removeDirectoryRecursive stagingDir
+    removeDirectoryRecursiveIfExists stagingDir
     createDirectoryIfMissing True stagingDir
     let packageRoot = stagingDir </> "Dataframes"
     let packageBinariesDir = packageRoot </> "native_libs" </> nativeLibsOsDir
@@ -240,26 +241,33 @@ osxpack repoDir stagingDir buildArtifacts = do
     let dirsToCopy = ["src", "visualizers", ".luna-package"]
     mapM (copyDirectory repoDir packageRoot) dirsToCopy
 
-    let builtDlls = dataframesBinaries buildArtifacts
+    let builtDlls = dataframesBinaries buildArtifacts <>  dataframesTests buildArtifacts
     when (null builtDlls) $ error "Build action have not build any binaries despite declaring success!"
 
-    allEffectiveDeps <- OSX.getProgramDependencies (head $ dataframesTests buildArtifacts) ["--help"]
+    let testsBinary = head $ dataframesTests buildArtifacts
+    allEffectiveDeps <- OSX.getProgramDependencies testsBinary ["--help"]
     -- allEffectiveDeps <- OSX.getDependenciesOfDylibs $ dataframesBinaries buildArtifacts
     let isLocalDep dep = categorizeDependency dep == Local
     let resolveInstallName installName = find (\dep -> takeFileName installName == takeFileName dep) allEffectiveDeps
 
-    flip mapM (filter isLocalDep allEffectiveDeps) $ \dep -> do
+    flip mapM (filter isLocalDep $ testsBinary : allEffectiveDeps) $ \dep -> do
         installedDep <- copyToDir packageRoot dep
         putStrLn $ "will patch " <> installedDep
         callProcess "chmod" ["777", installedDep]
         installNamesInDep <- Otool.usedLibraries installedDep
         flip mapM installNamesInDep $ \installName -> do
             let absolutePath = (fromJustVerbose "resolve install_name" . resolveInstallName) installName
-            when (isLocalDep absolutePath) (INT.change installedDep installName $ "@loader_path" </> takeFileName absolutePath)
+            when (isLocalDep absolutePath) $ do
+                INT.setInstallName installedDep $ takeFileName installedDep
+                INT.change installedDep installName $ "@loader_path" </> takeFileName absolutePath
 
         -- putStrLn $ "Dependencies of " <> dep <> ": " <> show absolutePaths
 
         return ()
+
+    putStrLn "Copying python..."
+    copyDirectoryRecursive silent "/Users/mwu/python-dist" (packageRoot </> "python-libs")
+
     pure $ (\dep -> (dep, categorizeDependency dep)) <$> allEffectiveDeps
 
 
