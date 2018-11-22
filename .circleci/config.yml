@@ -39,18 +39,10 @@ jobs:
       - run:
           name: Configure Dataframes CMake
           command: |
-            mkdir build
-            cd build
-            cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ../native_libs/src
-      - run:
-          name: Build Dataframes C++ parts on macos
-          command: |
-            cd build
-            make -j 2
-      - run:
-          name: Run tests
-          command: |
-            ./native_libs/macos/DataframeHelperTests --report_level=detailed
+            export PYTHON_PREFIX_PATH=~/python-dist/
+            export DATAFRAMES_REPO_PATH=$PWD
+            cd scripts
+            stack run
   xcode10:
     <<: *xcode-job
     macos:

@@ -166,8 +166,12 @@ buildProject repoDir stagingDir = do
             let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo : (CMake.OptionSetVariable <$> cmakeVariables)
             CMake.build buildDir dataframesLibPath options
         OSX -> do
+            pythonPrefix <- pythonPrefix
             let buildDir = stagingDir </> "build"
-            CMake.build buildDir dataframesLibPath [CMake.OptionBuildType CMake.ReleaseWithDebInfo]
+            let cmakeVariables =  [ ("PYTHON_LIBRARY",           pythonPrefix </> "lib/libpython3.7m.dylib")
+                                  , ("PYTHON_NUMPY_INCLUDE_DIR", pythonPrefix </> "lib/python3.7/site-packages/numpy/core/include")]
+            let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo : (CMake.OptionSetVariable <$> cmakeVariables)
+            CMake.build buildDir dataframesLibPath options
         _ -> error $ "buildProject: not implemented: " <> show buildOS
 
     let builtBinariesDir = repoDir </> "native_libs" </> nativeLibsOsDir
@@ -207,11 +211,27 @@ package repoDir stagingDir buildArtifacts = do
             when (null builtDlls) $ error "failed to found built .dll files"
             mapM (copyToDir packageBinariesDir) builtDlls
             return ()
-        _ -> do
+        Linux -> do
             dependencies <- dependenciesToPackage builtDlls
-            let libsDirectory = packageRoot </> "lib"
-            mapM (Patchelf.installDependencyTo libsDirectory) dependencies
-            mapM (Patchelf.installBinary packageBinariesDir libsDirectory) builtDlls
+            mapM (Patchelf.installDependencyTo packageBinariesDir) dependencies
+            mapM (Patchelf.installBinary packageBinariesDir packageBinariesDir) builtDlls
+
+            -- Copy Python installation to the package and remove some parts that are heavy and not needed.
+            pythonPrefix <- pythonPrefix
+            copyInPythonLibs pythonPrefix packageRoot
+        OSX -> do
+            let testsBinary = head $ dataframesTests buildArtifacts
+            allDeps1 <- OSX.getDependenciesOfDylibs $ dataframesBinaries buildArtifacts
+            allDeps2 <- OSX.getDependenciesOfExecutable testsBinary ["--help"]
+            let allDeps = nub $ allDeps1 <> allDeps2
+            let resolveInstallName installName = find (\dep -> takeFileName installName == takeFileName dep) allDeps
+
+            let buildArtifactBinaries = dataframesBinaries buildArtifacts <>  dataframesTests buildArtifacts
+            -- Place all "local depenencies" into the lib directory
+            let trulyLocalDependency path = isLocalDep path && (not $ elem path buildArtifactBinaries)
+            flip mapM (filter trulyLocalDependency allDeps) $ installBinary packageBinariesDir
+            -- Place all artifact binaries in the destination directory
+            flip mapM buildArtifactBinaries $ installBinary packageBinariesDir
 
             -- Copy Python installation to the package and remove some parts that are heavy and not needed.
             pythonPrefix <- pythonPrefix
