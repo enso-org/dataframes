@@ -44,6 +44,15 @@ jobs:
             export DATAFRAMES_REPO_PATH=$PWD
             cd scripts
             stack run
+      - store_artifacts:
+          path: scripts/Dataframes-Linux-x64.tar.gz
+      - run:
+          name: "S3 upload"
+          command: |
+            python3 -mpip install awscli --user
+            aws --region us-west-2 s3 cp scripts/Dataframes-Linux-x64.tar.gz s3://packages-luna/dataframes/nightly/$CIRCLE_SHA1/Dataframes-Linux-x64.tar.gz --acl public-read
+
+destination: /Dataframes-Linux-x64.tar.gz
   xcode10:
     <<: *xcode-job
     macos:
