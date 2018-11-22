@@ -1,5 +1,6 @@
 module Platform.OSX where
 
+import Data.FileEmbed
 import Data.List
 import Data.Monoid
 import System.FilePath
@@ -7,6 +8,11 @@ import System.IO.Temp
 import System.Process
 import System.Exit
 import Text.Printf
+
+import qualified Data.ByteString as BS
+
+dlopenProgram :: BS.ByteString
+dlopenProgram = $(embedFile "helpers/main.cpp")
 
 -- Creates a process, observing what dynamic libraries get loaded.
 -- Returns a list of absolute paths to loaded libraries, as provided by dyld.
@@ -29,6 +35,8 @@ getDependenciesOfExecutable exePath args = do
 
 getDependenciesOfDylibs :: [FilePath] -> IO [FilePath]
 getDependenciesOfDylibs targets = withSystemTempDirectory "" $ \tempDir -> do
-    let testProgramPath = tempDir </> "moje"
-    callProcess "clang++" ["/Users/mwu/Dataframes/native_libs/macos/main.cpp", "-o" <> testProgramPath]
-    getDependenciesOfExecutable testProgramPath targets
+    let programSrcPath = tempDir </> "main.cpp"
+    let programExePath = tempDir </> "moje"
+    BS.writeFile programSrcPath dlopenProgram
+    callProcess "clang++" [programSrcPath, "-o" <> programExePath]
+    getDependenciesOfExecutable programExePath targets
