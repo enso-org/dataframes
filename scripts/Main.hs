@@ -237,32 +237,22 @@ categorizeDependency dependencyFullPath =
 
 isLocalDep dep = categorizeDependency dep == Local
 
-installDylibDependency dependenciesDir dependencyAbsolutePath = do
-    installedDep <- copyToDir dependenciesDir dependencyAbsolutePath
-    callProcess "chmod" ["777", installedDep]
-    INT.setInstallName installedDep $ takeFileName installedDep
-    installNamesInDep <- Otool.usedLibraries installedDep
-    flip mapM installNamesInDep $ \installName -> do
-        -- let absolutePath = (fromJustVerbose "resolve install_name" . resolveInstallName) installName
-        when (isLocalDep installName) $ do
-            INT.change installedDep installName $ "@loader_path" </> takeFileName installName
-
-installBinary destinationDir dependenciesDir allDepsAbs sourcePath = do
-    putStrLn $ "Will install " <> sourcePath <> " with deps"
-    let resolveInstallName installName = fromJustVerbose ("cannot resolve " <> installName) $ find ((takeFileName installName ==) . takeFileName) allDepsAbs
-    destinationPath <- copyToDir destinationDir sourcePath
+-- Function installs Mach-O binary in a target binary folder.
+-- install name shall be rewritten to contain only a filename
+-- install names of direct local dependencies shall be rewritten, assuming they are in the same dir
+installBinary :: FilePath -> FilePath -> IO ()
+installBinary targetBinariesDir sourcePath = do
+    -- putStrLn $ "installing " <> takeFileName sourcePath <> " to " <> targetBinariesDir
+    destinationPath <- copyToDir targetBinariesDir sourcePath
+    callProcess "chmod" ["777", destinationPath]
+    INT.setInstallName destinationPath $ takeFileName destinationPath
     (filter isLocalDep -> directDeps) <- Otool.usedLibraries destinationPath
     flip mapM directDeps $ \installName -> do
-        let absolutePath = resolveInstallName installName
-        INT.change destinationPath installName $ INT.relativeLoaderPath destinationPath absolutePath
-
--- installDylib destinationDir dependenciesDir sourcePath = do
---     deps <- OSX.getDependenciesOfDylibs [sourcePath]
---     installBinary destinationDir dependenciesDir deps sourcePath
-
--- installExecutable destinationDir dependenciesDir sourcePath args = do
---     deps <-  OSX.getDependenciesOfExecutable sourcePath args
---     installBinary destinationDir dependenciesDir deps sourcePath
+        when (isLocalDep installName) $ do
+            -- local dependencies of local dependencies are in the same folder as the current binary
+            -- NOTE: in future, in multi-package world, there might be more folders
+            INT.change destinationPath installName $ "@loader_path" </> takeFileName installName
+    callProcess "chmod" ["555", destinationPath]
 
 osxpack repoDir stagingDir buildArtifacts = do
     removeDirectoryRecursiveIfExists stagingDir
@@ -276,7 +266,6 @@ osxpack repoDir stagingDir buildArtifacts = do
     let buildArtifactBinaries = dataframesBinaries buildArtifacts <>  dataframesTests buildArtifacts
     when (null buildArtifactBinaries) $ error "Build action have not build any binaries despite declaring success!"
 
-    let libsDirectory = packageRoot </> "lib"
     let testsBinary = head $ dataframesTests buildArtifacts
 
     allDeps1 <- OSX.getDependenciesOfDylibs $ dataframesBinaries buildArtifacts
@@ -286,9 +275,9 @@ osxpack repoDir stagingDir buildArtifacts = do
 
     -- Place all "local depenencies" into the lib directory
     let trulyLocalDependency path = isLocalDep path && (not $ elem path buildArtifactBinaries)
-    flip mapM (filter trulyLocalDependency allDeps) $ installDylibDependency libsDirectory
+    flip mapM (filter trulyLocalDependency allDeps) $ installBinary packageBinariesDir
     -- Place all artifact binaries in the destination directory
-    flip mapM buildArtifactBinaries $ installBinary packageBinariesDir libsDirectory allDeps
+    flip mapM buildArtifactBinaries $ installBinary packageBinariesDir
 
     -- Copy Python installation to the package and remove some parts that are heavy and not needed.
     pythonPrefix <- pythonPrefix

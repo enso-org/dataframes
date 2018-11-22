@@ -27,6 +27,7 @@ copyDirectory :: FilePath -> FilePath -> FilePath -> IO FilePath
 copyDirectory sourceDirectory targetDirectory subdirectoryFilename = do
     let from = sourceDirectory </> subdirectoryFilename
     let to = targetDirectory </> subdirectoryFilename
+    putStrLn $ "Copying " ++ from ++ " to " ++ targetDirectory
     copyDirectoryRecursive silent from to
     pure to
 
@@ -34,7 +35,7 @@ copyDirectory sourceDirectory targetDirectory subdirectoryFilename = do
 copyToDir :: FilePath -> FilePath -> IO FilePath
 copyToDir destDir sourcePath = do
     createDirectoryIfMissing True destDir
-    putStrLn $ "Copy " ++ sourcePath ++ " to " ++ destDir
+    putStrLn $ "Copying " ++ sourcePath ++ " to " ++ destDir
     let destPath = destDir </> takeFileName sourcePath
     copyFile sourcePath destPath
     pure destPath
