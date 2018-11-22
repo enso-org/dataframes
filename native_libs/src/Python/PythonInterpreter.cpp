@@ -6,9 +6,12 @@
 #include "IO/IO.h"
 #include <cstdlib>
 
+#ifndef _WIN32
+#include <boost/filesystem.hpp>
+#endif
+
 #ifdef __linux__
 #include <dlfcn.h> // for dlopen
-#include <boost/filesystem.hpp>
 #endif
 
 std::wstring widenString(const char *narrow)
@@ -47,7 +50,7 @@ PythonInterpreter::PythonInterpreter()
         const auto programName = L"Dataframes";
         Py_SetProgramName(const_cast<wchar_t *>(programName));
 
-#ifdef __linux__
+#ifndef _WIN32
         // If needed, environment must be set before initializing the interpreter.
         // Otherwise, we'll get tons of error like:
         // Could not find platform independent libraries <prefix>
@@ -175,7 +178,7 @@ boost::filesystem::path loadedLibraryPath(std::string_view libraryName)
 boost::filesystem::path loadedLibraryPath(std::string libraryName)
 {
     auto pid = getpid();
-    std::string command = fmt::format("vmmap", pid);
+    std::string command = fmt::format("vmmap {}", pid);
     std::shared_ptr<FILE> pipe(popen(command.c_str(), "r"), pclose);
     if (!pipe)
         throw std::runtime_error("popen() failed, command was: " + command);
