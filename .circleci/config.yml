@@ -50,6 +50,7 @@ jobs:
       - run:
           name: "S3 upload"
           command: |
+            export PATH=$PATH:~/Library/Python/3.7/bin
             python3 -mpip install awscli --user
             aws --region us-west-2 s3 cp scripts/Dataframes-macOS-x64.tar.gz s3://packages-luna/dataframes/nightly/$CIRCLE_SHA1/Dataframes-macOS-x64.tar.gz --acl public-read
   xcode10:
