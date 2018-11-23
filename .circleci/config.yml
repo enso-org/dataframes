@@ -39,6 +39,7 @@ jobs:
       - run:
           name: Configure Dataframes CMake
           command: |
+            brew install gmp # otherwise GHC 8.6 fails to install, see: https://ghc.haskell.org/trac/ghc/ticket/15404
             export PATH=$PATH:~/.local/bin
             curl -sSL https://get.haskellstack.org/ | sh
             export PYTHON_PREFIX_PATH=~/python-dist/
