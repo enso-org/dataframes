@@ -39,7 +39,6 @@ jobs:
       - run:
           name: Configure Dataframes CMake
           command: |
-            xcode-select --install
             export PATH=$PATH:~/.local/bin
             curl -sSL https://get.haskellstack.org/ | sh
             export PYTHON_PREFIX_PATH=~/python-dist/
