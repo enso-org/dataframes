@@ -213,9 +213,9 @@ boost::filesystem::path loadedLibraryPath(std::string libraryName)
 #ifndef _WIN32
 void PythonInterpreter::setEnvironment()
 {
-    // Python interpreter library typically lies in path like: /home/mwu/Dataframes/lib/libpython3.6m.so
+    // Python interpreter library typically lies in path like: /home/mwu/Dataframes/native_libs/linux/libpython3.6m.so
     // In such case we want to set following paths:
-    // PYTHONHOME=/home/mwu/Dataframes/lib/
+    // PYTHONHOME=/home/mwu/Dataframes/native_libs/linux/
     // PYTHONPATH=/home/mwu/Dataframes/python-libs:/home/mwu/Dataframes/python-libs/lib-dynload:/home/mwu/Dataframes/python-libs/site-packages
     const auto pythonSo = loadedLibraryPath(PythonInterpreter::libraryName());
 
@@ -229,7 +229,7 @@ void PythonInterpreter::setEnvironment()
         return;
 
     const auto pythonHome = pythonSo.parent_path();
-    const auto pythonLibs =  pythonHome.parent_path().parent_path() / fmt::format("python{}.{}", PY_MAJOR_VERSION, PY_MINOR_VERSION);
+    const auto pythonLibs =  pythonHome.parent_path().parent_path() / "python_libs";
     const auto pythonPath = fmt::format("{}:{}:{}", pythonLibs.c_str(), (pythonLibs / "lib-dynload").c_str(), (pythonLibs / "site-packages").c_str());
     std::cout << "setting PYTHONHOME " << pythonHome << std::endl;
     std::cout << "setting PYTHONPATH " << pythonPath << std::endl;

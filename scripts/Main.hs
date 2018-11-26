@@ -158,21 +158,15 @@ buildProject repoDir stagingDir = do
     case buildOS of
         Windows -> do
             MsBuild.build $ dataframesLibPath </> "DataframeHelper.sln"
-        Linux -> do
+        _ -> do
             pythonPrefix <- pythonPrefix
             let buildDir = stagingDir </> "build"
-            let cmakeVariables =  [ ("PYTHON_LIBRARY",           pythonPrefix </> "lib/libpython3.7m.so")
-                                  , ("PYTHON_NUMPY_INCLUDE_DIR", pythonPrefix </> "lib/python3.7/site-packages/numpy/core/include")]
+            let pythonLibLocation = pythonPrefix </> "lib/libpython3.7m" <.> dynamicLibraryExtension
+            let numpyIncludeDir = pythonPrefix </> "lib/python3.7/site-packages/numpy/core/include"
+            let cmakeVariables =  [ ("PYTHON_LIBRARY",           pythonLibLocation)
+                                  , ("PYTHON_NUMPY_INCLUDE_DIR", numpyIncludeDir)]
             let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo : (CMake.OptionSetVariable <$> cmakeVariables)
             CMake.build buildDir dataframesLibPath options
-        OSX -> do
-            pythonPrefix <- pythonPrefix
-            let buildDir = stagingDir </> "build"
-            let cmakeVariables =  [ ("PYTHON_LIBRARY",           pythonPrefix </> "lib/libpython3.7m.dylib")
-                                  , ("PYTHON_NUMPY_INCLUDE_DIR", pythonPrefix </> "lib/python3.7/site-packages/numpy/core/include")]
-            let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo : (CMake.OptionSetVariable <$> cmakeVariables)
-            CMake.build buildDir dataframesLibPath options
-        _ -> error $ "buildProject: not implemented: " <> show buildOS
 
     let builtBinariesDir = repoDir </> "native_libs" </> nativeLibsOsDir
     builtDlls <- glob $ builtBinariesDir </> "*" <.> dynamicLibraryExtension
@@ -188,11 +182,13 @@ data DataframesPackageArtifacts = DataframesPackageArtifacts
 
 copyInPythonLibs :: FilePath -> FilePath -> IO ()
 copyInPythonLibs pythonPrefix packageRoot = do
-    pythonInPackage <- copyDirectory (pythonPrefix </> "lib") (packageRoot) "python3.7"
-    pyCacheDirs <- glob $ pythonInPackage </> "**" </> "__pycache__"
+    let from = pythonPrefix </> "lib" </> "python3.7"
+    let to = packageRoot </> "python_libs"
+    copyDirectoryRecursive normal from to
+    pyCacheDirs <- glob $ to </> "**" </> "__pycache__"
     mapM removePathForcibly pyCacheDirs
-    removePathForcibly $ pythonInPackage </> "config-3.7m-x86_64-linux-gnu"
-    removePathForcibly $ pythonInPackage </> "test"
+    removePathForcibly $ to </> "config-3.7m-x86_64-linux-gnu"
+    removePathForcibly $ to </> "test"
 
 package :: FilePath -> FilePath -> DataframesBuildArtifacts -> IO DataframesPackageArtifacts
 package repoDir stagingDir buildArtifacts = do
@@ -221,17 +217,14 @@ package repoDir stagingDir buildArtifacts = do
             copyInPythonLibs pythonPrefix packageRoot
         OSX -> do
             let testsBinary = head $ dataframesTests buildArtifacts
-            allDeps1 <- OSX.getDependenciesOfDylibs $ dataframesBinaries buildArtifacts
-            allDeps2 <- OSX.getDependenciesOfExecutable testsBinary ["--help"]
-            let allDeps = nub $ allDeps1 <> allDeps2
-            let resolveInstallName installName = find (\dep -> takeFileName installName == takeFileName dep) allDeps
-
-            let buildArtifactBinaries = dataframesBinaries buildArtifacts <>  dataframesTests buildArtifacts
+            -- Note: This code assumed that all redistributable build artifacts are dylibs.
+            --       It might need generalization in future.
+            allDeps <- OSX.getDependenciesOfDylibs builtDlls
             -- Place all "local depenencies" into the lib directory
-            let trulyLocalDependency path = isLocalDep path && (not $ elem path buildArtifactBinaries)
-            flip mapM (filter trulyLocalDependency allDeps) $ installBinary packageBinariesDir
+            let trulyLocalDependency path = OSX.isLocalDep path && (not $ elem path builtDlls)
+            flip mapM (filter trulyLocalDependency allDeps) $ OSX.installBinary packageBinariesDir
             -- Place all artifact binaries in the destination directory
-            flip mapM buildArtifactBinaries $ installBinary packageBinariesDir
+            flip mapM builtDlls $ OSX.installBinary packageBinariesDir
 
             -- Copy Python installation to the package and remove some parts that are heavy and not needed.
             pythonPrefix <- pythonPrefix
@@ -243,65 +236,6 @@ package repoDir stagingDir buildArtifacts = do
         { dataframesPackageArchive = dataframesPackageName
         , dataframesPackageDirectory = packageRoot
         }
-
-data OsxDependencyCategory = Local | Python | System deriving (Eq, Show)
-
-categorizeDependency dependencyFullPath =
-    if isInfixOf "/lib/python3.7/" dependencyFullPath
-        then Python
-        else if (isPrefixOf "/usr/lib/system/" dependencyFullPath) || (isPrefixOf "/System" dependencyFullPath)
-            then System
-            else if takeDirectory dependencyFullPath == "/usr/lib"
-                then System
-                else Local
-
-isLocalDep dep = categorizeDependency dep == Local
-
--- Function installs Mach-O binary in a target binary folder.
--- install name shall be rewritten to contain only a filename
--- install names of direct local dependencies shall be rewritten, assuming they are in the same dir
-installBinary :: FilePath -> FilePath -> IO ()
-installBinary targetBinariesDir sourcePath = do
-    -- putStrLn $ "installing " <> takeFileName sourcePath <> " to " <> targetBinariesDir
-    destinationPath <- copyToDir targetBinariesDir sourcePath
-    callProcess "chmod" ["777", destinationPath]
-    INT.setInstallName destinationPath $ takeFileName destinationPath
-    (filter isLocalDep -> directDeps) <- Otool.usedLibraries destinationPath
-    flip mapM directDeps $ \installName -> do
-        when (isLocalDep installName) $ do
-            -- local dependencies of local dependencies are in the same folder as the current binary
-            -- NOTE: in future, in multi-package world, there might be more folders
-            INT.change destinationPath installName $ "@loader_path" </> takeFileName installName
-    callProcess "chmod" ["555", destinationPath]
-
-osxpack repoDir stagingDir buildArtifacts = do
-    removeDirectoryRecursiveIfExists stagingDir
-    createDirectoryIfMissing True stagingDir
-    let packageRoot = stagingDir </> "Dataframes"
-    let packageBinariesDir = packageRoot </> "native_libs" </> nativeLibsOsDir
-
-    let dirsToCopy = ["src", "visualizers", ".luna-package"]
-    mapM (copyDirectory repoDir packageRoot) dirsToCopy
-
-    let buildArtifactBinaries = dataframesBinaries buildArtifacts <>  dataframesTests buildArtifacts
-    when (null buildArtifactBinaries) $ error "Build action have not build any binaries despite declaring success!"
-
-    let testsBinary = head $ dataframesTests buildArtifacts
-
-    allDeps1 <- OSX.getDependenciesOfDylibs $ dataframesBinaries buildArtifacts
-    allDeps2 <- OSX.getDependenciesOfExecutable testsBinary ["--help"]
-    let allDeps = nub $ allDeps1 <> allDeps2
-    let resolveInstallName installName = find (\dep -> takeFileName installName == takeFileName dep) allDeps
-
-    -- Place all "local depenencies" into the lib directory
-    let trulyLocalDependency path = isLocalDep path && (not $ elem path buildArtifactBinaries)
-    flip mapM (filter trulyLocalDependency allDeps) $ installBinary packageBinariesDir
-    -- Place all artifact binaries in the destination directory
-    flip mapM buildArtifactBinaries $ installBinary packageBinariesDir
-
-    -- Copy Python installation to the package and remove some parts that are heavy and not needed.
-    pythonPrefix <- pythonPrefix
-    copyInPythonLibs pythonPrefix packageRoot
 
 runTests :: FilePath -> DataframesBuildArtifacts -> DataframesPackageArtifacts -> IO ()
 runTests repoDir buildArtifacts packageArtifacts = do
