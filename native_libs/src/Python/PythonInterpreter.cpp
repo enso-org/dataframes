@@ -14,6 +14,75 @@
 #include <dlfcn.h> // for dlopen
 #endif
 
+
+#ifdef __linux__
+boost::filesystem::path loadedLibraryPath(std::string_view libraryName)
+{
+    auto pid = getpid();
+    auto mapsIn = openFileToRead(fmt::format("/proc/{}/maps", pid));
+
+    std::string line;
+    while (std::getline(mapsIn, line))
+    {
+        if(line.find(libraryName) == std::string::npos)
+            continue;
+
+        // we expect line like that below:
+        // 7f568cd8a000-7f568d17c000 r-xp 00000000 08:01 11543023                   /usr/lib/x86_64-linux-gnu/libpython3.6m.so.1.0
+        // we assume that path is from the first slash to the end of line
+        auto firstSlash = line.find('/');
+        if(firstSlash == std::string::npos)
+        {
+            // should not happen, as the paths are absolute
+            std::cerr << "Unexpected entry in /proc/pid/maps: " << line << std::endl;
+            continue;
+        }
+
+        return line.substr(firstSlash);
+    }
+
+    THROW("Failed to find {}", libraryName);
+}
+#endif
+
+#ifdef __APPLE__
+
+
+boost::filesystem::path loadedLibraryPath(std::string libraryName)
+{
+    auto pid = getpid();
+    std::string command = fmt::format("vmmap {}", pid);
+    std::shared_ptr<FILE> pipe(popen(command.c_str(), "r"), pclose);
+    if (!pipe)
+        throw std::runtime_error("popen() failed, command was: " + command);
+
+    char line[4096];
+    while (!feof(pipe.get()))
+    {
+        if (fgets(line, std::size(line), pipe.get()) != nullptr)
+        {
+            if(std::strstr(line, libraryName.c_str()) != nullptr)
+            {
+                if (auto pos = std::strstr(line, " /"))
+                {
+                    return std::string(pos + 1);
+                }
+                else
+                {
+                    // unexpected
+                    std::cerr << "unexpected line in vmmap output: " << line << std::endl;
+                    continue;
+                }
+            }
+        }
+    }
+
+    THROW("Failed to find {}", libraryName);
+}
+
+#endif // __APPLE__
+
+
 std::wstring widenString(const char *narrow)
 {
     auto tmp = Py_DecodeLocale(narrow, nullptr);
@@ -41,8 +110,7 @@ PythonInterpreter::PythonInterpreter()
         // Not really sure. It works with just a name when I try to run our (RPATH-adjusted) test executable
         // but doesn't work when doing exactly the same from Luna.
         // Well, the approach below seemingly does work for all cases, so let's just be happy with that.
-        boost::filesystem::path pythonInterprerLibraryPath(std::string_view libraryName);
-        auto pythonLibraryPath = pythonInterprerLibraryPath(libraryName());
+        auto pythonLibraryPath = loadedLibraryPath(libraryName());
         if(!dlopen(pythonLibraryPath.c_str(), RTLD_LAZY | RTLD_GLOBAL))
             THROW("Failed to load {}: {}", pythonLibraryPath, dlerror());
 #endif
@@ -141,73 +209,6 @@ std::string PythonInterpreter::libraryName()
     #error "unknown system"
 #endif
 }
-
-#ifdef __linux__
-boost::filesystem::path loadedLibraryPath(std::string_view libraryName)
-{
-    auto pid = getpid();
-    auto mapsIn = openFileToRead(fmt::format("/proc/{}/maps", pid));
-
-    std::string line;
-    while (std::getline(mapsIn, line))
-    {
-        if(line.find(libraryName) == std::string::npos)
-            continue;
-
-        // we expect line like that below:
-        // 7f568cd8a000-7f568d17c000 r-xp 00000000 08:01 11543023                   /usr/lib/x86_64-linux-gnu/libpython3.6m.so.1.0
-        // we assume that path is from the first slash to the end of line
-        auto firstSlash = line.find('/');
-        if(firstSlash == std::string::npos)
-        {
-            // should not happen, as the paths are absolute
-            std::cerr << "Unexpected entry in /proc/pid/maps: " << line << std::endl;
-            continue;
-        }
-
-        return line.substr(firstSlash);
-    }
-
-    THROW("Failed to find {}", libraryName);
-}
-#endif
-
-#ifdef __APPLE__
-
-
-boost::filesystem::path loadedLibraryPath(std::string libraryName)
-{
-    auto pid = getpid();
-    std::string command = fmt::format("vmmap {}", pid);
-    std::shared_ptr<FILE> pipe(popen(command.c_str(), "r"), pclose);
-    if (!pipe)
-        throw std::runtime_error("popen() failed, command was: " + command);
-
-    char line[4096];
-    while (!feof(pipe.get()))
-    {
-        if (fgets(line, std::size(line), pipe.get()) != nullptr)
-        {
-            if(std::strstr(line, libraryName.c_str()) != nullptr)
-            {
-                if (auto pos = std::strstr(line, " /"))
-                {
-                    return std::string(pos + 1);
-                }
-                else
-                {
-                    // unexpected
-                    std::cerr << "unexpected line in vmmap output: " << line << std::endl;
-                    continue;
-                }
-            }
-        }
-    }
-
-    THROW("Failed to find {}", libraryName);
-}
-
-#endif // __APPLE__
 
 
 #ifndef _WIN32
