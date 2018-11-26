@@ -1,5 +1,28 @@
 version: 2
 jobs:
+  "Centos-7":
+    docker:
+      - image: murbanczyk/dataframes-package:1.0.2
+    environment:
+      JOB_COUNT: 2 # otherwise more compilers will spawn and they will crash due memory limits
+      PYTHON_PREFIX_PATH: /python-dist
+      DATAFRAMES_REPO_PATH: /root/project
+    steps:
+      - checkout
+      - run:
+          name: Run package script
+          command: |
+            cd scripts
+            stack build
+            stack exec dataframes-package
+      - store_artifacts:
+          path: scripts/Dataframes-Linux-x64.tar.gz
+          destination: /Dataframes-Linux-x64.tar.gz
+      - run:
+          name: "S3 upload"
+          command: |
+            /python-dist/bin/python3 -mpip install awscli --user
+            aws --region us-west-2 s3 cp scripts/Dataframes-Linux-x64.tar.gz s3://packages-luna/dataframes/nightly/$CIRCLE_SHA1/Dataframes-Linux-x64.tar.gz --acl public-read
   xcode9: &xcode-job
     macos:
       xcode: "9.4.1"
@@ -60,11 +83,10 @@ jobs:
     macos:
       xcode: "10.0.0"
 
-
-
 workflows:
   version: 2
   build_and_test:
     jobs:
       # - xcode9
       - xcode10
+      - Centos-7
