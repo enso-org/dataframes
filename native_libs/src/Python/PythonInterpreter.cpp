@@ -14,7 +14,6 @@
 #include <dlfcn.h> // for dlopen
 #endif
 
-
 #ifdef __linux__
 boost::filesystem::path loadedLibraryPath(std::string_view libraryName)
 {
@@ -95,6 +94,21 @@ PythonInterpreter::PythonInterpreter()
 {
     try
     {
+        // macOS specific workaround
+        // For some reason non-deterministic crashes happen during matplotlib 
+        // chart rasterization. The call stack goes like:   
+        // Dataframes -> matplotlib -> numpy -> openBLAS
+        // The crash happens within OpenBLAS function `dgetrf_parallel`. 
+        // If we disable multithreading, the crash goes away. So we disable it.
+        //
+        // It has been also reported that using numpy built against Apple Accelerate 
+        // framework does help but Accelerate doesn't seem to be well supported.
+#ifdef __APPLE__
+        char openblasNumThreads[] = "OPENBLAS_NUM_THREADS=1";
+        if (putenv(openblasNumThreads) != 0)
+            THROW("putenv failed: {}", strerror(errno));
+#endif
+
         // Workaround - various shared libraries being part of Python packages depend on libpython symbols
         // but to not declare an explicit dependency on libpython. Because of that an attempt to load them
         // (that will be made by e.g. when importing modules, like multiarray)
