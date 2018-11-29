@@ -103,8 +103,8 @@ RUN wget https://github.com/commercialhaskell/stack/releases/download/v1.9.1/sta
     cp stack-1.9.1-linux-x86_64/stack /usr/local/bin/stack &&\
     rm -rf stack-1.9.1-linux-x86_64.tar.gz stack-1.9.1-linux-x86_64 &&\
     yum install -y gmp-devel &&\
-    stack setup 8.4.3 &&\
-    stack --resolver lts-12.14 build Cabal MissingH typed-process
+    stack setup 8.6.2 &&\
+    stack --resolver nightly-2018-11-23 build Cabal MissingH typed-process
 
 RUN wget https://www.mirrorservice.org/sites/dl.fedoraproject.org/pub/epel/7/x86_64/Packages/p/p7zip-16.02-10.el7.x86_64.rpm &&\
     rpm -U --quiet p7zip-16.02-10.el7.x86_64.rpm &&\

@@ -2,7 +2,7 @@ version: 2
 jobs:
   "Centos-7":
     docker:
-      - image: murbanczyk/dataframes-package:1.0.2
+      - image: lunalang/dataframes-package:1.0.3
     environment:
       JOB_COUNT: 2 # otherwise more compilers will spawn and they will crash due memory limits
       PYTHON_PREFIX_PATH: /python-dist
