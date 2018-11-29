@@ -1,6 +1,6 @@
 This directory contains the `dataframes-package` Haskell program.
 
-The program is provisional, works only on Windows and Linux and relies on environment prepared beforehand. The aim is to iteratively improve and generalize it, in compliance with our long-term libraries package & distribution vision.
+The program is provisional. It supports all our targeted platforms (Windows, Linux, macOS) but requires specific environment having been prepared beforehand.  The aim is to iteratively improve and generalize it, in compliance with our long-term libraries package & distribution vision.
 
 Running this program builds the Dataframes library and creates a relocatable package with binary artifacts.
 
@@ -16,7 +16,10 @@ The program can be called from any location, the artifacts will appear in curren
 Runs in AppVeyor environment. Dependencies are provided by the pre-built archive. Build Dataframes. Extract them onto pre-built package skeleton.
 
 ### Linux
-Runs in Docker environment with all dependencies pre-built. Build Dataframes. Build package from them, its ldd-found dependencied and Python distribution.
+Runs in Docker environment with all dependencies pre-built. Build Dataframes. Build package from them, its ldd-found dependencies and Python distribution.
+
+### macOS
+Runs in VM environment, dependencies are obtained through brew or build from sources as part of CI script. Packaging uses automatic dependency detection (based on dyld).
 
 ## Input
 * local environment:
@@ -31,6 +34,9 @@ Runs in Docker environment with all dependencies pre-built. Build Dataframes. Bu
     * CMake and GCC-7 or newer
     * ldd
     * patchelf
+  * On macOS:
+    * CMake
+    * XCode >= 10
 * external hand-made resources (needed on Windows only):
   * archive with build-time dependencies (import libraries, headers, binaries), currently assumed at: `https://packages.luna-lang.org/dataframes/libs-dev-v140.7z`
     * it contains .props file (property sheet) — this file will be included by MSBuild script. It is required that this sheet provides all the build-time dependencies of C++ parts of Dataframes
@@ -42,6 +48,7 @@ Runs in Docker environment with all dependencies pre-built. Build Dataframes. Bu
 In the current working directory the archive will appear, depending on platform:
 * `Dataframes-Win-x64.7z` file — relocatable Dataframe library package (and all its dependencies) for 64-bit Windows.
 * `Dataframes-Linux-x64.7z` file — relocatable Dataframe library package (and all its dependencies) for 64-bit Linux.
+* `Dataframes-macOS-x64.7z` file — relocatable Dataframe library package (and all its dependencies) for 64-bit macOS.
 
 ## How the input packages are built
 ### Build-time dependencies
