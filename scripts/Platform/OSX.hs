@@ -36,7 +36,7 @@ getDependenciesOfExecutable exePath args = do
     -- we filter only lines beggining with he dyld prefix
     let dyldPrefix = "dyld: loaded: "
     let (relevant, irrelevant) = partition (isPrefixOf dyldPrefix) (lines err)
-    let loadedPaths =(drop $ length dyldPrefix) <$> relevant
+    let loadedPaths = drop (length dyldPrefix) <$> relevant
     pure $ delete exePath loadedPaths
 
 
