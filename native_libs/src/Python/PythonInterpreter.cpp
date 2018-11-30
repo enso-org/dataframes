@@ -33,7 +33,7 @@ boost::filesystem::path loadedLibraryPath(std::string_view libraryName)
         if(firstSlash == std::string::npos)
         {
             // should not happen, as the paths are absolute
-            std::cerr << "Unexpected entry in /proc/pid/maps: " << line << std::endl;
+            std::cerr << "Unexpected entry in /proc/self/maps: " << line << std::endl;
             continue;
         }
 
