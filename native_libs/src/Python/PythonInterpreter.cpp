@@ -18,7 +18,7 @@
 boost::filesystem::path loadedLibraryPath(std::string_view libraryName)
 {
     auto pid = getpid();
-    auto mapsIn = openFileToRead(fmt::format("/proc/{}/maps", pid));
+    auto mapsIn = openFileToRead("/proc/self/maps");
 
     std::string line;
     while (std::getline(mapsIn, line))
