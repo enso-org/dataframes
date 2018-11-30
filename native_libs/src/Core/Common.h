@@ -5,6 +5,7 @@
 #include <functional>
 #include <iostream>
 #include <string>
+#include <type_traits>
 
 #include "optional.h"
 
@@ -18,7 +19,7 @@ using namespace std::chrono_literals;
 #define FORCE_INLINE __forceinline
 #else
 #define FORCE_INLINE __attribute__((always_inline))
-#endif 
+#endif
 
 // NO_INLINE macro is meant to prevent compiler from inlining function.
 // primary intended use-case is for dbeugging / profiling purposes.
@@ -26,7 +27,7 @@ using namespace std::chrono_literals;
 #define NO_INLINE __declspec(noinline)
 #else
 #define NO_INLINE __attribute__((noinline))
-#endif 
+#endif
 
 // intellisense is checked because of MSVC bug: https://developercommunity.visualstudio.com/content/problem/335672/c-intellisense-stops-working-with-given-code.html
 #if defined(_MSC_VER) && !defined(__INTELLISENSE__)
@@ -51,14 +52,16 @@ constexpr size_t operator"" _z (unsigned long long n)
 template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
-// to allow conditional static_asserts 
+// to allow conditional static_asserts
 template<class T> struct always_false : std::false_type {};
 template<class T> constexpr bool always_false_v = always_false<T>::value;
 
 // Abominable workaround - standard library on Mac does not have invoke_result
 // And we don't just use std::result_of_t, as conforming compilers hate it
 // (it has been deprecated in C++17 and removed in C++20)
-#if !defined(_MSC_VER) && !defined(__cpp_lib_is_invocable)
+//
+// The issue was fixed in XCode 10 but they didn't update the feature macro. :/
+#if !defined(_MSC_VER) && !defined(__cpp_lib_is_invocable) && __clang_major__ < 10
 namespace std
 {
     template<typename F, typename ...Args>
@@ -139,7 +142,7 @@ namespace std
 void validateIndex(const size_t size, int64_t index);
 
 template<typename T>
-T lerp(T v0, T v1, double t) 
+T lerp(T v0, T v1, double t)
 {
     return (1 - t) * v0 + t * v1;
 }
@@ -192,7 +195,7 @@ Value maxElementValue(Range &&range, Value forEmptyRange, Functor &&f)
     if(std::empty(range))
         return forEmptyRange;
 
-    auto minItr = std::max_element(std::begin(range), std::end(range), [&] (auto &&lhs, auto &&rhs) 
+    auto minItr = std::max_element(std::begin(range), std::end(range), [&] (auto &&lhs, auto &&rhs)
         { return f(lhs) < f(rhs); });
     return f(*minItr);
 }

@@ -173,7 +173,7 @@ struct Interpreter
     const arrow::Table &table;
     std::vector<std::shared_ptr<arrow::Column>> columns;
 
-    using Field = std::variant<int64_t, double, std::string, Timestamp, ArrayOperand<int64_t>, ArrayOperand<double>, ArrayOperand<std::string>, ArrayOperand<Timestamp>>;
+    using Field = variant<int64_t, double, std::string, Timestamp, ArrayOperand<int64_t>, ArrayOperand<double>, ArrayOperand<std::string>, ArrayOperand<Timestamp>>;
 
     Field fieldFromColumn(const arrow::Column &column)
     {
@@ -211,19 +211,19 @@ struct Interpreter
 
     Field evaluateValue(const ast::Value &value)
     {
-        return std::visit(overloaded{
+        return visit(overloaded{
             [&] (const ast::ColumnReference &col)    -> Field { return fieldFromColumn(*columns[col.columnRefId]); },
             [&] (const ast::ValueOperation &op)      -> Field 
             {
 #define VALUE_UNARY_OP(opname)                                               \
             case ast::ValueOperator::opname:                                 \
-                return std::visit(                                        \
+                return visit(                                        \
                     [&] (auto &&lhs) -> Field                                \
                         { return exec<opname>(table.num_rows(), lhs);},      \
                     getOperand(operands, 0));
 #define VALUE_BINARY_OP(opname)                                              \
             case ast::ValueOperator::opname:                                 \
-                return std::visit(                                        \
+                return visit(                                        \
                     [&] (auto &&lhs, auto &&rhs) -> Field                    \
                         { return exec<opname>(table.num_rows(), lhs, rhs);}, \
                     getOperand(operands, 0), getOperand(operands, 1));
@@ -254,7 +254,7 @@ struct Interpreter
                 auto mask = this->evaluate(*condition.predicate);
                 auto onTrue = this->evaluateValue(*condition.onTrue);
                 auto onFalse = this->evaluateValue(*condition.onFalse);
-                return std::visit([&](auto &&t, auto &&f) -> Field
+                return visit([&](auto &&t, auto &&f) -> Field
                 {
                     return exec<Condition>(table.num_rows(), mask, t, f);
                 }, onTrue, onFalse);
@@ -266,30 +266,30 @@ struct Interpreter
 
     ArrayOperand<bool> evaluate(const ast::Predicate &p)
     {
-        return std::visit(overloaded{
+        return visit(overloaded{
             [&] (const ast::PredicateFromValueOperation &elem) -> ArrayOperand<bool>
         {
             const auto operands = evaluateOperands(elem.operands);
             switch(elem.what)
             {
             case ast::PredicateFromValueOperator::Greater:
-                return std::visit(
+                return visit(
                     [&] (auto &&lhs, auto &&rhs) { return exec<GreaterThan>(table.num_rows(), lhs, rhs);},
                     getOperand(operands, 0), getOperand(operands, 1));
             case ast::PredicateFromValueOperator::Lesser:
-                return std::visit(
+                return visit(
                     [&] (auto &&lhs, auto &&rhs) { return exec<LessThan>(table.num_rows(), lhs, rhs);},
                     getOperand(operands, 0), getOperand(operands, 1));
             case ast::PredicateFromValueOperator::Equal:
-                return std::visit(
+                return visit(
                     [&] (auto &&lhs, auto &&rhs) { return exec<EqualTo>(table.num_rows(), lhs, rhs);},
                     getOperand(operands, 0), getOperand(operands, 1));
             case ast::PredicateFromValueOperator::StartsWith:
-                return std::visit(
+                return visit(
                     [&] (auto &&lhs, auto &&rhs) { return exec<StartsWith>(table.num_rows(), lhs, rhs);},
                     getOperand(operands, 0), getOperand(operands, 1));
             case ast::PredicateFromValueOperator::Matches:
-                return std::visit(
+                return visit(
                     [&] (auto &&lhs, auto &&rhs) { return exec<Matches>(table.num_rows(), lhs, rhs);},
                     getOperand(operands, 0), getOperand(operands, 1));
             default:
@@ -441,7 +441,7 @@ std::shared_ptr<arrow::Array> execute(const arrow::Table &table, const ast::Valu
 
     const auto nullBufferToBeUsed = usedNullableColumns ? bitmask.buffer : nullptr;
 
-    return std::visit(
+    return visit(
         [&] (auto &&i) -> std::shared_ptr<arrow::Array>
         {
             return arrayFrom(table.num_rows(), i, nullBufferToBeUsed);

@@ -288,7 +288,7 @@ std::shared_ptr<arrow::Column> calculateQuantile(const arrow::Column &column, do
 {
     // return calculateStat<Median>(column);
     auto v = toJustVector(column);
-    return std::visit([&] (auto &vector) -> std::shared_ptr<arrow::Column>
+    return visit([&] (auto &vector) -> std::shared_ptr<arrow::Column>
     {
         using VectorType = std::decay_t<decltype(vector)>;
         using T = typename VectorType::value_type;
@@ -729,14 +729,10 @@ std::vector<int64_t> collectRollingWindowPositionsT(const Indexable &indexable, 
             using Array = typename TD::Array;
             using IntervalType = IntervalType<TD>;
 
-            if(!std::holds_alternative<IntervalType>(interval))
+            if(!holds_alternative<IntervalType>(interval))
                 THROW("wrong interval type: `index {}`, expected: `{}`", interval.index(), typeid(IntervalType));
 
-#if __has_include(<variant>)
-            const auto intervalT = std::get<IntervalType>(interval);
-#else
-            const auto intervalT = mpark::get<IntervalType>(interval);
-#endif
+            const auto intervalT = get<IntervalType>(interval);
             int64_t left = 0;
 
             for(int64_t right = 0; right < N; ++right)
@@ -811,7 +807,7 @@ std::vector<int64_t> collectRollingIntervalSizes(std::shared_ptr<arrow::Column> 
 {
     try
     {
-        return dispatchIndexable(keyColumn, [&] (auto &&indexable) 
+        return dispatchIndexable(keyColumn, [&] (auto &&indexable)
         {
             return collectRollingWindowPositionsT(*indexable, interval);
         });

@@ -1,5 +1,6 @@
 import Control.Monad
 import Control.Monad.Extra
+import Data.List
 import Data.Maybe
 import Data.Monoid
 import Distribution.Simple.Utils
@@ -15,13 +16,18 @@ import System.Process
 import Program
 import Utils
 
-import qualified Program.CMake    as CMake
-import qualified Program.Curl     as Curl
-import qualified Program.Ldd      as Ldd
-import qualified Program.Patchelf as Patchelf
-import qualified Program.MsBuild  as MsBuild
-import qualified Program.SevenZip as SevenZip
-import qualified Program.Tar      as Tar
+import qualified Program.CMake           as CMake
+import qualified Program.Curl            as Curl
+import qualified Program.Ldd             as Ldd
+import qualified Program.Patchelf        as Patchelf
+import qualified Program.MsBuild         as MsBuild
+import qualified Program.SevenZip        as SevenZip
+import qualified Program.Tar             as Tar
+import qualified Program.Otool           as Otool
+import qualified Program.InstallNameTool as INT
+
+import qualified Platform.OSX   as OSX
+import qualified Platform.Linux as Linux
 
 depsArchiveUrl, packageBaseUrl :: String
 depsArchiveUrl = "https://packages.luna-lang.org/dataframes/libs-dev-v140.7z"
@@ -39,6 +45,15 @@ downloadAndUnpack7z archiveUrl targetDirectory = do
 -- Gets path to the local copy of the Dataframes repo
 repoDir :: IO FilePath
 repoDir = getEnvRequired "DATAFRAMES_REPO_PATH" -- TODO: should be able to deduce from this packaging executable location
+
+-- Path to directory with Python installation, should not contain other things
+-- (that was passed as --prefix to Python's configure script)
+pythonPrefix :: IO FilePath
+pythonPrefix = getEnvRequired "PYTHON_PREFIX_PATH" -- TODO: should be able to deduce by looking for python in PATH
+
+-- Python version that we package, assumed to be already installed on packaging system.
+pythonVersion :: String
+pythonVersion = "3.7"
 
 -- Helper that does two things:
 -- 1) use file extension to deduce compression method
@@ -65,50 +80,22 @@ dynamicLibraryExtension :: String
 dynamicLibraryExtension = case buildOS of
     Windows -> "dll"
     Linux   -> "so"
+    OSX     -> "dylib"
     _       -> error $ "dynamicLibraryExtension: not implemented: " <> show buildOS
 
 nativeLibsOsDir :: String
 nativeLibsOsDir = case buildOS of
     Windows -> "windows"
     Linux   -> "linux"
+    OSX     -> "macos"
     _       -> error $ "nativeLibsOsDir: not implemented: " <> show buildOS
 
 dataframesPackageName :: String
 dataframesPackageName = case buildOS of
     Windows -> "Dataframes-Win-x64.7z"
     Linux   -> "Dataframes-Linux-x64.tar.gz"
+    OSX     -> "Dataframes-macOS-x64.tar.gz"
     _       -> error $ "dataframesPackageName: not implemented: " <> show buildOS
-
--- Path to directory with Python installation, should not contain other things
--- (that was passed as --prefix to Python's configure script)
-pythonPrefix :: IO FilePath
-pythonPrefix = getEnvRequired "PYTHON_PREFIX_PATH"
-
--- Linux-specific function.
--- The function takes paths to shared libraries and returns the ones that
--- should be distributed as the part of package. Libraries that are filtered
--- out should be assumed to be present at end-user's machine.
---
--- It is based on a list of libraries that should not be shipped, that was
--- written down based on previous experience. It mostly consists of low-level
--- libraries that are "just present" on "all" systems or libraries that
--- presumably would not work even if we shipped them.
-dependenciesToPackage :: [FilePath] -> IO [FilePath]
-dependenciesToPackage binaries = do
-    let libraryBlacklist = [
-            "libX11", "libXext", "libXau", "libXdamage", "libXfixes", "libX11-xcb",
-            "libXxf86vm", "libXdmcp", "libGL", "libdl", "libc", "librt", "libm", "libpthread",
-            "libXcomposite",
-            "libnvidia-tls", "libnvidia-glcore", "libnvidia-glsi",
-            "libXrender", "libXi",
-            "libdrm",
-            "libutil",
-            "libgbm", "libdbus-1",
-            "libselinux",
-            "ld-linux-x86-64"
-            ]
-    let isDependencyToPack path = notElem (dropExtensions $ takeFileName path) libraryBlacklist
-    filter isDependencyToPack <$> Ldd.dependenciesOfBinaries binaries
 
 -- This function purpose is to transform environment from its initial state
 -- to the state where build step can be executed - so all dependencies and
@@ -132,6 +119,7 @@ prepareEnvironment tempDir = do
             -- with the Docker image used to run Dataframes CI, and should be similarly with
             -- developer machines.
             return ()
+        OSX  -> return ()
         _     ->
             error $ "not implemented: prepareEnvironment for buildOS == " <> show buildOS
 
@@ -139,7 +127,7 @@ prepareEnvironment tempDir = do
 data DataframesBuildArtifacts = DataframesBuildArtifacts
     { dataframesBinaries :: [FilePath]
     , dataframesTests :: [FilePath]
-    }
+    } deriving (Eq, Show)
 
 -- This function should be called only in a properly prepared build environment.
 -- It builds the project and produces build artifacts.
@@ -149,14 +137,15 @@ buildProject repoDir stagingDir = do
     case buildOS of
         Windows -> do
             MsBuild.build $ dataframesLibPath </> "DataframeHelper.sln"
-        Linux -> do
+        _ -> do
             pythonPrefix <- pythonPrefix
             let buildDir = stagingDir </> "build"
-            let cmakeVariables =  [ ("PYTHON_LIBRARY",           pythonPrefix </> "lib/libpython3.7m.so")
-                                  , ("PYTHON_NUMPY_INCLUDE_DIR", pythonPrefix </> "lib/python3.7/site-packages/numpy/core/include")]
+            let pythonLibLocation = pythonPrefix </> "lib/libpython" <> pythonVersion <> "m" <.> dynamicLibraryExtension
+            let numpyIncludeDir = pythonPrefix </> "lib/python" <> pythonVersion <> "/site-packages/numpy/core/include"
+            let cmakeVariables =  [ ("PYTHON_LIBRARY",           pythonLibLocation)
+                                  , ("PYTHON_NUMPY_INCLUDE_DIR", numpyIncludeDir)]
             let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo : (CMake.OptionSetVariable <$> cmakeVariables)
             CMake.build buildDir dataframesLibPath options
-        _ -> error $ "buildProject: not implemented: " <> show buildOS
 
     let builtBinariesDir = repoDir </> "native_libs" </> nativeLibsOsDir
     builtDlls <- glob $ builtBinariesDir </> "*" <.> dynamicLibraryExtension
@@ -168,7 +157,17 @@ buildProject repoDir stagingDir = do
 data DataframesPackageArtifacts = DataframesPackageArtifacts
     { dataframesPackageArchive :: FilePath
     , dataframesPackageDirectory :: FilePath
-    }
+    } deriving (Eq, Show)
+
+copyInPythonLibs :: FilePath -> FilePath -> IO ()
+copyInPythonLibs pythonPrefix packageRoot = do
+    let from = pythonPrefix </> "lib" </> "python" <> pythonVersion <> ""
+    let to = packageRoot </> "python_libs"
+    copyDirectoryRecursive normal from to
+    pyCacheDirs <- glob $ to </> "**" </> "__pycache__"
+    mapM removePathForcibly pyCacheDirs
+    removePathForcibly $ to </> "config-" <> pythonVersion <> "m-x86_64-linux-gnu"
+    removePathForcibly $ to </> "test"
 
 package :: FilePath -> FilePath -> DataframesBuildArtifacts -> IO DataframesPackageArtifacts
 package repoDir stagingDir buildArtifacts = do
@@ -188,18 +187,27 @@ package repoDir stagingDir buildArtifacts = do
             mapM (copyToDir packageBinariesDir) builtDlls
             return ()
         Linux -> do
-            dependencies <- dependenciesToPackage builtDlls
-            let libsDirectory = packageRoot </> "lib"
-            mapM (Patchelf.installDependencyTo libsDirectory) dependencies
-            mapM (Patchelf.installBinary packageBinariesDir libsDirectory) builtDlls
+            dependencies <- Linux.dependenciesToPackage builtDlls
+            mapM (Patchelf.installDependencyTo packageBinariesDir) dependencies
+            mapM (Patchelf.installBinary packageBinariesDir packageBinariesDir) builtDlls
 
             -- Copy Python installation to the package and remove some parts that are heavy and not needed.
             pythonPrefix <- pythonPrefix
-            copyDirectoryRecursive silent (pythonPrefix </> "lib/python3.7") (packageRoot </> "python-libs")
-            pyCacheDirs <- glob $ packageRoot </> "python-libs" </> "**" </> "__pycache__"
-            mapM removePathForcibly pyCacheDirs
-            removePathForcibly $ packageRoot </> "python-libs" </> "config-3.7m-x86_64-linux-gnu"
-            removePathForcibly $ packageRoot </> "python-libs" </> "test"
+            copyInPythonLibs pythonPrefix packageRoot
+        OSX -> do
+            let testsBinary = head $ dataframesTests buildArtifacts
+            -- Note: This code assumed that all redistributable build artifacts are dylibs.
+            --       It might need generalization in future.
+            allDeps <- OSX.getDependenciesOfDylibs builtDlls
+            -- Place all "local depenencies" into the lib directory
+            let trulyLocalDependency path = OSX.isLocalDep path && (not $ elem path builtDlls)
+            flip mapM (filter trulyLocalDependency allDeps) $ OSX.installBinary packageBinariesDir
+            -- Place all artifact binaries in the destination directory
+            flip mapM builtDlls $ OSX.installBinary packageBinariesDir
+
+            -- Copy Python installation to the package and remove some parts that are heavy and not needed.
+            pythonPrefix <- pythonPrefix
+            copyInPythonLibs pythonPrefix packageRoot
 
     packDirectory packageRoot dataframesPackageName
     putStrLn $ "Packaging done, file saved to: " <> dataframesPackageName
@@ -218,6 +226,7 @@ runTests repoDir buildArtifacts packageArtifacts = do
     tests <- mapM (copyToDir packageDirBinaries) (dataframesTests buildArtifacts)
     withCurrentDirectory repoDir $ do
         mapM_ (flip callProcess ["--report_level=detailed"]) tests
+
 
 main :: IO ()
 main = do

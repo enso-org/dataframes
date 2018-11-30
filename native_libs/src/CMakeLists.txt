@@ -22,7 +22,7 @@ endif()
 
 project(DataframeHelper)
 
-find_package(Boost 1.62.0 REQUIRED COMPONENTS unit_test_framework)
+find_package(Boost 1.62.0 REQUIRED COMPONENTS filesystem unit_test_framework)
 if(NOT Boost_FOUND)
     message(WARNING "Cannot find Boost libraries")
 endif()
@@ -97,6 +97,10 @@ add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SRC_FILES})
 target_compile_definitions(${PROJECT_NAME} PRIVATE BUILDING_DATAFRAME_HELPER)
 target_compile_definitions(${PROJECT_NAME} PUBLIC _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS) # rapidjson is so deprecated)
 
+# Boost libraries dependency
+target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} Boost::filesystem)
+
 # Includes path: project root, arrow, third-party any-lite
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR} ${ARROW_INCLUDE} ${PROJECT_SOURCE_DIR}/../third-party/any-lite ${PROJECT_SOURCE_DIR}/../third-party/optional-lite ${PROJECT_SOURCE_DIR}/../third-party/variant ${RAPIDJSON_INCLUDE} ${DATE_INCLUDE} ${FMT_INCLUDE} ${PYTHON_INCLUDE_DIRS} ${PYTHON_NUMPY_INCLUDE_DIR} ${PYBIND_INCLUDE})
 target_link_libraries(${PROJECT_NAME} ${PYTHON_LIBRARIES})
@@ -106,7 +110,6 @@ if(WIN32)
 else()
     target_link_libraries(${PROJECT_NAME} ${FMT_LIBRARY})
 endif()
-target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
 
 if(XLNT_LIBRARY AND XLNT_INCLUDE)
     target_include_directories(${PROJECT_NAME} PRIVATE ${XLNT_INCLUDE})

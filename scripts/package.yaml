@@ -35,10 +35,12 @@ executables:
 
 dependencies:
 - base
+- bytestring
 - Cabal
 - containers
 - directory
 - extra
+- file-embed
 - filepath
 - Glob
 - MissingH

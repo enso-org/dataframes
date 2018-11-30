@@ -26,7 +26,7 @@ std::vector<std::string> decideColumnNames(int count, const HeaderPolicy &policy
 {    
     const auto suppliedNames = [&] () -> std::vector<std::string>
     {
-        if(auto names = std::get_if<std::vector<std::string>>(&policy))
+        if(auto names = get_if<std::vector<std::string>>(&policy))
             return *names;
         return {};
     }();
@@ -34,7 +34,7 @@ std::vector<std::string> decideColumnNames(int count, const HeaderPolicy &policy
     std::vector<std::string> ret;
     for(int column = 0; column < count; column++)
     {
-        if(std::holds_alternative<TakeFirstRowAsHeaders>(policy))
+        if(holds_alternative<TakeFirstRowAsHeaders>(policy))
         {
             const auto cellText = readHeaderCell(column);
             if(cellText.size())

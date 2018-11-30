@@ -6,10 +6,80 @@
 #include "IO/IO.h"
 #include <cstdlib>
 
-#ifdef __linux__
-#include <dlfcn.h> // for dlopen
+#ifndef _WIN32
 #include <boost/filesystem.hpp>
 #endif
+
+#ifdef __linux__
+#include <dlfcn.h> // for dlopen
+#endif
+
+#ifdef __linux__
+boost::filesystem::path loadedLibraryPath(std::string_view libraryName)
+{
+    auto mapsIn = openFileToRead("/proc/self/maps");
+
+    std::string line;
+    while (std::getline(mapsIn, line))
+    {
+        if(line.find(libraryName) == std::string::npos)
+            continue;
+
+        // we expect line like that below:
+        // 7f568cd8a000-7f568d17c000 r-xp 00000000 08:01 11543023                   /usr/lib/x86_64-linux-gnu/libpython3.6m.so.1.0
+        // we assume that path is from the first slash to the end of line
+        auto firstSlash = line.find('/');
+        if(firstSlash == std::string::npos)
+        {
+            // should not happen, as the paths are absolute
+            std::cerr << "Unexpected entry in /proc/self/maps: " << line << std::endl;
+            continue;
+        }
+
+        return line.substr(firstSlash);
+    }
+
+    THROW("Failed to find {}", libraryName);
+}
+#endif
+
+#ifdef __APPLE__
+
+
+boost::filesystem::path loadedLibraryPath(std::string libraryName)
+{
+    auto pid = getpid();
+    std::string command = fmt::format("vmmap {}", pid);
+    std::shared_ptr<FILE> pipe(popen(command.c_str(), "r"), pclose);
+    if (!pipe)
+        throw std::runtime_error("popen() failed, command was: " + command);
+
+    char line[4096];
+    while (!feof(pipe.get()))
+    {
+        if (fgets(line, std::size(line), pipe.get()) != nullptr)
+        {
+            if(std::strstr(line, libraryName.c_str()) != nullptr)
+            {
+                if (auto pos = std::strstr(line, " /"))
+                {
+                    return std::string(pos + 1);
+                }
+                else
+                {
+                    // unexpected
+                    std::cerr << "unexpected line in vmmap output: " << line << std::endl;
+                    continue;
+                }
+            }
+        }
+    }
+
+    THROW("Failed to find {}", libraryName);
+}
+
+#endif // __APPLE__
+
 
 std::wstring widenString(const char *narrow)
 {
@@ -23,6 +93,21 @@ PythonInterpreter::PythonInterpreter()
 {
     try
     {
+        // macOS specific workaround
+        // For some reason non-deterministic crashes happen during matplotlib
+        // chart rasterization. The call stack goes like:
+        // Dataframes -> matplotlib -> numpy -> openBLAS
+        // The crash happens within OpenBLAS function `dgetrf_parallel`.
+        // If we disable multithreading, the crash goes away. So we disable it.
+        //
+        // It has been also reported that using numpy built against Apple Accelerate
+        // framework does help but Accelerate doesn't seem to be well supported.
+#ifdef __APPLE__
+        char openblasNumThreads[] = "OPENBLAS_NUM_THREADS=1";
+        if (putenv(openblasNumThreads) != 0)
+            THROW("putenv failed: {}", strerror(errno));
+#endif
+
         // Workaround - various shared libraries being part of Python packages depend on libpython symbols
         // but to not declare an explicit dependency on libpython. Because of that an attempt to load them
         // (that will be made by e.g. when importing modules, like multiarray)
@@ -38,8 +123,7 @@ PythonInterpreter::PythonInterpreter()
         // Not really sure. It works with just a name when I try to run our (RPATH-adjusted) test executable
         // but doesn't work when doing exactly the same from Luna.
         // Well, the approach below seemingly does work for all cases, so let's just be happy with that.
-        boost::filesystem::path pythonInterprerLibraryPath(std::string_view libraryName);
-        auto pythonLibraryPath = pythonInterprerLibraryPath(libraryName());
+        auto pythonLibraryPath = loadedLibraryPath(libraryName());
         if(!dlopen(pythonLibraryPath.c_str(), RTLD_LAZY | RTLD_GLOBAL))
             THROW("Failed to load {}: {}", pythonLibraryPath, dlerror());
 #endif
@@ -47,7 +131,7 @@ PythonInterpreter::PythonInterpreter()
         const auto programName = L"Dataframes";
         Py_SetProgramName(const_cast<wchar_t *>(programName));
 
-#ifdef __linux__
+#ifndef _WIN32
         // If needed, environment must be set before initializing the interpreter.
         // Otherwise, we'll get tons of error like:
         // Could not find platform independent libraries <prefix>
@@ -65,6 +149,20 @@ PythonInterpreter::PythonInterpreter()
 
         if(_import_array() < 0)
             throw pybind11::error_already_set();
+
+        // Without workaround below Dataframes behave like a fork-bomb on mac.
+        // multiprocessing package is our transitive dependency (through sklearn).
+        // upon initialization multiprocessing tries to spawn python process that
+        // will act as semaphore_tracker.
+        // To spawn process sys.executable is called. Which is fine... if it is a
+        // python interpreter. However, it fails with embedded interpreters.
+        // We don't want our process to start another luna-empire (or whatever
+        // executable uses dataframes libray), so we need explicitly tell it to use
+        // python3 as an executable name.
+#ifdef __APPLE__
+        auto multiprocessing = pybind11::module::import("multiprocessing");
+        multiprocessing.attr("set_executable")("python3");
+#endif
     }
     catch(std::exception &e)
     {
@@ -103,7 +201,7 @@ pybind11::object PythonInterpreter::toPyDateTime(Timestamp timestamp) const
     auto min = (int)tod.minutes().count();
     auto s = (int)tod.seconds().count();
     auto us = (int)std::chrono::duration_cast<std::chrono::microseconds>(tod.subseconds()).count();
-    
+
     auto ret = PyDateTime_FromDateAndTime(y, m, d, h, min, s, us);
     if(!ret)
         throw pybind11::error_already_set();
@@ -111,47 +209,29 @@ pybind11::object PythonInterpreter::toPyDateTime(Timestamp timestamp) const
     return pybind11::reinterpret_steal<pybind11::object>(ret);
 }
 
-#ifdef __linux__
 std::string PythonInterpreter::libraryName()
 {
+
+#if defined(__APPLE__)
+    return fmt::format("libpython{}.{}m.dylib", PY_MAJOR_VERSION, PY_MINOR_VERSION);
+#elif defined(__linux__)
     return fmt::format("libpython{}.{}m.so", PY_MAJOR_VERSION, PY_MINOR_VERSION);
+#elif defined(_WIN32)
+    return fmt::format("python{}{}.dll", PY_MAJOR_VERSION, PY_MINOR_VERSION);
+#else
+    #error "unknown system"
+#endif
 }
 
-boost::filesystem::path pythonInterprerLibraryPath(std::string_view libraryName)
-{
-    auto pid = getpid();
-    auto mapsIn = openFileToRead(fmt::format("/proc/{}/maps", pid));
 
-    std::string line;
-    while (std::getline(mapsIn, line))
-    {
-        if(line.find(libraryName) == std::string::npos)
-            continue;
-
-        // we expect line like that below:
-        // 7f568cd8a000-7f568d17c000 r-xp 00000000 08:01 11543023                   /usr/lib/x86_64-linux-gnu/libpython3.6m.so.1.0
-        // we assume that path is from the first slash to the end of line
-        auto firstSlash = line.find('/');
-        if(firstSlash == std::string::npos)
-        {
-            // should not happen, as the paths are absolute
-            std::cerr << "Unexpected entry in /proc/pid/maps: " << line << std::endl;
-            continue;
-        }
-
-        return line.substr(firstSlash);
-    }
-
-    THROW("Failed to find {}", libraryName);
-}
-
+#ifndef _WIN32
 void PythonInterpreter::setEnvironment()
 {
-    // Python interpreter library typically lies in path like: /home/mwu/Dataframes/lib/libpython3.6m.so
+    // Python interpreter library typically lies in path like: /home/mwu/Dataframes/native_libs/linux/libpython3.6m.so
     // In such case we want to set following paths:
-    // PYTHONHOME=/home/mwu/Dataframes/lib/
+    // PYTHONHOME=/home/mwu/Dataframes/native_libs/linux/
     // PYTHONPATH=/home/mwu/Dataframes/python-libs:/home/mwu/Dataframes/python-libs/lib-dynload:/home/mwu/Dataframes/python-libs/site-packages
-    const auto pythonSo = pythonInterprerLibraryPath(PythonInterpreter::libraryName());
+    const auto pythonSo = loadedLibraryPath(PythonInterpreter::libraryName());
 
     // However, we want to set home and path only when we use our packaged python ditribution.
     // If this is developer build using the system-wide Python, the we should not touch anything
@@ -163,7 +243,7 @@ void PythonInterpreter::setEnvironment()
         return;
 
     const auto pythonHome = pythonSo.parent_path();
-    const auto pythonLibs =  pythonHome.parent_path() / "python-libs";
+    const auto pythonLibs =  pythonHome.parent_path().parent_path() / "python_libs";
     const auto pythonPath = fmt::format("{}:{}:{}", pythonLibs.c_str(), (pythonLibs / "lib-dynload").c_str(), (pythonLibs / "site-packages").c_str());
     Py_SetPythonHome(widenString(pythonHome.c_str()).data());
     Py_SetPath(widenString(pythonPath.c_str()).data());

@@ -86,7 +86,7 @@ namespace ast
     };
 
     using ValueOperation = OperationNode<ValueOperator, Value>;
-    using ValueBase = std::variant<Literal<int64_t>, Literal<double>, Literal<std::string>, Literal<Timestamp>, ColumnReference, ValueOperation, Condition>;
+    using ValueBase = variant<Literal<int64_t>, Literal<double>, Literal<std::string>, Literal<Timestamp>, ColumnReference, ValueOperation, Condition>;
 
     struct Value : ValueBase
     {
@@ -112,7 +112,7 @@ namespace ast
 
     using PredicateFromValueOperation = OperationNode<PredicateFromValueOperator, Value>;
     
-    using PredicateBase = std::variant<PredicateOperation, PredicateFromValueOperation>;
+    using PredicateBase = variant<PredicateOperation, PredicateFromValueOperation>;
     struct Predicate : PredicateBase
     {
         using PredicateBase::variant;

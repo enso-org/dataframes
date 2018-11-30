@@ -675,7 +675,7 @@ struct DFH_EXPORT BitmaskGenerator
 std::shared_ptr<arrow::Field> setNullable(bool nullable, std::shared_ptr<arrow::Field> field);
 std::shared_ptr<arrow::Schema> setNullable(bool nullable, std::shared_ptr<arrow::Schema> field);
 
-using PossiblyChunkedArray = std::variant<std::shared_ptr<arrow::Array>, std::shared_ptr<arrow::ChunkedArray>>;
+using PossiblyChunkedArray = variant<std::shared_ptr<arrow::Array>, std::shared_ptr<arrow::ChunkedArray>>;
 
 DFH_EXPORT std::shared_ptr<arrow::Table> tableFromArrays(std::vector<PossiblyChunkedArray> arrays, std::vector<std::string> names = {}, std::vector<bool> nullables = {});
 DFH_EXPORT std::shared_ptr<arrow::Table> tableFromColumns(const std::vector<std::shared_ptr<arrow::Column>> &columns, const std::shared_ptr<arrow::Schema> &schema);
@@ -687,9 +687,9 @@ std::shared_ptr<arrow::Table> tableFromVectors(const std::vector<Ts> & ...ts)
     return tableFromArrays({toArray(ts)...});
 }
 
-using DynamicField = std::variant<int64_t, double, std::string_view, std::string, ListElemView, Timestamp, TimestampDuration, std::nullopt_t>;
+using DynamicField = variant<int64_t, double, std::string_view, std::string, ListElemView, Timestamp, TimestampDuration, std::nullopt_t>;
 
-using DynamicJustVector = std::variant<std::vector<int64_t>, std::vector<double>, std::vector<std::string_view>, std::vector<ListElemView>, std::vector<Timestamp>>;
+using DynamicJustVector = variant<std::vector<int64_t>, std::vector<double>, std::vector<std::string_view>, std::vector<ListElemView>, std::vector<Timestamp>>;
 DFH_EXPORT DynamicJustVector toJustVector(const arrow::ChunkedArray &chunkedArray);
 DFH_EXPORT DynamicJustVector toJustVector(const arrow::Column &column);
 

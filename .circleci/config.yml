@@ -2,7 +2,7 @@ version: 2
 jobs:
   "GCC-7": &job
     docker: # use the docker executor type; machine and macos executors are also supported
-      - image: murbanczyk/dataframesci:1.0.9 # the primary container, where your job's commands are run
+      - image: lunalang/dataframesci:1.0.9 # the primary container, where your job's commands are run
     steps:
       - checkout # check out the code in the project directory
       - run:
@@ -30,7 +30,7 @@ jobs:
       CXX: g++-8
   "Centos-7":
     docker:
-      - image: murbanczyk/dataframes-package:1.0.2
+      - image: lunalang/dataframes-package:1.0.3
     environment:
       JOB_COUNT: 2 # otherwise more compilers will spawn and they will crash due memory limits
       PYTHON_PREFIX_PATH: /python-dist
@@ -51,6 +51,65 @@ jobs:
           command: |
             /python-dist/bin/python3 -mpip install awscli --user
             aws --region us-west-2 s3 cp scripts/Dataframes-Linux-x64.tar.gz s3://packages-luna/dataframes/nightly/$CIRCLE_SHA1/Dataframes-Linux-x64.tar.gz --acl public-read
+  xcode9: &xcode-job
+    macos:
+      xcode: "9.4.1"
+    steps:
+      - run:
+          name: Install C++ dependencies
+          command: |
+            brew install fmt cmake apache-arrow boost rapidjson howard-hinnant-date pybind11 wget openssl
+      - run:
+          name: Build Python
+          command: |
+            wget https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tar.xz
+            tar xf Python-3.7.0.tar.xz
+            cd Python-3.7.0
+            ./configure --prefix ~/python-dist --enable-shared --with-openssl=$(brew --prefix openssl)
+            make -j 2
+            make install
+            ~/python-dist/bin/python3.7 -mpip install --upgrade pip
+            ~/python-dist/bin/python3.7 -mpip install numpy matplotlib seaborn sklearn
+            cd .. &&\
+            rm -rf Python-3.7.0.tar.xz Python-3.7.0
+      - run:
+          name: Install XLNT library
+          command: |
+            cd ~
+            git clone https://github.com/tfussell/xlnt.git
+            cd xlnt
+            mkdir build
+            cd build
+            cmake .. -DTESTS=OFF
+            make -j 2
+            make install
+      - run:
+          name: Install Python dependencies
+          command: pip3 install numpy seaborn sklearn
+      - checkout
+      - run:
+          name: Configure Dataframes CMake
+          command: |
+            brew install gmp # otherwise GHC 8.6 fails to install, see: https://ghc.haskell.org/trac/ghc/ticket/15404
+            export PATH=$PATH:~/.local/bin
+            curl -sSL https://get.haskellstack.org/ | sh
+            export PYTHON_PREFIX_PATH=~/python-dist/
+            export DATAFRAMES_REPO_PATH=$PWD
+            cd scripts
+            stack run
+      - store_artifacts:
+          path: scripts/Dataframes-macOS-x64.tar.gz
+          destination: /Dataframes-macOS-x64.tar.gz
+      - run:
+          name: "S3 upload"
+          command: |
+            export PATH=$PATH:~/Library/Python/3.7/bin
+            python3 -mpip install awscli --user
+            aws --region us-west-2 s3 cp scripts/Dataframes-macOS-x64.tar.gz s3://packages-luna/dataframes/nightly/$CIRCLE_SHA1/Dataframes-macOS-x64.tar.gz --acl public-read
+  xcode10:
+    <<: *xcode-job
+    macos:
+      xcode: "10.0.0"
 
 workflows:
   version: 2
@@ -58,6 +117,7 @@ workflows:
     jobs:
       - "GCC-7"
       - "GCC-8"
-  build_and_package:
+  package:
     jobs:
-      - "Centos-7"
+      - xcode10
+      - Centos-7

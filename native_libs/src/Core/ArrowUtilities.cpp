@@ -70,7 +70,7 @@ std::shared_ptr<arrow::Table> tableFromArrays(std::vector<PossiblyChunkedArray> 
     std::vector<std::shared_ptr<arrow::ChunkedArray>> chunkedArrays;
     for(auto &someArray: arrays)
     {
-        auto chunk = std::visit(overloaded {
+        auto chunk = visit(overloaded {
             [&] (std::shared_ptr<arrow::Array> array) { return std::make_shared<arrow::ChunkedArray>(arrow::ArrayVector{array}); },
             [&] (std::shared_ptr<arrow::ChunkedArray> array) { return array; }
             }, someArray);

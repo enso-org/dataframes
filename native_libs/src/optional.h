@@ -1,4 +1,4 @@
-#if __has_include(<optional>)
+#if __has_include(<optional>) && !defined(__apple__)
 
 #include <optional>
 
