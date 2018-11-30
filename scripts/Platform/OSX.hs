@@ -85,7 +85,7 @@ installBinary targetBinariesDir sourcePath = do
     destinationPath <- copyToDir targetBinariesDir sourcePath
     callProcess "chmod" ["777", destinationPath]
     INT.setInstallName destinationPath $ takeFileName destinationPath
-    (filter isLocalDep -> directDeps) <- Otool.usedLibraries destinationPath
+    directDeps <- filter isLocalDep <$> Otool.usedLibraries destinationPath
     flip mapM directDeps $ \installName -> do
         when (isLocalDep installName) $ do
             -- local dependencies of local dependencies are in the same folder as the current binary
