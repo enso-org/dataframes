@@ -17,7 +17,6 @@
 #ifdef __linux__
 boost::filesystem::path loadedLibraryPath(std::string_view libraryName)
 {
-    auto pid = getpid();
     auto mapsIn = openFileToRead("/proc/self/maps");
 
     std::string line;
@@ -95,13 +94,13 @@ PythonInterpreter::PythonInterpreter()
     try
     {
         // macOS specific workaround
-        // For some reason non-deterministic crashes happen during matplotlib 
-        // chart rasterization. The call stack goes like:   
+        // For some reason non-deterministic crashes happen during matplotlib
+        // chart rasterization. The call stack goes like:
         // Dataframes -> matplotlib -> numpy -> openBLAS
-        // The crash happens within OpenBLAS function `dgetrf_parallel`. 
+        // The crash happens within OpenBLAS function `dgetrf_parallel`.
         // If we disable multithreading, the crash goes away. So we disable it.
         //
-        // It has been also reported that using numpy built against Apple Accelerate 
+        // It has been also reported that using numpy built against Apple Accelerate
         // framework does help but Accelerate doesn't seem to be well supported.
 #ifdef __APPLE__
         char openblasNumThreads[] = "OPENBLAS_NUM_THREADS=1";
