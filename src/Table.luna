@@ -95,6 +95,37 @@ class Table:
     def read path:
         self.fromWrapper $ readTableFromFile path
 
+    # Stores table from `self` under the given filepath `path`.
+    #
+    # The file format is automatically deduced from file extension.
+    # Supported formats are CSV (*.csv and *.txt), Microsoft Excel Open XML
+    # (*.xlsx) and Apache Feather (*.feather). It is required to use one of
+    # recognized file extensions.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     table.write "foo.csv"
+    # >     None
+    #
+    # errors:
+    # If extension is missing from path or is not one of recognized extensions,
+    # error shall be reported. Also, error will be reported if the requested
+    # file location is not writable.
+    #
+    # `path`: Path to the location where the table should be stored.
+    #
+    # `return`: Nothing.
+    def write path:
+        self.ptr.write path
+
     def columnCount: self.ptr.columnCount
     def rowCount: self.ptr.rowCount
     def schema:
@@ -278,7 +309,7 @@ class Table:
     def columns names:
         columns = names.each self.column
         self.fromColumns columns
-    
+
     # removeByIndex :: Int -> Table
     def removeByIndex index:
         self.fromWrapper $ self.ptr.removeColumn index
@@ -350,7 +381,7 @@ class Table:
     def drop count:
         leftCount = self.rowCount - count
         self.slice count leftCount
-        
+
     def toJSON: case self of
         Table: JSON.empty
         _:
@@ -491,16 +522,16 @@ class Table:
     # sortBy :: [(Column, SortOrder, NullPosition)]
     def sortByColumn sortBy:
         self.fromWrapper $ self.ptr.sort (sortBy.each (col, b, c): (col.ptr, b, c))
-    
+
     # sortBy is list of triples: [(column name :: Text, SortOrder, NullPosition)]
     def sortMultiples sortBy:
         sortByColumns = sortBy.each (colName, order, pos): (self.column colName, order, pos)
         self.sortByColumn sortByColumns
-    
-    # sortBy :: column name :: Text 
+
+    # sortBy :: column name :: Text
     def sortDescending columnName: self.sortMultiples [(columnName, Descending, NullsAfter)]
 
-    # sortBy :: column name :: Text 
+    # sortBy :: column name :: Text
     def sortAscending columnName: self.sortMultiples [(columnName, Ascending, NullsAfter)]
 
     def sort columnName: self.sortAscending columnName
@@ -742,11 +773,11 @@ class Table:
         keyColumnWrapper = self.column keyColumnName . ptr
         aggregationWithWrappers = aggregations.each (colname, aggrs): (self.column colname . ptr, aggrs.each .toInt)
         self.fromWrapper $ self.ptr.aggregateBy keyColumnWrapper aggregationWithWrappers
-    
+
     # Aggregate using `aggregateFunction` over specific column.
     #
     # aggregate :: Text -> Text -> AggregateFunction -> Table
-    def aggregate keyColumnName columnToAggregateName aggregateFunction: 
+    def aggregate keyColumnName columnToAggregateName aggregateFunction:
         self.aggregateBy keyColumnName [(columnToAggregateName,[aggregateFunction])]
 
     # Returns informations about whole table: standard deviation, minimum, maximum, mean, median qunatile 0.25 and 0.75 for each column.
@@ -816,7 +847,7 @@ class Table:
         self.fromWrapper $ self.ptr.rollingInterval keyColumnWrapper (interval.toMicroseconds * 1000) aggregationWithWrappers
 
     # rollingInterval :: Text -> TimeInterval -> Text -> AggregateFunction -> Table
-    def rollingInterval keyColumnName interval aggregateColumnName aggregateFunction: 
+    def rollingInterval keyColumnName interval aggregateColumnName aggregateFunction:
         self.rollingIntervalMultiple keyColumnName interval [(aggregateColumnName,[aggregateFunction])]
 
     # shift :: Text -> Int -> Table
@@ -828,9 +859,9 @@ class Table:
         newTable
 
     def chart: ChartBuilder self
-    def plot: self.chart.plot 
-    def histogram: self.chart.histogram 
-    def scatter: self.chart.scatter 
+    def plot: self.chart.plot
+    def histogram: self.chart.histogram
+    def scatter: self.chart.scatter
     def kde: self.chart.kde
     def kde2: self.chart.kde2
     def plotDate: self.chart.plotDate

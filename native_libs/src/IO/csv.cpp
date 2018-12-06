@@ -590,3 +590,8 @@ void FormatCSV::write(std::string_view filePath, const arrow::Table &table, cons
     auto out = openFileToWrite(filePath);
     generateCsv(out, table, options.headerPolicy, options.quotingPolicy, options.fieldSeparator, options.recordSeparator, options.quote);
 }
+
+std::vector<std::string> FormatCSV::fileExtensions() const
+{
+    return { "csv", "txt" };
+}

@@ -11,6 +11,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <VCToolsVersion Condition = "'$(VCToolsVersion)' == ''" >14.15.26726</VCToolsVersion> 
+    <VCToolsRedistVersion Condition = "'$(VCToolsRedistVersion)' == ''" >14.15.26706</VCToolsRedistVersion> 
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{899B5CE2-B02C-4841-AAE8-6F33B5F1460E}</ProjectGuid>
     <RootNamespace>DataframeHelper</RootNamespace>

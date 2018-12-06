@@ -70,6 +70,7 @@ std::vector<std::string> decideColumnNames(int count, const HeaderPolicy &policy
 std::shared_ptr<arrow::Table> buildTable(std::vector<std::string> names, std::vector<std::shared_ptr<arrow::Array>> arrays, std::vector<ColumnType> columnTypes);
 
 DFH_EXPORT std::shared_ptr<arrow::Table> readTableFromFile(std::string_view filepath);
+DFH_EXPORT void writeTableToFile(std::string_view filepath, const arrow::Table &table);
 DFH_EXPORT std::ofstream openFileToWrite(std::string_view filepath);
 DFH_EXPORT void writeFile(std::string_view, std::string_view contents);
 DFH_EXPORT std::ifstream openFileToRead(std::string_view filepath);
@@ -83,9 +84,11 @@ struct TableFileHandler
     virtual std::string fileSignature() const = 0;
     virtual std::shared_ptr<arrow::Table> read(std::string_view filePath) const = 0;  // throws on failure
     virtual void write(std::string_view filePath, const arrow::Table &table) const = 0;
+    virtual std::vector<std::string> fileExtensions() const = 0;
 
     std::shared_ptr<arrow::Table> tryReading(std::string_view filePath) const; // returns nullptr on failure
     bool fileMightBeCompatible(std::string_view filePath) const; // might give false positive (just checks signature)
+    bool filePathExtensionMatches(std::string_view filePath) const;
 };
 
 template<typename ReadOptions, typename WriteOptions>
