@@ -82,12 +82,7 @@ std::shared_ptr<arrow::Table> buildTable(std::vector<std::string> names, std::ve
 
 std::shared_ptr<arrow::Table> readTableFromFile(std::string_view filepath)
 {
-    std::vector<std::unique_ptr<TableFileHandler>> handlersToTry;
-    handlersToTry.push_back(std::make_unique<FormatXLSX>());
-    handlersToTry.push_back(std::make_unique<FormatFeather>());
-    handlersToTry.push_back(std::make_unique<FormatCSV>());
-
-    for(auto &&handler : handlersToTry)
+    for(auto &&handler : supportedFormatHandlers())
         if(auto table = handler->tryReading(filepath))
             return table;
 
@@ -96,15 +91,11 @@ std::shared_ptr<arrow::Table> readTableFromFile(std::string_view filepath)
 
 void writeTableToFile(std::string_view filepath, const arrow::Table &table)
 {
-    // if not for mac we could use std::filesystem...
-    if (boost::iends_with(filepath, ".csv") || boost::iends_with(filepath, ".txt"))
-        FormatCSV{}.write(filepath, table);
-    else if (boost::iends_with(filepath, ".feather"))
-        FormatFeather{}.write(filepath, table);
-    else if (boost::iends_with(filepath, ".xlsx"))
-        FormatXLSX{}.write(filepath, table);
-    else
-        THROW("cannot write table to {}: cannot deduce format type from extension", filepath);
+    for(auto &&handler : supportedFormatHandlers())
+        if(handler->filePathExtensionMatches(filepath))
+            return handler->write(filepath, table);
+    
+    THROW("cannot write table to {}: cannot deduce format type from extension", filepath);
 }
 
 std::ofstream openFileToWrite(std::string_view filepath)
