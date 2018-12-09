@@ -15,7 +15,7 @@
 #endif
 
 #ifdef __linux__
-boost::filesystem::path loadedLibraryPath(std::string_view libraryName)
+std::optional<boost::filesystem::path> lookupLoadedLibrary(std::string_view libraryName)
 {
     auto mapsIn = openFileToRead("/proc/self/maps");
 
@@ -39,6 +39,7 @@ boost::filesystem::path loadedLibraryPath(std::string_view libraryName)
         return line.substr(firstSlash);
     }
 
+    return std::nullopt;
     THROW("Failed to find {}", libraryName);
 }
 #endif
@@ -46,7 +47,7 @@ boost::filesystem::path loadedLibraryPath(std::string_view libraryName)
 #ifdef __APPLE__
 
 
-boost::filesystem::path loadedLibraryPath(std::string libraryName)
+std::optional<boost::filesystem::path> lookupLoadedLibrary(std::string libraryName)
 {
     auto pid = getpid();
     std::string command = fmt::format("vmmap {}", pid);
@@ -80,6 +81,17 @@ boost::filesystem::path loadedLibraryPath(std::string libraryName)
 
 #endif // __APPLE__
 
+#ifndef _WIN32
+
+boost::filesystem::path getLoadedLibraryPath(std::string libraryName)
+{
+    if (auto path = lookupLoadedLibrary(libraryName))
+        return *path;
+
+    THROW("Failed to find {}", libraryName);
+}
+
+#endif
 
 std::wstring widenString(const char *narrow)
 {
@@ -123,7 +135,7 @@ PythonInterpreter::PythonInterpreter()
         // Not really sure. It works with just a name when I try to run our (RPATH-adjusted) test executable
         // but doesn't work when doing exactly the same from Luna.
         // Well, the approach below seemingly does work for all cases, so let's just be happy with that.
-        auto pythonLibraryPath = loadedLibraryPath(libraryName());
+        auto pythonLibraryPath = getLoadedLibraryPath(libraryName());
         if(!dlopen(pythonLibraryPath.c_str(), RTLD_LAZY | RTLD_GLOBAL))
             THROW("Failed to load {}: {}", pythonLibraryPath, dlerror());
 #endif
@@ -231,7 +243,26 @@ void PythonInterpreter::setEnvironment()
     // In such case we want to set following paths:
     // PYTHONHOME=/home/mwu/Dataframes/native_libs/linux/
     // PYTHONPATH=/home/mwu/Dataframes/python-libs:/home/mwu/Dataframes/python-libs/lib-dynload:/home/mwu/Dataframes/python-libs/site-packages
-    const auto pythonSo = loadedLibraryPath(PythonInterpreter::libraryName());
+    const auto maybePythonSo = lookupLoadedLibrary(PythonInterpreter::libraryName());
+    if(!maybePythonSo)
+    {
+#ifdef __APPLE__
+        if(lookupLoadedLibrary("Python"))
+        {
+            // Don't treat this error as critical on Mac in order not to break
+            // developer builds against framework Python (instead of locally
+            // built python distribution). 
+            // However, leave a warning. This path should never be entered on
+            // packaged scenario, so if something goes wrong, we'll know what
+            // to look for.
+            std::cout << "Failed to find " << PythonInterpreter::libraryName() << std::endl;
+            return;
+        }
+#endif
+        THROW("Failed to find {}", PythonInterpreter::libraryName());
+    }
+
+    const auto pythonSo = *maybePythonSo;
 
     // However, we want to set home and path only when we use our packaged python ditribution.
     // If this is developer build using the system-wide Python, the we should not touch anything
