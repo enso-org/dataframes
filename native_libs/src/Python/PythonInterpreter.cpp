@@ -40,7 +40,6 @@ std::optional<boost::filesystem::path> lookupLoadedLibrary(std::string_view libr
     }
 
     return std::nullopt;
-    THROW("Failed to find {}", libraryName);
 }
 #endif
 
@@ -76,7 +75,7 @@ std::optional<boost::filesystem::path> lookupLoadedLibrary(std::string libraryNa
         }
     }
 
-    THROW("Failed to find {}", libraryName);
+    return std::nullopt;
 }
 
 #endif // __APPLE__
