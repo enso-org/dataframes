@@ -18,8 +18,6 @@
     <ClInclude Include="..\learn\SKLearn.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCToolsVersion Condition = "'$(VCToolsVersion)' == ''" >14.15.26726</VCToolsVersion> 
-    <VCToolsRedistVersion Condition = "'$(VCToolsRedistVersion)' == ''" >14.15.26706</VCToolsRedistVersion> 
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{80A9D1EE-D7AE-4F89-A3E2-6600C7874E36}</ProjectGuid>
     <RootNamespace>DataframeLearn</RootNamespace>
