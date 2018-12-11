@@ -93,6 +93,24 @@ PythonInterpreter::PythonInterpreter()
 {
     try
     {
+        // workaround for when we are run from under AppImage
+        // AppImage always sets PYTHONHOME and PYTHONPATH environment variables
+        // pointing to some fixed locations relative to the mounted image.
+        // In our case these locations are totally bogus and can only lead to
+        // failures. While using packaged Dataframes this is not an issue 
+        // (as we overwrite the paths anyway), this breaks developer builds:
+        // https://github.com/luna/Dataframes/issues/110
+        //
+        // We will just unset variables and let python do its thing. 
+#ifdef __linux__
+        if(getenv("APPIMAGE") != nullptr)
+        {
+            unsetenv("PYTHONHOME");
+            unsetenv("PYTHONPATH");
+            unsetenv("PYTHONDONTWRITEBYTECODE");
+        }
+#endif
+
         // macOS specific workaround
         // For some reason non-deterministic crashes happen during matplotlib
         // chart rasterization. The call stack goes like:
