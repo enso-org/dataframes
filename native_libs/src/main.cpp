@@ -787,6 +787,14 @@ extern "C"
         LOG("@{}", (void*)column);
         return TRANSLATE_EXCEPTION(outError)
         {
+            if(count < 0)
+                THROW("Slice cannot have a negative length ({})", count);
+            if(fromIndex < 0)
+                THROW("Slice beginning at invalid index ({})", fromIndex);
+            const auto lastIndex = fromIndex + count - 1;
+            if(lastIndex >= column->length())
+                THROW("Slice enging at invalid index ({}), length is {}", lastIndex, column->length());
+
             return LifetimeManager::instance().addOwnership(column->Slice(fromIndex, count));
         };
     }
