@@ -858,6 +858,32 @@ BOOST_AUTO_TEST_CASE(ReadTableDeducingFileType)
     BOOST_CHECK_EQUAL_RANGES(strings, ints4);
 }
 
+BOOST_AUTO_TEST_CASE(WriteTableDeducingFileType)
+{
+    std::vector<int64_t> ints{ 50,100 };
+    auto table = tableFromVectors(ints);
+
+    auto testRoundTrip = [&] (const std::string &extension, const TableFileHandler &reader)
+    {
+        std::string path = "WriteTableDeducingFileType." + extension;
+        writeTableToFile(path, *table);
+
+        auto readTable = reader.read(path);
+
+        BOOST_REQUIRE_EQUAL(readTable->num_columns(), table->num_columns());
+        auto[readInts] = toVectors<int>(*table);
+        BOOST_CHECK_EQUAL_RANGES(ints, readInts);
+    };
+
+    testRoundTrip("csv", FormatCSV{});
+    testRoundTrip("CSV", FormatCSV{});
+    testRoundTrip("cSV", FormatCSV{}); // case shouldn't matter
+    testRoundTrip("txt", FormatCSV{});
+    testRoundTrip("xlsx", FormatXLSX{});
+    testRoundTrip("feather", FormatFeather{});
+    BOOST_CHECK_THROW(writeTableToFile("WriteTableDeducingFileType.7z", *table), std::exception); // not a valid extension
+}
+
 BOOST_AUTO_TEST_CASE(TimestampInterpolation)
 {
     std::vector<std::optional<Timestamp>> times{ {2018_y/sep/1}, std::nullopt, std::nullopt, {2018_y/sep/10} };

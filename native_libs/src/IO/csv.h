@@ -101,4 +101,5 @@ struct DFH_EXPORT FormatCSV : TableFileHandlerWithOptions<CsvReadOptions, CsvWri
     virtual std::string fileSignature() const override;
     virtual std::shared_ptr<arrow::Table> read(std::string_view filePath, const CsvReadOptions &options) const override;
     virtual void write(std::string_view filePath, const arrow::Table &table, const CsvWriteOptions &options) const override;
+    virtual std::vector<std::string> fileExtensions() const override;
 };

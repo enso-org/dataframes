@@ -55,3 +55,8 @@ void FormatFeather::write(std::string_view filePath, const arrow::Table &table) 
 
     checkStatus(writer->Finalize());
 }
+
+std::vector<std::string> FormatFeather::fileExtensions() const
+{
+    return { "feather" };
+}

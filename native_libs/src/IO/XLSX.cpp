@@ -250,3 +250,8 @@ void FormatXLSX::write(std::string_view filePath, const arrow::Table &table, con
     auto out = openFileToWrite(filePath);
     return writeXlsx(out, table, options.headerPolicy);
 }
+
+std::vector<std::string> FormatXLSX::fileExtensions() const
+{
+    return { "xlsx" };
+}

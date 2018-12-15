@@ -386,6 +386,11 @@ class TableWrapper:
                         callHandlingError "tableRollingTimeInterval" (Pointer None) [keyColumn.ptr.toCArg, CInt64.fromInt intervalNs . toCArg, CInt32.fromInt aggregation.length . toCArg, aggregatedColumnsC.toCArg, aggregateFunctionCountsC.toCArg, arrayOfArraysWithIds.toCArg]
         wrapReleasableResouce TableWrapper ptr
 
+    # write :: Filepath -> ()
+    def write path:
+        CString.with path pathC:
+            callHandlingError "writeTableToFile" None [pathC.toCArg, self.ptr.toCArg]
+
 def createTableWrapper schemaWrapper columnWrappers:
     Array (Pointer None) . with (columnWrappers.each (_.ptr . ptr)) columnsCArray:
         ptr = callHandlingError "tableNewFromSchemaAndColumns" (Pointer None) [schemaWrapper.ptr . toCArg, columnsCArray.ptr.toCArg, CInt32.fromInt columnsCArray.size . toCArg]

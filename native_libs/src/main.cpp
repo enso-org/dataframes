@@ -33,6 +33,7 @@
 #include <arrow/builder.h>
 #include <arrow/io/file.h>
 #include <arrow/ipc/writer.h>
+
 #ifdef _DEBUG
 #pragma comment(lib, "arrowd.lib")
 #else
@@ -1401,6 +1402,15 @@ extern "C"
         return TRANSLATE_EXCEPTION(outError)
         {
             FormatFeather{}.write(filename, *table);
+        };
+    }
+
+    DFH_EXPORT void writeTableToFile(const char *filename, arrow::Table *table, const char **outError) noexcept
+    {
+        LOG("table={}, filepath={}", (void*)table, filename);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            writeTableToFile(filename, *table);
         };
     }
 }

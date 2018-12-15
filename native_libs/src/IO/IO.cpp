@@ -14,6 +14,19 @@
 #include <arrow/builder.h>
 #include <arrow/table.h>
 
+#include <boost/algorithm/string/predicate.hpp>
+
+namespace
+{
+auto supportedFormatHandlers()
+{
+    std::vector<std::unique_ptr<TableFileHandler>> handlers;
+    handlers.push_back(std::make_unique<FormatXLSX>());
+    handlers.push_back(std::make_unique<FormatFeather>());
+    handlers.push_back(std::make_unique<FormatCSV>());
+    return handlers;
+}
+
 std::vector<std::string> defaultColumnNames(int count)
 {
     std::vector<std::string> ret;
@@ -21,6 +34,8 @@ std::vector<std::string> defaultColumnNames(int count)
         ret.push_back("col" + std::to_string(column));
     return ret;
 }
+}
+
 
 std::vector<std::string> decideColumnNames(int count, const HeaderPolicy &policy, std::function<std::string(int)> readHeaderCell)
 {    
@@ -67,16 +82,20 @@ std::shared_ptr<arrow::Table> buildTable(std::vector<std::string> names, std::ve
 
 std::shared_ptr<arrow::Table> readTableFromFile(std::string_view filepath)
 {
-    std::vector<std::unique_ptr<TableFileHandler>> handlersToTry;
-    handlersToTry.push_back(std::make_unique<FormatXLSX>());
-    handlersToTry.push_back(std::make_unique<FormatFeather>());
-    handlersToTry.push_back(std::make_unique<FormatCSV>());
-
-    for(auto &&handler : handlersToTry)
+    for(auto &&handler : supportedFormatHandlers())
         if(auto table = handler->tryReading(filepath))
             return table;
 
     THROW("Failed to load file {}: it doesn't parse with default settings as any of the supported formats");
+}
+
+void writeTableToFile(std::string_view filepath, const arrow::Table &table)
+{
+    for(auto &&handler : supportedFormatHandlers())
+        if(handler->filePathExtensionMatches(filepath))
+            return handler->write(filepath, table);
+    
+    THROW("cannot write table to {}: cannot deduce format type from extension", filepath);
 }
 
 std::ofstream openFileToWrite(std::string_view filepath)
@@ -183,4 +202,20 @@ bool TableFileHandler::fileMightBeCompatible(std::string_view filePath) const
     input.clear();
     input.seekg(0);
     return readOk && expectedSignature == buffer;
+}
+
+bool TableFileHandler::filePathExtensionMatches(std::string_view filePath) const
+{
+    for(auto &&extension : fileExtensions())
+    {
+        const auto extensionSize = extension.size();
+        if(filePath.size() < extensionSize + 1)
+            continue;
+        if(*(filePath.rbegin() + extensionSize) != '.')
+            continue;
+        if(boost::iends_with(filePath, extension))
+            return true;
+    }
+
+    return false;
 }
