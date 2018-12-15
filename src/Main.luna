@@ -1,12 +1,12 @@
-import Dataframes.Column
+import Std.Base
+import Std.Foreign.C.Value
+
+import Dataframes.Internal.Utils
+import Dataframes.Array
 import Dataframes.Types
-import Dataframes.Table
+import Dataframes.Internal.Test.Test
+
 
 def main:
-    l1 = [1,2,3,4,5]
-    l2 = [11,12,13,14,15]
-    col1 = Column.fromList "col1" Int64Type l1
-    col2 = Column.fromList "col2" Int64Type l2
-    table = Table.fromColumns [col1 , col2]
-    table.write "foo.csv"
-    None
+    setHelperVerbosity False
+    benchmark "running tests" TestArrayBuilder.run

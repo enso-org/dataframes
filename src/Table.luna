@@ -95,7 +95,7 @@ class Table:
     def read path:
         self.fromWrapper $ readTableFromFile path
 
-    # Stores table from `self` under the given filepath `path`.
+    # Saves table from `self` under the given filepath `path`.
     #
     # The file format is automatically deduced from file extension.
     # Supported formats are CSV (*.csv and *.txt), Microsoft Excel Open XML
