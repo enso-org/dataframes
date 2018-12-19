@@ -13,6 +13,11 @@ namespace arrow
     class Table;
 }
 
+DFH_EXPORT std::shared_ptr<arrow::Buffer> slice(std::shared_ptr<arrow::Buffer> buffer, int64_t startAt, int64_t length);
+DFH_EXPORT std::shared_ptr<arrow::Array> slice(std::shared_ptr<arrow::Array> array, int64_t startAt, int64_t length);
+DFH_EXPORT std::shared_ptr<arrow::Column> slice(std::shared_ptr<arrow::Column> column, int64_t startAt, int64_t length);
+DFH_EXPORT std::shared_ptr<arrow::Table> slice(std::shared_ptr<arrow::Table> table, int64_t startAt, int64_t length);
+
 DFH_EXPORT std::shared_ptr<arrow::Column> interpolateNA(std::shared_ptr<arrow::Column> column);
 DFH_EXPORT std::shared_ptr<arrow::Table> interpolateNA(std::shared_ptr<arrow::Table> table);
 

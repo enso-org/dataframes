@@ -320,6 +320,24 @@ struct InterpolatedColumnBuilder
     }
 };
 
+std::shared_ptr<arrow::Buffer> slice(std::shared_ptr<arrow::Buffer> buffer, int64_t startAt, int64_t length)
+{
+    validateSlice(buffer->size(), startAt, length);
+    return arrow::SliceBuffer(buffer, startAt, length);
+}
+
+std::shared_ptr<arrow::Column> slice(std::shared_ptr<arrow::Column> column, int64_t startAt, int64_t length)
+{
+    validateSlice(column->length(), startAt, length);
+    return column->Slice(startAt, length);
+}
+
+std::shared_ptr<arrow::Array> slice(std::shared_ptr<arrow::Array> array, int64_t startAt, int64_t length)
+{
+    validateSlice(array->length(), startAt, length);
+    return array->Slice(startAt, length);
+}
+
 std::shared_ptr<arrow::Column> interpolateNA(std::shared_ptr<arrow::Column> column)
 {
     // no missing values -- no itnerpolation needed
