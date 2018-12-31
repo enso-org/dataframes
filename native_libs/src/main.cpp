@@ -338,14 +338,13 @@ extern "C"
 
     // NOTE: needs release
     // (shallow view)
-    DFH_EXPORT arrow::Buffer *bufferSlice(arrow::Buffer *buffer, int64_t start, int64_t byteCount, const char **outError) noexcept
+    DFH_EXPORT arrow::Buffer *bufferSlice(arrow::Buffer *buffer, int64_t fromIndex, int64_t byteCount, const char **outError) noexcept
     {
-        LOG("@{} beginning from {} will copy {} bytes", (void*)buffer, start, byteCount);
+        LOG("@{} beginning from {} will copy {} bytes", (void*)buffer, fromIndex, byteCount);
         return TRANSLATE_EXCEPTION(outError)
         {
-            // TODO check bounds
-            auto src = LifetimeManager::instance().accessOwned<arrow::Buffer>(buffer);
-            auto ret = arrow::SliceBuffer(src, start, byteCount);
+            auto src = LifetimeManager::instance().accessOwned(buffer);
+            auto ret = slice(src, fromIndex, byteCount);
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
@@ -532,12 +531,14 @@ extern "C"
     }
 
     // NOTE: needs release
-    DFH_EXPORT arrow::Array *arraySlice(arrow::Array *array, int64_t offset, int64_t length, const char **outError) noexcept
+    DFH_EXPORT arrow::Array *arraySlice(arrow::Array *array, int64_t fromIndex, int64_t length, const char **outError) noexcept
     {
         LOG("@{}", (void*)array);
         return TRANSLATE_EXCEPTION(outError)
         {
-            return LifetimeManager::instance().addOwnership(array->Slice(offset, length));
+            auto src = LifetimeManager::instance().accessOwned(array);
+            auto ret = slice(src, fromIndex, length);
+            return LifetimeManager::instance().addOwnership(ret);
         };
     }
 
@@ -783,12 +784,14 @@ extern "C"
             return returnedString.store(column->name());
         };
     }
-    DFH_EXPORT arrow::Column *columnSlice(arrow::Column *column, int64_t fromIndex, int64_t count, const char **outError) noexcept
+    DFH_EXPORT arrow::Column *columnSlice(arrow::Column *column, int64_t fromIndex, int64_t length, const char **outError) noexcept
     {
         LOG("@{}", (void*)column);
         return TRANSLATE_EXCEPTION(outError)
         {
-            return LifetimeManager::instance().addOwnership(column->Slice(fromIndex, count));
+            auto src = LifetimeManager::instance().accessOwned(column);
+            auto ret = slice(src, fromIndex, length);
+            return LifetimeManager::instance().addOwnership(ret);
         };
     }
     DFH_EXPORT arrow::Table *columnCountValues(arrow::Column *column, const char **outError) noexcept

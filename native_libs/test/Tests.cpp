@@ -1149,3 +1149,15 @@ BOOST_AUTO_TEST_CASE(Rolling, *boost::unit_test_framework::disabled())
     BOOST_CHECK_EQUAL_RANGES(get<0>(sumsPerWindowV), ts); // timestamps column should not be modified
     BOOST_CHECK_EQUAL_RANGES(get<1>(sumsPerWindowV), expectedSumsPerWindow);
 }
+
+BOOST_AUTO_TEST_CASE(SliceBoundsChecking)
+{
+    auto column = toColumn<int64_t>({ 1,2,3,4,5 });
+    BOOST_CHECK_THROW(slice(column, -1, 2), std::exception);
+    BOOST_CHECK_THROW(slice(column, 4, 2), std::exception);
+    BOOST_CHECK_NO_THROW(slice(column, 4, 1));
+    BOOST_CHECK_NO_THROW(slice(column, 4, 0));
+    BOOST_CHECK_NO_THROW(slice(column, 5, 0));
+    BOOST_CHECK_THROW(slice(column, 5, 1), std::exception);
+    BOOST_CHECK_NO_THROW(slice(column, 0, 5));
+}

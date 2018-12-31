@@ -332,8 +332,7 @@ class Table:
 
     # Returns the first `count` rows
     #
-    # If the count of elements to take is greater than actual rows count, the returned table is tha same as the `self` table.
-    # For negative `count`, a table with no data will be returned.
+    # The `count` value must belong to [0, self.rowCount] range.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -348,6 +347,9 @@ class Table:
     # >     take2 = table.take 2
     # >     None
     #
+    # errors:
+    # If `count` is negative or greater than table's row count, runtime error will occur.
+    #
     # `count`: Number of rows to take.
     #
     # `return`: `Table` value with first `count` rows from `self` table.
@@ -357,8 +359,7 @@ class Table:
 
     # Drops first `count` rows.
     #
-    # If the number of elements to take is greater than actual rows number, empty table is returned.
-    # For negative `count` number the returned table is the same as `self` table. TO BE FIXED https://github.com/luna/Dataframes/issues/63
+    # The `count` value must belong to [0, self.rowCount] range.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -372,6 +373,9 @@ class Table:
     # >     table = Table.fromColumns [col1 , col2]
     # >     take2 = table.drop 2
     # >     None
+    #
+    # errors:
+    # If `count` is negative or greater than table's row count, runtime error will occur.
     #
     # `count`: Number of rows to drop.
     #

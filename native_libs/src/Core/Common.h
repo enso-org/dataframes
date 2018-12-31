@@ -139,7 +139,8 @@ namespace std
     }
 }
 
-void validateIndex(const size_t size, int64_t index);
+void validateIndex(int64_t size, int64_t index);
+void validateSlice(int64_t dataLength, int64_t sliceStart, int64_t sliceLength);
 
 template<typename T>
 T lerp(T v0, T v1, double t)
