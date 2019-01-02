@@ -116,6 +116,12 @@ std::string getPNG()
     return plt::getPNG();
 }
 
+void saveFigure(const std::string &fname)
+{
+    plt::tight_layout();
+    return plt::save(fname);
+}
+
 extern "C"
 {
     void plot(const arrow::Column *xs, const arrow::Column *ys, const char* label, const char *style, const char *color, double alpha, const char **outError) noexcept
@@ -230,6 +236,14 @@ extern "C"
             auto png = ::getPNG();
             auto encodedPng = base64_encode(png);
             return returnedString.store(std::move(encodedPng));
+        };
+    }
+
+    void savefig(const char *fname, const char **outError) noexcept
+    {
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return saveFigure(fname);
         };
     }
 }

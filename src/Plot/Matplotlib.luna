@@ -58,6 +58,10 @@ class Matplotlib:
         result = self.callHandlingError "getPngBase64" CString []
         result.toText
 
+    def write fname:
+        CString.with fname fnameC:
+            self.callHandlingError "savefig" None [fnameC.toCArg]
+
 class Chart:
     render :: None
 
@@ -83,6 +87,11 @@ class Chart:
         Matplotlib.init w h
         self.render
         Matplotlib.getPNG
+        
+    def write w h fname:
+        Matplotlib.init w h
+        self.render
+        Matplotlib.write fname
 
     def makeDataUrl t: "data:image/png;base64," + t
 
@@ -109,6 +118,8 @@ class Histogram:
 
     def toJSON: self.toChart.toJSON
 
+    def write: self.toChart.write
+
     def setBins b: Histogram self.data b self.options
 
     def verticalLayout: Chart None . verticalLayout
@@ -126,6 +137,8 @@ class PlotDate:
 
     def toJSON: self.toChart.toJSON
 
+    def write: self.toChart.write
+
     def verticalLayout: Chart None . verticalLayout
 
 class Scatter:
@@ -140,6 +153,8 @@ class Scatter:
     def + that: self.toChart.+that
 
     def toJSON: self.toChart.toJSON
+
+    def write: self.toChart.write
 
     def verticalLayout: Chart None . verticalLayout
 
@@ -160,6 +175,8 @@ class Plot:
         self.toChart.+ that
 
     def toJSON: self.toChart.toJSON
+
+    def write: self.toChart.write
 
     def setStyle s: Plot self.series1 self.series2 s self.label self.color self.alpha
 
@@ -189,6 +206,8 @@ class FillBetween:
 
     def toJSON: self.toChart.toJSON
 
+    def write: self.toChart.write
+
     def setLabel l: FillBetween self.series1 self.series2 self.series3 (Just l) self.color self.alpha
 
     def setColor c: FillBetween self.series1 self.series2 self.series3 self.label (Just c) self.alpha
@@ -212,6 +231,8 @@ class KDE2:
 
     def toJSON: self.toChart.toJSON
 
+    def write: self.toChart.write
+
     def setColorMap s: KDE2 self.series1 self.series2 s
 
     def verticalLayout: Chart None . verticalLayout
@@ -230,6 +251,8 @@ class KDE:
 
     def toJSON: self.toChart.toJSON
 
+    def write: self.toChart.write
+
     def setLabel l: KDE self.data (Just l)
 
     def verticalLayout: Chart None . verticalLayout
@@ -246,6 +269,8 @@ class Grid:
         self.toChart.+ that
 
     def toJSON: self.toChart.toJSON
+
+    def write: self.toChart.write
 
     def setLabel l: self.label = (Just l)
 
