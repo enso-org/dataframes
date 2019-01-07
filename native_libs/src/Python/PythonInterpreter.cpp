@@ -49,10 +49,10 @@ std::optional<boost::filesystem::path> lookupLoadedLibrary(std::string_view libr
 std::optional<boost::filesystem::path> lookupLoadedLibrary(std::string libraryName)
 {
     auto pid = getpid();
-    std::string command = fmt::format("vmmap {}", pid);
+    std::string command = fmt::format("vmmap -w {}", pid);
     std::shared_ptr<FILE> pipe(popen(command.c_str(), "r"), pclose);
     if (!pipe)
-        throw std::runtime_error("popen() failed, command was: " + command);
+        THROW("popen() failed, command was: {}", command);
 
     char line[4096];
     while (!feof(pipe.get()))
