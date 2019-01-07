@@ -520,9 +520,27 @@ class Table:
     # 
     # `that`: Table to compare with `self` table.
     # `return`: `True` if the two tables are identical and `False` if they are not.
-    
+
     def == that:
         self.ptr.equals that.ptr
+        
+    # Selects rows form `self` table.
+    #
+    # Rows are indexed from 0. 
+    # 
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table1 = Table.fromColumns [col1 , col2]
+    # >     sliced = table1.slice 1 3
+    # >     None 
+
     def slice beg count:
         cols = self.toList
         slicedCols = cols.each (_.slice beg count)
