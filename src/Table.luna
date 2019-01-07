@@ -146,7 +146,39 @@ class Table:
     def write path:
         self.ptr.write path
 
+    # Returns number of columns in a given table.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     columns = table.columnCount
+    # >     None
+    #
+    # `return`: Number of columns.
     def columnCount: self.ptr.columnCount
+    # Returns number of rows in given table.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     rows = table.rowCount
+    # >     None
+    #
+    # `return`: Number of rows.
     def rowCount: self.ptr.rowCount
     def schema:
         wrapper = self.ptr.schema
