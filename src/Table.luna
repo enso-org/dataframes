@@ -92,6 +92,26 @@ class Table:
         ptrs = columns.each .ptr
         schema = Schema.fromFields fields
         self.fromWrapper $ createTableWrapper schema.ptr ptrs
+
+    # Reads `Table` from file under given path.
+    #
+    # Supported formats are CSV (*.csv and *.txt), Microsoft Excel Open XML
+    # (*.xlsx) and Apache Feather (*.feather).
+    #
+    # > import Dataframes.Table 
+    # > 
+    # > def main:
+    # >     table = Table.read "./data/example.txt"
+    # >     None 
+    #
+    # errors:
+    # If extension is missing from path or is not one of recognized extensions,
+    # error shall be reported. Also, error will be reported if the requested
+    # file location is not available.
+    #
+    # `path`: Path to the file to read.
+    #
+    # `return`: `Table` value with the content of the file.
     def read path:
         self.fromWrapper $ readTableFromFile path
 
