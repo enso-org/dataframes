@@ -1095,6 +1095,28 @@ class Table:
         self.rollingIntervalMultiple keyColumnName interval [(aggregateColumnName,[aggregateFunction])]
 
     # shift :: Text -> Int -> Table
+    # Shift index by desired number of periods for selected column.
+    # 
+    # Newly created column is added at the end of the table. The index value can be both positive and negative. 
+    # Missing values in newly created column will be filled with `0`. 
+    # 
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     newTable = table.shift "col2" 3
+    # >     None
+    #
+    # `columnName`: Name of a column to shift.
+    # `periods`: Number of periods to shift selected column by.
+    #
+    # `return`: The `self` table value with additional column containing the values after shift operation.
     def shift columnName periods:
         columnToShift = self.column columnName
         shiftedColumn = columnToShift.shift periods
