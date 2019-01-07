@@ -855,6 +855,25 @@ class Table:
     def fillNaAt columnName valueToFillWith:
         self.fromWrapper $ self.ptr.fillNaAt columnName valueToFillWith
 
+    # Linear interpolation of missing values in table.
+    #
+    # Apply just to numerical columns.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [Just 1, Nothing, Just 3, Just 4, Just 5]
+    # >     l2 = [Nothing, Just 12, Just 13, Just 14, Just 15]
+    # >     col1 = Column.fromList "col1" MaybeInt64Type l1
+    # >     col2 = Column.fromList "col2" MaybeInt64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     newTable = table.interpolate
+    # >     None
+    #
+    # `return`: `Table` with nulls interpolated in each numerical column. If nulls are at the beginning of a column they will be filled with first existing value in a column. 
+    # If they are at the end, they will be filled with the last existing value.
     def interpolate:
         self.fromWrapper $ self.ptr.interpolate
     def toColumn:
