@@ -523,7 +523,7 @@ class Table:
 
     def == that:
         self.ptr.equals that.ptr
-        
+
     # Selects rows form `self` table.
     #
     # Rows are indexed from 0. 
@@ -540,6 +540,11 @@ class Table:
     # >     table1 = Table.fromColumns [col1 , col2]
     # >     sliced = table1.slice 1 3
     # >     None 
+    #
+    # `beg`: Starting index for rows selection.
+    # `count`: Range of rows to select.
+    #
+    # `return`: `Table` value with selected rows.
 
     def slice beg count:
         cols = self.toList
