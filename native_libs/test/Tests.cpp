@@ -910,6 +910,58 @@ BOOST_AUTO_TEST_CASE(TimestampStats, *boost::unit_test_framework::disabled())
     // TODO other stats
 }
 
+BOOST_AUTO_TEST_CASE(TimestampUnitsLQuerySupport)
+{
+    std::vector<Timestamp> times{ 2017_y/dec/31, 2018_y/jan/01, 2019_y/feb/2 };
+
+    // makes an array with timestamps defined above stored using given resolution
+    auto makeColumnWithUnit = [&] (arrow::TimeUnit::type unit)
+    {
+        auto type = std::make_shared<arrow::TimestampType>(unit);
+        arrow::TimestampBuilder builder{ type, nullptr };
+
+        for (auto timestamp : times)
+            builder.Append(timestamp.toStorage(unit));
+
+        return finish(builder);
+    };
+
+    // query that takes year
+    const auto jsonQuery = R"(
+ 		{
+			"operation": "year",
+			"arguments":
+			[
+				{"column": "col"}
+			]
+ 		})";
+
+    std::vector supportedUnits 
+    {
+        arrow::TimeUnit::SECOND,
+        arrow::TimeUnit::MILLI,
+        arrow::TimeUnit::MICRO,
+        arrow::TimeUnit::NANO 
+    };
+
+    for (auto unit : supportedUnits)
+    {
+        BOOST_TEST_CONTEXT("for storage unit [" << unit << "]")
+        {
+            auto array = makeColumnWithUnit(unit);
+            auto col = toColumn(array, "col");
+            auto table = tableFromColumns({ col });
+            auto result = each(table, jsonQuery);
+            uglyPrint(result);
+
+            std::vector expectedYears{ 2017, 2018, 2019 };
+            auto gotYears = toVector<int64_t>(*result);
+            BOOST_CHECK_EQUAL_RANGES(expectedYears, gotYears);
+        }
+    }
+
+}
+
 BOOST_AUTO_TEST_CASE(TypeDeducing)
 {
     BOOST_CHECK_EQUAL(deduceType("5.0"), arrow::Type::DOUBLE);

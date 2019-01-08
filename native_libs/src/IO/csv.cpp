@@ -396,11 +396,10 @@ struct ColumnWriterFor<arrow::Type::TIMESTAMP> : ColumnWriter
     using ColumnWriter::ColumnWriter;
     virtual void consumeFromChunk(const arrow::Array &chunk, CsvGenerator &generator)
     {
-        // TODO support other timestamp units 
-        assert(std::dynamic_pointer_cast<arrow::TimestampType>(chunk.type())->unit() == arrow::TimeUnit::NANO);
-        auto ticksCount = static_cast<const arrow::TimestampArray&>(chunk).Value(usedFromChunk);
-        TimestampDuration nanosecondTicks(ticksCount);
-        Timestamp timestamp(nanosecondTicks);
+        const auto &timestampsChunk = static_cast<const arrow::TimestampArray&>(chunk);
+        const auto &timestampsType = static_cast<const arrow::TimestampType &>(*chunk.type());
+        const auto ticksCount = timestampsChunk.Value(this->usedFromChunk);
+        Timestamp timestamp(ticksCount, timestampsType);
         auto timet = timestamp.toTimeT();
         auto tm = std::gmtime(&timet);
         auto n = std::strftime(buffer, std::size(buffer), "%F", tm);

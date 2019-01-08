@@ -170,3 +170,9 @@ void uglyPrint(const std::shared_ptr<arrow::Column> &column, std::ostream &out /
     auto table = tableFromColumns({column});
     uglyPrint(*table, out, rows);
 }
+
+void uglyPrint(const std::shared_ptr<arrow::Array> &array, std::ostream &out /*= std::cout*/, int rows /*= 20*/)
+{
+    auto table = tableFromArrays({ array });
+    uglyPrint(*table, out, rows);
+}

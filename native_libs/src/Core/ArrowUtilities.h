@@ -33,15 +33,60 @@ namespace std
     DFH_EXPORT std::string to_string(const Timestamp &t);
 }
 
+template<typename Function>
+auto ticksAsChronoDuration(int64_t ticksCount, arrow::TimeUnit::type tickUnit, Function &&f)
+{
+    switch (tickUnit)
+    {
+    case arrow::TimeUnit::SECOND:
+        return f(std::chrono::seconds(ticksCount));
+    case arrow::TimeUnit::MILLI:
+        return f(std::chrono::milliseconds(ticksCount));
+    case arrow::TimeUnit::MICRO:
+        return f(std::chrono::microseconds(ticksCount));
+    case arrow::TimeUnit::NANO:
+        return f(std::chrono::nanoseconds(ticksCount));
+    default:
+        THROW("unknown time unit: {}", tickUnit);
+    }
+}
+
+template<typename Rep, typename Period>
+int64_t ticksFromChronoDuration(std::chrono::duration<Rep, Period> d, arrow::TimeUnit::type targetUnit)
+{
+    switch (targetUnit)
+    {
+    case arrow::TimeUnit::SECOND:
+        return std::chrono::duration_cast<std::chrono::seconds>(d).count();
+    case arrow::TimeUnit::MILLI:
+        return std::chrono::duration_cast<std::chrono::milliseconds>(d).count();
+    case arrow::TimeUnit::MICRO:
+        return std::chrono::duration_cast<std::chrono::microseconds>(d).count();
+    case arrow::TimeUnit::NANO:
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(d).count();
+    default:
+        THROW("unknown time unit: {}", targetUnit);
+    }
+}
+
+template<typename Function>
+auto ticksAsChronoDuration(int64_t ticksCount, const arrow::TimestampType &type, Function &&f)
+{
+    return ticksAsChronoDuration(ticksCount, type.unit(), std::forward<Function>(f));
+}
+
 // timestamp represents nanoseconds since unix epoch
 struct DFH_EXPORT Timestamp : std::chrono::time_point<std::chrono::system_clock, TimestampDuration>
 {
     using Base = std::chrono::time_point<std::chrono::system_clock, TimestampDuration>;
-    explicit Timestamp(int64_t nanoticks) : Base(TimestampDuration(nanoticks)) {}
+    //explicit Timestamp(int64_t nanoticks) : Base(TimestampDuration(nanoticks)) {}
+    Timestamp(int64_t ticksCount, const arrow::TimestampType &type);
     Timestamp(date::year_month_day ymd);
     using Base::time_point;
 
     int64_t toStorage() const { return time_since_epoch().count(); }
+    int64_t toStorage(arrow::TimeUnit::type targetUnit) const;
+
     time_t toTimeT() const 
     {
         using namespace std::chrono;

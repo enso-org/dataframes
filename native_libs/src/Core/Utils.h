@@ -91,3 +91,4 @@ using Parser = OldStyleNumberParser;
 
 DFH_EXPORT void uglyPrint(const arrow::Table &table, std::ostream &out = std::cout, int rows = 20);
 DFH_EXPORT void uglyPrint(const std::shared_ptr<arrow::Column> &column, std::ostream &out = std::cout, int rows = 20);
+DFH_EXPORT void uglyPrint(const std::shared_ptr<arrow::Array> &array, std::ostream &out = std::cout, int rows = 20);

@@ -43,19 +43,53 @@ using namespace std::literals;
             mutable_data()[index] = value;
         }
     };
+
     template<>
     struct ArrayOperand<Timestamp> : ArrayOperand<int64_t>
     {
+        int64_t factorFromArrayToNs = 1;
         using ArrayOperand<int64_t>::ArrayOperand;
+
+        explicit ArrayOperand(const arrow::Array *array)
+            : ArrayOperand<int64_t>(array)
+        {
+            const arrow::TimestampType *type = throwingCast<const arrow::TimestampType*>(array->type().get());
+            switch(type->unit())
+            {
+            case arrow::TimeUnit::SECOND:
+                factorFromArrayToNs = 1'000'000'000;
+                break;
+            case arrow::TimeUnit::MILLI:
+                factorFromArrayToNs = 1'000'000;
+                break;
+            case arrow::TimeUnit::MICRO:
+                factorFromArrayToNs = 1'000;
+                break;
+            case arrow::TimeUnit::NANO:
+                factorFromArrayToNs = 1;
+                break;
+            default:
+                THROW("unknown time unit: {}", (int)type->unit());
+            }
+        }
+
+        explicit ArrayOperand(size_t length)
+            : ArrayOperand<int64_t>(length)
+        {}
+
 
         Timestamp load(size_t index) const
         {
-            return Timestamp{ this->data()[index] };
+            const auto ticksRaw = this->data()[index];
+            const auto ticksNs = ticksRaw * factorFromArrayToNs;
+            return Timestamp{ std::chrono::nanoseconds{ ticksNs} };
         }
 
         void store(size_t index, Timestamp value)
         {
-            this->mutable_data()[index] = value.toStorage();
+            const auto ticksNs = value.toStorage();
+            const auto ticksRaw = ticksNs / factorFromArrayToNs;
+            this->mutable_data()[index] = ticksRaw;
         }
     };
 

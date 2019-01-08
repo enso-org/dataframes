@@ -316,6 +316,19 @@ Timestamp::Timestamp(date::year_month_day ymd)
 {
 }
 
+Timestamp::Timestamp(int64_t ticksCount, const arrow::TimestampType &type)
+{
+    ticksAsChronoDuration(ticksCount, type, [&] (auto duration)
+    {
+        *this = Timestamp(duration);
+    });
+}
+
+int64_t Timestamp::toStorage(arrow::TimeUnit::type targetUnit) const
+{
+    return ticksFromChronoDuration(time_since_epoch(), targetUnit);
+}
+
 std::shared_ptr<arrow::Column> consolidate(std::shared_ptr<arrow::Column> column)
 {
     if(column->data()->num_chunks() <= 1)
