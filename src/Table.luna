@@ -993,7 +993,7 @@ class Table:
     # errors:
     # If column does not exist in table runtime error will be returned.
     #
-    # `columnName`: String value, name of the column to calculate the statistics for.
+    # `columnName`: Text value, name of the column to calculate the statistics for.
     #
     # `return`: `Table` value with the statistics for given column.
     # ![](data/docs/docs21.png)
@@ -1008,6 +1008,25 @@ class Table:
         median = col.median
         quart3 = col.quantile 0.75
         Table.fromColumns [mean, std, min, quart1, median, quart3, max]
+
+    # Returns table with unique values counts for selected column.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,11,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     unique = table.countValues "col2"
+    # >     None
+    #
+    # `columnName`: Text value, name of the column to summary unique values for.
+    #
+    # `return`: Table with all unique values in first column and their counts in second for selected column.
 
     def countValues columnName:
         self.at columnName . toColumn . countValues
