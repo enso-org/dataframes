@@ -1,3 +1,5 @@
+import Dataframes.Table
+import Dateframes.Column 
 import Std.Base
 import Std.Foreign.C.Value
 
@@ -7,6 +9,16 @@ import Dataframes.Types
 import Dataframes.Internal.Test.Test
 
 
-def main:
-    setHelperVerbosity False
-    benchmark "running tests" TestArrayBuilder.run
+«0»def main:
+    «1»l1 = [1,2,1,4,2]
+    «2»l2 = [11,12,13,14,15]
+    «3»l3 = [21,22,23,24,25]
+    «4»l4 = [31,32,33,34,35]
+    «5»col1 = Column.fromList "col1" Int64Type l1
+    «6»col2 = Column.fromList "col2" Int64Type l2
+    «7»col3 = Column.fromList "col3" Int64Type l3
+    «8»col4 = Column.fromList "col4" Int64Type l4
+    «9»table = Table.fromColumns [col1 , col2, col3, col4]
+    «10»aggregated = table.aggregateBy "col1" [("col2", [Mean]),("col4", [Minimum, Median])]
+    None
+### META {"metas":[{"marker":1,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":0}}}},{"marker":2,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":320}}}},{"marker":3,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":640}}}},{"marker":4,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":960}}}},{"marker":5,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":320,"_vector2_x":320}}}},{"marker":6,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":320,"_vector2_x":640}}}},{"marker":7,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":320,"_vector2_x":960}}}},{"marker":8,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1280}}}},{"marker":9,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1600}}}},{"marker":10,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":0,"_vector2_x":1920}}}}]}
