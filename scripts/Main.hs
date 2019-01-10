@@ -236,8 +236,8 @@ runTests repoDir buildArtifacts packageArtifacts = do
 main :: IO ()
 main = do
     withSystemTempDirectory "" $ \stagingDir -> do
-    -- let stagingDir = "C:\\Users\\mwurb\\AppData\\Local\\Temp\\-777f232250ff9e9c"
-    prepareEnvironment stagingDir
+        -- let stagingDir = "C:\\Users\\mwurb\\AppData\\Local\\Temp\\-777f232250ff9e9c"
+        prepareEnvironment stagingDir
         repoDir <- repoDir
         buildArtifacts <- buildProject repoDir stagingDir
         packageArtifacts <- package repoDir stagingDir buildArtifacts
