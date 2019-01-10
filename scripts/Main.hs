@@ -199,11 +199,16 @@ package repoDir stagingDir buildArtifacts = do
             -- Note: This code assumed that all redistributable build artifacts are dylibs.
             --       It might need generalization in future.
             allDeps <- OSX.getDependenciesOfDylibs builtDlls
-            -- Place all "local depenencies" into the lib directory
+
             let trulyLocalDependency path = OSX.isLocalDep path && (not $ elem path builtDlls)
-            flip mapM (filter trulyLocalDependency allDeps) $ OSX.installBinary packageBinariesDir
-            -- Place all artifact binaries in the destination directory
-            flip mapM builtDlls $ OSX.installBinary packageBinariesDir
+            let localDependencies = filter trulyLocalDependency allDeps
+            let binariesToInstall = localDependencies <> builtDlls
+            putStrLn $ "Binaries to install: " <> show binariesToInstall
+            -- Place all artifact binaries and their local dependencies in the destination directory
+            binariesInstalled <- flip mapM binariesToInstall $ OSX.installBinary packageBinariesDir
+
+            -- Workaround possible issues caused by deps install names referring to symlinks
+            OSX.workaroundSymlinkedDeps binariesInstalled
 
             -- Copy Python installation to the package and remove some parts that are heavy and not needed.
             pythonPrefix <- pythonPrefix
@@ -231,8 +236,8 @@ runTests repoDir buildArtifacts packageArtifacts = do
 main :: IO ()
 main = do
     withSystemTempDirectory "" $ \stagingDir -> do
-        -- let stagingDir = "C:\\Users\\mwurb\\AppData\\Local\\Temp\\-777f232250ff9e9c"
-        prepareEnvironment stagingDir
+    -- let stagingDir = "C:\\Users\\mwurb\\AppData\\Local\\Temp\\-777f232250ff9e9c"
+    prepareEnvironment stagingDir
         repoDir <- repoDir
         buildArtifacts <- buildProject repoDir stagingDir
         packageArtifacts <- package repoDir stagingDir buildArtifacts
