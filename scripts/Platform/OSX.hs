@@ -4,6 +4,7 @@ import Control.Monad
 import Data.FileEmbed
 import Data.List
 import Data.Monoid
+import System.Directory
 import System.FilePath
 import System.FilePath.Glob
 import System.IO.Temp
@@ -79,7 +80,8 @@ isLocalDep dep = categorizeDependency dep == Local
 -- Function installs Mach-O binary in a target binary folder.
 -- install name shall be rewritten to contain only a filename
 -- install names of direct local dependencies shall be rewritten, assuming they are in the same dir
-installBinary :: FilePath -> FilePath -> IO ()
+-- returns the path to the installed dependency (in the target dir)
+installBinary :: FilePath -> FilePath -> IO FilePath
 installBinary targetBinariesDir sourcePath = do
     -- putStrLn $ "installing " <> takeFileName sourcePath <> " to " <> targetBinariesDir
     destinationPath <- copyToDir targetBinariesDir sourcePath
@@ -92,3 +94,55 @@ installBinary targetBinariesDir sourcePath = do
             -- NOTE: in future, in multi-package world, there might be more folders
             INT.change destinationPath installName $ "@loader_path" </> takeFileName installName
     callProcess "chmod" ["555", destinationPath]
+    pure destinationPath
+
+-- If installed libraries list contains library with the same name (until dot)
+-- then it will used instead of current install name.
+-- See workaroundSymlinkedDeps for a full explanation.
+fixUnresolvedDependency :: [FilePath] -> FilePath -> String -> IO ()
+fixUnresolvedDependency installedBinaries binary dependency = do
+    let depName = takeFileName dependency
+    let dotPosition = fromJustVerbose ("dependency install name " <> dependency <> " is expected to contain a dot character") (elemIndex '.' depName)
+    let namePrefix = take dotPosition depName
+    let matchesPrefix binaryPath = isPrefixOf namePrefix $ takeFileName binaryPath
+    let match = find matchesPrefix installedBinaries
+    case match of
+        Nothing -> error $ printf "installed binary: %s: cannot resolve dependency: %s" binary dependency
+        Just matchingPath -> putStrLn $ printf "\tpatching %s -> %s" dependency (replaceFileName dependency $ takeFileName matchingPath) 
+
+-- Checks if this is a dependency expected to be next to the loaded binary
+-- but not actually present.
+unresolvedLocalDependency :: FilePath -> FilePath -> IO Bool
+unresolvedLocalDependency installedBinary dependencyInstallName = do
+    if isPrefixOf "@loader_path" dependencyInstallName then do
+        let expectedPath = replaceFileName installedBinary (takeFileName dependencyInstallName)
+        not <$> doesPathExist expectedPath
+    else pure False
+
+-- This procedure is to workaround issues when install names of dependencies
+-- point to symbolic links. Currently we just copy all actual dependencies 
+-- (and know their "real paths") but this might be not enough.
+-- For example: libicui18n.63.dylib depends on libicudata.63.dylib
+-- and libicudata.63.dylib is a symlink to libicudata.63.1.dylib.
+-- We place just libicudata.63.1.dylib in the package and dyld will fail to
+-- find libicudata.63.dylib.
+-- This procedure looks for unresolved local libraries (ie. the library install
+-- names that are not present next to installed binary, and tries to patch the 
+-- install name so it refers to the library name as placed in the package.
+-- This affects only libraries with same name prefix (that is part of name 
+-- until first dot).
+--
+-- In the long-term this solution should be abandoned, dependencies should be
+-- described by packages, just like binaries to install.
+workaroundSymlinkedDeps :: [FilePath] -> IO ()
+workaroundSymlinkedDeps installedBinaries = do
+    let handleBinary target = do
+            putStrLn $ "Looking into " <> target
+            deps <- Otool.usedLibraries target
+            let localDeps = filter (isPrefixOf "@loader_path") deps
+            missingDeps <- filterM (unresolvedLocalDependency target) localDeps
+            unless (null missingDeps) $ do
+                putStrLn $ "Will try patching paths for dependencies of " <> target
+                mapM_ (fixUnresolvedDependency installedBinaries target) missingDeps
+           
+    mapM_ handleBinary installedBinaries
