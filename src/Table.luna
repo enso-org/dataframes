@@ -1165,7 +1165,9 @@ class Table:
     # 
     # `keyColumnName`: Column to aggregate over.
     # `aggregations`: List of aggregations. Single aggregation is a two argument tuple. First element is a name of a column for aggregation and second is a list of aggregate functions.
-    # `return`: TODO
+    #
+    # `return`: `Table` value containing given aggregations calculated over key column for columns and aggreate functions from the second argument.
+
     def aggregateBy keyColumnName aggregations:
         keyColumnWrapper = self.column keyColumnName . ptr
         aggregationWithWrappers = aggregations.each (colname, aggrs): (self.column colname . ptr, aggrs.each .toInt)
@@ -1173,7 +1175,31 @@ class Table:
 
     # Aggregate using `aggregateFunction` over specific column.
     #
-    # aggregate :: Text -> Text -> AggregateFunction -> Table
+    # Predefined aggregate functions are available: Minimum, Maximum, Mean, Length, Median, First, Last, Sum, RSI, Std.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,1,4,2]
+    # >     l2 = [11,12,13,14,15]
+    # >     l3 = [21,22,23,24,25]
+    # >     l4 = [31,32,33,34,35]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     col4 = Column.fromList "col4" Int64Type l4
+    # >     table = Table.fromColumns [col1 , col2, col3, col4]
+    # >     aggregated = table.aggregate "col1" "col2" Mean
+    # >     None
+    # 
+    # `keyColumnName`: Column to aggregate over.
+    # `columnToAggregateName`: Name of a column to calculate the statistics for.
+    # `aggregateFunction`: One of the predefined aggregate functions: Minimum, Maximum, Mean, Length, Median, First, Last, Sum, RSI, Std.
+    #
+    # `return`: `Table` value containing given aggregation calculated over `keyColumnName` for `columnToAggregateName` with `aggregateFunction`.
+
     def aggregate keyColumnName columnToAggregateName aggregateFunction:
         self.aggregateBy keyColumnName [(columnToAggregateName,[aggregateFunction])]
 
