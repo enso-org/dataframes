@@ -1264,7 +1264,32 @@ class Table:
         Table.fromColumns [col1, col2, col3, col4, col5, col6, col7, col8]
 
     # rollingIntervalMultiple :: Text -> TimeInterval -> [(Text, [AggregateFunction])] -> Table
-    # 
+    # Provides rolling window calculations. Rolling is provided over `keyColumnName`. The windows size is defined by `interval` and the statistic operation over the values are defined by `aggregation`.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     l1 = ["2013-01-01 09:00:00", "2013-01-01 09:00:02", "2013-01-01 09:00:03", "2013-01-01 09:00:05", "2013-01-01 09:00:06"].each (Time.parseFmt "%F %T")
+    # >     l2 = [11,12,13,14,15]
+    # >     l3 = [21,22,23,24,25]
+    # >     l4 = [31,32,33,34,35]
+    # >     col1 = Column.fromList "col1" TimestampType l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     col4 = Column.fromList "col4" Int64Type l4
+    # >     table = Table.fromColumns [col1 , col2, col3, col4]
+    # >     rolling = table.rollingIntervalMultiple "col1" 2.seconds [("col2", [Mean, Std])]
+    # >     None
+    #
+    # `keyColumnName`: Text name for column which will be an indesing column.
+    # `interval`: Time interval for rolling window, i.e. `2.days`.
+    # `aggregations`: List of aggregations. Single aggregation is a two argument tuple. First element is a name of a column for aggregation and second is a list of aggregate functions.
+    #
+    # `return`: TODO 
+
     def rollingIntervalMultiple keyColumnName interval aggregations:
         keyColumnWrapper = self.column keyColumnName . ptr
         aggregationWithWrappers = aggregations.each (colname, aggrs): (self.column colname . ptr, aggrs.each .toInt)
@@ -1305,12 +1330,113 @@ class Table:
         newTable
 
     def chart: ChartBuilder self
+
+    # Plots y versus x. Default style for plot is marker.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plot1 = table.plot "col1" "col2"
+    # >     None
+    #
+    # `columnName1`: X column name.
+    # `columnName2`: Y column name.
+    #
+    # `return`: ![](data/docs/docs22.png)
+
     def plot: self.chart.plot
+
+    # Plots a histogram.
+    #
+    # Compute and plot histogram of x.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = l1 = [1,23,78,4,12,7,89,6,7,19,17,13,15,56,89,23,0,1,45,30]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     table = Table.fromColumns [col1]
+    # >     plot1 = table.histogram "col1"
+    # >     None
+    #
+    # `columnName`: X column name.
+    #
+    # `return`: ![](data/docs/docs23.png)
+
     def histogram: self.chart.histogram
     def scatter: self.chart.scatter
+
+    # Fits and plots a univariate kernel density estimate.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [12,16,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plot1 = table.kde "col2"
+    # >     None
+    #
+    # `columnName`: Input column name.
+    #
+    # `return`: ![](data/docs/docs25.png)
+
     def kde: self.chart.kde
+
+    # Fits and plots a bivariate kernel density estimate.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [12,16,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plot1 = table.kde2 "col1" "col2"
+    # >     None
+    #
+    # `columnName1`: First column name.
+    # `columnName2`: Second column name.
+    #
+    # `return`: ![](data/docs/docs24.png)
+
     def kde2: self.chart.kde2
     def plotDate: self.chart.plotDate
+
+    # Plots rectangular data as a color-encoded matrix.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [12,16,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     correlations = table.correlations
+    # >     heatmapPlot = correlations.heatmap
+    # >     None
+    #
+    # `return`: [] ![](data/docs/docs26.png)
+
     def heatmap: self.chart.heatmap
     def fillBetween: self.chart.fillBetween
 
