@@ -412,8 +412,7 @@ class Table:
         columns = names.each self.column
         self.fromColumns columns
 
-    # removeByIndex :: Int -> Table
-    # Removes column under given index from the `Table`.
+    # Removes column under given index from the `self` table.
     #
     # Colums are indexed from 0.
     #
@@ -442,8 +441,7 @@ class Table:
     def removeByIndex index:
         self.fromWrapper $ self.ptr.removeColumn index
 
-    # remove :: Text -> Table
-    # Removes column under given name.
+    # Removes column under given name from `self` table.
     # 
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -463,9 +461,10 @@ class Table:
     # errors: 
     # If column name is invalid error shall occur. 
     #
-    # `name`: Name of a column to delete from table.
+    # `name`: Text value with name of a column to delete from table.
     #
     # `return`: `Table` value without the column with given name.
+
     def remove name:
         self.removeByIndex $ self.schema.getFieldIndexByName name
     def toList:
@@ -497,7 +496,7 @@ class Table:
 
     # Checks if two tables are equal.
     # 
-    # Takes `self` table and comares it to the one passed as an argument.
+    # Takes `self` table and compares it to the one passed as an argument.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -745,10 +744,58 @@ class Table:
         self.setAt name r
 
     # sortBy :: [(Column, SortOrder, NullPosition)]
+    # Sorts the table by given columns. The sorting order can be ascending or descending and nulls can be at the end or beginning of a sorted column. 
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [3,1,2,4,5]
+    # >     l2 = [17,12,15,11,19]
+    # >     l3 = [21,26,24,29,28]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1 , col2, col3]
+    # >     newTable = table.sortByColumn [(col1, Ascending, NullsAfter), (col2, Descending, NullsBefore)]
+    # >     None
+    #
+    # `sortBy`: A list of tuples. Each tuple contain: column, sort order and null position. 
+    # Column is a column to sort by.
+    # Sort order can be `Ascending` or `Descending`.
+    # Null position can be `NullsAfter` if nulls should be added at the end of a column or `NullsBefore` if they should be places at the beginning.
+    #
+    # `return`: Sorted table.
+    
     def sortByColumn sortBy:
         self.fromWrapper $ self.ptr.sort (sortBy.each (col, b, c): (col.ptr, b, c))
 
     # sortBy is list of triples: [(column name :: Text, SortOrder, NullPosition)]
+    # Sorts the table by given columns pointed by name. The sorting order can be ascending or descending and nulls can be at the end or beginning of a sorted column. 
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [3,1,2,4,5]
+    # >     l2 = [17,12,15,11,19]
+    # >     l3 = [21,26,24,29,28]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1 , col2, col3]
+    # >     newTable = table.sortMultiples [("col1", Ascending, NullsAfter), ("col2", Descending, NullsBefore)]
+    # >     None
+    #
+    # `sortBy`: A list of tuples. Each tuple contain: column name, sort order and null position. 
+    # Column name is a name of a column to sort by.
+    # Sort order can be `Ascending` or `Descending`.
+    # Null position can be `NullsAfter` if nulls should be added at the end of a column or `NullsBefore` if they should be places at the beginning.
+    #
+    # `return`: Sorted table.
+
     def sortMultiples sortBy:
         sortByColumns = sortBy.each (colName, order, pos): (self.column colName, order, pos)
         self.sortByColumn sortByColumns
