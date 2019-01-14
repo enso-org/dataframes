@@ -767,7 +767,7 @@ class Table:
     # Null position can be `NullsAfter` if nulls should be added at the end of a column or `NullsBefore` if they should be places at the beginning.
     #
     # `return`: Sorted table.
-    
+
     def sortByColumn sortBy:
         self.fromWrapper $ self.ptr.sort (sortBy.each (col, b, c): (col.ptr, b, c))
 
@@ -800,11 +800,74 @@ class Table:
         sortByColumns = sortBy.each (colName, order, pos): (self.column colName, order, pos)
         self.sortByColumn sortByColumns
 
-    # sortBy :: column name :: Text
+    # columnName :: Text
+    # Sorts the `self` table by a column in descending order.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [3,1,2,4,5]
+    # >     l2 = [17,12,15,11,19]
+    # >     l3 = [21,26,24,29,28]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1 , col2, col3]
+    # >     newTable = table.sortDescending "col1"
+    # >     None
+    #
+    # `columnName`: Column name in table.
+    #
+    # `return`: table sorted by bolumn with name `columnName` with descending order and with nulls at the end of a column.
+
     def sortDescending columnName: self.sortMultiples [(columnName, Descending, NullsAfter)]
 
-    # sortBy :: column name :: Text
+    # columnName :: Text
+    # Sorts the `self` table by a column in ascending order.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [3,1,2,4,5]
+    # >     l2 = [17,12,15,11,19]
+    # >     l3 = [21,26,24,29,28]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1 , col2, col3]
+    # >     newTable = table.sortAscending "col1"
+    # >     None
+    #
+    # `columnName`: Column name in table.
+    #
+    # `return`: table sorted by bolumn with name `columnName` with ascending order and with nulls at the end of a column.
+
     def sortAscending columnName: self.sortMultiples [(columnName, Ascending, NullsAfter)]
+
+    # Sorts the `self` table by a column in ascending order.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [3,1,2,4,5]
+    # >     l2 = [17,12,15,11,19]
+    # >     l3 = [21,26,24,29,28]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1 , col2, col3]
+    # >     newTable = table.sort "col1"
+    # >     None
+    #
+    # `columnName`: Column name in table.
+    #
+    # `return`: table sorted by bolumn with name `columnName` with ascending order and with nulls at the end of a column.
 
     def sort columnName: self.sortAscending columnName
 
