@@ -99,7 +99,8 @@ class Column:
     def toText: self.toList.toText
 
     def toJSON:
-        JSON.empty . insert "header" [self.name] . insert "data" [self.slice 0 1000 . toList]
+        countToTake = if self.length >= 1000 then 1000 else self.length
+        JSON.empty . insert "header" [self.name] . insert "data" [self.slice 0 countToTake . toList]
 
     def isNumeric: case self of
         ColumnInt            tc: True
