@@ -558,7 +558,7 @@ extern "C"
         return array->length();
     }
 
-    DFH_EXPORT arrow::DateType* arrayType(arrow::Array *array, const char **outError) noexcept
+    DFH_EXPORT arrow::DataType* arrayType(arrow::Array *array, const char **outError) noexcept
     {
         LOG("@{}", (void*)array);
         return TRANSLATE_EXCEPTION(outError)
