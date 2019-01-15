@@ -108,7 +108,10 @@ fixUnresolvedDependency installedBinaries binary dependency = do
     let match = find matchesPrefix installedBinaries
     case match of
         Nothing -> error $ printf "installed binary: %s: cannot resolve dependency: %s" binary dependency
-        Just matchingPath -> putStrLn $ printf "\tpatching %s -> %s" dependency (replaceFileName dependency $ takeFileName matchingPath) 
+        Just matchingPath -> do
+            let adjustedDependency = replaceFileName dependency $ takeFileName matchingPath
+            putStrLn $ printf "\tpatching %s -> %s" dependency adjustedDependency 
+            INT.change binary dependency adjustedDependency
 
 -- Checks if this is a dependency expected to be next to the loaded binary
 -- but not actually present.
