@@ -558,6 +558,15 @@ extern "C"
         return array->length();
     }
 
+    DFH_EXPORT arrow::DateType* arrayType(arrow::Array *array, const char **outError) noexcept
+    {
+        LOG("@{}", (void*)array);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return LifetimeManager::instance().addOwnership(array->type());
+        };
+    }
+
     DFH_EXPORT int64_t nullCount(arrow::Array *array) noexcept
     {
         LOG("@{}", (void*)array);
