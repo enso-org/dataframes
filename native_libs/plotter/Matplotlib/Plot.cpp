@@ -214,6 +214,14 @@ extern "C"
     {
         return TRANSLATE_EXCEPTION(outError)
         {
+            // matplotlib doesn't verify sizes and they yield errors when 
+            // writing files (eg. through libpng) where we cannot tell what
+            // went wrong. Let's check sizes here then.
+            if(w == 0)
+                THROW("figure width must be positive, requested width={}", w);
+            if(h == 0)
+                THROW("figure height must be positive, requested height={}", h);
+
             plt::backend("Agg");
             plt::detail::_interpreter::get();
             plt::figure_size(w, h);
