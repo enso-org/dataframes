@@ -10,7 +10,7 @@ cache:
 - C:\Users\appveyor\AppData\Local\Programs\stack
 
 build_script:
-- python -m pip install numpy
+- python -m pip install numpy==1.15.*
 - curl -sS -o stack.zip -L --insecure https://get.haskellstack.org/stable/windows-x86_64.zip
 - 7z x stack.zip -y -oC:\stack stack.exe
 - cd %APPVEYOR_BUILD_FOLDER%\scripts\

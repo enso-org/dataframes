@@ -390,7 +390,7 @@ class TableWrapper:
         aggregationFunctionIds = aggregation.each (_, aggs): aggs.each CInt8.fromInt
         aggregationFunctionCounts = aggregationFunctionIds.each (CInt8.fromInt _.length)
         ptr = Array (Pointer None) . with aggregatedColumnWrapperPtrs aggregatedColumnsC:
-            Array CInt32 . with aggregationFunctionCounts aggregateFunctionCountsC:
+            Array CInt8 . with aggregationFunctionCounts aggregateFunctionCountsC:
                 bracket (aggregationFunctionIds.each (Array CInt8 . fromList _)) (_.each .free) listOfAggregatedFunctionCArrays:
                     Array (Pointer CInt8) . with (listOfAggregatedFunctionCArrays.each .ptr) arrayOfArraysWithIds:
                         callHandlingError "tableRollingTimeInterval" (Pointer None) [keyColumn.ptr.toCArg, CInt64.fromInt intervalNs . toCArg, CInt32.fromInt aggregation.length . toCArg, aggregatedColumnsC.toCArg, aggregateFunctionCountsC.toCArg, arrayOfArraysWithIds.toCArg]
