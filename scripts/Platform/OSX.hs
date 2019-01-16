@@ -93,7 +93,6 @@ installBinary targetBinariesDir sourcePath = do
             -- local dependencies of local dependencies are in the same folder as the current binary
             -- NOTE: in future, in multi-package world, there might be more folders
             INT.change destinationPath installName $ "@loader_path" </> takeFileName installName
-    callProcess "chmod" ["555", destinationPath]
     pure destinationPath
 
 -- If installed libraries list contains library with the same name (until dot)
