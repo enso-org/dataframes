@@ -15,10 +15,16 @@ class DataTypeWrapper:
         self.callSelf "ToString" CString [] . toText
     def typeId:
         self.callSelf "Id" CInt8 [] . toInt
+
     # warning: only fixed-width types support this operation
     # TODO: somehow enforce this on the type level
     def bitWidth:
         self.callSelf "FixedWidthTypeBitWidth" CInt32 [] . toInt
+
+    # warning: only Timestamp types support this operation
+    # TODO: somehow enforce this on the type level
+    def timestampUnit:
+        self.callSelf "TimestampUnit" CInt8 [] . toInt
 
 def createDataTypeWrapper typename:
     value = case typename of
@@ -94,6 +100,10 @@ class ArrayWrapper:
     def slice fromIndex length:
         ptr = callHandlingError "arraySlice" (Pointer None) [self.ptr.toCArg, CInt64.fromInt fromIndex . toCArg, CInt64.fromInt length . toCArg]
         wrapReleasableResouce ArrayWrapper ptr
+
+    def type:
+        ptr = callHandlingError "arrayType" (Pointer None) [self.ptr.toCArg]
+        wrapReleasableResouce DataTypeWrapper ptr
 
 class BufferWrapper:
     ptr :: ManagedPointer None

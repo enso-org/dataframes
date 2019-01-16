@@ -198,6 +198,13 @@ extern "C"
             return throwingCast<const arrow::FixedWidthType*>(datatype)->bit_width();
         };
     }
+    DFH_EXPORT std::int8_t dataTypeTimestampUnit(const arrow::DataType *datatype, const char **outError) noexcept
+    {
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            return throwingCast<const arrow::TimestampType*>(datatype)->unit();
+        };
+    }
 }
 
 

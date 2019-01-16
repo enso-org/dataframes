@@ -1,5 +1,6 @@
 import Dataframes.Internal.CWrappers
 import Dataframes.Internal.ArrayBuilder
+import Dataframes.DataType
 
 class Array a:
     Array a
@@ -29,7 +30,7 @@ class Array a:
     def valueAt index:
         isNull = self.typeTag.nullable.and (self.nullAt index)
         cval = self.ptr.value index self.typeTag.ctype self.typeTag.typename
-        self.typeTag.fromC isNull cval
+        self.typeTag.fromC isNull cval self.type
     def toList:
         0.upto (self.length - 1) . each (self.valueAt _)
     def toText:
@@ -38,6 +39,9 @@ class Array a:
         self.toList.toJSON
     def nullAt index:
         self.ptr.nullAt index
+    def type:
+        ptr = self.ptr.type
+        DataTypeVal ptr
 
     # NOTE: method is provisional and low-performance
     def mapSame f: self.map self.typeTag f

@@ -5,13 +5,13 @@ import Dataframes.Internal.Utils
 import Dataframes.Column
 
 class StringType:
-    def append bw value:
+    def append bw value type:
         self.withValueAsC value bw.append
     def withValueAsC value f:
         CString.with value f
     def typename: "String"
     def ctype: CString
-    def fromC isNull val:
+    def fromC isNull val type:
         val.toText
     def nullable: False
     def makeColumn typedColumn: ColumnText typedColumn
@@ -20,7 +20,7 @@ class StringType:
             ColumnText tc: f tc
             _: throw ("wrong column type, expected " + self.typename)
 class MaybeStringType:
-    def append bw value:
+    def append bw value type:
         case value of
             Just justValue: self.withValueAsC justValue bw.append
             Nothing: bw.appendNull
@@ -28,7 +28,7 @@ class MaybeStringType:
         CString.with value f
     def typename: "String"
     def ctype: CString
-    def fromC isNull val:
+    def fromC isNull val type:
         case isNull of
             True: Nothing
             False:
@@ -41,17 +41,17 @@ class MaybeStringType:
             ColumnMaybeText tc: f tc
             _: throw ("wrong column type, expected Maybe " + self.typename)
 class Int32Type:
-    def append bw value:
+    def append bw value type:
         self.withValueAsC value bw.append
     def withValueAsC value f:
         f (CInt32.fromInt value)
     def typename: "Int32"
     def ctype: CInt32
-    def fromC isNull val:
+    def fromC isNull val type:
         val.toInt
     def nullable: False
 class MaybeInt32Type:
-    def append bw value:
+    def append bw value type:
         case value of
             Just justValue: self.withValueAsC justValue bw.append
             Nothing: bw.appendNull
@@ -59,19 +59,19 @@ class MaybeInt32Type:
         f (CInt32.fromInt value)
     def typename: "Int32"
     def ctype: CInt32
-    def fromC isNull val:
+    def fromC isNull val type:
         case isNull of
             True: Nothing
             False: Just val.toInt
     def nullable: True
 class Int64Type:
-    def append bw value:
+    def append bw value type:
         self.withValueAsC value bw.append
     def withValueAsC value f:
         f (CInt64.fromInt value)
     def typename: "Int64"
     def ctype: CInt64
-    def fromC isNull val:
+    def fromC isNull val type:
         val.toInt
     def nullable: False
     def makeColumn typedColumn: ColumnInt typedColumn
@@ -81,7 +81,7 @@ class Int64Type:
             _: throw ("wrong column type, expected " + self.typename)
 
 class MaybeInt64Type:
-    def append bw value:
+    def append bw value type:
         case value of
             Just justValue: self.withValueAsC justValue bw.append
             Nothing: bw.appendNull
@@ -89,7 +89,7 @@ class MaybeInt64Type:
         f (CInt64.fromInt value)
     def typename: "Int64"
     def ctype: CInt64
-    def fromC isNull val:
+    def fromC isNull val type:
         case isNull of
             True: Nothing
             False: Just val.toInt
@@ -101,13 +101,13 @@ class MaybeInt64Type:
             _: throw ("wrong column type, expected Maybe " + self.typename)
 
 class DoubleType:
-    def append bw value:
+    def append bw value type:
         self.withValueAsC value bw.append
     def withValueAsC value f:
         f (CDouble.fromReal value)
     def typename: "Double"
     def ctype: CDouble
-    def fromC isNull val:
+    def fromC isNull val type:
         val.toReal
     def nullable: False
     def makeColumn typedColumn: ColumnReal typedColumn
@@ -116,7 +116,7 @@ class DoubleType:
             ColumnReal tc: f tc
             _: throw ("wrong column type, expected " + self.typename)
 class MaybeDoubleType:
-    def append bw value:
+    def append bw value type:
         case value of
             Just justValue: self.withValueAsC justValue bw.append
             Nothing: bw.appendNull
@@ -124,7 +124,7 @@ class MaybeDoubleType:
         f (CDouble.fromReal value)
     def typename: "Double"
     def ctype: CDouble
-    def fromC isNull val:
+    def fromC isNull val type:
         case isNull of
             True: Nothing
             False: Just val.toReal
@@ -136,14 +136,16 @@ class MaybeDoubleType:
             _: throw ("wrong column type, expected " + self.typename)
 
 class TimestampType:
-    def append bw value:
-        self.withValueAsC value bw.append
-    def withValueAsC value f:
-        f (CInt64.fromInt $ value.toEpoch.toInt * 1000000000)
+    def append bw value type:
+        self.withValueAsC value bw.append type
+    def withValueAsC value f type:
+        unitsPerSec = type.timestampUnit.unitsPerSecond
+        f (CInt64.fromInt $ value.toEpoch.toInt * unitsPerSec)
     def typename: "TimestampTag"
     def ctype: CInt64
-    def fromC isNull val:
-        Time.fromEpoch (val.toInt / 1000000000)
+    def fromC isNull val type:
+        unitsPerSec = type.timestampUnit.unitsPerSecond
+        Time.fromEpoch (val.toInt / unitsPerSec)
     def nullable: False
     def makeColumn typedColumn: ColumnTimestamp typedColumn
     def useColumn column f:
@@ -152,18 +154,21 @@ class TimestampType:
             _: throw ("wrong column type, expected " + self.typename)
 
 class MaybeTimestampType:
-    def append bw value:
+    def append bw value type:
         case value of
-            Just justValue: self.withValueAsC justValue bw.append
+            Just justValue: self.withValueAsC justValue bw.append type
             Nothing: bw.appendNull
-    def withValueAsC value f:
-        f (CInt64.fromInt $ value.toEpoch.toInt * 1000000000)
+    def withValueAsC value f type:
+        unitsPerSec = type.timestampUnit.unitsPerSecond
+        f (CInt64.fromInt $ value.toEpoch.toInt * unitsPerSec)
     def typename: "TimestampTag"
     def ctype: CInt64
-    def fromC isNull val:
+    def fromC isNull val type:
         case isNull of
             True: Nothing
-            False: Just $ Time.fromEpoch (val.toInt / 1000000000)
+            False: 
+                unitsPerSec = type.timestampUnit.unitsPerSecond
+                Just $ Time.fromEpoch (val.toInt / unitsPerSec)
     def nullable: True
     def makeColumn typedColumn: ColumnMaybeTimestamp typedColumn
     def useColumn column f:

@@ -17,7 +17,7 @@ class ArrayBuilder a:
         ArrayBuilderVal self.typeTag wrapper
 
     def append value:
-        self.typeTag.append self.ptr value
+        self.typeTag.append self.ptr value self.type
     def appendMany values:
         values . each self.append
 

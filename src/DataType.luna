@@ -1,5 +1,37 @@
 import Dataframes.Internal.CWrappers
 
+
+class TimestampUnit:
+    TimestampUnit
+    TimestampUnitSecond
+    TimestampUnitMili
+    TimestampUnitMicro
+    TimestampUnitNano
+    
+    def unitsPerSecond:
+        case self of
+            TimestampUnitSecond: 1
+            TimestampUnitMili:  1000
+            TimestampUnitMicro: 1000000
+            TimestampUnitNano:  1000000000
+            _: throw "not an actual unit"
+
+    def fromCArg val:
+        case val of
+            0: TimestampUnitSecond
+            1: TimestampUnitMili
+            2: TimestampUnitMicro
+            3: TimestampUnitNano
+            _: throw $ "wrong timestamp unit id: " + val.toText
+
+    def toText:
+        case self of
+            TimestampUnit: "undefined"
+            TimestampUnitSecond: "s"
+            TimestampUnitMili: "ms"
+            TimestampUnitMicro: "us"
+            TimestampUnitNano: "ns"
+
 # TODO: consider whether some trickery could be used to hide bitWidth method
 class DataType:
     DataType
@@ -15,4 +47,9 @@ class DataType:
     def name: self.ptr.name
     def toText: self.ptr.toText
     def typeId: self.ptr.typeId
+
     def bitWidth: self.ptr.bitWidth
+
+    def timestampUnit:
+        unitId = self.ptr.timestampUnit
+        TimestampUnit.fromCArg unitId

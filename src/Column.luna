@@ -1,5 +1,6 @@
 import Dataframes.Array
 import Dataframes.ChunkedArray
+import Dataframes.DataType
 import Dataframes.Field
 import Dataframes.Schema
 import Dataframes.Table
@@ -84,6 +85,17 @@ class Column:
             ColumnMaybeText      tc: tc.toList
             ColumnTimestamp      tc: tc.toList
             ColumnMaybeTimestamp tc: tc.toList
+
+    def type:
+        case self of
+            ColumnInt            tc: tc.type
+            ColumnMaybeInt       tc: tc.type
+            ColumnReal           tc: tc.type
+            ColumnMaybeReal      tc: tc.type
+            ColumnText           tc: tc.type
+            ColumnMaybeText      tc: tc.type
+            ColumnTimestamp      tc: tc.type
+            ColumnMaybeTimestamp tc: tc.type
 
     def slice fromIndex length:
         case self of
