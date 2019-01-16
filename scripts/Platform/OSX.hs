@@ -93,7 +93,6 @@ installBinary targetBinariesDir sourcePath = do
             -- local dependencies of local dependencies are in the same folder as the current binary
             -- NOTE: in future, in multi-package world, there might be more folders
             INT.change destinationPath installName $ "@loader_path" </> takeFileName installName
-    callProcess "chmod" ["555", destinationPath]
     pure destinationPath
 
 -- If installed libraries list contains library with the same name (until dot)
@@ -108,7 +107,10 @@ fixUnresolvedDependency installedBinaries binary dependency = do
     let match = find matchesPrefix installedBinaries
     case match of
         Nothing -> error $ printf "installed binary: %s: cannot resolve dependency: %s" binary dependency
-        Just matchingPath -> putStrLn $ printf "\tpatching %s -> %s" dependency (replaceFileName dependency $ takeFileName matchingPath) 
+        Just matchingPath -> do
+            let adjustedDependency = replaceFileName dependency $ takeFileName matchingPath
+            putStrLn $ printf "\tpatching %s -> %s" dependency adjustedDependency 
+            INT.change binary dependency adjustedDependency
 
 -- Checks if this is a dependency expected to be next to the loaded binary
 -- but not actually present.
