@@ -104,13 +104,34 @@ class Histogram:
 
     def toChart: Chart self.render
 
+    # Adds new plot to existing one.
     def + that:
         self.toChart.+ that
 
     def toJSON: self.toChart.toJSON
 
+    # Defines the number of equal-width bins in the given range (10, by default) for a histogram plot.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = l1 = [1,23,78,4,12,7,89,6,7,19,17,13,15,56,89,23,0,1,45,30]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     table = Table.fromColumns [col1]
+    # >     plot1 = table.chart.histogram "col1"
+    # >     modifyBins = plot1.setBins 4
+    # >     None
+    #
+    # `b`: Number of bins.
+    #
+    # `return`: Histogram plot with predefined number of bins.
+    # TODO - prtscreen
+
     def setBins b: Histogram self.data b self.options
 
+    # Creates a subplots arranged vertically.
     def verticalLayout: Chart None . verticalLayout
 
 class PlotDate:
@@ -122,10 +143,12 @@ class PlotDate:
 
     def toChart: Chart self.render
 
+    # Adds new plot to existing one.
     def + that: self.toChart.+that
 
     def toJSON: self.toChart.toJSON
 
+    # Creates a subplots arranged vertically.
     def verticalLayout: Chart None . verticalLayout
 
 class Scatter:
@@ -137,10 +160,12 @@ class Scatter:
 
     def toChart: Chart self.render
 
+    # Adds new plot to existing one.
     def + that: self.toChart.+that
 
     def toJSON: self.toChart.toJSON
 
+    # Creates a subplots arranged vertically.
     def verticalLayout: Chart None . verticalLayout
 
 class Plot:
@@ -156,6 +181,7 @@ class Plot:
 
     def toChart: Chart self.render
 
+    # Adds new plot to existing one.
     def + that:
         self.toChart.+ that
 
@@ -169,6 +195,7 @@ class Plot:
 
     def setAplha a: Plot self.series1 self.series2 self.style self.label self.color (Just a)
 
+    # Creates a subplots arranged vertically.
     def verticalLayout: Chart None . verticalLayout
 
 class FillBetween:
@@ -184,6 +211,7 @@ class FillBetween:
 
     def toChart: Chart self.render
 
+    # Adds new plot to existing one.
     def + that:
         self.toChart.+ that
 
@@ -195,6 +223,7 @@ class FillBetween:
 
     def setAlpha a: FillBetween self.series1 self.series2 self.series3 self.label self.color (Just a)
 
+    # Creates a subplots arranged vertically.
     def verticalLayout: Chart None . verticalLayout
 
 class KDE2:
@@ -207,6 +236,7 @@ class KDE2:
 
     def toChart: Chart self.render
 
+    # Adds new plot to existing one.
     def + that:
         self.toChart.+ that
 
@@ -214,6 +244,7 @@ class KDE2:
 
     def setColorMap s: KDE2 self.series1 self.series2 s
 
+    # Creates a subplots arranged vertically.
     def verticalLayout: Chart None . verticalLayout
 
 class KDE:
@@ -225,6 +256,7 @@ class KDE:
 
     def toChart: Chart self.render
 
+    # Adds new plot to existing one.
     def + that:
         self.toChart.+ that
 
@@ -232,6 +264,7 @@ class KDE:
 
     def setLabel l: KDE self.data (Just l)
 
+    # Creates a subplots arranged vertically.
     def verticalLayout: Chart None . verticalLayout
 
 class Grid:
@@ -242,6 +275,7 @@ class Grid:
 
     def toChart: Chart self.render
 
+    # Adds new plot to existing one.
     def + that:
         self.toChart.+ that
 
@@ -249,4 +283,5 @@ class Grid:
 
     def setLabel l: self.label = (Just l)
 
+    # Creates a subplots arranged vertically.
     def verticalLayout: Chart None . verticalLayout
