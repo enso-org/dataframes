@@ -59,7 +59,7 @@ jobs:
           name: Install C++ dependencies
           command: |
             brew update
-            brew install fmt cmake apache-arrow boost rapidjson howard-hinnant-date pcre pybind11 wget openssl
+            brew install fmt cmake boost rapidjson howard-hinnant-date pcre pybind11 wget openssl
       - run:
           name: Build Python
           command: |
