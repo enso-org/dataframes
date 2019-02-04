@@ -1482,6 +1482,30 @@ class Table:
     # `return`: [] ![](data/docs/docs26.png)
 
     def heatmap: self.chart.heatmap
+
+    # Fills the area between two horizontal curves. The cuves are defined by the two sests of points (x, y1) and (x, y2).
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [12,16,13,14,15]
+    # >     l3 = [22,19,23,21,27]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1 , col2, col3]
+    # >     plot = table.fillBetween "col1" "col2" "col3"
+    # >     None
+    #
+    # `cname1`: X column name.
+    # `cname2`: Y1 column name for first curve.
+    # `cname3`: Y2 column name for second curve.
+    #
+    # `return`: TODO-print screen
+    
     def fillBetween: self.chart.fillBetween
 
 
@@ -1635,6 +1659,29 @@ class ChartBuilder:
 
     def heatmap:
         Heatmap self.table "RdBu_r" Nothing
+
+    # Fills the area between two horizontal curves. The cuves are defined by the two sests of points (x, y1) and (x, y2).
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [12,16,13,14,15]
+    # >     l3 = [22,19,23,21,27]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1 , col2, col3]
+    # >     plot = table.chart.fillBetween "col1" "col2" "col3"
+    # >     None
+    #
+    # `cname1`: X column name.
+    # `cname2`: Y1 column name for first curve.
+    # `cname3`: Y2 column name for second curve.
+    #
+    # `return`: TODO-print screen
 
     def fillBetween cname1 cname2 cname3:
         c1 = self.table.at cname1 . toColumn
