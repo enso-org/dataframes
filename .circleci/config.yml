@@ -59,7 +59,7 @@ jobs:
           name: Install C++ dependencies
           command: |
             brew update
-            brew install fmt cmake apache-arrow boost rapidjson howard-hinnant-date pcre pybind11 wget openssl
+            brew install fmt cmake boost rapidjson howard-hinnant-date pcre pybind11 wget openssl
       - run:
           name: Build Python
           command: |
@@ -73,6 +73,20 @@ jobs:
             ~/python-dist/bin/python3.7 -mpip install numpy matplotlib seaborn sklearn
             cd .. &&\
             rm -rf Python-3.7.0.tar.xz Python-3.7.0
+      - run:
+          name: Install Apache Arrow library
+          command: |
+            cd ~
+            wget https://github.com/apache/arrow/archive/apache-arrow-0.12.0.zip
+            unzip apache-arrow-0.12.0.zip
+            cd arrow-apache-arrow-0.12.0
+            mkdir build
+            cd build
+            cmake ../cpp -DCMAKE_BUILD_TYPE=Release
+            make -j 4
+            make install
+            cd ../../
+            rm -rf arrow-apache-arrow-0.12.0 apache-arrow-0.12.0.zip
       - run:
           name: Install XLNT library
           command: |
