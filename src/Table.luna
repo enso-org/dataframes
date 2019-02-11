@@ -1385,7 +1385,7 @@ class Table:
     # > import Dataframes.Table
     # >
     # > def main:
-    # >     l1 = l1 = [1,23,78,4,12,7,89,6,7,19,17,13,15,56,89,23,0,1,45,30]
+    # >     l1 = [1,23,78,4,12,7,89,6,7,19,17,13,15,56,89,23,0,1,45,30]
     # >     col1 = Column.fromList "col1" Int64Type l1
     # >     table = Table.fromColumns [col1]
     # >     plot1 = table.histogram "col1"
@@ -1396,6 +1396,27 @@ class Table:
     # `return`: ![](data/docs/docs23.png)
 
     def histogram: self.chart.histogram
+
+    # Plots y versus x with markers.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plot1 = table.scatter "col1" "col2"
+    # >     None
+    #
+    # `columnName1`: X column name.
+    # `columnName2`: Y column name.
+    #
+    # `return`: TODO print screen
+
     def scatter: self.chart.scatter
 
     # Fits and plots a univariate kernel density estimate.
@@ -1563,6 +1584,26 @@ class ChartBuilder:
         c2 = self.table.at columnName2 . toColumn
         PlotDate c1 c2
 
+    # Plots y versus x with markers.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plot1 = table.chart.scatter "col1" "col2"
+    # >     None
+    #
+    # `columnName1`: X column name.
+    # `columnName2`: Y column name.
+    #
+    # `return`: TODO print screen
+        
     def scatter columnName1 columnName2:
         c1 = self.table.at columnName1 . toColumn
         c2 = self.table.at columnName2 . toColumn

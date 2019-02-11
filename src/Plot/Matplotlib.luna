@@ -104,7 +104,27 @@ class Histogram:
 
     def toChart: Chart self.render
 
-    # Adds new plot to existing one.
+    # Combines two plots into one.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [11,24,36,14,35,26,94,18,29,10,11,22,73,44,15,18,27,58,19,5]
+    # >     l2 = [1,23,78,4,12,7,89,6,7,19,17,13,15,56,89,23,0,1,45,30]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col1 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1, col2]
+    # >     hist1 = table.histogram "col1"
+    # >     hist2 = table.histogram "col2"
+    # >     plot1 = hist1 . + hist2
+    # >     None
+    #
+    # `that`: Plot to combine with the `self` plot.
+    #
+    # `return`: TODO print screen
+
     def + that:
         self.toChart.+ that
 
@@ -132,6 +152,27 @@ class Histogram:
     def setBins b: Histogram self.data b self.options
 
     # Creates a subplots arranged vertically.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [11,24,36,14,35,26,94,18,29,10,11,22,73,44,15,18,27,58,19,5]
+    # >     l2 = [1,23,78,4,12,7,89,6,7,19,17,13,15,56,89,23,0,1,45,30]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col1 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1, col2]
+    # >     hist1 = table.histogram "col1"
+    # >     hist2 = table.histogram "col2"
+    # >     plot1 = Subplot . verticalLayout [hist1, hist2]
+    # >     None
+    #
+    # `list`: A list of plots to arrange.
+    #
+    # `return`: Multiple plots arranged vertically.
+    # TODO - prtscreen
+
     def verticalLayout: Chart None . verticalLayout
 
 class PlotDate:
@@ -143,12 +184,56 @@ class PlotDate:
 
     def toChart: Chart self.render
 
-    # Adds new plot to existing one.
+    # Combines two plots into one.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = ["2013-01-01 09:00:00", "2013-01-01 09:00:02", "2013-01-01 09:00:03", "2013-01-01 09:00:05", "2013-01-01 09:00:06"].each (Time.parseFmt "%F %T")
+    # >     l2 = [11,12,13,14,15]
+    # >     l3 = [21,22,23,24,25]
+    # >     col1 = Column.fromList "col1" TimestampType l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1 , col2, col3]
+    # >     plot1 = table.plotDate "col1" "col2"
+    # >     plot2 = table.plotDate "col1" "col3"
+    # >     plot3 = plot1 . + plot2
+    # >     None
+    #
+    # `that`: Plot to combine with the `self` plot.
+    #
+    # `return`: TODO print screen
     def + that: self.toChart.+that
 
     def toJSON: self.toChart.toJSON
 
     # Creates a subplots arranged vertically.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = ["2013-01-01 09:00:00", "2013-01-01 09:00:02", "2013-01-01 09:00:03", "2013-01-01 09:00:05", "2013-01-01 09:00:06"].each (Time.parseFmt "%F %T")
+    # >     l2 = [11,12,13,14,15]
+    # >     l3 = [21,22,23,24,25]
+    # >     col1 = Column.fromList "col1" TimestampType l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1 , col2, col3]
+    # >     plot1 = table.plotDate "col1" "col2"
+    # >     plot2 = table.plotDate "col1" "col3"
+    # >     plot3 = Subplot . verticalLayout [plot1, plot2]
+    # >     None
+    #
+    # `list`: A list of plots to arrange.
+    #
+    # `return`: Multiple plots arranged vertically.
+    # TODO - prtscreen
+
     def verticalLayout: Chart None . verticalLayout
 
 class Scatter:
@@ -160,12 +245,57 @@ class Scatter:
 
     def toChart: Chart self.render
 
-    # Adds new plot to existing one.
+    # Combines two plots into one.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     l2 = [11,12,13,12,11]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1, col2, col3]
+    # >     plot1 = table.chart.scatter "col1" "col2"
+    # >     plot2 = table.chart.scatter "col1" "col3"
+    # >     plot3 = plot1 . + plot2
+    # >     None
+    #
+    # `that`: Plot to combine with the `self` scatter plot.
+    #
+    # `return`: TODO print screen
+
     def + that: self.toChart.+that
 
     def toJSON: self.toChart.toJSON
 
     # Creates a subplots arranged vertically.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     l2 = [11,12,13,12,11]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1, col2, col3]
+    # >     plot1 = table.chart.scatter "col1" "col2"
+    # >     plot2 = table.chart.scatter "col1" "col3"
+    # >     plot3 = Subplot . verticalLayout [plot1, plot2]
+    # >     None
+    #
+    # `list`: A list of plots to arrange.
+    #
+    # `return`: Multiple plots arranged vertically.
+    # TODO - prtscreen
+
     def verticalLayout: Chart None . verticalLayout
 
 class Plot:
@@ -181,21 +311,179 @@ class Plot:
 
     def toChart: Chart self.render
 
-    # Adds new plot to existing one.
+    # Combines two plots into one.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     l2 = [11,12,13,12,11]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1, col2, col3]
+    # >     plot1 = table.chart.plot "col1" "col2"
+    # >     plot2 = table.chart.plot "col1" "col3"
+    # >     plot3 = plot1 . + plot2
+    # >     None
+    #
+    # `that`: Plot to combine with the `self` plot.
+    #
+    # `return`: TODO print screen
+
     def + that:
         self.toChart.+ that
 
     def toJSON: self.toChart.toJSON
 
+    # Change plot style from markers to different type.
+    # 
+    # Available sytles are:
+    # Markers:
+    #  `"."` point marker
+    #  `","` pixel marker
+    #  `"o"` circle marker
+    #  `"v"` triangle_down marker
+    #  `"^"` triangle_up marker
+    #  `"<"` triangle_right marker
+    #  `">"` triangle_left marker
+    #  `"1"` tri_down marker
+    #  `"2"` tri_up marker
+    #  `"3"` tri_left marker
+    #  `"4"` tri_right marker
+    #  `"s"` square marker
+    #  `"p"` pentagon marker
+    #  `"*"` star marker
+    #  `"h"` hexagon1 marker
+    #  `"H"` hexagon2 marker
+    #  `"+"` plus marker
+    #  `"x"` x marker
+    #  `"D"` diamond marker
+    #  `"d"` thin_diamond marker
+    #  `"|"` vline marker
+    #  `"_"` hline marker
+    # Line Styles:
+    # `"-"`  solid line style
+    # `"--"` dashed line style
+    # `"-."` dash-dot line style
+    # `":"`  dotted line style
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plot1 = table.chart.plot "col1" "col2"
+    # >     plot2 = plot1.setStyle "-"
+    # >     None
+    #
+    # `s`: Style to apply to the plot.
+    #
+    # `return`: TODO print screen 
+
     def setStyle s: Plot self.series1 self.series2 s self.label self.color self.alpha
+
+    # Add legend to the plot.
+    # 
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plot1 = table.chart.plot "col1" "col2"
+    # >     plot2 = plot1.setLabel "first plot"
+    # >     None
+    #
+    # `l`: Plot series description.
+    #
+    # `return`: TODO print screen 
 
     def setLabel l: Plot self.series1 self.series2 self.style (Just l) self.color self.alpha
 
+    # Change plot color.
+    # 
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plot1 = table.chart.plot "col1" "col2"
+    # >     plot2 = plot1.setColor "red"
+    # >     None
+    #
+    # `c`: Markers desirable color.
+    #
+    # `return`: TODO print screen 
+
     def setColor c: Plot self.series1 self.series2 self.style self.label (Just c) self.alpha
+
+    # Change plot transparency.
+    # 
+    # The value for alpha should be between 0 and 1. 
+    # 0 is for fully transparent plot and 1 for solid plot.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plot1 = table.chart.plot "col1" "col2"
+    # >     plot2 = plot1.setAlpha 0.5
+    # >     None
+    #
+    # `a`: Float value for desired alpha.
+    #
+    # `return`: TODO print screen
 
     def setAplha a: Plot self.series1 self.series2 self.style self.label self.color (Just a)
 
     # Creates a subplots arranged vertically.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     l2 = [11,12,13,12,11]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1, col2, col3]
+    # >     plot1 = table.chart.plot "col1" "col2"
+    # >     plot2 = table.chart.plot "col1" "col3"
+    # >     plot3 = plot1 . verticalLayout [plot2, plot1]
+    # >     None
+    #
+    # `list`: A list of plots to arrange.
+    #
+    # `return`: Multiple plots arranged vertically.
+    # TODO - prtscreen
+
     def verticalLayout: Chart None . verticalLayout
 
 class FillBetween:
@@ -211,7 +499,7 @@ class FillBetween:
 
     def toChart: Chart self.render
 
-    # Adds new plot to existing one.
+    # Combines two plots into one.
     def + that:
         self.toChart.+ that
 
@@ -236,7 +524,7 @@ class KDE2:
 
     def toChart: Chart self.render
 
-    # Adds new plot to existing one.
+    # Combines two plots into one.
     def + that:
         self.toChart.+ that
 
@@ -256,7 +544,7 @@ class KDE:
 
     def toChart: Chart self.render
 
-    # Adds new plot to existing one.
+    # Combines two plots into one.
     def + that:
         self.toChart.+ that
 
@@ -275,7 +563,7 @@ class Grid:
 
     def toChart: Chart self.render
 
-    # Adds new plot to existing one.
+    # Combines two plots into one.
     def + that:
         self.toChart.+ that
 
