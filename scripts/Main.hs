@@ -1,3 +1,6 @@
+-- TODO: use Prologue
+-- Don't use unqualified imports (or list what you import from the modules)
+
 import Control.Monad
 import Control.Monad.Extra
 import Data.List
@@ -12,7 +15,6 @@ import System.FilePath
 import System.FilePath.Glob
 import System.IO.Temp
 import System.Process
-
 import Program
 import Utils
 
@@ -29,12 +31,17 @@ import qualified Program.InstallNameTool as INT
 import qualified Platform.OSX   as OSX
 import qualified Platform.Linux as Linux
 
+import Control.Monad.IO.Class (MonadIO, liftIO) -- FIXME: use Prologue instead
+import Control.Lens hiding ((<.>)) -- FIXME: use Prologue instead
+
+
 depsArchiveUrl, packageBaseUrl :: String
 depsArchiveUrl = "https://packages.luna-lang.org/dataframes/libs-dev-v140.7z"
 packageBaseUrl = "https://packages.luna-lang.org/dataframes/windows-package-base.7z"
 
--- Function downloads archive from given URL and extracts it to the target dir.
--- The archive is placed in temp folder, so function doesn't leave any trash behind.
+-- TODO: Use Haskell docs strings Function downloads archive from given URL and
+-- extracts it to the target dir. The archive is placed in temp folder, so
+-- function doesn't leave any trash behind.
 downloadAndUnpack7z :: FilePath -> FilePath -> IO ()
 downloadAndUnpack7z archiveUrl targetDirectory = do
     withSystemTempDirectory "" $ \tmpDir -> do
@@ -42,9 +49,15 @@ downloadAndUnpack7z archiveUrl targetDirectory = do
         Curl.download archiveUrl archiveLocalPath
         SevenZip.unpack archiveLocalPath targetDirectory
 
+-- FIXME: Don't use IO (example provided)
+-- FIXME: Catch errors and return (m (Either SomeException FilePath))
 -- Gets path to the local copy of the Dataframes repo
 repoDir :: IO FilePath
 repoDir = getEnvRequired "DATAFRAMES_REPO_PATH" -- TODO: should be able to deduce from this packaging executable location
+
+repoDirCORRECT :: MonadIO m => m FilePath
+repoDirCORRECT = liftIO $ getEnvRequired "DATAFRAMES_REPO_PATH" -- TODO: should be able to deduce from this packaging executable location
+
 
 -- Path to directory with Python installation, should not contain other things
 -- (that was passed as --prefix to Python's configure script)
@@ -74,6 +87,8 @@ packDirectory pathToPack outputArchive = do
             ".bz2"  -> tarPack Tar.BZIP2
             ".xz"   -> tarPack Tar.XZ
             ".lzma" -> tarPack Tar.LZMA
+            -- FIXME: never use fail, throw datatypes, not strings
+            -- _ -> throw PackageDirectoryError
             _       -> fail $ "packDirectory: cannot deduce compression algorithm from extension: " <> takeExtension outputArchive
 
 dynamicLibraryExtension :: String
@@ -105,29 +120,60 @@ prepareEnvironment :: FilePath -> IO ()
 prepareEnvironment tempDir = do
     case buildOS of
         Windows -> do
-            -- We need to extract the package with dev libraries and set the environment
-            -- variable DATAFRAMES_DEPS_DIR so the MSBuild project recognizes it.
+            -- We need to extract the package with dev libraries and set the
+            -- environment variable DATAFRAMES_DEPS_DIR so the MSBuild project
+            -- recognizes it.
             --
-            -- The package contains all dependencies except for Python (with numpy).
-            -- Python needs to be provided by CI environment and pointed to by `PythonDir`
-            -- environment variable.
+            -- The package contains all dependencies except for Python (with
+            -- numpy). Python needs to be provided by CI environment and pointed
+            -- to by `PythonDir` environment variable.
             let depsDirLocal = tempDir </> "deps"
             downloadAndUnpack7z depsArchiveUrl depsDirLocal
             setEnv "DATAFRAMES_DEPS_DIR" depsDirLocal
         Linux ->
-            -- On Linux all dependencies are assumed to be already installed. Such is the case
-            -- with the Docker image used to run Dataframes CI, and should be similarly with
-            -- developer machines.
+            -- On Linux all dependencies are assumed to be already installed.
+            -- Such is the case with the Docker image used to run Dataframes CI,
+            -- and should be similarly with developer machines.
             return ()
         OSX  -> return ()
         _     ->
             error $ "not implemented: prepareEnvironment for buildOS == " <> show buildOS
 
 
+
+-- data DataframesBuildArtifacts = DataframesBuildArtifacts
+--     { dataframesBinaries :: [FilePath]
+--     , dataframesTests :: [FilePath]
+--     } deriving (Eq, Show)
+
+-- TODO: ALWAYS use lenses!
 data DataframesBuildArtifacts = DataframesBuildArtifacts
-    { dataframesBinaries :: [FilePath]
-    , dataframesTests :: [FilePath]
+    { _dataframesBinaries :: [FilePath]
+    , _dataframesTests    :: [FilePath]
     } deriving (Eq, Show)
+makeLenses ''DataframesBuildArtifacts
+
+
+
+
+data LensTest = LensTest
+    { _field1 :: Int
+    }
+makeLenses ''LensTest
+
+fn1 :: LensTest -> Int
+fn1 t = t ^. field1
+
+fn2 :: Int -> LensTest -> LensTest
+fn2 x t = t & field1 .~ x
+
+fn3 :: LensTest -> LensTest
+fn3 t = t & field1 %~ (+1)
+
+
+
+
+
 
 -- This function should be called only in a properly prepared build environment.
 -- It builds the project and produces build artifacts.
@@ -148,11 +194,11 @@ buildProject repoDir stagingDir = do
             CMake.build buildDir dataframesLibPath options
 
     let builtBinariesDir = repoDir </> "native_libs" </> nativeLibsOsDir
+        tests = [builtBinariesDir </> "DataframeHelperTests" <.> exeExtension]
+        
     builtDlls <- glob $ builtBinariesDir </> "*" <.> dynamicLibraryExtension
-    pure $ DataframesBuildArtifacts
-        { dataframesBinaries = builtDlls
-        , dataframesTests = [builtBinariesDir </> "DataframeHelperTests" <.> exeExtension]
-        }
+    pure $ DataframesBuildArtifacts builtDlls tests
+
 
 data DataframesPackageArtifacts = DataframesPackageArtifacts
     { dataframesPackageArchive :: FilePath
@@ -177,7 +223,7 @@ package repoDir stagingDir buildArtifacts = do
     let dirsToCopy = ["src", "visualizers", ".luna-package"]
     mapM (copyDirectory repoDir packageRoot) dirsToCopy
 
-    let builtDlls = dataframesBinaries buildArtifacts
+    let builtDlls = buildArtifacts ^. dataframesBinaries
     when (null builtDlls) $ error "Build action have not build any binaries despite declaring success!"
 
     case buildOS of
@@ -195,7 +241,7 @@ package repoDir stagingDir buildArtifacts = do
             pythonPrefix <- pythonPrefix
             copyInPythonLibs pythonPrefix packageRoot
         OSX -> do
-            let testsBinary = head $ dataframesTests buildArtifacts
+            let testsBinary = head $ buildArtifacts ^. dataframesTests
             -- Note: This code assumed that all redistributable build artifacts are dylibs.
             --       It might need generalization in future.
             allDeps <- OSX.getDependenciesOfDylibs builtDlls
@@ -228,7 +274,7 @@ runTests repoDir buildArtifacts packageArtifacts = do
     -- The CWD must be repository though for test to properly find
     -- the data files.
     let packageDirBinaries = dataframesPackageDirectory packageArtifacts </> "native_libs" </> nativeLibsOsDir
-    tests <- mapM (copyToDir packageDirBinaries) (dataframesTests buildArtifacts)
+    tests <- mapM (copyToDir packageDirBinaries) (buildArtifacts ^. dataframesTests)
     withCurrentDirectory repoDir $ do
         mapM_ (flip callProcess ["--report_level=detailed"]) tests
 

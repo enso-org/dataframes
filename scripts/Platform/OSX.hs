@@ -22,16 +22,20 @@ import Utils
 dlopenProgram :: BS.ByteString
 dlopenProgram = $(embedFile "helpers/main.cpp")
 
--- Creates a process, observing what dynamic libraries get loaded.
--- Returns a list of absolute paths to loaded libraries, as provided by dyld.
--- NOTE: will wait for process to finish, should not be used with proceses that need input or wait for sth
--- NOTE: creates a process that may do pretty much anything (be careful of side effects)
+-- Creates a process, observing what dynamic libraries get loaded. Returns a
+-- list of absolute paths to loaded libraries, as provided by dyld. NOTE: will
+-- wait for process to finish, should not be used with proceses that need input
+-- or wait for sth NOTE: creates a process that may do pretty much anything (be
+-- careful of side effects)
 getDependenciesOfExecutable :: FilePath -> [String] -> IO [FilePath]
 getDependenciesOfExecutable exePath args = do
     let spawnInfo = (proc exePath args) { env = Just [("DYLD_PRINT_LIBRARIES", "1")] }
     result@(code, out, err) <- readCreateProcessWithExitCode spawnInfo ""
     case code of
-        ExitFailure code -> fail $ printf  "call failed: %s:\nout: %s\nerr: %s\nreturn code %d" (show spawnInfo) out err code
+        ExitFailure code -> let 
+            msg = printf "call failed: %s:\nout: %s\nerr: %s\nreturn code %d" 
+                  (show spawnInfo) out err code
+            in fail msg
         _ -> return ()
 
     -- we filter only lines beggining with he dyld prefix

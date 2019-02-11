@@ -1,3 +1,5 @@
+-- FIXME: DO NOT USE String, Use Text. Always.
+
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -13,9 +15,16 @@ import Distribution.Verbosity
 import System.Exit
 import System.Process
 import Text.Printf
+import Control.Lens
 
+-- Show (Argument a) => 
 class Program a where
     {-# MINIMAL executableName | executableNames #-}
+
+    data family Argument a
+    
+    type family Argument2 a
+    type Argument2 a = String
 
     -- Path to directory where program executable might be found.
     defaultLocations :: [FilePath]
@@ -30,6 +39,7 @@ class Program a where
     lookupProgram :: IO (Maybe FilePath)
     lookupProgram = lookupExecutable (executableNames @a) (defaultLocations @a)
 
+    -- FIXME: is there a reason anyone wants to override it?
     notFoundError :: String
     notFoundError = "failed to find program " <> prettyNames <> ", " <> notFoundFixSuggestion @a
         where prettyNames = intercalate " nor " $ executableNames @a
@@ -40,11 +50,6 @@ class Program a where
     -- Returns absolute path to the program, throws if not found
     getProgram :: IO FilePath
     getProgram = fromMaybe (error $ notFoundError @a) <$> lookupProgram @a
-
-    call :: [String] -> IO ()
-    call args = do
-        programPath <- getProgram @a
-        callProcess programPath args
 
     callCwd :: FilePath -> [String] -> IO ()
     callCwd cwd args = do
@@ -57,6 +62,11 @@ class Program a where
         readProcess programPath args ""
 
 
+call :: forall a. Program a => [String] -> IO ()
+call args = do
+    programPath <- getProgram @a
+    callProcess programPath args
+    
 lookupExecutable :: [FilePath] -> [FilePath] -> IO (Maybe FilePath)
 lookupExecutable [] _ = pure Nothing
 lookupExecutable (exeName : exeNamesTail)  additionalDirs = do
@@ -67,7 +77,7 @@ lookupExecutable (exeName : exeNamesTail)  additionalDirs = do
 
 runProcessWait :: CreateProcess -> IO ()
 runProcessWait p = do
-    (_, _, _, handle) <- createProcess p
+    handle   <- view _4 <$> createProcess p
     exitCode <- waitForProcess handle
     case exitCode of
         ExitSuccess -> return ()
