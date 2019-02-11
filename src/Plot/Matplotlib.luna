@@ -407,7 +407,7 @@ class Plot:
     # >     plot2 = plot1.setLabel "first plot"
     # >     None
     #
-    # `l`: Plot series description.
+    # `l`: Text with plot series description.
     #
     # `return`: TODO print screen 
 
@@ -429,7 +429,7 @@ class Plot:
     # >     plot2 = plot1.setColor "red"
     # >     None
     #
-    # `c`: Markers desirable color.
+    # `c`: Text value with markers desired color.
     #
     # `return`: TODO print screen 
 
