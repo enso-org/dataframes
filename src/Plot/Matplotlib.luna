@@ -114,7 +114,7 @@ class Histogram:
     # >     l1 = [11,24,36,14,35,26,94,18,29,10,11,22,73,44,15,18,27,58,19,5]
     # >     l2 = [1,23,78,4,12,7,89,6,7,19,17,13,15,56,89,23,0,1,45,30]
     # >     col1 = Column.fromList "col1" Int64Type l1
-    # >     col1 = Column.fromList "col2" Int64Type l2
+    # >     col2 = Column.fromList "col2" Int64Type l2
     # >     table = Table.fromColumns [col1, col2]
     # >     hist1 = table.histogram "col1"
     # >     hist2 = table.histogram "col2"
@@ -123,7 +123,7 @@ class Histogram:
     #
     # `that`: Plot to combine with the `self` plot.
     #
-    # `return`: TODO print screen
+    # `return`: ![](data/docs/docs30.png)
 
     def + that:
         self.toChart.+ that
@@ -137,7 +137,7 @@ class Histogram:
     # > import Dataframes.Table
     # >
     # > def main:
-    # >     l1 = l1 = [1,23,78,4,12,7,89,6,7,19,17,13,15,56,89,23,0,1,45,30]
+    # >     l1 = [1,23,78,4,12,7,89,6,7,19,17,13,15,56,89,23,0,1,45,30]
     # >     col1 = Column.fromList "col1" Int64Type l1
     # >     table = Table.fromColumns [col1]
     # >     plot1 = table.chart.histogram "col1"
@@ -147,7 +147,7 @@ class Histogram:
     # `b`: Number of bins.
     #
     # `return`: Histogram plot with predefined number of bins.
-    # TODO - prtscreen
+    # ![](data/docs/docs31.png)
 
     def setBins b: Histogram self.data b self.options
 
@@ -161,7 +161,7 @@ class Histogram:
     # >     l1 = [11,24,36,14,35,26,94,18,29,10,11,22,73,44,15,18,27,58,19,5]
     # >     l2 = [1,23,78,4,12,7,89,6,7,19,17,13,15,56,89,23,0,1,45,30]
     # >     col1 = Column.fromList "col1" Int64Type l1
-    # >     col1 = Column.fromList "col2" Int64Type l2
+    # >     col2 = Column.fromList "col2" Int64Type l2
     # >     table = Table.fromColumns [col1, col2]
     # >     hist1 = table.histogram "col1"
     # >     hist2 = table.histogram "col2"
