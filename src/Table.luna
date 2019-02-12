@@ -1415,7 +1415,7 @@ class Table:
     # `columnName1`: X column name.
     # `columnName2`: Y column name.
     #
-    # `return`: TODO print screen
+    # `return`: ![](data/docs/docs27.png)
 
     def scatter: self.chart.scatter
 
@@ -1481,7 +1481,7 @@ class Table:
     # `columnName1`: X column name.
     # `columnName2`: Y column name.
     #
-    # `return`: TODO - print screen
+    # `return`: ![](data/docs/docs28.png)
     def plotDate: self.chart.plotDate
 
     # Plots rectangular data as a color-encoded matrix.
@@ -1500,7 +1500,7 @@ class Table:
     # >     heatmapPlot = correlations.heatmap
     # >     None
     #
-    # `return`: [] ![](data/docs/docs26.png)
+    # `return`: ![](data/docs/docs26.png)
 
     def heatmap: self.chart.heatmap
 
@@ -1525,7 +1525,7 @@ class Table:
     # `cname2`: Y1 column name for first curve.
     # `cname3`: Y2 column name for second curve.
     #
-    # `return`: TODO-print screen
+    # `return`: ![](data/docs/docs29.png)
     
     def fillBetween: self.chart.fillBetween
 
@@ -1577,7 +1577,7 @@ class ChartBuilder:
     # `columnName1`: X column name.
     # `columnName2`: Y column name.
     #
-    # `return`: TODO - print screen
+    # `return`: ![](data/docs/docs28.png)
 
     def plotDate columnName1 columnName2:
         c1 = self.table.at columnName1 . toColumn
@@ -1602,7 +1602,7 @@ class ChartBuilder:
     # `columnName1`: X column name.
     # `columnName2`: Y column name.
     #
-    # `return`: TODO print screen
+    # `return`: ![](data/docs/docs27.png)
         
     def scatter columnName1 columnName2:
         c1 = self.table.at columnName1 . toColumn
@@ -1722,7 +1722,7 @@ class ChartBuilder:
     # `cname2`: Y1 column name for first curve.
     # `cname3`: Y2 column name for second curve.
     #
-    # `return`: TODO-print screen
+    # `return`: ![](data/docs/docs29.png)
 
     def fillBetween cname1 cname2 cname3:
         c1 = self.table.at cname1 . toColumn
