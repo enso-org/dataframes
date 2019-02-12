@@ -171,7 +171,7 @@ class Histogram:
     # `list`: A list of plots to arrange.
     #
     # `return`: Multiple plots arranged vertically.
-    # TODO - prtscreen
+    # ![](data/docs/docs32.png)
 
     def verticalLayout: Chart None . verticalLayout
 
@@ -205,7 +205,8 @@ class PlotDate:
     #
     # `that`: Plot to combine with the `self` plot.
     #
-    # `return`: TODO print screen
+    # `return`: ![](data/docs/docs33.png)
+
     def + that: self.toChart.+that
 
     def toJSON: self.toChart.toJSON
@@ -232,7 +233,7 @@ class PlotDate:
     # `list`: A list of plots to arrange.
     #
     # `return`: Multiple plots arranged vertically.
-    # TODO - prtscreen
+    # ![](data/docs/docs34.png)
 
     def verticalLayout: Chart None . verticalLayout
 
@@ -266,7 +267,7 @@ class Scatter:
     #
     # `that`: Plot to combine with the `self` scatter plot.
     #
-    # `return`: TODO print screen
+    # `return`: ![](data/docs/docs36.png)
 
     def + that: self.toChart.+that
 
@@ -294,7 +295,7 @@ class Scatter:
     # `list`: A list of plots to arrange.
     #
     # `return`: Multiple plots arranged vertically.
-    # TODO - prtscreen
+    # ![](data/docs/docs35.png)
 
     def verticalLayout: Chart None . verticalLayout
 
@@ -332,7 +333,7 @@ class Plot:
     #
     # `that`: Plot to combine with the `self` plot.
     #
-    # `return`: TODO print screen
+    # `return`: ![](data/docs/docs36.png)
 
     def + that:
         self.toChart.+ that
@@ -387,7 +388,7 @@ class Plot:
     #
     # `s`: Style to apply to the plot.
     #
-    # `return`: TODO print screen 
+    # `return`: ![](data/docs/docs37.png)
 
     def setStyle s: Plot self.series1 self.series2 s self.label self.color self.alpha
 
@@ -409,7 +410,7 @@ class Plot:
     #
     # `l`: Text with plot series description.
     #
-    # `return`: TODO print screen 
+    # `return`: ![](data/docs/docs38.png) 
 
     def setLabel l: Plot self.series1 self.series2 self.style (Just l) self.color self.alpha
 
@@ -431,7 +432,7 @@ class Plot:
     #
     # `c`: Text value with markers desired color.
     #
-    # `return`: TODO print screen 
+    # `return`: ![](data/docs/docs39.png) 
 
     def setColor c: Plot self.series1 self.series2 self.style self.label (Just c) self.alpha
 
@@ -456,9 +457,9 @@ class Plot:
     #
     # `a`: Float value for desired alpha.
     #
-    # `return`: TODO print screen
+    # `return`: ![](data/docs/docs40.png)
 
-    def setAplha a: Plot self.series1 self.series2 self.style self.label self.color (Just a)
+    def setAlpha a: Plot self.series1 self.series2 self.style self.label self.color (Just a)
 
     # Creates a subplots arranged vertically.
     #
@@ -482,7 +483,7 @@ class Plot:
     # `list`: A list of plots to arrange.
     #
     # `return`: Multiple plots arranged vertically.
-    # TODO - prtscreen
+    # ![](data/docs/docs41.png)
 
     def verticalLayout: Chart None . verticalLayout
 
