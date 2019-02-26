@@ -4,6 +4,8 @@ version: "1.0"
 author: New Byte Order <contact@newbyteorder.com>
 maintainer: New Byte Order <contact@newbyteorder.com>
 
+ghc-options: -threaded -Werror=missing-fields
+
 default-extensions:
 - AllowAmbiguousTypes
 - ConstraintKinds
@@ -27,11 +29,12 @@ default-extensions:
 - TypeOperators
 - ViewPatterns
 
-executables:
-  dataframes-package:
-    main: Main.hs
-    source-dirs: .
-    ghc-options: -threaded -Werror=missing-fields
+library:
+  source-dirs: src
+
+executable:
+  main: Main.hs
+  dependencies: dataframes-package
 
 dependencies:
 - base

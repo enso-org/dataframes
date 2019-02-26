@@ -56,6 +56,27 @@ class Program a where
         programPath <- getProgram @a
         readProcess programPath args ""
 
+    -- Equivalent of System.Process `proc` function.
+    prog :: [String] -> IO CreateProcess
+    prog args = do 
+        programPath <- getProgram @a
+        pure $ proc programPath args
+    
+    -- Just like `prog` but also sets custom working directory.
+    progCwd :: FilePath -> [String] -> IO CreateProcess
+    progCwd cwdToUse args = do 
+        programPath <- getProgram @a
+        pure $ (proc programPath args) { cwd = Just cwdToUse }
+    
+
+readCreateProgram :: CreateProcess -> IO String
+readCreateProgram args = do
+    readCreateProcess args ""
+
+readCreateProgramWithExitCode :: CreateProcess -> IO (ExitCode, String, String)
+readCreateProgramWithExitCode args = do
+    putStrLn $ show args
+    readCreateProcessWithExitCode args ""
 
 lookupExecutable :: [FilePath] -> [FilePath] -> IO (Maybe FilePath)
 lookupExecutable [] _ = pure Nothing
