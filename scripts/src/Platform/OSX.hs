@@ -5,11 +5,12 @@ import Control.Monad.IO.Class
 import Data.FileEmbed
 import Data.List
 import Data.Monoid
+import Distribution.Simple.Utils (fromUTF8LBS)
 import System.Directory
 import System.FilePath
 import System.FilePath.Glob
 import System.IO.Temp
-import System.Process
+import System.Process.Typed
 import System.Exit
 import Text.Printf
 
@@ -29,8 +30,9 @@ dlopenProgram = $(embedFile "helpers/main.cpp")
 -- NOTE: creates a process that may do pretty much anything (be careful of side effects)
 getDependenciesOfExecutable :: (MonadIO m) => FilePath -> [String] -> m [FilePath]
 getDependenciesOfExecutable exePath args = do
-    let spawnInfo = (proc exePath args) { env = Just [("DYLD_PRINT_LIBRARIES", "1")] }
-    result@(code, out, err) <- liftIO $ readCreateProcessWithExitCode spawnInfo ""
+    let envToAdd = [("DYLD_PRINT_LIBRARIES", "1")]
+    let spawnInfo = (setEnv envToAdd $ proc exePath args)
+    result@(code, fromUTF8LBS -> out, fromUTF8LBS -> err) <- readProcess spawnInfo
     case code of
         ExitFailure code -> fail $ printf  "call failed: %s:\nout: %s\nerr: %s\nreturn code %d" (show spawnInfo) out err code
         _ -> return ()
@@ -47,7 +49,7 @@ getDependenciesOfDylibs targets = liftIO $ withSystemTempDirectory "" $ \tempDir
     let programSrcPath = tempDir </> "main.cpp"
     let programExePath = tempDir </> "moje"
     BS.writeFile programSrcPath dlopenProgram
-    callProcess "clang++" [programSrcPath, "-o" <> programExePath]
+    runProcess_ $ proc "clang++" [programSrcPath, "-o" <> programExePath]
     getDependenciesOfExecutable programExePath targets
 
 -- Pattern for telling whether a path points to something belonging to the
@@ -86,7 +88,7 @@ installBinary :: (MonadIO m) => FilePath -> FilePath -> m FilePath
 installBinary targetBinariesDir sourcePath = do
     -- putStrLn $ "installing " <> takeFileName sourcePath <> " to " <> targetBinariesDir
     destinationPath <- copyToDir targetBinariesDir sourcePath
-    liftIO $ callProcess "chmod" ["777", destinationPath]
+    runProcess_ $ proc "chmod" ["777", destinationPath]
     INT.setInstallName destinationPath $ takeFileName destinationPath
     directDeps <- filter isLocalDep <$> Otool.usedLibraries destinationPath
     flip mapM directDeps $ \installName -> do

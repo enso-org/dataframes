@@ -48,5 +48,6 @@ dependencies:
 - Glob
 - MissingH
 - process
+- typed-process
 - temporary
 - text
