@@ -1,6 +1,7 @@
 module Platform.OSX where
 
 import Control.Monad
+import Control.Monad.IO.Class
 import Data.FileEmbed
 import Data.List
 import Data.Monoid
@@ -26,10 +27,10 @@ dlopenProgram = $(embedFile "helpers/main.cpp")
 -- Returns a list of absolute paths to loaded libraries, as provided by dyld.
 -- NOTE: will wait for process to finish, should not be used with proceses that need input or wait for sth
 -- NOTE: creates a process that may do pretty much anything (be careful of side effects)
-getDependenciesOfExecutable :: FilePath -> [String] -> IO [FilePath]
+getDependenciesOfExecutable :: (MonadIO m) => FilePath -> [String] -> m [FilePath]
 getDependenciesOfExecutable exePath args = do
     let spawnInfo = (proc exePath args) { env = Just [("DYLD_PRINT_LIBRARIES", "1")] }
-    result@(code, out, err) <- readCreateProcessWithExitCode spawnInfo ""
+    result@(code, out, err) <- liftIO $ readCreateProcessWithExitCode spawnInfo ""
     case code of
         ExitFailure code -> fail $ printf  "call failed: %s:\nout: %s\nerr: %s\nreturn code %d" (show spawnInfo) out err code
         _ -> return ()
@@ -41,8 +42,8 @@ getDependenciesOfExecutable exePath args = do
     pure $ delete exePath loadedPaths
 
 
-getDependenciesOfDylibs :: [FilePath] -> IO [FilePath]
-getDependenciesOfDylibs targets = withSystemTempDirectory "" $ \tempDir -> do
+getDependenciesOfDylibs :: (MonadIO m) => [FilePath] -> m [FilePath]
+getDependenciesOfDylibs targets = liftIO $ withSystemTempDirectory "" $ \tempDir -> do
     let programSrcPath = tempDir </> "main.cpp"
     let programExePath = tempDir </> "moje"
     BS.writeFile programSrcPath dlopenProgram
@@ -81,11 +82,11 @@ isLocalDep dep = categorizeDependency dep == Local
 -- install name shall be rewritten to contain only a filename
 -- install names of direct local dependencies shall be rewritten, assuming they are in the same dir
 -- returns the path to the installed dependency (in the target dir)
-installBinary :: FilePath -> FilePath -> IO FilePath
+installBinary :: (MonadIO m) => FilePath -> FilePath -> m FilePath
 installBinary targetBinariesDir sourcePath = do
     -- putStrLn $ "installing " <> takeFileName sourcePath <> " to " <> targetBinariesDir
     destinationPath <- copyToDir targetBinariesDir sourcePath
-    callProcess "chmod" ["777", destinationPath]
+    liftIO $ callProcess "chmod" ["777", destinationPath]
     INT.setInstallName destinationPath $ takeFileName destinationPath
     directDeps <- filter isLocalDep <$> Otool.usedLibraries destinationPath
     flip mapM directDeps $ \installName -> do
@@ -98,7 +99,7 @@ installBinary targetBinariesDir sourcePath = do
 -- If installed libraries list contains library with the same name (until dot)
 -- then it will used instead of current install name.
 -- See workaroundSymlinkedDeps for a full explanation.
-fixUnresolvedDependency :: [FilePath] -> FilePath -> String -> IO ()
+fixUnresolvedDependency :: (MonadIO m) => [FilePath] -> FilePath -> String -> m ()
 fixUnresolvedDependency installedBinaries binary dependency = do
     let depName = takeFileName dependency
     let dotPosition = fromJustVerbose ("dependency install name " <> dependency <> " is expected to contain a dot character") (elemIndex '.' depName)
@@ -109,16 +110,16 @@ fixUnresolvedDependency installedBinaries binary dependency = do
         Nothing -> error $ printf "installed binary: %s: cannot resolve dependency: %s" binary dependency
         Just matchingPath -> do
             let adjustedDependency = replaceFileName dependency $ takeFileName matchingPath
-            putStrLn $ printf "\tpatching %s -> %s" dependency adjustedDependency 
+            liftIO $ putStrLn $ printf "\tpatching %s -> %s" dependency adjustedDependency 
             INT.change binary dependency adjustedDependency
 
 -- Checks if this is a dependency expected to be next to the loaded binary
 -- but not actually present.
-unresolvedLocalDependency :: FilePath -> FilePath -> IO Bool
+unresolvedLocalDependency :: (MonadIO m) => FilePath -> FilePath -> m Bool
 unresolvedLocalDependency installedBinary dependencyInstallName = do
     if isPrefixOf "@loader_path" dependencyInstallName then do
         let expectedPath = replaceFileName installedBinary (takeFileName dependencyInstallName)
-        not <$> doesPathExist expectedPath
+        not <$> (liftIO <$> doesPathExist) expectedPath
     else pure False
 
 -- This procedure is to workaround issues when install names of dependencies
@@ -136,9 +137,9 @@ unresolvedLocalDependency installedBinary dependencyInstallName = do
 --
 -- In the long-term this solution should be abandoned, dependencies should be
 -- described by packages, just like binaries to install.
-workaroundSymlinkedDeps :: [FilePath] -> IO ()
+workaroundSymlinkedDeps :: (MonadIO m) => [FilePath] -> m ()
 workaroundSymlinkedDeps installedBinaries = do
-    let handleBinary target = do
+    let handleBinary target = liftIO $ do
             putStrLn $ "Looking into " <> target
             deps <- Otool.usedLibraries target
             let localDeps = filter (isPrefixOf "@loader_path") deps

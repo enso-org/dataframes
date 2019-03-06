@@ -1,6 +1,7 @@
 module Utils where
 
 import Control.Exception
+import Control.Monad.IO.Class
 import Data.Maybe
 import Distribution.Simple.Utils
 import Distribution.Verbosity
@@ -10,8 +11,8 @@ import System.FilePath
 import System.IO.Error
 
 -- As removeDirectoryRecursive but doesn't fail when the path does not exist.
-removeDirectoryRecursiveIfExists :: FilePath -> IO ()
-removeDirectoryRecursiveIfExists path = catchJust
+removeDirectoryRecursiveIfExists :: (MonadIO m) => FilePath -> m ()
+removeDirectoryRecursiveIfExists path = liftIO $ catchJust
     (\e -> if isDoesNotExistError e then Just () else Nothing)
     (removeDirectoryRecursive path)
     (const $ pure ())
@@ -23,8 +24,8 @@ fromJustVerbose msg maybeA = case maybeA of
     Nothing -> error msg
 
 -- Copies subdirectory with all its contents between two directories
-copyDirectory :: FilePath -> FilePath -> FilePath -> IO FilePath
-copyDirectory sourceDirectory targetDirectory subdirectoryFilename = do
+copyDirectory :: (MonadIO m) => FilePath -> FilePath -> FilePath -> m FilePath
+copyDirectory sourceDirectory targetDirectory subdirectoryFilename = liftIO $ do
     let from = sourceDirectory </> subdirectoryFilename
     let to = targetDirectory </> subdirectoryFilename
     putStrLn $ "Copying " ++ from ++ " to " ++ targetDirectory
@@ -32,8 +33,8 @@ copyDirectory sourceDirectory targetDirectory subdirectoryFilename = do
     pure to
 
 -- Copies to the given directory file under given path. Returns the copied-to path.
-copyToDir :: FilePath -> FilePath -> IO FilePath
-copyToDir destDir sourcePath = do
+copyToDir :: (MonadIO m) => FilePath -> FilePath -> m FilePath
+copyToDir destDir sourcePath = liftIO $ do
     createDirectoryIfMissing True destDir
     putStrLn $ "Copying " ++ sourcePath ++ " to " ++ destDir
     let destPath = destDir </> takeFileName sourcePath
@@ -42,14 +43,14 @@ copyToDir destDir sourcePath = do
 
 -- Retrieves the value of an environment variable, returning the provided
 -- default if the requested variable was not set.
-getEnvDefault :: String -> String -> IO String
-getEnvDefault variableName defaultValue =
+getEnvDefault :: (MonadIO m) => String -> String -> m String
+getEnvDefault variableName defaultValue = liftIO $
     fromMaybe defaultValue <$> lookupEnv variableName
 
 -- Retrieves the value of an environment variable, throwing an exception if the
 -- variable was not set.
-getEnvRequired :: String -> IO String
-getEnvRequired variableName = lookupEnv variableName >>= \case
+getEnvRequired :: (MonadIO m) => String -> m String
+getEnvRequired variableName = liftIO $ lookupEnv variableName >>= \case
     Just value -> pure value
     Nothing    -> error $ "required environment variable `" <> variableName <> "` is not set!"
 

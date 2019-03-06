@@ -1,5 +1,6 @@
 module Program.CMake where
 
+import Control.Monad.IO.Class
 import GHC.Conc
 import System.Directory
 import Text.Printf
@@ -26,13 +27,13 @@ formatOption (OptionBuildType ReleaseWithDebInfo) = formatOption $ OptionSetVari
 formatOptions :: [Option] -> [String]
 formatOptions opts = concat $ formatOption <$> opts
 
-cmake :: FilePath -> FilePath -> [Option] -> IO ()
+cmake :: (MonadIO m) => FilePath -> FilePath -> [Option] -> m ()
 cmake whereToRun whatToBuild options = do
-    createDirectoryIfMissing True whereToRun
+    liftIO $ createDirectoryIfMissing True whereToRun
     let varOptions = formatOptions options
     callCwd @CMake whereToRun (varOptions <> [whatToBuild])
 
-build :: FilePath -> FilePath -> [Option] -> IO ()
+build :: (MonadIO m) => FilePath -> FilePath -> [Option] -> m ()
 build whereToRun whatToBuild options = do
     cmake whereToRun whatToBuild options
     make whereToRun
@@ -41,8 +42,8 @@ data Make
 instance Program Make where
     executableName = "make"
 
-make :: FilePath -> IO ()
+make :: (MonadIO m) => FilePath -> m ()
 make location = do
-    cpuCount <- getNumProcessors
+    cpuCount <- liftIO $ getNumProcessors
     jobCount <- getEnvDefault "JOB_COUNT" (show cpuCount)
     callCwd @Make location ["-j", jobCount]

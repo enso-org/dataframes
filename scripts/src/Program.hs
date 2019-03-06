@@ -5,6 +5,7 @@
 
 module Program where
 
+import Control.Monad.IO.Class
 import Data.Maybe
 import Data.Monoid
 import Data.List
@@ -27,7 +28,7 @@ class Program a where
     executableNames :: [FilePath]
     executableNames = [executableName @a]
 
-    lookupProgram :: IO (Maybe FilePath)
+    lookupProgram :: (MonadIO m) => m (Maybe FilePath)
     lookupProgram = lookupExecutable (executableNames @a) (defaultLocations @a)
 
     notFoundError :: String
@@ -38,62 +39,62 @@ class Program a where
     notFoundFixSuggestion = "please make sure it is visible in PATH"
 
     -- Returns absolute path to the program, throws if not found
-    getProgram :: IO FilePath
-    getProgram = fromMaybe (error $ notFoundError @a) <$> lookupProgram @a
+    getProgram :: (MonadIO m) => m FilePath
+    getProgram = liftIO $ fromMaybe (error $ notFoundError @a) <$> lookupProgram @a
 
-    call :: [String] -> IO ()
+    call :: (MonadIO m) => [String] -> m ()
     call args = do
         programPath <- getProgram @a
-        callProcess programPath args
+        liftIO $ callProcess programPath args
 
-    callCwd :: FilePath -> [String] -> IO ()
+    callCwd :: (MonadIO m) => FilePath -> [String] -> m ()
     callCwd cwd args = do
         programPath <- getProgram @a
         callProcessCwd cwd programPath args
 
-    readProgram :: [String] -> IO String
+    readProgram :: (MonadIO m) => [String] -> m String
     readProgram args = do
         programPath <- getProgram @a
-        readProcess programPath args ""
+        liftIO $ readProcess programPath args ""
 
     -- Equivalent of System.Process `proc` function.
-    prog :: [String] -> IO CreateProcess
+    prog :: (MonadIO m) => [String] -> m CreateProcess
     prog args = do 
         programPath <- getProgram @a
         pure $ proc programPath args
     
     -- Just like `prog` but also sets custom working directory.
-    progCwd :: FilePath -> [String] -> IO CreateProcess
+    progCwd :: (MonadIO m) => FilePath -> [String] -> m CreateProcess
     progCwd cwdToUse args = do 
         programPath <- getProgram @a
         pure $ (proc programPath args) { cwd = Just cwdToUse }
     
 
-readCreateProgram :: CreateProcess -> IO String
+readCreateProgram :: (MonadIO m) => CreateProcess -> m String
 readCreateProgram args = do
-    readCreateProcess args ""
+    liftIO $ readCreateProcess args ""
 
-readCreateProgramWithExitCode :: CreateProcess -> IO (ExitCode, String, String)
+readCreateProgramWithExitCode :: (MonadIO m) => CreateProcess -> m (ExitCode, String, String)
 readCreateProgramWithExitCode args = do
-    putStrLn $ show args
-    readCreateProcessWithExitCode args ""
+    -- putStrLn $ show args
+    liftIO $ readCreateProcessWithExitCode args ""
 
-lookupExecutable :: [FilePath] -> [FilePath] -> IO (Maybe FilePath)
+lookupExecutable :: (MonadIO m) => [FilePath] -> [FilePath] -> m (Maybe FilePath)
 lookupExecutable [] _ = pure Nothing
 lookupExecutable (exeName : exeNamesTail)  additionalDirs = do
     let locations = ProgramSearchPathDefault : (ProgramSearchPathDir <$> additionalDirs)
-    fmap fst <$> findProgramOnSearchPath silent locations exeName >>= \case
+    fmap fst <$> (liftIO $ findProgramOnSearchPath silent locations exeName) >>= \case
         Just path -> pure $ Just path
         Nothing -> lookupExecutable exeNamesTail additionalDirs
 
-runProcessWait :: CreateProcess -> IO ()
+runProcessWait :: (MonadIO m) => CreateProcess -> m ()
 runProcessWait p = do
-    (_, _, _, handle) <- createProcess p
-    exitCode <- waitForProcess handle
+    (_, _, _, handle) <- liftIO $ createProcess p
+    exitCode <- liftIO $ waitForProcess handle
     case exitCode of
         ExitSuccess -> return ()
         ExitFailure codeValue ->
             fail $ printf "runProcessWait failed: %s: exit code %d" (show $ cmdspec p) (codeValue)
 
-callProcessCwd :: FilePath -> FilePath -> [String] -> IO ()
-callProcessCwd cwd program args = runProcessWait $ (proc program args) {cwd = Just cwd}
+callProcessCwd :: (MonadIO m) => FilePath -> FilePath -> [String] -> m ()
+callProcessCwd cwd program args = liftIO $ runProcessWait $ (proc program args) {cwd = Just cwd}
