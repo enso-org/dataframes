@@ -11,7 +11,7 @@ import System.Environment
 import System.FilePath
 import System.FilePath.Glob
 import System.IO.Temp
-import System.Process
+import System.Process.Typed hiding (setEnv)
 
 import Program
 import Utils
@@ -230,7 +230,8 @@ runTests repoDir buildArtifacts packageArtifacts = do
     let packageDirBinaries = dataframesPackageDirectory packageArtifacts </> "native_libs" </> nativeLibsOsDir
     tests <- mapM (copyToDir packageDirBinaries) (dataframesTests buildArtifacts)
     withCurrentDirectory repoDir $ do
-        mapM_ (flip callProcess ["--report_level=detailed"]) tests
+        let configs = flip proc ["--report_level=detailed"] <$> tests
+        mapM_ runProcess_ configs
 
 
 main :: IO ()

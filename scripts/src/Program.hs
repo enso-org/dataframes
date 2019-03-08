@@ -87,7 +87,7 @@ class Program a where
     
     -- | Just like 'prog' but also sets custom working directory.
     progCwd :: (MonadIO m) 
-            => FilePath -- ^Working directory.
+            => FilePath -- ^Working directory. NOTE: must point to existing directory, or the call will fail.
             -> [String] -- ^Program arguments.
             -> m (ProcessConfig () () ())
     progCwd cwdToUse args = do 
