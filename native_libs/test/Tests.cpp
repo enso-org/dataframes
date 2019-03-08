@@ -1161,3 +1161,15 @@ BOOST_AUTO_TEST_CASE(SliceBoundsChecking)
     BOOST_CHECK_THROW(slice(column, 5, 1), std::exception);
     BOOST_CHECK_NO_THROW(slice(column, 0, 5));
 }
+
+BOOST_AUTO_TEST_CASE(ReadCsvFileWithBOM)
+{
+    const auto t = FormatCSV{}.read("data/fileWithBOM.csv");
+    BOOST_REQUIRE_EQUAL(t->num_columns(), 1);
+    const auto c = t->column(0);
+    BOOST_CHECK_EQUAL(c->name(), "foo"); // make sure that BOM didn't get attached to the column name
+    BOOST_CHECK_NO_THROW(getColumn(*t, "foo")); // finding column by name must work as well
+    const auto [values] = toVectors<int64_t>(*t);
+    std::vector expectedValues{ 1,2,3 };
+    BOOST_CHECK_EQUAL_RANGES(values, expectedValues);
+}

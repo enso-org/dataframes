@@ -49,15 +49,9 @@ struct DFH_EXPORT CsvParser
     char recordSeparator{};
     char quote{};
 
-    CsvParser(char *bufferStart, char *bufferEnd, char fieldSeparator, char recordSeparator, char quote)
-        : bufferStart(bufferStart), bufferIterator(bufferStart)
-        , bufferEnd(bufferEnd), fieldSeparator(fieldSeparator)
-        , recordSeparator(recordSeparator), quote(quote)
-    {}
+    CsvParser(char *bufferStart, char *bufferEnd, char fieldSeparator, char recordSeparator, char quote);
 
-    explicit CsvParser(std::string &s)
-        : CsvParser(s.data(), s.data() + s.length(), ',', '\n', '"')
-    {}
+    explicit CsvParser(std::string &s);
 
 
     std::string_view parseField(); // sets buffer Iterator to the next separator
