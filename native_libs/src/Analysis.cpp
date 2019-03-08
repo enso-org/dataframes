@@ -262,26 +262,60 @@ auto dispatchIndexable(const std::shared_ptr<arrow::Column> &column, F &&f)
         return f(column);
 }
 
+/// workaround for VS 15.9 regression, see function below
+template<template <typename> typename Processor>
+struct CalculateStatVisitor
+{
+    const arrow::Column &column;
+    CalculateStatVisitor(const arrow::Column &column) : column(column) {}
+
+    std::shared_ptr<arrow::Column> operator()(std::integral_constant<arrow::Type::type, arrow::Type::STRING> id) const
+    {
+        THROW("Operation {} not supported for type {}", Processor<double>::name, column.type()->ToString());
+    }
+    std::shared_ptr<arrow::Column> operator()(std::integral_constant<arrow::Type::type, arrow::Type::TIMESTAMP> id) const
+    {
+        THROW("Operation {} not supported for type {}", Processor<double>::name, column.type()->ToString());
+    }
+
+    template<typename IDType>
+    std::shared_ptr<arrow::Column> operator()(IDType id) const
+    {
+        using T = typename TypeDescription<id.value>::ValueType;
+        Processor<T> p;
+        using ResultT = decltype(p.get());
+
+        if (column.length() - column.null_count() <= 0)
+            return toColumn(std::vector<std::optional<ResultT>>{std::nullopt}, p.name);
+
+        const auto result = calculateStatScalar<id.value>(column, p);
+        return toColumn(std::vector<ResultT>{result}, { p.name });
+    }
+};
+
 template<template <typename> typename Processor>
 std::shared_ptr<arrow::Column> calculateStat(const arrow::Column &column)
 {
-    return visitType(*column.type(), [&](auto id) -> std::shared_ptr<arrow::Column>
-    {
-        if constexpr(id.value != arrow::Type::STRING && id.value != arrow::Type::TIMESTAMP)
-        {
-            using T = typename TypeDescription<id.value>::ValueType;
-            Processor<T> p;
-            using ResultT = decltype(p.get());
-
-            if(column.length() - column.null_count() <= 0)
-                return toColumn(std::vector<std::optional<ResultT>>{std::nullopt}, p.name);
-
-            const auto result = calculateStatScalar<id.value>(column, p);
-            return toColumn(std::vector<ResultT>{result}, { p.name });
-        }
-        else
-            THROW("Operation {} not supported for type {}", Processor<double>::name, column.type()->ToString());
-    });
+    // workaround for VS 15.9 regression, see https://developercommunity.visualstudio.com/content/problem/395993/159-regression-error-on-valid-c-code-constexpr-if.html
+    // FIXME restore code commented out as soon as our CI uses VS 15.8 or 16.0
+    return visitType(*column.type(), CalculateStatVisitor<Processor>(column));
+//     return visitType(*column.type(), [&](auto id) -> std::shared_ptr<arrow::Column>
+//     {
+//         if constexpr(id.value != arrow::Type::STRING && id.value != arrow::Type::TIMESTAMP)
+//         {
+//             using T = typename TypeDescription<id.value>::ValueType;
+//             Processor<T> p;
+//             using ResultT = decltype(p.get());
+// 
+//             if(column.length() - column.null_count() <= 0)
+//                 return toColumn(std::vector<std::optional<ResultT>>{std::nullopt}, p.name);
+// 
+//             const auto result = calculateStatScalar<id.value>(column, p);
+//             return toColumn(std::vector<ResultT>{result}, { p.name });
+//         }
+//         else
+//             THROW("Operation {} not supported for type {}", Processor<double>::name, column.type()->ToString());
+//     });
 }
 
 std::shared_ptr<arrow::Column> calculateQuantile(const arrow::Column &column, double q, std::string name)
