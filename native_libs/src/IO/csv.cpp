@@ -465,7 +465,7 @@ CsvParser::CsvParser(char *bufferStart, char *bufferEnd, char fieldSeparator, ch
 {
     // Parser supports ASCII or UTF-8 encoded files. UTF-8 file can start with
     // the Byte Order Mark. If so, we skip it, as it is not part of the data.
-    constexpr char BOM[] = { '\xEF', 'xBB', '\xBF' };
+    constexpr char BOM[] = { '\xEF', '\xBB', '\xBF' };
     if(!std::strncmp(bufferIterator, BOM, std::size(BOM)))
     {
         std::advance(bufferIterator, std::size(BOM));
