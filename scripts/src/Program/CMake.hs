@@ -1,11 +1,11 @@
 module Program.CMake where
 
 import Control.Monad.IO.Class
-import GHC.Conc
 import System.Directory
 import Text.Printf
 
 import Program
+import Program.Make (make)
 import Utils
 
 data CMake
@@ -33,17 +33,8 @@ cmake whereToRun whatToBuild options = do
     let varOptions = formatOptions options
     callCwd @CMake whereToRun (varOptions <> [whatToBuild])
 
+-- FIXME: drop dependency on make, use --build
 build :: (MonadIO m) => FilePath -> FilePath -> [Option] -> m ()
 build whereToRun whatToBuild options = do
     cmake whereToRun whatToBuild options
     make whereToRun
-
-data Make
-instance Program Make where
-    executableName = "make"
-
-make :: (MonadIO m) => FilePath -> m ()
-make location = do
-    cpuCount <- liftIO $ getNumProcessors
-    jobCount <- getEnvDefault "JOB_COUNT" (show cpuCount)
-    callCwd @Make location ["-j", jobCount]
