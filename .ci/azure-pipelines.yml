@@ -1,0 +1,90 @@
+# https://aka.ms/yaml
+
+trigger:
+  batch: true
+  branches:
+    include:
+    - "*"
+
+variables:
+  Dataframes.Repo.Path: $(Build.SourcesDirectory) # this one is required by the build script
+jobs:
+- job: Linux
+  pool:
+    vmImage: 'Ubuntu-16.04'
+  container: lunalang/dataframes-package:1.0.3
+  variables: 
+    PYTHON_PREFIX_PATH: /python-dist
+  steps:
+  - script: |
+      cd scripts
+      stack build
+      stack exec dataframes-package
+    displayName: Build Dataframes
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathtoPublish: scripts/Dataframes-Linux-x64.tar.gz
+      artifactName: Dataframes-Linux-x64
+- job: macOS
+  pool:
+    vmImage: 'macOS-10.13'
+  steps:
+  - script: sudo xcode-select --switch /Applications/Xcode_10.app/Contents/Developer
+    displayName: Select XCode version
+  - script: |
+      brew update
+      brew upgrade
+      brew install fmt cmake apache-arrow boost rapidjson howard-hinnant-date pcre pybind11 wget openssl
+    displayName: Install C++ dependencies
+  - script: |
+      wget https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tar.xz
+      tar xf Python-3.7.0.tar.xz
+      cd Python-3.7.0
+      ./configure --prefix ~/python-dist --enable-shared --with-openssl=$(brew --prefix openssl)
+      make -j 2
+      make install
+      ~/python-dist/bin/python3.7 -mpip install --upgrade pip
+      ~/python-dist/bin/python3.7 -mpip install numpy matplotlib seaborn sklearn
+      cd .. &&\
+      rm -rf Python-3.7.0.tar.xz Python-3.7.0
+    displayName: Build Python
+  - script: |
+      cd ~
+      git clone https://github.com/tfussell/xlnt.git
+      cd xlnt
+      mkdir build
+      cd build
+      cmake .. -DTESTS=OFF
+      make -j 2
+      make install
+    displayName: Install XLNT library
+  - script: pip3 install numpy seaborn sklearn
+    displayName: Install Python dependencies
+  - script: |
+      brew install gmp # otherwise GHC 8.6 fails to install, see: https://ghc.haskell.org/trac/ghc/ticket/15404
+      export PATH=$PATH:~/.local/bin
+      curl -sSL https://get.haskellstack.org/ | sh
+      export PYTHON_PREFIX_PATH=~/python-dist/
+      cd scripts
+      stack run
+    displayName: Build Dataframes
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathtoPublish: scripts/Dataframes-macOS-x64.tar.gz
+      artifactName: Dataframes-macOS-x64
+- job: Windows
+  pool:
+    vmImage: vs2017-win2016
+  steps:
+  - script: |
+      dir "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC"
+      python -m pip install numpy==1.15.*
+      curl -sS -o stack.zip -L --insecure https://get.haskellstack.org/stable/windows-x86_64.zip
+      7z x stack.zip -y -oC:\stack stack.exe
+      set PATH=%PATH%;C:\stack
+      cd $(Build.SourcesDirectory)\scripts\
+      stack run --cwd $(Build.SourcesDirectory)
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathtoPublish: scripts/Dataframes-Win-x64.7z
+      artifactName: Dataframes-Win-x64
