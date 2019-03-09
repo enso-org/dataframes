@@ -4,7 +4,8 @@ import Program
 
 data MsBuild
 instance Program MsBuild where
-    defaultLocations = ["C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\MSBuild\\15.0\\Bin\\amd64"]
+    defaultLocations = [ "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\MSBuild\\15.0\\Bin\\amd64"
+                       , "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Enterprise\\MSBuild\\15.0\\Bin\\amd64"]
     executableName   = "MSBuild.exe"
 
 build :: FilePath -> IO ()
