@@ -1,7 +1,6 @@
 # https://aka.ms/yaml
 
 trigger:
-  batch: true
   branches:
     include:
     - "*"
