@@ -27,6 +27,8 @@ jobs:
 - job: macOS
   pool:
     vmImage: 'macOS-10.13'
+  variables:
+    MACOSX_DEPLOYMENT_TARGET: "10.12"
   steps:
   - script: sudo xcode-select --switch /Applications/Xcode_10.app/Contents/Developer
     displayName: Select XCode version
@@ -36,6 +38,7 @@ jobs:
       brew install fmt cmake apache-arrow boost rapidjson howard-hinnant-date pcre pybind11 wget openssl
     displayName: Install C++ dependencies
   - script: |
+      env
       wget https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tar.xz
       tar xf Python-3.7.0.tar.xz
       cd Python-3.7.0
@@ -76,6 +79,9 @@ jobs:
     vmImage: vs2017-win2016
   steps:
   - script: |
+      where python
+      dir C:\Program Files (x86)\Microsoft Visual Studio\Shared\Python36_64
+      dir C:\Program Files (x86)\Microsoft Visual Studio\Shared\Python36_64\lib
       python -m pip install numpy==1.15.*
       curl -sS -o stack.zip -L --insecure https://get.haskellstack.org/stable/windows-x86_64.zip
       7z x stack.zip -y -oC:\stack stack.exe
