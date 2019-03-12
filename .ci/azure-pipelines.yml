@@ -27,8 +27,8 @@ jobs:
 - job: macOS
   pool:
     vmImage: 'macOS-10.13'
-  variables:
-    MACOSX_DEPLOYMENT_TARGET: "10.12"
+  # variables:
+  #   MACOSX_DEPLOYMENT_TARGET: "10.12"
   steps:
   - script: sudo xcode-select --switch /Applications/Xcode_10.app/Contents/Developer
     displayName: Select XCode version
