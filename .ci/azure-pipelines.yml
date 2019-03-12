@@ -57,6 +57,7 @@ jobs:
       mkdir build
       cd build
       cmake .. -DTESTS=OFF
+      cmake -LAH
       make -j 2
       make install
     displayName: Install XLNT library
