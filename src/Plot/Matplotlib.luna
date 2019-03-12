@@ -104,7 +104,8 @@ class Histogram:
 
     def toChart: Chart self.render
 
-    # Combines two plots into one.
+    # Combines two plots into one. 
+    # All kinds of plots can be combined. Each plot adds more series to the resulting plot.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -144,14 +145,14 @@ class Histogram:
     # >     modifyBins = plot1.setBins 4
     # >     None
     #
-    # `b`: Number of bins.
+    # `b`: Number of bins. The number of bins has to be positive. Otherwise the runtime error will occure.
     #
     # `return`: Histogram plot with predefined number of bins.
     # ![](data/docs/docs31.png)
 
     def setBins b: Histogram self.data b self.options
 
-    # Creates a subplots arranged vertically.
+    # Creates a chart with given subplots arranged vertically
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -185,6 +186,7 @@ class PlotDate:
     def toChart: Chart self.render
 
     # Combines two plots into one.
+    # All kinds of plots can be combined. Each plot adds more series to the resulting plot.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -211,7 +213,7 @@ class PlotDate:
 
     def toJSON: self.toChart.toJSON
 
-    # Creates a subplots arranged vertically.
+    # Creates a chart with given subplots arranged vertically
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -247,6 +249,7 @@ class Scatter:
     def toChart: Chart self.render
 
     # Combines two plots into one.
+    # All kinds of plots can be combined. Each plot adds more series to the resulting plot.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -273,7 +276,7 @@ class Scatter:
 
     def toJSON: self.toChart.toJSON
 
-    # Creates a subplots arranged vertically.
+    # Creates a chart with given subplots arranged vertically
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -313,6 +316,7 @@ class Plot:
     def toChart: Chart self.render
 
     # Combines two plots into one.
+    # All kinds of plots can be combined. Each plot adds more series to the resulting plot.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -342,7 +346,7 @@ class Plot:
 
     # Change plot style from markers to different type.
     # 
-    # Available sytles are:
+    # Available styles are:
     # Markers:
     #  `"."` point marker
     #  `","` pixel marker
@@ -430,7 +434,18 @@ class Plot:
     # >     plot2 = plot1.setColor "red"
     # >     None
     #
-    # `c`: Text value with markers desired color.
+    # `c`: Text value with markers desired color. To set the color there are few options:
+    #      Legal html name for a color, for example: `'red'`, `'burlywood'`, `'chartreuse'`
+    #      Single letter for the basic built-in colors:
+    #           `'b'`: blue
+    #           `'g'`: green
+    #           `'r'`: red
+    #           `'c'`: cyan
+    #           `'m'`: magenta
+    #           `'y'`: yellow
+    #           `'k'`: black
+    #           `'w'`: white
+    #       HTML hex string like: `'#eeefff'`
     #
     # `return`: ![](data/docs/docs39.png) 
 
@@ -461,7 +476,7 @@ class Plot:
 
     def setAlpha a: Plot self.series1 self.series2 self.style self.label self.color (Just a)
 
-    # Creates a subplots arranged vertically.
+    # Creates a chart with given subplots arranged vertically
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -501,6 +516,7 @@ class FillBetween:
     def toChart: Chart self.render
 
     # Combines two plots into one.
+    # All kinds of plots can be combined. Each plot adds more series to the resulting plot.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -605,7 +621,7 @@ class FillBetween:
 
     def setAlpha a: FillBetween self.series1 self.series2 self.series3 self.label self.color (Just a)
 
-    # Creates a subplots arranged vertically.
+    # Creates a chart with given subplots arranged vertically
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -644,6 +660,7 @@ class KDE2:
     def toChart: Chart self.render
 
     # Combines two plots into one.
+    # All kinds of plots can be combined. Each plot adds more series to the resulting plot.
     def + that:
         self.toChart.+ that
 
@@ -651,7 +668,7 @@ class KDE2:
 
     def setColorMap s: KDE2 self.series1 self.series2 s
 
-    # Creates a subplots arranged vertically.
+    # Creates a chart with given subplots arranged vertically
     def verticalLayout: Chart None . verticalLayout
 
 class KDE:
@@ -664,6 +681,7 @@ class KDE:
     def toChart: Chart self.render
 
     # Combines two plots into one.
+    # All kinds of plots can be combined. Each plot adds more series to the resulting plot.
     def + that:
         self.toChart.+ that
 
@@ -671,7 +689,7 @@ class KDE:
 
     def setLabel l: KDE self.data (Just l)
 
-    # Creates a subplots arranged vertically.
+    # Creates a chart with given subplots arranged vertically
     def verticalLayout: Chart None . verticalLayout
 
 class Grid:
@@ -683,6 +701,7 @@ class Grid:
     def toChart: Chart self.render
 
     # Combines two plots into one.
+    # All kinds of plots can be combined. Each plot adds more series to the resulting plot.
     def + that:
         self.toChart.+ that
 
@@ -690,5 +709,5 @@ class Grid:
 
     def setLabel l: self.label = (Just l)
 
-    # Creates a subplots arranged vertically.
+    # Creates a chart with given subplots arranged vertically
     def verticalLayout: Chart None . verticalLayout

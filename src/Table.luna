@@ -107,7 +107,7 @@ class Table:
     # errors:
     # If extension is missing from path or is not one of recognized extensions,
     # error shall be reported. Also, error will be reported if the requested
-    # file location is not available.
+    # file location is not available or the file is corrupted.
     #
     # `path`: Path to the file to read.
     #
@@ -246,7 +246,7 @@ class Table:
     
     # Concatenates tables from given list. 
     #
-    # Tables are concatenate by columns. 
+    # Tables are concatenated by columns. 
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -266,7 +266,7 @@ class Table:
     # >     concatenateTable = Table.concat [table1, table2]
     # >     None 
     #
-    # `ts`: List of tables to concat.
+    # `ts`: List of tables to concat. The columns in all tables should have unique names, otherwise there will be duplicates in resulting table. Tables should have the same row count.
     #
     # `return`: `Table` value containig all tables from the `ts` list.
     def concat ts:
@@ -293,9 +293,9 @@ class Table:
     # >     concatenateTable = table1.+ table2
     # >     None 
     #
-    # `that`: Table to concatenate with `self` table.
+    # `that`: Table to concatenate with `self` table. The columns in both tables should have unique names, otherwise there will be duplicates in resulting table. Tables should have the same row count.
     #
-    # `return`: `Table` value containing `self` table and one passesd as an argument.
+    # `return`: `Table` value containing columns of `self` followed by the columns of table passed as the argument.
     def + that: Table.concat [self, that]
 
     # Returns a `Table` value contain column matching given name.
@@ -459,7 +459,7 @@ class Table:
     # >     None 
     #
     # errors: 
-    # If column name is invalid error shall occur. 
+    # If column by given name cannot be found error shall occur. 
     #
     # `name`: Text value with name of a column to delete from table.
     #
@@ -539,6 +539,9 @@ class Table:
     # >     table1 = Table.fromColumns [col1 , col2]
     # >     sliced = table1.slice 1 3
     # >     None 
+    #
+    # errors: 
+    # If requested slice is out of bounds error shall occur.
     #
     # `beg`: Starting index for rows selection.
     # `count`: Range of rows to select.
