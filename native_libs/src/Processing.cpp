@@ -712,7 +712,7 @@ std::shared_ptr<arrow::Column> splitOn(const arrow::Column &column, std::string_
             if(const auto nextSeparator = text.find_first_of(separator, position);
                 nextSeparator != std::string::npos)
             {
-                stringBuilder->Append(text.substr(position, nextSeparator - position));
+                append(*stringBuilder, text.substr(position, nextSeparator - position));
                 position = nextSeparator + 1;
             }
             else
