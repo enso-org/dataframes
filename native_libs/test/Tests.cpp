@@ -1173,3 +1173,43 @@ BOOST_AUTO_TEST_CASE(ReadCsvFileWithBOM)
     std::vector expectedValues{ 1,2,3 };
     BOOST_CHECK_EQUAL_RANGES(values, expectedValues);
 }
+
+BOOST_AUTO_TEST_CASE(RelaxedAggregationRules)
+{
+    {
+        const auto c = toColumn<std::string>({ "hello", "world", "foo", "foo" }, "tag");
+        const auto c2 = toColumn<std::string>({ "a", "a", "a", "a" }, "foo");
+        const auto t = tableFromColumns({ c, c2 });
+        // you cannot calculate Mean for strings column
+        BOOST_CHECK_THROW(abominableGroupAggregate(t->column(0), { { c2, {AggregateFunction::Mean } } }), std::exception);
+        // but you can count strings
+        const auto aggregatedT = abominableGroupAggregate(t->column(0), { { c2, {AggregateFunction::Length } } });
+        const auto[tags, tagCounts] = toVectors<std::string, double>(*aggregatedT);
+        const std::vector<std::string> expectedTags{ "hello", "world", "foo" };
+        const std::vector expectedCounts{ 1, 1, 2 };
+        BOOST_CHECK_EQUAL_RANGES(tags, expectedTags);
+        BOOST_CHECK_EQUAL_RANGES(tagCounts, expectedCounts);
+    }
+
+    // make sure it works with Timestamp as well
+    {
+        const std::vector<std::optional<Timestamp>> timestamps
+        { 
+            {2018_y / sep / 01}, {2018_y / sep / 02}, std::nullopt, {2018_y / sep / 01}, std::nullopt 
+        };
+        const auto c = toColumn(timestamps, "timestamps");
+        const auto t = tableFromColumns({ c });
+        auto aggregatedT = abominableGroupAggregate(t->column(0), { { c, {AggregateFunction::Length } } });
+        uglyPrint(*aggregatedT);
+
+        const std::vector<std::optional<Timestamp>> expectedAggregatedTimestamps
+        { 
+            std::nullopt, {2018_y / sep / 01}, {2018_y / sep / 02} 
+        };
+        const std::vector expectedCounts{ 2, 2, 1 };
+        const auto [timestampsAggregated, timestampCounts] = toVectors<std::optional<Timestamp>, double>(*aggregatedT);
+        BOOST_CHECK_EQUAL_RANGES(timestampsAggregated, expectedAggregatedTimestamps);
+        BOOST_CHECK_EQUAL_RANGES(timestampCounts, expectedCounts);
+    }
+}
+
