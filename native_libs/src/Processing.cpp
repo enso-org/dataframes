@@ -794,7 +794,7 @@ std::shared_ptr<arrow::Column> concat(const arrow::Column &listColumn)
     }
 
     auto cha = std::make_shared<arrow::ChunkedArray>(retArrays, type->value_type());
-    return std::make_shared<arrow::Column>(listColumn.name(), cha);
+    return toColumn(cha, listColumn.name());
 }
 
 std::shared_ptr<arrow::Table> ungroup(const arrow::Table &table, std::shared_ptr<arrow::Column> listColumn)
