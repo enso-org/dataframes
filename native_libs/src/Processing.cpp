@@ -690,3 +690,130 @@ DFH_EXPORT std::shared_ptr<arrow::Table> groupBy(std::shared_ptr<arrow::Table> t
         return tableFromColumns(newColumns);
     });
 }
+
+std::shared_ptr<arrow::Column> splitOn(const arrow::Column &column, std::string_view separator)
+{
+    if(column.type()->id() != arrow::Type::STRING)
+        THROW("cannot split on column `{}` of type `{}`: type string required", column.name(), column.type()->ToString());
+
+    auto stringBuilder = std::make_shared<arrow::StringBuilder>();
+    arrow::ListBuilder listBuilder{ nullptr, stringBuilder };
+
+    auto onNull = [&]()
+    {
+        listBuilder.AppendNull();
+    };
+    auto onElem = [&](std::string_view text)
+    {
+        listBuilder.Append();
+        size_t position = 0;
+        while(true)
+        {
+            if(const auto nextSeparator = text.find_first_of(separator, position);
+                nextSeparator != std::string::npos)
+            {
+                stringBuilder->Append(text.substr(position, nextSeparator - position));
+                position = nextSeparator + 1;
+            }
+            else
+            {
+                stringBuilder->Append(text.substr(position));
+                break;
+            }
+        }
+    };
+    iterateOver<arrow::Type::STRING>(column, onElem, onNull);
+
+    auto resultArray = finish(listBuilder);
+    return toColumn(resultArray, column.name() + "_splitted");
+}
+
+template<arrow::Type::type id>
+struct Ungrouper
+{
+    using Builder = BuilderFor<id>;
+    using ObservedType = ObservedTypeFor<id>;
+
+    std::shared_ptr<arrow::DataType> dataType{};
+    std::shared_ptr<Builder> builder{};
+
+
+    explicit Ungrouper(std::shared_ptr<arrow::DataType> dataType)
+        : dataType(dataType)
+        , builder(std::make_shared<Builder>(dataType, nullptr))
+    {
+    }
+
+    template<typename T>
+    void operator()(const T &, std::nullptr_t) const
+    {
+        // do nothing
+    }
+    void operator()(const ObservedType &t, ListElemView list) const
+    {
+        for(int i = 0; i < list.length; ++i)
+        {
+            append(*builder, t);
+        }
+    }
+    void operator()(const std::nullptr_t &t, ListElemView list) const
+    {
+        for(int i = 0; i < list.length; ++i)
+        {
+            builder->AppendNull();
+        }
+    }
+
+    std::shared_ptr<arrow::Array> finish()
+    {
+        auto ret = ::finish(*builder);
+        return ret;
+    }
+};
+
+std::shared_ptr<arrow::Column> ungroup(const arrow::Column &data, const arrow::Column &listColumn)
+{
+    return visitType(*data.type(), [&](auto id)
+    {
+        Ungrouper<id.value> ungrouper{ data.type() };
+        iterateOverPairs<id.value, arrow::Type::LIST>(*data.data(), *listColumn.data(), ungrouper);
+        auto arr = ungrouper.finish();
+        return toColumn(arr, data.name());
+    });
+}
+
+std::shared_ptr<arrow::Column> concat(const arrow::Column &listColumn)
+{
+    std::vector<std::shared_ptr<arrow::Array>> retArrays;
+
+    auto type = std::static_pointer_cast<arrow::ListType>(listColumn.type());
+    for(auto arr : listColumn.data()->chunks())
+    {
+        auto larr = std::static_pointer_cast<arrow::ListArray>(arr);
+        retArrays.push_back(larr->values());
+    }
+
+    auto cha = std::make_shared<arrow::ChunkedArray>(retArrays, type->value_type());
+    return std::make_shared<arrow::Column>(listColumn.name(), cha);
+}
+
+std::shared_ptr<arrow::Table> ungroup(const arrow::Table &table, std::shared_ptr<arrow::Column> listColumn)
+{
+    std::vector<std::shared_ptr<arrow::Column>> retColumns;
+    for(auto column : getColumns(table))
+    {
+        if(column != listColumn)
+            retColumns.push_back(ungroup(*column, *listColumn));
+        else
+            retColumns.push_back(concat(*column));
+    }
+
+    return tableFromColumns(retColumns);
+}
+
+std::shared_ptr<arrow::Table> ungroupSplittingOn(const arrow::Table &table, const arrow::Column &stringColumn, std::string_view separator)
+{
+    auto splittedColumn = splitOn(stringColumn, separator);
+    auto tableWithList = replaceColumn(table, stringColumn, splittedColumn);
+    return ungroup(*tableWithList, splittedColumn);
+}

@@ -854,6 +854,11 @@ class Table:
     def rollingInterval keyColumnName interval aggregateColumnName aggregateFunction:
         self.rollingIntervalMultiple keyColumnName interval [(aggregateColumnName,[aggregateFunction])]
 
+    # ungroupSplittingOn :: Text -> Text -> Table
+    def ungroupSplittingOn stringColumnName separator:
+        stringColumnWrapper = self.column stringColumnName . ptr
+        self.fromWrapper $ self.ptr.ungroupSplittingOn stringColumnWrapper separator
+
     # shift :: Text -> Int -> Table
     def shift columnName periods:
         columnToShift = self.column columnName

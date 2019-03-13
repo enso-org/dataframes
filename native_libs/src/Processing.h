@@ -36,3 +36,9 @@ DFH_EXPORT std::shared_ptr<arrow::Column> shift(std::shared_ptr<arrow::Column> c
 
 DFH_EXPORT DynamicField adjustTypeForFilling(DynamicField valueGivenByUser, const arrow::DataType &type);
 DFH_EXPORT std::shared_ptr<arrow::Table> groupBy(std::shared_ptr<arrow::Table> table, std::shared_ptr<arrow::Column> keyColumn);
+
+DFH_EXPORT std::shared_ptr<arrow::Column> splitOn(const arrow::Column &column, std::string_view separator); // Column String -> Column [String]
+DFH_EXPORT std::shared_ptr<arrow::Column> ungroup(const arrow::Column &data, const arrow::Column &listColumn); // (Column t1, Column [t2]) -> Column t1
+DFH_EXPORT std::shared_ptr<arrow::Column> concat(const arrow::Column &listColumn); // Column [a] -> Column a
+DFH_EXPORT std::shared_ptr<arrow::Table> ungroup(const arrow::Table &table, std::shared_ptr<arrow::Column> listColumn);
+DFH_EXPORT std::shared_ptr<arrow::Table> ungroupSplittingOn(const arrow::Table &table, const arrow::Column &stringColumn, std::string_view separator);
