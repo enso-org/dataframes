@@ -1,17 +1,12 @@
 import Std.Base
 import Std.Foreign.C.Value
 
-import Dataframes.Column
+import Dataframes.Internal.Utils
+import Dataframes.Array
 import Dataframes.Types
-import Dataframes.Table
+import Dataframes.Internal.Test.Test
 
-def renameAt self index name:
-    col = Table.columnAt index
-    col2 = col.rename name
-    
 
 def main:
-    t = Table.read "C:/Users/mwu/Downloads/games.csv"
-    t2 = t.ungroupSplittingOn "tag" " "
-    print t
-    print t2
+    setHelperVerbosity False
+    benchmark "running tests" TestArrayBuilder.run
