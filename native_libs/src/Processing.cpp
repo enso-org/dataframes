@@ -717,7 +717,7 @@ std::shared_ptr<arrow::Column> splitOn(const arrow::Column &column, std::string_
             }
             else
             {
-                stringBuilder->Append(text.substr(position));
+                append(*stringBuilder, text.substr(position));
                 break;
             }
         }
