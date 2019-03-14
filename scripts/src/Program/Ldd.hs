@@ -2,7 +2,7 @@ module Program.Ldd where
 
 import Control.Applicative
 import Control.Monad
-import Control.Monad.IO.Class
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Maybe
 import Data.Monoid
 import Data.String.Utils

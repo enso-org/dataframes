@@ -1,7 +1,7 @@
 module Utils where
 
 import Control.Exception
-import Control.Monad.IO.Class
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Maybe
 import Distribution.Simple.Utils
 import Distribution.Verbosity

@@ -1,7 +1,7 @@
 module Platform.OSX where
 
 import Control.Monad
-import Control.Monad.IO.Class
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.FileEmbed
 import Data.List
 import Data.Monoid

@@ -10,7 +10,7 @@ import qualified Program.Ldd as Ldd
 import qualified Program.Patchelf as Patchelf
 
 import Control.Exception (bracket)
-import Control.Monad.IO.Class
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.List
 import System.FilePath
 import System.PosixCompat.Files (fileMode, getFileStatus, ownerWriteMode, setFileMode, unionFileModes)

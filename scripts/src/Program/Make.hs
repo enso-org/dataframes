@@ -1,6 +1,6 @@
 module Program.Make where
 
-import Control.Monad.IO.Class
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import GHC.Conc (getNumProcessors)
 import Program
 import Utils

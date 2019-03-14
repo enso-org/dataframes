@@ -1,6 +1,6 @@
 module Program.MsBuild where
 
-import Control.Monad.IO.Class
+import Control.Monad.IO.Class (MonadIO)
 
 import Program
 

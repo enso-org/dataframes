@@ -1,7 +1,7 @@
 module Program.InstallNameTool where
 
 import Control.Monad
-import Control.Monad.IO.Class
+import Control.Monad.IO.Class (MonadIO)
 import Data.List
 import System.FilePath
 

@@ -1,6 +1,6 @@
 module Program.SevenZip where
 
-import Control.Monad.IO.Class
+import Control.Monad.IO.Class (MonadIO)
 import Distribution.System
 
 import Program

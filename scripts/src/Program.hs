@@ -11,7 +11,7 @@ The module defines abstractions common for all programs that can be called throu
 
 module Program where
 
-import Control.Monad.IO.Class
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Maybe
 import Data.Monoid
 import Data.List

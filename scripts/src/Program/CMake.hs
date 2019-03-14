@@ -1,6 +1,6 @@
 module Program.CMake where
 
-import Control.Monad.IO.Class
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import System.Directory
 import Text.Printf
 

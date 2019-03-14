@@ -1,6 +1,6 @@
 module Program.Patchelf where
 
-import Control.Monad.IO.Class
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.List
 import Data.String.Utils
 import System.FilePath
