@@ -1,4 +1,4 @@
-module Platform.OSX where
+module Platform.MacOS where
 
 import Control.Monad
 import Control.Monad.IO.Class (MonadIO, liftIO)

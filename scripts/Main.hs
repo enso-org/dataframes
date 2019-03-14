@@ -26,7 +26,7 @@ import qualified Program.Tar             as Tar
 import qualified Program.Otool           as Otool
 import qualified Program.InstallNameTool as INT
 
-import qualified Platform.OSX   as OSX
+import qualified Platform.MacOS   as MacOS
 import qualified Platform.Linux as Linux
 
 depsArchiveUrl, packageBaseUrl :: String
@@ -198,17 +198,17 @@ package repoDir stagingDir buildArtifacts = do
             let testsBinary = head $ dataframesTests buildArtifacts
             -- Note: This code assumed that all redistributable build artifacts are dylibs.
             --       It might need generalization in future.
-            allDeps <- OSX.getDependenciesOfDylibs builtDlls
+            allDeps <- MacOS.getDependenciesOfDylibs builtDlls
 
-            let trulyLocalDependency path = OSX.isLocalDep path && (not $ elem path builtDlls)
+            let trulyLocalDependency path = MacOS.isLocalDep path && (not $ elem path builtDlls)
             let localDependencies = filter trulyLocalDependency allDeps
             let binariesToInstall = localDependencies <> builtDlls
             putStrLn $ "Binaries to install: " <> show binariesToInstall
             -- Place all artifact binaries and their local dependencies in the destination directory
-            binariesInstalled <- flip mapM binariesToInstall $ OSX.installBinary packageBinariesDir
+            binariesInstalled <- flip mapM binariesToInstall $ MacOS.installBinary packageBinariesDir
 
             -- Workaround possible issues caused by deps install names referring to symlinks
-            OSX.workaroundSymlinkedDeps binariesInstalled
+            MacOS.workaroundSymlinkedDeps binariesInstalled
 
             -- Copy Python installation to the package and remove some parts that are heavy and not needed.
             pythonPrefix <- pythonPrefix
