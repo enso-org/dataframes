@@ -82,7 +82,8 @@ jobs:
   - script: |
       where python
       dir C:\hostedtoolcache\windows\Python\3.6.8
-      python -m pip -v install numpy==1.15.*
+      python -m pip install numpy==1.15.*
+      python -m pip show numpy
       curl -sS -o stack.zip -L --insecure https://get.haskellstack.org/stable/windows-x86_64.zip
       7z x stack.zip -y -oC:\stack stack.exe
       set PATH=%PATH%;C:\stack
