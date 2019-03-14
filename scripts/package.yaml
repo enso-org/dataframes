@@ -49,7 +49,6 @@ dependencies:
 - filepath
 - Glob
 - MissingH
-- process
 - typed-process
 - temporary
 - text
