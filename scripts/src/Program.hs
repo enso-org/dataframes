@@ -6,7 +6,8 @@
 {-|
 Description : Common interface for finding and calling programs.
 
-The module defines abstractions common for all programs that can be called through this library.
+The module defines abstractions common for all programs that can be called
+through this library.
 -}
 
 module Program where
@@ -22,26 +23,38 @@ import System.Exit
 import System.Process.Typed
 import Text.Printf
 
--- |A class defining an abstraction over a program. The purpose is mainly to provide some shared code (e.g. for looking up the program in @PATH@) and provide a number of convienence functions.
--- The whole thing can be seen as mostly a wrapper over typed-process library.
+-- |A class defining an abstraction over a program. The purpose is mainly to
+-- provide some shared code (e.g. for looking up the program in @PATH@) and
+-- provide a number of convienence functions. The whole thing can be seen as
+-- mostly a wrapper over typed-process library.
 class Program a where
     {-# MINIMAL executableName | executableNames #-}
 
-    -- |A set of paths where program might be found. Used only as a fallback (unless instance overwrites 'lookupProgram'), when program is not visible in standard system-spefici locations (typically the @PATH@ environment variable). Default implementation returns just an empty list.
-    -- This function can be useful when the program has a well-known install location but usually is not added to @PATH@.
+    -- |A set of paths where program might be found. Used only as a fallback
+    -- (unless instance overwrites 'lookupProgram'), when program is not visible
+    -- in standard system-spefici locations (typically the @PATH@ environment
+    -- variable). Default implementation returns just an empty list. This
+    -- function can be useful when the program has a well-known install location
+    -- but usually is not added to @PATH@.
     defaultLocations :: [FilePath]
     defaultLocations = []
 
-    -- |Name of the executable with this program. It is not necessary to include @.exe@ extension on Windows.
+    -- |Name of the executable with this program. It is not necessary to include
+    -- @.exe@ extension on Windows.
     executableName :: FilePath
     executableName = head $ executableNames @a
 
-    -- |Names of executables running this program — this function should be used if the program can be called using several different names and it is not possible to rely reliably on single one being present. It is not necessary to include @.exe@ extension on Windows.
+    -- |Names of executables running this program — this function should be used
+    -- if the program can be called using several different names and it is not
+    -- possible to rely reliably on single one being present. It is not
+    -- necessary to include @.exe@ extension on Windows.
     executableNames :: [FilePath]
     executableNames = [executableName @a]
 
-    -- |Returns an absolute path to the program executable. It is searching in @PATH@ environment variable, system-specific default locations and program specific locations (see 'defaultLocations').
-    -- If the program cannot be found, silently returns 'Nothing'.
+    -- |Returns an absolute path to the program executable. It is searching in
+    -- @PATH@ environment variable, system-specific default locations and
+    -- program specific locations (see 'defaultLocations'). If the program
+    -- cannot be found, silently returns 'Nothing'.
     lookupProgram :: (MonadIO m) => m (Maybe FilePath)
     lookupProgram = lookupExecutable (executableNames @a) (defaultLocations @a)
 
@@ -50,7 +63,9 @@ class Program a where
     notFoundError = "failed to find program " <> prettyNames <> ", " <> notFoundFixSuggestion @a
         where prettyNames = intercalate " nor " $ executableNames @a
 
-    -- |Text that should contain some actionable suggestion to the user on how to make program visible (e.g. program or system-specific installation guides). Will be included by default as part of 'notFoundError'.
+    -- |Text that should contain some actionable suggestion to the user on how
+    -- to make program visible (e.g. program or system-specific installation
+    -- guides). Will be included by default as part of 'notFoundError'.
     notFoundFixSuggestion :: String
     notFoundFixSuggestion = "please make sure it is visible in PATH"
 
@@ -58,7 +73,9 @@ class Program a where
     getProgram :: (MonadIO m) => m FilePath
     getProgram = liftIO $ fromMaybe (error $ notFoundError @a) <$> lookupProgram @a
 
-    -- |Calls the program with given argument set. Waits for the process to finish. Throws if program cannot be started or if it returned non-zero exit code.
+    -- |Calls the program with given argument set. Waits for the process to
+    -- finish. Throws if program cannot be started or if it returned non-zero
+    -- exit code.
     call :: (MonadIO m) 
          => [String] -- ^Program arguments
          -> m ()
@@ -77,7 +94,8 @@ class Program a where
         -- TODO: no input?
         fromUTF8LBS <$> (readProcessStdout_ =<< prog @a args)
 
-    -- |Equivalent of "System.Process.Typed"'s 'proc' function. Throws, if the program cannot be found.
+    -- |Equivalent of "System.Process.Typed"'s 'proc' function. Throws, if the
+    -- program cannot be found.
     prog :: (MonadIO m) 
          => [String] -- ^Program arguments.
          -> m (ProcessConfig () () ())
@@ -93,7 +111,8 @@ class Program a where
     progCwd cwdToUse args = do 
         (setWorkingDir cwdToUse) <$> prog @a args
 
--- |Function return an absolute path to the first executable name from the list that can be found.
+-- |Function return an absolute path to the first executable name from the list
+-- that can be found.
 lookupExecutable :: (MonadIO m) 
                  => [FilePath] -- ^List of executable names.
                  -> [FilePath] -- ^List of additional locations to be checked in addition to default ones.

@@ -1,7 +1,9 @@
 {-|
 Description : Utilities specific to Linux.
 
-The module defines utilities specific to Linux. Note that while this module can be compiled on other platforms, functions are not expected to properly work in such environment.
+The module defines utilities specific to Linux. Note that while this module can
+be compiled on other platforms, functions are not expected to properly work in
+such environment.
 -}
 
 module Platform.Linux where
@@ -16,9 +18,12 @@ import System.FilePath
 import System.PosixCompat.Files (fileMode, getFileStatus, ownerWriteMode, setFileMode, unionFileModes)
 import Utils (copyToDir)
 
--- |Filenames (without extension) of libraries that shouldn't be redistributed in the package. Typically low level system libraries or driver-specific modules.
+-- |Filenames (without extension) of libraries that shouldn't be redistributed
+-- in the package. Typically low level system libraries or driver-specific
+-- modules.
 --
--- The list is mostly based on previous experience. It is likely incomplete, not entirely reliable and will be subject to future updates.
+-- The list is mostly based on previous experience. It is likely incomplete, not
+-- entirely reliable and will be subject to future updates.
 librariesNotToBeDistributed :: [String]
 librariesNotToBeDistributed =  [
     "libX11", "libXext", "libXau", "libXdamage", "libXfixes", "libX11-xcb",
@@ -33,15 +38,19 @@ librariesNotToBeDistributed =  [
     "ld-linux-x86-64"
     ]
 
--- | Checks if the given library should be distributed as part of relocatable package. Relies on 'librariesNotToBeDistributed'.
+-- | Checks if the given library should be distributed as part of relocatable
+-- package. Relies on 'librariesNotToBeDistributed'.
 isDistributable
     :: FilePath  -- ^ Shared library path — can be absolute path, relative path or just a filename.
     -> Bool
 isDistributable libraryPath = notElem (dropExtensions $ takeFileName libraryPath) librariesNotToBeDistributed
 
--- | Function collects the list of shared library dependencies that should package along the given set of binaries.
+-- | Function collects the list of shared library dependencies that should
+-- package along the given set of binaries.
 --
--- Note that when packaging, all the binaries (including dependencies) should be also patched to properly prefer shipped libraries over the ones installed locally on the end-user's machine. See 'Program.Patchelf.installBinary'.
+-- Note that when packaging, all the binaries (including dependencies) should be
+-- also patched to properly prefer shipped libraries over the ones installed
+-- locally on the end-user's machine. See 'Program.Patchelf.installBinary'.
 dependenciesToPackage
     :: (MonadIO m)
     => [FilePath] -- ^ Binaries to be packaged that will be checked for dependencies.
@@ -61,8 +70,9 @@ withWritableFile path action = liftIO $ bracket makeWritable restoreMode (const 
     restoreMode oldStatus = setFileMode path (fileMode oldStatus)
 
 
--- | Copies the binary to the given directory and sets rpath relative path to another directory.
--- (the dependencies directory will be treated as relative to the output directory)
+-- | Copies the binary to the given directory and sets rpath relative path to
+-- another directory. (the dependencies directory will be treated as relative to
+-- the output directory)
 installBinary
     :: (MonadIO m)
     => FilePath -- ^ Output directory where the binary will be copied into.
@@ -74,7 +84,8 @@ installBinary outputDirectory dependenciesDirectory sourcePath = do
     withWritableFile newBinaryPath $
         Patchelf.setRelativeRpath newBinaryPath [dependenciesDirectory, outputDirectory]
 
--- | Installs binary to the folder and sets this folder as rpath.
--- Typically used with dependencies (when install-to directory and dependencies directory are same)
+-- | Installs binary to the folder and sets this folder as rpath. Typically used
+-- with dependencies (when install-to directory and dependencies directory are
+-- same)
 installDependencyTo :: (MonadIO m) => FilePath -> FilePath -> m ()
 installDependencyTo targetDirectory sourcePath = installBinary targetDirectory targetDirectory sourcePath

@@ -10,7 +10,8 @@ import System.Environment
 import System.FilePath
 import System.IO.Error
 
--- | As 'removeDirectoryRecursive' but doesn't fail when the path does not exist.
+-- | As 'removeDirectoryRecursive' but doesn't fail when the path does not
+-- exist.
 removeDirectoryRecursiveIfExists :: (MonadIO m) => FilePath -> m ()
 removeDirectoryRecursiveIfExists path = liftIO $ catchJust
     (\e -> if isDoesNotExistError e then Just () else Nothing)
@@ -32,7 +33,8 @@ copyDirectory sourceDirectory targetDirectory subdirectoryFilename = liftIO $ do
     copyDirectoryRecursive silent from to
     pure to
 
--- | Copies to the given directory file under given path. Returns the copied-to path.
+-- | Copies to the given directory file under given path. Returns the copied-to
+-- path.
 copyToDir :: (MonadIO m) => FilePath -> FilePath -> m FilePath
 copyToDir destDir sourcePath = liftIO $ do
     createDirectoryIfMissing True destDir
@@ -47,15 +49,15 @@ getEnvDefault :: (MonadIO m) => String -> String -> m String
 getEnvDefault variableName defaultValue = liftIO $
     fromMaybe defaultValue <$> lookupEnv variableName
 
--- | Retrieves the value of an environment variable, throwing an exception if the
--- variable was not set.
+-- | Retrieves the value of an environment variable, throwing an exception if
+-- the variable was not set.
 getEnvRequired :: (MonadIO m) => String -> m String
 getEnvRequired variableName = liftIO $ lookupEnv variableName >>= \case
     Just value -> pure value
     Nothing    -> error $ "required environment variable `" <> variableName <> "` is not set!"
 
--- | 'shortRelativePath' requires normalised paths to work correctly.
--- this is helper function because we don't want to bother with checking
--- whether path is normalised everywhere else
+-- | 'shortRelativePath' requires normalised paths to work correctly. this is
+-- helper function because we don't want to bother with checking whether path is
+-- normalised everywhere else
 relativeNormalisedPath :: FilePath -> FilePath -> FilePath
 relativeNormalisedPath (normalise -> p1) (normalise -> p2) = shortRelativePath p1 p2
