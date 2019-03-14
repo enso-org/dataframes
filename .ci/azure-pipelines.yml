@@ -78,6 +78,8 @@ jobs:
 - job: Windows
   pool:
     vmImage: vs2017-win2016
+  variables:
+    PythonDir: C:\hostedtoolcache\windows\Python\3.6.8
   steps:
   - script: |
       where python
@@ -89,8 +91,6 @@ jobs:
       set PATH=%PATH%;C:\stack
       cd $(Build.SourcesDirectory)\scripts\
       stack run --cwd $(Build.SourcesDirectory)
-    env: 
-      PythonDir: C:\Program Files (x86)\Microsoft Visual Studio\Shared\Python36_64
   - task: PublishBuildArtifacts@1
     inputs:
       pathtoPublish: scripts/Dataframes-Win-x64.7z
