@@ -182,6 +182,8 @@ using ArrowTypeDescription = TypeDescription<ArrowType::type_id>;
 
 template<arrow::Type::type id>
 using BuilderFor = typename TypeDescription<id>::BuilderType;
+template<arrow::Type::type id>
+using ObservedTypeFor = typename TypeDescription<id>::ObservedType;
 
 template<typename T>
 constexpr arrow::Type::type getID(const std::shared_ptr<T> &)
@@ -680,6 +682,8 @@ using PossiblyChunkedArray = variant<std::shared_ptr<arrow::Array>, std::shared_
 DFH_EXPORT std::shared_ptr<arrow::Table> tableFromArrays(std::vector<PossiblyChunkedArray> arrays, std::vector<std::string> names = {}, std::vector<bool> nullables = {});
 DFH_EXPORT std::shared_ptr<arrow::Table> tableFromColumns(const std::vector<std::shared_ptr<arrow::Column>> &columns, const std::shared_ptr<arrow::Schema> &schema);
 DFH_EXPORT std::shared_ptr<arrow::Table> tableFromColumns(const std::vector<std::shared_ptr<arrow::Column>> &columns);
+DFH_EXPORT std::shared_ptr<arrow::Table> replaceColumn(const arrow::Table &table, const arrow::Column &columnToBeReplaced, std::shared_ptr<arrow::Column> replaceWith);
+DFH_EXPORT std::shared_ptr<arrow::Table> replaceColumn(const arrow::Table &table, int index, std::shared_ptr<arrow::Column> column);
 
 template<typename ...Ts>
 std::shared_ptr<arrow::Table> tableFromVectors(const std::vector<Ts> & ...ts)
@@ -737,6 +741,50 @@ DFH_EXPORT std::vector<DynamicField> rowAt(const arrow::Table &table, int64_t in
 DFH_EXPORT void validateIndex(const arrow::Array &array, int64_t index);
 DFH_EXPORT void validateIndex(const arrow::ChunkedArray &array, int64_t index);
 DFH_EXPORT void validateIndex(const arrow::Column &column, int64_t index);
+
+
+template<arrow::Type::type id1, arrow::Type::type id2, typename F>
+void iterateOverPairs(const arrow::ChunkedArray &array1, const arrow::ChunkedArray &array2, F &&f)
+{
+    assert(array1.length() == array2.length());
+    const auto N = array1.length();
+
+    auto chunks1Itr = array1.chunks().begin();
+    auto chunks2Itr = array2.chunks().begin();
+
+    int64_t row = 0;
+
+    int32_t chunk1Length = (int32_t)(*chunks1Itr)->length(); // arrow specification says that array size is 32-bit
+    int32_t chunk2Length = (int32_t)(*chunks2Itr)->length(); // arrow specification says that array size is 32-bit
+
+    int32_t index1 = -1, index2 = -1;
+    for(; row < N; row++)
+    {
+        if(++index1 >= chunk1Length)
+        {
+            ++chunks1Itr;
+            chunk1Length = (int32_t)(*chunks1Itr)->length();
+            index1 = 0;
+        }
+        if(++index2 >= chunk2Length)
+        {
+            ++chunks2Itr;
+            chunk2Length = (int32_t)(*chunks2Itr)->length();
+            index2 = 0;
+        }
+
+        const auto valid1 = (*chunks1Itr)->IsValid(index1);
+        const auto valid2 = (*chunks2Itr)->IsValid(index2);
+        if(valid1 && valid2)
+            f(arrayValueAt<id1>(**chunks1Itr, index1), arrayValueAt<id2>(**chunks2Itr, index2));
+        else if(valid1)
+            f(arrayValueAt<id1>(**chunks1Itr, index1), nullptr);
+        else if(valid2)
+            f(nullptr, arrayValueAt<id2>(**chunks2Itr, index2));
+        else
+            f(nullptr, nullptr);
+    }
+}
 
 template<arrow::Type::type id1, arrow::Type::type id2, typename F>
 void iterateOverJustPairs(const arrow::ChunkedArray &array1, const arrow::ChunkedArray &array2, F &&f)

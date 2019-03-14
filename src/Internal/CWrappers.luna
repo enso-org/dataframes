@@ -386,6 +386,12 @@ class TableWrapper:
                         callHandlingError "tableRollingTimeInterval" (Pointer None) [keyColumn.ptr.toCArg, CInt64.fromInt intervalNs . toCArg, CInt32.fromInt aggregation.length . toCArg, aggregatedColumnsC.toCArg, aggregateFunctionCountsC.toCArg, arrayOfArraysWithIds.toCArg]
         wrapReleasableResouce TableWrapper ptr
 
+    # ungroupSplittingOn :: ColumnWrapper -> String -> TableWrapper
+    def ungroupSplittingOn stringColumn separator:
+        ptr = CString.with separator separatorC:
+            callHandlingError "tableUngroupSplittingOn" (Pointer None) [self.ptr.toCArg, stringColumn.ptr.toCArg, separatorC.toCArg]
+        wrapReleasableResouce TableWrapper ptr
+
     # write :: Filepath -> ()
     def write path:
         CString.with path pathC:

@@ -39,16 +39,3 @@ setRpath binaryPath rpath = do
 removeRpath :: (MonadIO m) => FilePath -> m ()
 removeRpath binaryPath = call @Patchelf ["--remove-rpath", binaryPath]
 
---------------------------------------------------------------------------------------
-
--- Copies the binary to the given directory and sets rpath relative path to another directory.
--- (the dependencies directory will be treated as relative to the output directory)
-installBinary :: (MonadIO m) => FilePath -> FilePath -> FilePath -> m ()
-installBinary outputDirectory dependenciesDirectory sourcePath = do
-    newBinaryPath <- copyToDir outputDirectory sourcePath
-    setRelativeRpath newBinaryPath [dependenciesDirectory, outputDirectory]
-
--- Installs binary to the folder and sets this folder as rpath.
--- Typically used with dependencies (when install-to directory and dependencies directory are same)
-installDependencyTo :: (MonadIO m) => FilePath -> FilePath -> m ()
-installDependencyTo targetDirectory sourcePath = installBinary targetDirectory targetDirectory sourcePath

@@ -51,3 +51,4 @@ dependencies:
 - typed-process
 - temporary
 - text
+- unix-compat

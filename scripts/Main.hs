@@ -188,8 +188,8 @@ package repoDir stagingDir buildArtifacts = do
             return ()
         Linux -> do
             dependencies <- Linux.dependenciesToPackage builtDlls
-            mapM (Patchelf.installDependencyTo packageBinariesDir) dependencies
-            mapM (Patchelf.installBinary packageBinariesDir packageBinariesDir) builtDlls
+            mapM (Linux.installDependencyTo packageBinariesDir) dependencies
+            mapM (Linux.installBinary packageBinariesDir packageBinariesDir) builtDlls
 
             -- Copy Python installation to the package and remove some parts that are heavy and not needed.
             pythonPrefix <- pythonPrefix
