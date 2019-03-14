@@ -4,7 +4,9 @@ version: "1.0"
 author: New Byte Order <contact@newbyteorder.com>
 maintainer: New Byte Order <contact@newbyteorder.com>
 
-ghc-options: -threaded -Werror=missing-fields
+ghc-options: 
+    -threaded 
+    -Werror=missing-fields
 
 default-extensions:
 - AllowAmbiguousTypes
