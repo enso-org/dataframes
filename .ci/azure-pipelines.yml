@@ -78,10 +78,9 @@ jobs:
 - job: Windows
   pool:
     vmImage: vs2017-win2016
-  variables:
-    PythonDir: C:\hostedtoolcache\windows\Python\3.6.8
   steps:
   - script: |
+      set
       where python
       dir C:\hostedtoolcache\windows\Python\3.6.8
       python -m pip install numpy==1.15.*
@@ -91,6 +90,8 @@ jobs:
       set PATH=%PATH%;C:\stack
       cd $(Build.SourcesDirectory)\scripts\
       stack run --cwd $(Build.SourcesDirectory)
+    env:
+      PythonDir: C:\hostedtoolcache\windows\Python\3.6.8
   - task: PublishBuildArtifacts@1
     inputs:
       pathtoPublish: scripts/Dataframes-Win-x64.7z
