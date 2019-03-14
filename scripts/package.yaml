@@ -47,3 +47,4 @@ dependencies:
 - process
 - temporary
 - text
+- unix-compat

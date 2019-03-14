@@ -77,6 +77,16 @@ std::shared_ptr<arrow::Table> countValueTyped(const arrow::Column &column)
 }
 
 template<typename T>
+constexpr bool doesAggregatorAllowsType(AggregateFunction aggregator)
+{
+    // element counter doesn't care what element is
+    if(aggregator == AggregateFunction::Length)
+        return true;
+
+    return std::is_arithmetic_v<T>;
+}
+
+template<typename T>
 struct Minimum
 {
     T accumulator = std::numeric_limits<T>::max();
@@ -560,7 +570,10 @@ std::unique_ptr<AggregateBase<T>> makeAggregator(AggregateFunction a)
     return dispatchAggregateByEnum(a, [] (auto aggrC) -> std::unique_ptr<AggregateBase<T>>
     {
         using Aggregator = AggregatorFor_t<aggrC.value, T>;
-        return std::make_unique<AggregateBy<T, Aggregator>>();
+        if constexpr(doesAggregatorAllowsType<T>(aggrC.value))
+            return std::make_unique<AggregateBy<T, Aggregator>>();
+        else
+            THROW("wrong type for function id={}", (int)aggrC.value);
     });
 }
 
@@ -666,42 +679,46 @@ DFH_EXPORT std::shared_ptr<arrow::Table> abominableGroupAggregate(std::shared_pt
             {
                 visitType(colAggrs.first->type()->id(), [&](auto id)
                 {
-                    auto[column, aggregates] = colAggrs;
-                    if constexpr(id != arrow::Type::STRING && id != arrow::Type::TIMESTAMP)
+                    auto [column, aggregates] = colAggrs;
+                    using T = typename TypeDescription<id.value>::ObservedType;
+                    std::vector<Aggregators<T>> aggregators;
+                    aggregators.reserve(afterLastGroup);
+                    for(int i = 0; i < afterLastGroup; i++)
                     {
-                        using T = typename TypeDescription<id.value>::ObservedType;
-                        std::vector<Aggregators<T>> aggregators;
-                        aggregators.reserve(afterLastGroup);
-                        for(int i = 0; i < afterLastGroup; i++)
-                            aggregators.emplace_back(aggregates);
-
-                        AbominableGroupingIterator<ArrowType, T> iterator{groups, aggregators};
-                        iterateOver<id.value>(*column, iterator, iterator);
-
-                        std::vector<arrow::DoubleBuilder> newColumnBuilders(aggregates.size());
-                        for(auto &&newColumnBuilder : newColumnBuilders)
-                            newColumnBuilder.Reserve(groupCount);
-
-                        for(int64_t groupItr = !hasNulls; groupItr < afterLastGroup; ++groupItr)
+                        try
                         {
-                            auto &aggr = aggregators[groupItr];
-                            for(int32_t i = 0; i < aggregates.size(); i++)
-                            {
-                                if(auto result = aggr.aggregators[i]->get(aggr.hadValidValue))
-                                    newColumnBuilders[i].Append(*result);
-                                else
-                                    newColumnBuilders[i].AppendNull();
-                            }
+                            aggregators.emplace_back(aggregates);
                         }
+                        catch(std::exception &e)
+                        {
+                            THROW("cannot aggregate for column `{}` of type `{}`: {}", column->name(), column->type()->ToString(), e);
+                        }
+                    }
+
+                    AbominableGroupingIterator<ArrowType, T> iterator{groups, aggregators};
+                    iterateOver<id.value>(*column, iterator, iterator);
+
+                    std::vector<arrow::DoubleBuilder> newColumnBuilders(aggregates.size());
+                    for(auto &&newColumnBuilder : newColumnBuilders)
+                        newColumnBuilder.Reserve(groupCount);
+
+                    for(int64_t groupItr = !hasNulls; groupItr < afterLastGroup; ++groupItr)
+                    {
+                        auto &aggr = aggregators[groupItr];
                         for(int32_t i = 0; i < aggregates.size(); i++)
                         {
-                            auto arr = finish(newColumnBuilders[i]);
-                            auto col = toColumn(arr, column->name() + "_"s + aggregateName(aggregates[i]));
-                            newColumns.push_back(col);
-                        };
+                            if(auto result = aggr.aggregators[i]->get(aggr.hadValidValue))
+                                newColumnBuilders[i].Append(*result);
+                            else
+                                newColumnBuilders[i].AppendNull();
+                        }
                     }
-                    else
-                        throw std::runtime_error("cannot aggregate column `" + column->name() +  "` of type " + column->type()->ToString() + ": must be numeric type!");
+                    for(int32_t i = 0; i < aggregates.size(); i++)
+                    {
+                        auto arr = finish(newColumnBuilders[i]);
+                        auto col = toColumn(arr, column->name() + "_"s + aggregateName(aggregates[i]));
+                        newColumns.push_back(col);
+                    };
                 });
             }
         }

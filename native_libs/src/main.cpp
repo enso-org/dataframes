@@ -1291,6 +1291,16 @@ extern "C"
             return LifetimeManager::instance().addOwnership(ret);
         };
     }
+
+    DFH_EXPORT arrow::Table *tableUngroupSplittingOn(arrow::Table *table, arrow::Column *stringColumn, const char *separator, const char **outError) noexcept
+    {
+        LOG("@{}, column={}, separator={}", (void*)table, (void*)stringColumn, separator);
+        return TRANSLATE_EXCEPTION(outError)
+        {
+            auto ret = ungroupSplittingOn(*table, *stringColumn, separator);
+            return LifetimeManager::instance().addOwnership(ret);
+        };
+    }
 }
 
 arrow::Table *readTableFromCSVFileContentsHelper(std::string data, const char **columnNames, int32_t columnNamesPolicy, int8_t *columnTypes, int8_t *columnIsNullableTypes, int32_t columnTypeInfoCount)
