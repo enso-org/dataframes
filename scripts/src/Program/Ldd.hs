@@ -2,13 +2,12 @@ module Program.Ldd where
 
 import Control.Applicative
 import Control.Monad
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Maybe
 import Data.Monoid
--- import Data.Text.Encoding (decodeUtf8)
 import Data.String.Utils
 import System.FilePath
 import System.Directory
-import System.Process
 import Text.Printf
 
 import Program
@@ -57,7 +56,7 @@ parseNamePathAddress (TL.strip -> input) =
 -- Returns list of shared libraries that are necessary to load given binary
 -- executable image.
 -- Note: this are not necessarily all the dependencies.
-dependenciesOfBinary :: FilePath -> IO [FilePath]
+dependenciesOfBinary :: (MonadIO m) => FilePath -> m [FilePath]
 dependenciesOfBinary binary = do
     lddOutput <- TL.pack <$> readProgram @Ldd [binary]
     let parsedLibraryInfo = parseNamePathAddress <$> TL.lines lddOutput
@@ -66,9 +65,9 @@ dependenciesOfBinary binary = do
 -- Returns list of shared libraries that are necessary to load given binary
 -- executable images.
 -- Note: this are not necessarily all the dependencies.
-dependenciesOfBinaries :: [FilePath] -> IO [FilePath]
+dependenciesOfBinaries :: (MonadIO m) => [FilePath] -> m [FilePath]
 dependenciesOfBinaries binaries = do
     listOfListOfDeps <- mapM dependenciesOfBinary binaries
     -- get rid of duplicates by passing through set
     let listOfDeps = Set.toList $ Set.unions $ Set.fromList <$> listOfListOfDeps
-    filterM doesFileExist listOfDeps
+    filterM (liftIO <$> doesFileExist) listOfDeps
