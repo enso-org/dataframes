@@ -1,5 +1,6 @@
 module Program.SevenZip where
 
+import Control.Monad.IO.Class (MonadIO)
 import Distribution.System
 
 import Program
@@ -10,10 +11,10 @@ instance Program SevenZip where
     executableNames = ["7z", "7za"] -- Any of these is fine but usually only one is available
     notFoundFixSuggestion = "please install from https://7-zip.org.pl/ or make sure that program is visible in PATH"
 
-unpack :: FilePath -> FilePath -> IO ()
+unpack :: (MonadIO m) => FilePath -> FilePath -> m ()
 unpack archive outputDirectory =
     call @SevenZip ["x", "-y", "-o" <> outputDirectory, archive]
 
-pack :: [FilePath] -> FilePath -> IO ()
+pack :: (MonadIO m) => [FilePath] -> FilePath -> m ()
 pack packedPaths outputArchivePath =
     call @SevenZip $ ["a", "-y", outputArchivePath] <> packedPaths
