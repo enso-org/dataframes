@@ -1213,3 +1213,23 @@ BOOST_AUTO_TEST_CASE(RelaxedAggregationRules)
     }
 }
 
+BOOST_AUTO_TEST_CASE(UngroupSimple)
+{
+    const auto table = readTableFromFile("data/ungroupable.csv");
+    //uglyPrint(*table);
+    const auto tableUngrouped = ungroupSplittingOn(*table, *table->column(1), " ");
+    //uglyPrint(*table2);
+
+    const std::vector<std::optional<std::string>> expectedUngroupedNames
+    {
+        "First", "First", std::nullopt, "Last"
+    };
+    const std::vector<std::optional<std::string>> expectedUngroupedTags
+    {
+        "good", "bad", "so-so", "good"
+    };
+
+    const auto [ungroupedNames, ungroupedTags] = toVectors<std::optional<std::string>, std::optional<std::string>>(*tableUngrouped);
+    BOOST_CHECK_EQUAL_RANGES(ungroupedNames, expectedUngroupedNames);
+    BOOST_CHECK_EQUAL_RANGES(ungroupedTags, expectedUngroupedTags);
+}

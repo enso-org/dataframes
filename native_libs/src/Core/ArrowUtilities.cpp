@@ -132,6 +132,25 @@ std::shared_ptr<arrow::Table> tableFromColumns(const std::vector<std::shared_ptr
     return arrow::Table::Make(schema, tableColumns);
 }
 
+std::shared_ptr<arrow::Table> replaceColumn(const arrow::Table &table, const arrow::Column &columnToBeReplaced, std::shared_ptr<arrow::Column> replaceWith)
+{
+    std::vector<std::shared_ptr<arrow::Column>> ret;
+    for(auto &&column : getColumns(table))
+    {
+        if(column.get() != &columnToBeReplaced)
+            ret.push_back(column);
+        else
+            ret.push_back(replaceWith);
+    }
+    return tableFromColumns(ret);
+}
+
+std::shared_ptr<arrow::Table> replaceColumn(const arrow::Table &table, int index, std::shared_ptr<arrow::Column> column)
+{
+    validateIndex(table.num_columns(), index);
+    return replaceColumn(table, *table.column(index), std::move(column));
+}
+
 DynamicJustVector toJustVector(const arrow::ChunkedArray &chunkedArray)
 {
     return visitType(*chunkedArray.type(), [&] (auto id)  -> DynamicJustVector
