@@ -91,7 +91,7 @@ jobs:
       cd $(Build.SourcesDirectory)\scripts\
       stack run --cwd $(Build.SourcesDirectory)
     env:
-      PythonDir: C:\hostedtoolcache\windows\Python\3.6.8
+      PythonDir: C:\hostedtoolcache\windows\Python\3.6.8\x64
   - task: PublishBuildArtifacts@1
     inputs:
       pathtoPublish: scripts/Dataframes-Win-x64.7z
