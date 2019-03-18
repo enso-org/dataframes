@@ -1,11 +1,12 @@
 module Program.Otool where
 
-import Control.Monad
-import Control.Monad.IO.Class (MonadIO)
-import Data.List
-import Data.String.Utils (strip)
+import Prologue
 
-import Program
+import qualified Program as Program
+
+import Data.String.Utils (strip)
+import Program           (Program)
+
 
 data Otool
 instance Program Otool where
@@ -13,13 +14,13 @@ instance Program Otool where
 
 usedLibraries :: (MonadIO m) => FilePath -> m [FilePath]
 usedLibraries path = do
-    (lines -> output) <- readProgram @Otool ["-L", path]
-    when (null output) $ error "otool must output at least one line"
+    (lines -> output :: [String]) <- Program.read @Otool ["-L", path]
+    let outputTail = fromJust (error "otool must output at least one line") $ tail output
 
     -- Lines have a form like below:
     -- @rpath/libDataframeHelper.dylib (compatibility version 0.0.0, current version 0.0.0)
-    -- heuristics is that we assume that name is before the '(' 
-    let extractName = strip .  takeWhile (/= '(')
-    let extractedNames = extractName <$> tail output -- Note: tail, because the first line contains the name of our executable
+    -- heuristics is that we assume that name is before the '('
+    let extractName = strip . takeWhile (/= '(')
+    let extractedNames = extractName <$> outputTail -- Note: tail, because the first line contains the name of our executable
     -- print extractedNames/
-    return extractedNames
+    pure extractedNames

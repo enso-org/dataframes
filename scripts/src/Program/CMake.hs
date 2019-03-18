@@ -1,12 +1,15 @@
 module Program.CMake where
 
-import Control.Monad.IO.Class (MonadIO, liftIO)
-import System.Directory
-import Text.Printf
 
-import Program
-import Program.Make (make)
-import Utils
+import Prologue
+
+import qualified Program      as Program
+import qualified Program.Make as Make
+
+import Program          (Program)
+import System.Directory (createDirectoryIfMissing)
+import Text.Printf      (printf)
+
 
 data CMake
 instance Program CMake where
@@ -22,6 +25,7 @@ data Option = OptionSetVariable (VariableName, VariableValue)
 
 formatOption :: Option -> [String]
 formatOption (OptionSetVariable (name, value)) = [printf "-D%s=%s" name value]
+formatOption (OptionBuildType Debug) = formatOption $ OptionSetVariable ("CMAKE_BUILD_TYPE", "Debug")
 formatOption (OptionBuildType ReleaseWithDebInfo) = formatOption $ OptionSetVariable ("CMAKE_BUILD_TYPE", "RelWithDebInfo")
 
 formatOptions :: [Option] -> [String]
@@ -31,10 +35,10 @@ cmake :: (MonadIO m) => FilePath -> FilePath -> [Option] -> m ()
 cmake whereToRun whatToBuild options = do
     liftIO $ createDirectoryIfMissing True whereToRun
     let varOptions = formatOptions options
-    callCwd @CMake whereToRun (varOptions <> [whatToBuild])
+    Program.callCwd @CMake whereToRun (varOptions <> [whatToBuild])
 
 -- FIXME: drop dependency on make, use --build
 build :: (MonadIO m) => FilePath -> FilePath -> [Option] -> m ()
 build whereToRun whatToBuild options = do
     cmake whereToRun whatToBuild options
-    make whereToRun
+    Make.make whereToRun

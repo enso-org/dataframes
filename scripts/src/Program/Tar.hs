@@ -1,6 +1,11 @@
 module Program.Tar where
 
-import Program
+import Prologue
+
+import qualified Program as Program
+
+import Program (Program)
+    
 
 data Tar
 instance Program Tar where
@@ -8,7 +13,8 @@ instance Program Tar where
 
 data Format = GZIP | BZIP2 | XZ | LZMA
 
-pack pathsToPack outputArchivePath format = call @Tar $ ["-c", formatArg, "-f", outputArchivePath] <> pathsToPack
+pack :: (MonadIO m) => [FilePath] -> FilePath -> Format -> m ()
+pack pathsToPack outputArchivePath format = Program.call @Tar $ ["-c", formatArg, "-f", outputArchivePath] <> pathsToPack
     where formatArg = case format of
             GZIP  -> "-z"
             BZIP2 -> "-j"

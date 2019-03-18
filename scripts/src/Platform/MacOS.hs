@@ -1,25 +1,28 @@
 module Platform.MacOS where
 
-import Control.Monad
-import Control.Monad.IO.Class (MonadIO, liftIO)
-import Data.FileEmbed
-import Data.List
-import Data.Monoid
-import Distribution.Simple.Utils (fromUTF8LBS)
-import System.Directory
-import System.FilePath
-import System.FilePath.Glob
-import System.IO.Temp
-import System.Process.Typed
-import System.Exit
-import Text.Printf
 
-import qualified Data.ByteString as BS
+import Prologue
 
+import qualified Data.ByteString         as BS
 import qualified Program.InstallNameTool as INT
-import qualified Program.Otool as Otool
+import qualified Program.Otool           as Otool
+import qualified System.Process.Typed    as Process
+import qualified Utils                   as Utils
 
-import Utils
+import Control.Monad             (filterM)
+import Data.FileEmbed            (embedFile)
+import Data.List                 (delete, elemIndex, find, isPrefixOf,
+                                  partition)
+import Distribution.Simple.Utils (fromUTF8LBS)
+import System.Directory          (doesPathExist)
+import System.Exit               (ExitCode (ExitFailure))
+import System.FilePath           (replaceFileName, takeDirectory, takeFileName,
+                                  (</>))
+import System.FilePath.Glob      (Pattern, compile, match)
+import System.IO.Temp            (withSystemTempDirectory)
+import Text.Printf               (printf)
+
+
 
 dlopenProgram :: BS.ByteString
 dlopenProgram = $(embedFile "helpers/main.cpp")
@@ -31,15 +34,15 @@ dlopenProgram = $(embedFile "helpers/main.cpp")
 getDependenciesOfExecutable :: (MonadIO m) => FilePath -> [String] -> m [FilePath]
 getDependenciesOfExecutable exePath args = do
     let envToAdd = [("DYLD_PRINT_LIBRARIES", "1")]
-    let spawnInfo = (setEnv envToAdd $ proc exePath args)
-    result@(code, fromUTF8LBS -> out, fromUTF8LBS -> err) <- readProcess spawnInfo
+    let spawnInfo = (Process.setEnv envToAdd $ Process.proc exePath args)
+    (code, fromUTF8LBS -> out, fromUTF8LBS -> err) <- Process.readProcess spawnInfo
     case code of
-        ExitFailure code -> fail $ printf  "call failed: %s:\nout: %s\nerr: %s\nreturn code %d" (show spawnInfo) out err code
-        _ -> return ()
+        ExitFailure code -> liftIO $ fail $ printf  "call failed: %s:\nout: %s\nerr: %s\nreturn code %d" (show spawnInfo) out err code
+        _ -> pure ()
 
     -- we filter only lines beggining with he dyld prefix
     let dyldPrefix = "dyld: loaded: "
-    let (relevant, irrelevant) = partition (isPrefixOf dyldPrefix) (lines err)
+    let (relevant, _) = partition (isPrefixOf dyldPrefix) (lines err)
     let loadedPaths = drop (length dyldPrefix) <$> relevant
     pure $ delete exePath loadedPaths
 
@@ -49,7 +52,7 @@ getDependenciesOfDylibs targets = liftIO $ withSystemTempDirectory "" $ \tempDir
     let programSrcPath = tempDir </> "main.cpp"
     let programExePath = tempDir </> "moje"
     BS.writeFile programSrcPath dlopenProgram
-    runProcess_ $ proc "clang++" [programSrcPath, "-o" <> programExePath]
+    Process.runProcess_ $ Process.proc "clang++" [programSrcPath, "-o" <> programExePath]
     getDependenciesOfExecutable programExePath targets
 
 -- Pattern for telling whether a path points to something belonging to the
@@ -87,8 +90,8 @@ isLocalDep dep = categorizeDependency dep == Local
 installBinary :: (MonadIO m) => FilePath -> FilePath -> m FilePath
 installBinary targetBinariesDir sourcePath = do
     -- putStrLn $ "installing " <> takeFileName sourcePath <> " to " <> targetBinariesDir
-    destinationPath <- copyToDir targetBinariesDir sourcePath
-    runProcess_ $ proc "chmod" ["777", destinationPath]
+    destinationPath <- Utils.copyToDir targetBinariesDir sourcePath
+    Process.runProcess_ $ Process.proc "chmod" ["777", destinationPath]
     INT.setInstallName destinationPath $ takeFileName destinationPath
     directDeps <- filter isLocalDep <$> Otool.usedLibraries destinationPath
     flip mapM directDeps $ \installName -> do
@@ -104,7 +107,7 @@ installBinary targetBinariesDir sourcePath = do
 fixUnresolvedDependency :: (MonadIO m) => [FilePath] -> FilePath -> String -> m ()
 fixUnresolvedDependency installedBinaries binary dependency = do
     let depName = takeFileName dependency
-    let dotPosition = fromJustVerbose ("dependency install name " <> dependency <> " is expected to contain a dot character") (elemIndex '.' depName)
+    let dotPosition = Utils.fromJustVerbose ("dependency install name " <> dependency <> " is expected to contain a dot character") (elemIndex '.' depName)
     let namePrefix = take dotPosition depName
     let matchesPrefix binaryPath = isPrefixOf namePrefix $ takeFileName binaryPath
     let match = find matchesPrefix installedBinaries

@@ -1,8 +1,3 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-
 {-|
 Description : Common interface for finding and calling programs.
 
@@ -12,16 +7,15 @@ through this library.
 
 module Program where
 
-import Control.Monad.IO.Class (MonadIO, liftIO)
-import Data.Maybe
-import Data.Monoid
-import Data.List
-import Distribution.Simple.Program.Find
-import Distribution.Simple.Utils (fromUTF8LBS)
-import Distribution.Verbosity
-import System.Exit
-import System.Process.Typed
-import Text.Printf
+import Prologue
+
+import qualified Distribution.Simple.Program.Find as Cabal
+import qualified Distribution.Simple.Utils        as Cabal
+import qualified Distribution.Verbosity           as Cabal
+
+import qualified System.Process.Typed as Process 
+
+import System.Process.Typed (ProcessConfig)
 
 -- |A class defining an abstraction over a program. The purpose is mainly to
 -- provide some shared code (e.g. for looking up the program in @PATH@) and
@@ -42,7 +36,9 @@ class Program a where
     -- |Name of the executable with this program. It is not necessary to include
     -- @.exe@ extension on Windows.
     executableName :: FilePath
-    executableName = head $ executableNames @a
+    executableName = case executableNames @a of
+        headName : _ -> headName
+        []           -> error "`executableNames` must provide a non-empty list"
 
     -- |Names of executables running this program — this function should be used
     -- if the program can be called using several different names and it is not
@@ -71,7 +67,7 @@ class Program a where
 
     -- |Throwing variant of 'lookupProgram'.
     getProgram :: (MonadIO m) => m FilePath
-    getProgram = liftIO $ fromMaybe (error $ notFoundError @a) <$> lookupProgram @a
+    getProgram = liftIO $ fromJust (error $ notFoundError @a) <$> lookupProgram @a
 
     -- |Calls the program with given argument set. Waits for the process to
     -- finish. Throws if program cannot be started or if it returned non-zero
@@ -79,20 +75,20 @@ class Program a where
     call :: (MonadIO m) 
          => [String] -- ^Program arguments
          -> m ()
-    call args = prog @a args >>= runProcess_
+    call args = prog @a args >>= Process.runProcess_
 
     -- |Just like 'call' but allows for setting a different working directory.
     callCwd :: (MonadIO m)
             => FilePath -- ^Working directory. NOTE: must point to existing directory, or the call will fail.
             -> [String] -- ^Program arguments.
             -> m ()
-    callCwd cwd args = progCwd @a cwd args >>= runProcess_
+    callCwd cwd args = progCwd @a cwd args >>= Process.runProcess_
 
     -- |Just like 'call' but returns the program's standard output.
-    readProgram :: (MonadIO m) => [String] -> m String
-    readProgram args = do
+    read :: (MonadIO m) => [String] -> m String
+    read args = do
         -- TODO: no input?
-        fromUTF8LBS <$> (readProcessStdout_ =<< prog @a args)
+        Cabal.fromUTF8LBS <$> (Process.readProcessStdout_ =<< prog @a args)
 
     -- |Equivalent of "System.Process.Typed"'s 'proc' function. Throws, if the
     -- program cannot be found.
@@ -101,7 +97,7 @@ class Program a where
          -> m (ProcessConfig () () ())
     prog args = do 
         programPath <- getProgram @a
-        pure $ proc programPath args
+        pure $ Process.proc programPath args
     
     -- | Just like 'prog' but also sets custom working directory.
     progCwd :: (MonadIO m) 
@@ -109,7 +105,7 @@ class Program a where
             -> [String] -- ^Program arguments.
             -> m (ProcessConfig () () ())
     progCwd cwdToUse args = do 
-        (setWorkingDir cwdToUse) <$> prog @a args
+        (Process.setWorkingDir cwdToUse) <$> prog @a args
 
 -- |Function return an absolute path to the first executable name from the list
 -- that can be found.
@@ -119,8 +115,8 @@ lookupExecutable :: (MonadIO m)
                  -> m (Maybe FilePath)
 lookupExecutable [] _ = pure Nothing
 lookupExecutable (exeName : exeNamesTail)  additionalDirs = do
-    let locations = ProgramSearchPathDefault : (ProgramSearchPathDir <$> additionalDirs)
-    fmap fst <$> (liftIO $ findProgramOnSearchPath silent locations exeName) >>= \case
+    let locations = Cabal.ProgramSearchPathDefault : (Cabal.ProgramSearchPathDir <$> additionalDirs)
+    fmap fst <$> (liftIO $ Cabal.findProgramOnSearchPath Cabal.silent locations exeName) >>= \case
         Just path -> pure $ Just path
         Nothing -> lookupExecutable exeNamesTail additionalDirs
 

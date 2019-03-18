@@ -1,9 +1,11 @@
 module Program.SevenZip where
 
-import Control.Monad.IO.Class (MonadIO)
-import Distribution.System
+import Prologue
 
-import Program
+import qualified Program as Program
+
+import Distribution.System (OS (Windows), buildOS)
+import Program             (Program)
 
 data SevenZip
 instance Program SevenZip where
@@ -13,8 +15,8 @@ instance Program SevenZip where
 
 unpack :: (MonadIO m) => FilePath -> FilePath -> m ()
 unpack archive outputDirectory =
-    call @SevenZip ["x", "-y", "-o" <> outputDirectory, archive]
+    Program.call @SevenZip ["x", "-y", "-o" <> outputDirectory, archive]
 
 pack :: (MonadIO m) => [FilePath] -> FilePath -> m ()
 pack packedPaths outputArchivePath =
-    call @SevenZip $ ["a", "-y", outputArchivePath] <> packedPaths
+    Program.call @SevenZip $ ["a", "-y", outputArchivePath] <> packedPaths

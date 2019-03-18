@@ -3,3 +3,18 @@ resolver: lts-13.12
 flags: {}
 packages:
 - '.'
+- extra-dep: true
+  location: {commit: 874e53221cf9eea2f96c0a6b907325ce05ee633c, git: 'https://github.com/luna/luna.git'}
+  subdirs:
+    - lib/container
+    - lib/prologue
+    - lib/typelevel
+    - lib/convert
+    - lib/exception
+    - lib/layered-state
+    - lib/functor-utils
+    - lib/impossible
+    - lib/lens-utils
+    - lib/monoid
+    - lib/monad-branch
+    - lib/th-builder

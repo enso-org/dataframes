@@ -10,25 +10,53 @@ ghc-options:
 
 default-extensions:
 - AllowAmbiguousTypes
+- ApplicativeDo
+- BangPatterns
+- BinaryLiterals
 - ConstraintKinds
 - DataKinds
 - DefaultSignatures
+- DeriveDataTypeable
+- DeriveFoldable
+- DeriveFunctor
 - DeriveGeneric
+- DeriveTraversable
+- DerivingStrategies
+- DoAndIfThenElse
 - DuplicateRecordFields
+- EmptyDataDecls
 - FlexibleContexts
 - FlexibleInstances
 - FunctionalDependencies
 - GeneralizedNewtypeDeriving
+- InstanceSigs
 - LambdaCase
+- LiberalTypeSynonyms
+- MonadComprehensions
+- MultiWayIf
+- NamedWildCards
+- NegativeLiterals
+- NoImplicitPrelude
+- NumDecimals
+- OverloadedLabels
 - OverloadedStrings
+- PackageImports
+- PatternSynonyms
+- QuasiQuotes
 - RankNTypes
+- RecursiveDo
+- RelaxedPolyRec
 - ScopedTypeVariables
 - StandaloneDeriving
+- Strict
+- StrictData
 - TemplateHaskell
 - TupleSections
 - TypeApplications
 - TypeFamilies
+- TypeFamilyDependencies
 - TypeOperators
+- UnicodeSyntax
 - ViewPatterns
 
 library:
@@ -49,6 +77,7 @@ dependencies:
 - filepath
 - Glob
 - MissingH
+- prologue
 - typed-process
 - temporary
 - text

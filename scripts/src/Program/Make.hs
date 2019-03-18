@@ -1,9 +1,12 @@
 module Program.Make where
 
-import Control.Monad.IO.Class (MonadIO, liftIO)
+import Prologue
+
+import qualified Program as Program
+import qualified Utils   as Utils
+
 import GHC.Conc (getNumProcessors)
-import Program
-import Utils
+import Program  (Program)
 
 data Make
 instance Program Make where
@@ -12,5 +15,5 @@ instance Program Make where
 make :: (MonadIO m) => FilePath -> m ()
 make location = do
     cpuCount <- liftIO $ getNumProcessors
-    jobCount <- getEnvDefault "JOB_COUNT" (show cpuCount)
-    callCwd @Make location ["-j", jobCount]
+    jobCount <- Utils.getEnvDefault "JOB_COUNT" (show cpuCount)
+    Program.callCwd @Make location ["-j", jobCount]

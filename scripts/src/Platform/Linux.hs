@@ -8,15 +8,16 @@ such environment.
 
 module Platform.Linux where
 
-import qualified Program.Ldd as Ldd
-import qualified Program.Patchelf as Patchelf
+import Prologue
 
-import Control.Exception (bracket)
-import Control.Monad.IO.Class (MonadIO, liftIO)
-import Data.List
-import System.FilePath
-import System.PosixCompat.Files (fileMode, getFileStatus, ownerWriteMode, setFileMode, unionFileModes)
-import Utils (copyToDir)
+import qualified Program.Ldd      as Ldd
+import qualified Program.Patchelf as Patchelf
+import qualified Utils            as Utils
+
+import Control.Exception        (bracket)
+import System.FilePath          (dropExtensions, takeFileName)
+import System.PosixCompat.Files (fileMode, getFileStatus, ownerWriteMode,
+                                 setFileMode, unionFileModes)
 
 -- |Filenames (without extension) of libraries that shouldn't be redistributed
 -- in the package. Typically low level system libraries or driver-specific
@@ -66,7 +67,7 @@ withWritableFile path action = liftIO $ bracket makeWritable restoreMode (const 
     makeWritable = do
         oldStatus <- getFileStatus path
         setFileMode path $ unionFileModes (fileMode oldStatus) ownerWriteMode
-        return oldStatus
+        pure oldStatus
     restoreMode oldStatus = setFileMode path (fileMode oldStatus)
 
 
@@ -80,7 +81,7 @@ installBinary
     -> FilePath -- ^ Binary to be copied and patched.
     -> m ()
 installBinary outputDirectory dependenciesDirectory sourcePath = do
-    newBinaryPath <- copyToDir outputDirectory sourcePath
+    newBinaryPath <- Utils.copyToDir outputDirectory sourcePath
     withWritableFile newBinaryPath $
         Patchelf.setRelativeRpath newBinaryPath [dependenciesDirectory, outputDirectory]
 
