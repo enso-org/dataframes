@@ -14,9 +14,9 @@ import System.FilePath.Glob
 import System.IO.Temp
 import System.Process.Typed hiding (setEnv)
 
-import Program
 import Utils
 
+import qualified Program                 as Program
 import qualified Program.CMake           as CMake
 import qualified Program.Curl            as Curl
 import qualified Program.Ldd             as Ldd
