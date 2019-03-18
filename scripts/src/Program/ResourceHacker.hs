@@ -1,20 +1,26 @@
+{-# LANGUAGE RecordWildCards #-}
+
 module Program.ResourceHacker where
 
 import Prologue
 
+import qualified Data.Text            as Text
+import qualified Program              as Program
 import qualified System.Process.Typed as Process
-import qualified Program as Program
+import qualified Utils                as Utils
 
-import Data.List (isInfixOf)
-
+import Data.List           (isInfixOf)
 import Distribution.System (OS (Windows), buildOS)
+import NeatInterpolation   (text)
+import System.FilePath     ((</>), replaceExtension, takeFileName)
+import System.IO.Temp      (withSystemTempDirectory)
 
 data ResourceHacker
+
 instance Program.Program ResourceHacker where
     defaultLocations = ["C:\\Program Files (x86)\\Resource Hacker" | buildOS == Windows]
     executableName = "ResourceHacker"
-    
-    -- | All calls shall use custom 'formatShellCommand' and use shell.
+    --  All calls shall use custom 'formatShellCommand' and use shell.
     proc program args = Process.shell $ formatShellCommand program args
     
 -- Note: Resource Hacker seems to be extremely fragile in handling command 
@@ -28,20 +34,75 @@ formatShellCommand resHackerPath args = intercalate " " partsQuoted where
     quoteIfNeeded p = if  " " `isInfixOf` p
         then "\"" <> p <> "\""
         else p
-    
-compileCmd :: (MonadIO m) => FilePath -> FilePath -> m ()
-compileCmd rcPath resPath = Program.call @ResourceHacker $
-    [ "-open", rcPath
-    , "-save", resPath
-    , "-action", "compile"
-    , "-log", "CONSOLE"
-    ]
 
-addoverwriteCmd :: (MonadIO m) => FilePath -> FilePath -> m ()
-addoverwriteCmd exePath resPath = Program.call @ResourceHacker $
-    [ "-open", exePath
-    , "-save", exePath
-    , "-action", "addoverwrite"
-    , "-resource", resPath
-    , "-log", "CONSOLE"
-    ]
+callResourceHacker openFile saveFile command = Program.call @ResourceHacker $
+       [ "-open", openFile, "-save", saveFile]
+    <> command
+    <> ["-log", "CONSOLE"]
+
+compile :: (MonadIO m) => FilePath -> FilePath -> m ()
+compile rcPath resPath = callResourceHacker rcPath resPath ["-action", "compile"]
+
+addoverwrite :: (MonadIO m) => FilePath -> FilePath -> FilePath -> m ()
+addoverwrite srcExe dstExe resPath = callResourceHacker srcExe dstExe ["-action", "addoverwrite", "-resource", resPath]
+
+data VersionInfo = VersionInfo 
+    { _version :: [Int] -- ^ Currently both product and component version (assumed to be the same).
+    , _companyName :: Text
+    , _fileDescription :: Text
+    , _legalCopyright :: Text
+    , _originalFilename :: Text
+    , _productName :: Text
+    } deriving (Generic, Show, Eq, Ord)
+
+makeLenses ''VersionInfo
+
+versionInfo :: [Int] -> FilePath -> Text -> Text -> Text -> VersionInfo
+versionInfo version exeFile name fileDescription companyName = VersionInfo
+    { _version = version
+    , _companyName = companyName
+    , _fileDescription =  fileDescription
+    , _legalCopyright = "Copyright (c) 2019 " <> companyName
+    , _originalFilename = convert $ takeFileName exeFile
+    , _productName = name
+    }
+
+setVersion :: (MonadIO m, MonadMask m) => FilePath -> FilePath -> VersionInfo -> m ()
+setVersion srcExe dstExe version = withSystemTempDirectory "" $ \tmpDir -> do
+    let rcFile = tmpDir </> "version.rc"
+    let resFile = replaceExtension rcFile "res"
+    writeFile rcFile (convert $ versionInfoRC version)
+    compile rcFile resFile
+    addoverwrite srcExe dstExe resFile
+    
+versionInfoRC :: VersionInfo -> Text
+versionInfoRC vi = [text|
+1 VERSIONINFO
+    FILEVERSION    $commaVersion
+    PRODUCTVERSION $commaVersion
+{
+    BLOCK "StringFileInfo"
+    {
+        BLOCK "040904b0"
+        {
+            VALUE "CompanyName",        "$(vi ^. companyName)"
+            VALUE "FileDescription",    "$(vi ^. fileDescription)"
+            VALUE "FileVersion",        "$dotVersion"
+            VALUE "LegalCopyright",     "$(vi ^. legalCopyright)"
+            VALUE "OriginalFilename",   "$(vi ^. originalFilename)"
+            VALUE "ProductName",        "$(vi ^. productName)"
+            VALUE "ProductVersion",     "$dotVersion"
+        }
+    }
+    BLOCK "VarFileInfo"
+    {
+        VALUE "Translation", 0x409, 1200
+    }
+}
+|] where 
+    commaVersion = prettyPrintVersion 4 ","
+    dotVersion   = prettyPrintVersion 4 "."
+    prettyPrintVersion count separator = Text.intercalate separator 
+                                       $ show' <$> versionParts count
+    -- If too few version components were given, fill with zeroes.
+    versionParts count = take count $ (vi ^. version) <> repeat 0
