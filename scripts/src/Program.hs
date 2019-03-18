@@ -66,7 +66,7 @@ class Program p where
     notFoundFixSuggestion :: String
     notFoundFixSuggestion = "please make sure it is visible in PATH"
 
-    -- |Equivalent of "System.Process.Typed"'s 'proc' function. 
+    -- |Equivalent of "System.Process.Typed"'s 'System.Process.Typed.proc' function. 
     proc :: FilePath -- ^Path to program
          -> [String] -- ^Program arguments.
          -> (ProcessConfig () () ())

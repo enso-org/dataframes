@@ -27,10 +27,14 @@ import Text.Printf               (printf)
 dlopenProgram :: BS.ByteString
 dlopenProgram = $(embedFile "helpers/main.cpp")
 
--- Creates a process, observing what dynamic libraries get loaded.
+-- | Creates a process, observing what dynamic libraries get loaded.
 -- Returns a list of absolute paths to loaded libraries, as provided by dyld.
+--
 -- NOTE: will wait for process to finish, should not be used with proceses that need input or wait for sth
+--
 -- NOTE: creates a process that may do pretty much anything (be careful of side effects)
+--
+-- NOTE: when dependency is accessed through symlink, the target location will be returned (see 'workaroundSymlinkedDeps')
 getDependenciesOfExecutable :: (MonadIO m) => FilePath -> [String] -> m [FilePath]
 getDependenciesOfExecutable exePath args = do
     let envToAdd = [("DYLD_PRINT_LIBRARIES", "1")]
@@ -46,7 +50,8 @@ getDependenciesOfExecutable exePath args = do
     let loadedPaths = drop (length dyldPrefix) <$> relevant
     pure $ delete exePath loadedPaths
 
-
+-- | Tries to collect all dynamic libraries loaded when given set of dynamic libraries is loaded.
+-- Internally builds program that loads them and runs it. Requires @clang++@ compiler to be available.
 getDependenciesOfDylibs :: (MonadIO m) => [FilePath] -> m [FilePath]
 getDependenciesOfDylibs targets = liftIO $ withSystemTempDirectory "" $ \tempDir -> do
     let programSrcPath = tempDir </> "main.cpp"
@@ -61,16 +66,20 @@ getDependenciesOfDylibs targets = liftIO $ withSystemTempDirectory "" $ \tempDir
 internalPythonPath :: Pattern
 internalPythonPath = compile "**/lib/python*.*/**/*"
 
--- System - a dependency that is assumed to be present out-of-the box on all
---          targeted OSX systems. Should not be distributed.
--- Python - a dependency belonging to the Python installation. Should be
---          distributed as part of Python package (special rule).
--- Local  - all other dependencies, typically "plain" local libraries, should
---          be distributed using typical scenario (installBinary).
-data DependencyCategory = Local | Python | System
+-- | All dynamic library dependencies on macOS can be split to the following categories,
+-- depending on how we want to package and redistribute them.
+data DependencyCategory = 
+      System -- ^ a dependency that is assumed to be present out-of-the box on all
+             --   targeted OSX systems. Should not be distributed.
+    | Python -- ^ a dependency belonging to the Python installation. Should be
+             --   distributed as part of Python package (special rule).
+    | Local  -- ^all other dependencies, typically "plain" local libraries, should
+             -- be distributed using typical scenario (installBinary).
     deriving (Eq, Show)
 
-categorizeDependency :: FilePath -> DependencyCategory
+-- | To what category given dynamic library belongs.
+categorizeDependency :: FilePath -- ^ An absolute path to dynamic library.
+                     -> DependencyCategory
 categorizeDependency dependencyFullPath =
     if match internalPythonPath dependencyFullPath
         then Python
@@ -80,10 +89,11 @@ categorizeDependency dependencyFullPath =
                 then System
                 else Local
 
+-- | Checks if given library is a 'Local' dependency.
 isLocalDep :: FilePath -> Bool
 isLocalDep dep = categorizeDependency dep == Local
 
--- Function installs Mach-O binary in a target binary folder.
+-- | Function installs Mach-O binary in a target binary folder.
 -- install name shall be rewritten to contain only a filename
 -- install names of direct local dependencies shall be rewritten, assuming they are in the same dir
 -- returns the path to the installed dependency (in the target dir)
@@ -101,7 +111,7 @@ installBinary targetBinariesDir sourcePath = do
             INT.change destinationPath installName $ "@loader_path" </> takeFileName installName
     pure destinationPath
 
--- If installed libraries list contains library with the same name (until dot)
+-- | If installed libraries list contains library with the same name (until dot)
 -- then it will used instead of current install name.
 -- See workaroundSymlinkedDeps for a full explanation.
 fixUnresolvedDependency :: (MonadIO m) => [FilePath] -> FilePath -> String -> m ()
@@ -118,7 +128,7 @@ fixUnresolvedDependency installedBinaries binary dependency = do
             liftIO $ putStrLn $ printf "\tpatching %s -> %s" dependency adjustedDependency 
             INT.change binary dependency adjustedDependency
 
--- Checks if this is a dependency expected to be next to the loaded binary
+-- | Checks if this is a dependency expected to be next to the loaded binary
 -- but not actually present.
 unresolvedLocalDependency :: (MonadIO m) => FilePath -> FilePath -> m Bool
 unresolvedLocalDependency installedBinary dependencyInstallName = do
@@ -127,13 +137,14 @@ unresolvedLocalDependency installedBinary dependencyInstallName = do
         not <$> (liftIO <$> doesPathExist) expectedPath
     else pure False
 
--- This procedure is to workaround issues when install names of dependencies
+-- | This procedure is to workaround issues when install names of dependencies
 -- point to symbolic links. Currently we just copy all actual dependencies 
 -- (and know their "real paths") but this might be not enough.
--- For example: libicui18n.63.dylib depends on libicudata.63.dylib
--- and libicudata.63.dylib is a symlink to libicudata.63.1.dylib.
--- We place just libicudata.63.1.dylib in the package and dyld will fail to
--- find libicudata.63.dylib.
+-- For example: @libicui18n.63.dylib@ depends on @libicudata.63.dylib@
+-- and @libicudata.63.dylib@ is a symlink to @libicudata.63.1.dylib@.
+-- We place just @libicudata.63.1.dylib@ in the package and dyld will fail to
+-- find @libicudata.63.dylib@.
+--
 -- This procedure looks for unresolved local libraries (ie. the library install
 -- names that are not present next to installed binary, and tries to patch the 
 -- install name so it refers to the library name as placed in the package.
