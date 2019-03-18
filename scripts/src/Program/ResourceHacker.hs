@@ -16,6 +16,17 @@ import System.FilePath     ((</>), replaceExtension, takeFileName)
 import System.IO.Temp      (withSystemTempDirectory)
 
 data ResourceHacker
+    
+data VersionInfo = VersionInfo 
+    { _version :: [Int] -- ^ Currently both product and component version (assumed to be the same).
+    , _companyName :: Text
+    , _fileDescription :: Text
+    , _legalCopyright :: Text
+    , _originalFilename :: Text
+    , _productName :: Text
+    } deriving (Generic, Show, Eq, Ord)
+
+makeLenses ''VersionInfo
 
 instance Program.Program ResourceHacker where
     defaultLocations = ["C:\\Program Files (x86)\\Resource Hacker" | buildOS == Windows]
@@ -46,17 +57,6 @@ compile rcPath resPath = callResourceHacker rcPath resPath ["-action", "compile"
 addoverwrite :: (MonadIO m) => FilePath -> FilePath -> FilePath -> m ()
 addoverwrite srcExe dstExe resPath = callResourceHacker srcExe dstExe ["-action", "addoverwrite", "-resource", resPath]
 
-data VersionInfo = VersionInfo 
-    { _version :: [Int] -- ^ Currently both product and component version (assumed to be the same).
-    , _companyName :: Text
-    , _fileDescription :: Text
-    , _legalCopyright :: Text
-    , _originalFilename :: Text
-    , _productName :: Text
-    } deriving (Generic, Show, Eq, Ord)
-
-makeLenses ''VersionInfo
-
 versionInfo :: [Int] -> FilePath -> Text -> Text -> Text -> VersionInfo
 versionInfo version exeFile name fileDescription companyName = VersionInfo
     { _version = version
@@ -76,7 +76,7 @@ setVersion srcExe dstExe version = withSystemTempDirectory "" $ \tmpDir -> do
     addoverwrite srcExe dstExe resFile
     
 versionInfoRC :: VersionInfo -> Text
-versionInfoRC vi = [text|
+versionInfoRC VersionInfo{..} = [text|
 1 VERSIONINFO
     FILEVERSION    $commaVersion
     PRODUCTVERSION $commaVersion
@@ -85,12 +85,12 @@ versionInfoRC vi = [text|
     {
         BLOCK "040904b0"
         {
-            VALUE "CompanyName",        "$(vi ^. companyName)"
-            VALUE "FileDescription",    "$(vi ^. fileDescription)"
+            VALUE "CompanyName",        "$(_companyName)"
+            VALUE "FileDescription",    "$_fileDescription"
             VALUE "FileVersion",        "$dotVersion"
-            VALUE "LegalCopyright",     "$(vi ^. legalCopyright)"
-            VALUE "OriginalFilename",   "$(vi ^. originalFilename)"
-            VALUE "ProductName",        "$(vi ^. productName)"
+            VALUE "LegalCopyright",     "$_legalCopyright"
+            VALUE "OriginalFilename",   "$_originalFilename"
+            VALUE "ProductName",        "$_productName"
             VALUE "ProductVersion",     "$dotVersion"
         }
     }
@@ -105,4 +105,14 @@ versionInfoRC vi = [text|
     prettyPrintVersion count separator = Text.intercalate separator 
                                        $ show' <$> versionParts count
     -- If too few version components were given, fill with zeroes.
-    versionParts count = take count $ (vi ^. version) <> repeat 0
+    versionParts count = take count $ _version <> repeat 0
+
+-- ttt :: IO ()
+-- ttt = do
+--     let stack = "C:\\Users\\mwu\\AppData\\Roaming\\local\\bin\\stack.exe"
+--     let stackCopy = "C:\\temp\\stack.exe"
+--     let version = versionInfo [1,8] stackCopy "stack" "tool for building things" "stack authors"
+--     setVersion stack stackCopy version
+--     pure ()
+
+    

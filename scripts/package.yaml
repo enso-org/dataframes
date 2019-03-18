@@ -77,6 +77,7 @@ dependencies:
 - filepath
 - Glob
 - MissingH
+- neat-interpolation
 - prologue
 - typed-process
 - temporary
