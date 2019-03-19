@@ -81,10 +81,15 @@ jobs:
   steps:
   - script: |
       set
-      where python
-      dir C:\hostedtoolcache\windows\Python\3.6.8
+      set PythonDir=C:\Python37
+      curl -fsL -o python-3.7.0-embed-amd64.zip https://www.python.org/ftp/python/3.7.0/python-3.7.0-embed-amd64.zip
+      7z x -y -o%PythonDir% python-3.7.0-embed-amd64.zip
+      set PATH=%PythonDir%;%PATH%
+      ECHO .\lib\site-packages>>"%PythonDir%\python37._pth"
+      curl https://bootstrap.pypa.io/get-pip.py | python
       python -m pip install numpy==1.15.*
       python -m pip show numpy
+      
       curl -sS -o stack.zip -L --insecure https://get.haskellstack.org/stable/windows-x86_64.zip
       7z x stack.zip -y -oC:\stack stack.exe
       set PATH=%PATH%;C:\stack
