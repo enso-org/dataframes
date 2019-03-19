@@ -95,7 +95,7 @@ jobs:
       7z x stack.zip -y -oC:\stack stack.exe
       set PATH=%PATH%;C:\stack
       cd $(Build.SourcesDirectory)\scripts\
-      stack run --cwd $(Build.SourcesDirectory)
+      stack run
     env:
       PythonDir: C:\hostedtoolcache\windows\Python\3.6.8\x64
   - task: PublishBuildArtifacts@1
