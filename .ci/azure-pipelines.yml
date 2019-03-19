@@ -86,7 +86,7 @@ jobs:
       where python
       mkdir "%PythonDir%"
       curl -o python-3.7.2.exe https://www.python.org/ftp/python/3.7.2/python-3.7.2-amd64.exe
-      python-3.7.2.exe /quiet /TargetDir="%PythonDir%"
+      python-3.7.2.exe /passive /quiet TargetDir="%PythonDir%"
       dir %PythonDir%
       python -m pip install numpy==1.15.*
       python -m pip show numpy
