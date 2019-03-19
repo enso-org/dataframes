@@ -82,9 +82,10 @@ jobs:
   - script: |
       set
       set PythonDir=C:\Python37
-      choco install python --version 3.7.2
+      set PATH=%PythonDir%;%PATH%
       where python
-      curl https://bootstrap.pypa.io/get-pip.py | python
+      curl -o python-3.7.2.exe https://www.python.org/ftp/python/3.7.2/python-3.7.2-amd64.exe
+      python-3.7.2.exe /quiet /TargetDir="%PythonDir%"
       python -m pip install numpy==1.15.*
       python -m pip show numpy
       
