@@ -17,6 +17,30 @@ import Data.ByteString.Lazy (ByteString)
 import qualified System.Process.Typed as Process 
 
 import System.Process.Typed (ProcessConfig)
+import Text.Printf (printf)
+
+-- | Values that can be used as an arguments when calling a process.
+class Argument arg where
+    {-# MINIMAL format | format' #-}
+    -- | If datatype yields more than a single string as arguments, this method
+    -- should be implemented.
+    format :: arg -> [String]
+    format arg = [format' arg]
+
+    -- | If datatype yields a single string as an argument, this method should
+    -- be implemented.
+    --
+    -- There is no other reason to call it ever, except for the default 'format'
+    -- implementation.
+    format' :: arg -> String
+    format' arg = case format arg of
+        head : _ -> head
+        _        -> ""
+
+instance {-# OVERLAPS #-} Argument String where
+    format arg = [arg]
+instance {-# OVERLAPS #-} Argument nested => Argument [nested] where
+    format args = concat $ format <$> args
 
 -- |A class defining an abstraction over a program. The purpose is mainly to
 -- provide some shared code (e.g. for looking up the program in @PATH@) and
@@ -57,8 +81,11 @@ class Program p where
 
     -- |Error message that shall be raised on failure to find the program. 
     notFoundError :: String
-    notFoundError = "failed to find program " <> prettyNames <> ", " <> notFoundFixSuggestion @p
-        where prettyNames = intercalate " nor " $ executableNames @p
+    notFoundError = printf "failed to find program %s, %s" 
+                        prettyNames suggestion
+        where 
+            prettyNames = intercalate " nor " $ executableNames @p
+            suggestion  = notFoundFixSuggestion @p
 
     -- |Text that should contain some actionable suggestion to the user on how
     -- to make program visible (e.g. program or system-specific installation

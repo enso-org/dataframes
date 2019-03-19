@@ -61,7 +61,11 @@ default-extensions:
 
 library:
   source-dirs: src
-
+tests:
+  test:
+    main: Test.hs
+    source-dirs: test
+    dependencies: dataframes-package
 executable:
   main: Main.hs
   dependencies: dataframes-package
