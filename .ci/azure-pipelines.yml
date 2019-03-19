@@ -84,6 +84,7 @@ jobs:
       set PythonDir=C:\Python37
       set PATH=%PythonDir%;%PATH%
       where python
+      mkdir "%PythonDir%"
       curl -o python-3.7.2.exe https://www.python.org/ftp/python/3.7.2/python-3.7.2-amd64.exe
       python-3.7.2.exe /quiet /TargetDir="%PythonDir%"
       dir %PythonDir%
