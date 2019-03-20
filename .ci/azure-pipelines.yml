@@ -23,7 +23,7 @@ jobs:
   - task: PublishBuildArtifacts@1
     inputs:
       pathtoPublish: scripts/Dataframes-Linux-x64.tar.gz
-      artifactName: Dataframes-Linux-x64
+      artifactName: package
 - job: macOS
   pool:
     vmImage: 'macOS-10.13'
@@ -74,7 +74,7 @@ jobs:
   - task: PublishBuildArtifacts@1
     inputs:
       pathtoPublish: scripts/Dataframes-macOS-x64.tar.gz
-      artifactName: Dataframes-macOS-x64
+      artifactName: package
 - job: Windows
   pool:
     vmImage: vs2017-win2016
@@ -101,4 +101,4 @@ jobs:
   - task: PublishBuildArtifacts@1
     inputs:
       pathtoPublish: scripts/Dataframes-Win-x64.7z
-      artifactName: Dataframes-Win-x64
+      artifactName: package
