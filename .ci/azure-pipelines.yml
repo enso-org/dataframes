@@ -16,6 +16,8 @@ jobs:
     PYTHON_PREFIX_PATH: /python-dist
   steps:
   - script: |
+      env
+      export LANG=en_US.UTF-8
       cd scripts
       stack build
       stack -v run
