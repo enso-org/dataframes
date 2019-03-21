@@ -86,6 +86,7 @@ dependencies:
 - Glob
 - http-conduit
 - http-types
+- lens
 - MissingH
 - neat-interpolation
 - process

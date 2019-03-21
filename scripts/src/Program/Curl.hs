@@ -6,9 +6,15 @@ import qualified Program as Program
 
 import Program (Program)
 
+
+
+------------------
+-- === Curl === --
+------------------
+
 data Curl
 instance Program Curl where
     executableName = "curl"
 
-download :: (MonadIO m) => String -> FilePath -> m ()
+download :: MonadIO m => String -> FilePath -> m ()
 download url destPath = Program.call @Curl ["-fSL", "-o", destPath, url]

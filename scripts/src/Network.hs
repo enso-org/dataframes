@@ -11,17 +11,29 @@ import qualified Progress                         as Progress
 import Conduit                   (ConduitM, await, runConduit, runResourceT,
                                   sinkFile, yield, (.|))
 import Data.ByteString           (ByteString)
-import Data.Either.Extra         (eitherToMaybe)
 import Network.HTTP.Conduit      (Response, http, newManager, parseRequest,
                                   responseBody, responseHeaders,
                                   tlsManagerSettings)
 import Network.HTTP.Types.Header (hContentDisposition, hContentLength)
+
+
+
+----------------------
+-- === Progress === --
+----------------------
+
+-- === Definition === --
 
 data DownloadProgress = DownloadProgress
     { _bytesCompleted :: Int
     , _bytesTotal     :: Maybe Int
     } deriving (Show)
 makeLenses ''DownloadProgress
+
+type ProgressCallback = DownloadProgress -> IO ()
+
+
+-- === Instances === --
 
 instance Progress.Progress DownloadProgress where
     ratio :: DownloadProgress -> Maybe Float
@@ -30,48 +42,51 @@ instance Progress.Progress DownloadProgress where
         let completed = fromIntegral  $  p ^. bytesCompleted
         pure $ completed / total
 
-type ProgressCallback = DownloadProgress -> IO ()
 
-advanceProgress :: DownloadProgress -> ByteString -> DownloadProgress
-advanceProgress p chunk = p & bytesCompleted %~ (+ ByteString.length chunk)
+-- === API === --
 
-updateProgress :: MonadIO m
-               => ProgressCallback
-               -> DownloadProgress
-               -> ConduitM ByteString ByteString m ()
-updateProgress cb previousProgress = await >>= maybe (pure ()) (\chunk -> do
-    let newProgress = advanceProgress previousProgress chunk
-    liftIO $ cb newProgress
-    yield chunk
-    updateProgress cb newProgress)
+advanceProgress :: ByteString -> DownloadProgress -> DownloadProgress
+advanceProgress chunk = bytesCompleted %~ (+ ByteString.length chunk)
+
+updateProgress
+    :: MonadIO m
+    => ProgressCallback
+    -> DownloadProgress
+    -> ConduitM ByteString ByteString m ()
+updateProgress callback previousProgress = await >>= \case
+    Nothing    -> pure ()
+    Just chunk -> do
+        let newProgress = advanceProgress chunk previousProgress
+        liftIO $ callback newProgress
+        yield chunk
+        updateProgress callback newProgress
 
 parseLength :: ByteString -> Maybe Int
 parseLength bs = do
     let parser = Attoparsec.decimal <* Attoparsec.endOfInput
     let result = Attoparsec.parseOnly parser bs
-    eitherToMaybe result
+    hush result
 
 contentLength :: Response body -> Maybe Int
 contentLength response = do
     field <- lookup hContentLength (responseHeaders response)
     parseLength field
 
--- contentFilename :: Response body -> _
--- contentFilename response = do
---     lookup hContentDisposition (responseHeaders response)
+downloadFileTo
+    :: (MonadMask m, MonadIO m)
+    => String   -- ^ URL to download
+    -> FilePath -- ^ Location to store the file
+    -> Progress.Observer DownloadProgress
+    -> m ()
+downloadFileTo url targetPath
+    = Progress.runProgressible $ downloadFileTo' url targetPath
 
-downloadFileTo :: (MonadMask m, MonadIO m)
-               => String -- ^ URL to download
-               -> FilePath -- ^ Location to store the file
-               -> Progress.Observer DownloadProgress
-               -> m ()
-downloadFileTo url targetPath = Progress.runProgressible $ downloadFileTo' url targetPath
-
-downloadFileTo' :: MonadIO m 
-                => String 
-                -> FilePath 
-                -> (DownloadProgress -> IO ()) 
-                -> m ()
+downloadFileTo'
+    :: MonadIO m
+    => String
+    -> FilePath
+    -> (DownloadProgress -> IO ())
+    -> m ()
 downloadFileTo' url targetPath cb = liftIO $ do
     request <- parseRequest url
     manager <- newManager tlsManagerSettings
