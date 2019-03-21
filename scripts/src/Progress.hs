@@ -13,14 +13,13 @@ class Progress progress where
     isDone p = (== 1.0) <$> ratio p 
 
 -- | Represents information about changed progressible action status.
-data Notification p =
-      Started
+data Notification p 
+    = Started
     | Ongoing p
     | Finished
     deriving (Show, Eq)
 
-
-type Progressible p m = (p -> IO ()) -> m ()
+type Progressible p m a = (p -> IO ()) -> m a
 
 type Observer p = Notification p -> IO ()
 
@@ -48,23 +47,8 @@ withTextProgressBar width progress = do
             hFlush stdout
 
 -- | Guarantees to emit Started and Finished notifications. 
-runProgressible :: (MonadMask m, MonadIO m) => Progressible p m -> Observer p -> m ()
+runProgressible :: (MonadMask m, MonadIO m) => Progressible p m a -> Observer p -> m a
 runProgressible action cb = bracket 
     (liftIO $ cb Started)
     (const $ liftIO $ cb Finished)
     (const $ action $ cb . Ongoing)
-
--- data PPP = PPP Float
--- instance Progress PPP where
---     ratio (PPP f) = Just f
-
--- progressibleAction :: MonadIO m => Progressible PPP m
--- progressibleAction cb = liftIO $ cb $ PPP 0.5
-
--- fff :: Progress p => Observer p -> IO ()
--- fff cb = do
---     cb $ Started
---     cb $ Finished
-
--- aaa :: IO ()
--- aaa = runProgressible progressibleAction (withTextProgressBar 80)

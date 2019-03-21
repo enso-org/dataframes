@@ -157,7 +157,7 @@ instance Exception UnpackingException where
 
 -- | SImilar to 'unpack' but allows tracking progress. All stdout and stderr output is intercepted.
 unpackWithProgress :: (MonadMask m, MonadThrow m, MonadIO m) 
-                   => (Progress.Notification UnpackProgressInfo -> IO ()) -- ^ Callback 
+                   => (Progress.Observer UnpackProgressInfo) -- ^ Callback 
                    -> FilePath  -- ^ Archive to unpack
                    -> FilePath  -- ^ Output directory
                    -> m ()
@@ -168,13 +168,12 @@ unpackWithProgress cb archivePath outputDirectory = do
 unpackWithProgress' :: (MonadThrow m, MonadIO m) => FilePath -> FilePath -> (UnpackProgressInfo -> IO ()) -> m ()
 unpackWithProgress' archivePath outputDirectory cb = do
     program <- Program.get @SevenZip
-    let command = ExtractWithFullPaths
+    let command =  ExtractWithFullPaths
     let switches = [ OverwriteMode OverwriteAll
                    , RedirectStream ProgressInformation RedirectToStdout
                    , SetCharset UTF8
                    , OutputDirectory outputDirectory 
                    ]
-
     let proc = Process.proc program 
              $   Program.format command 
               <> Program.format switches 
@@ -196,7 +195,6 @@ unpackWithProgress' archivePath outputDirectory cb = do
             , _stderr = err
             , _exitCode = code
             }
-    pure ()
 
 -- | Helper function to call to Seven Zip with its strongly typed switches
 call :: (MonadIO m) => Command -> [Switch] -> FilePath -> [String] -> m ()

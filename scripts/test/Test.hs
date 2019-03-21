@@ -6,6 +6,7 @@ import Control.Monad (liftM2)
 import qualified Data.ByteString as ByteString
 import qualified Program.SevenZip as SevenZip
 import qualified Progress as Progress
+import qualified Network as Network
 
 import Data.ByteString (ByteString)
 import System.IO.Temp (withSystemTempDirectory, withTempDirectory, writeTempFile)
@@ -41,12 +42,19 @@ testPackProgressive = do
     -- let src = "C:\\Users\\mwu\\Downloads\\gui.zip"
     SevenZip.unpackWithProgress (Progress.withTextProgressBar 80) src "."
 
+testDownload :: IO ()
+testDownload = do
+    let url = "https://github.com/luna/luna-studio/releases/download/1.8.0.2/gui.zip"
+    let target = "gui.zip"
+    Network.downloadFileTo url target (Progress.withTextProgressBar 80)
+
 runTestCase :: String -> IO () -> IO ()
 runTestCase name action = withSystemTempDirectory name $ \dir -> do
     putStrLn $ "Running `" <> name <> "` in " <> dir
     withCurrentDirectory dir action
 
 main = do
-    runTestCase "pack unpack" testPackProgressive
+    runTestCase "download" testDownload
+    -- runTestCase "pack unpack" testPackProgressive
     -- runTestCase "pack unpack" testPack    
     pure ()
