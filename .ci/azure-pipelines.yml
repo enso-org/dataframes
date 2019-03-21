@@ -18,7 +18,7 @@ jobs:
   - script: |
       cd scripts
       stack build
-      stack -v exec dataframes-package
+      stack -v run
     displayName: Build Dataframes
   - task: PublishBuildArtifacts@1
     inputs:
