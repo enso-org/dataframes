@@ -71,19 +71,30 @@ executable:
   dependencies: dataframes-package
 
 dependencies:
+- async
+- attoparsec
 - base
 - bytestring
 - Cabal
+- conduit
+- conduit-extra
 - containers
 - directory
 - extra
 - file-embed
 - filepath
 - Glob
+- http-conduit
+- http-types
 - MissingH
 - neat-interpolation
+- process
 - prologue
+- safe-exceptions
+- streaming-commons
+# - streaming-process
 - typed-process
 - temporary
 - text
 - unix-compat
+- unliftio-core
