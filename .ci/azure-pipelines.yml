@@ -41,7 +41,6 @@ jobs:
       brew install fmt cmake apache-arrow boost rapidjson howard-hinnant-date pcre pybind11 wget openssl
     displayName: Install C++ dependencies
   - script: |
-      env
       wget https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tar.xz
       tar xf Python-3.7.0.tar.xz
       cd Python-3.7.0
