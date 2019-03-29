@@ -133,6 +133,7 @@ data DataframesBuildArtifacts = DataframesBuildArtifacts
 -- It builds the project and produces build artifacts.
 buildProject :: FilePath -> FilePath -> IO DataframesBuildArtifacts
 buildProject repoDir stagingDir = do
+    putStrLn $ "Building project"
     let dataframesLibPath = repoDir </> "native_libs" </> "src"
     case buildOS of
         Windows -> do
@@ -171,6 +172,7 @@ copyInPythonLibs pythonPrefix packageRoot = do
 
 package :: FilePath -> FilePath -> DataframesBuildArtifacts -> IO DataframesPackageArtifacts
 package repoDir stagingDir buildArtifacts = do
+    putStrLn $ "Packaging build artifacts..."
     let packageRoot = stagingDir </> "Dataframes"
     let packageBinariesDir = packageRoot </> "native_libs" </> nativeLibsOsDir
 
@@ -236,9 +238,12 @@ runTests repoDir buildArtifacts packageArtifacts = do
 
 main :: IO ()
 main = do
+    putStrLn $ "Starting Dataframes build"
     withSystemTempDirectory "" $ \stagingDir -> do
         -- let stagingDir = "C:\\Users\\mwurb\\AppData\\Local\\Temp\\-777f232250ff9e9c"
+        putStrLn $ "Preparing environment..."
         prepareEnvironment stagingDir
+        putStrLn $ "Obtaining repository directory..."
         repoDir <- repoDir
         buildArtifacts <- buildProject repoDir stagingDir
         packageArtifacts <- package repoDir stagingDir buildArtifacts
