@@ -14,7 +14,8 @@ instance Program.Program SignTool where
             [ "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\x64"
             , "C:\\Program Files (x86)\\Windows Kits\\10\\App Certification Kit"
             ]
-        _       -> []
+        _       -> 
+            []
     executableName = "signtool"
 
 -- | Signs binary using a password-protected certificate.
@@ -33,10 +34,13 @@ sign certificateFile certificatePassword binaryToSign = do
         , binaryToSign
         ]
 
--- | Signs given binary using a password-protected certificate. Certifacte location
--- shall be read from @CERT_PATH@ environment variable, and the password from
--- @CERT_PASS@. Both variables are required to be ste.
-signEnv :: MonadIO m => FilePath -> m ()
+-- | Signs given binary using a password-protected certificate. Certifacte
+--   location shall be read from @CERT_PATH@ environment variable, and the
+--   password from @CERT_PASS@. Both variables are required to be ste.
+signEnv 
+    :: MonadIO m 
+    => FilePath -- ^ Binary to be signed
+    -> m ()
 signEnv binaryToSign = do
     cert <- Utils.getEnvRequired "CERT_PATH"
     certPass <- Utils.getEnvRequired "CERT_PASS"

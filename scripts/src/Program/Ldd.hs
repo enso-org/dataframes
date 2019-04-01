@@ -45,7 +45,10 @@ parseNamePathAddress (T.strip -> input) =
     where
         (beforeLastSpace, afterLastSpace) = T.breakOnEnd " " input
         hasAddress = T.isPrefixOf "(0x" afterLastSpace -- heuristics, in theory a file path can contain " (0x" — but if there is a path, there should be an address later anyway
-        (p1, p2) = parseNameAndPath $ if hasAddress then beforeLastSpace else input
+        (p1, p2) = parseNameAndPath 
+            $ if hasAddress 
+                then beforeLastSpace 
+                else input
 
 -- Returns list of shared libraries that are necessary to load given binary
 -- executable image.

@@ -97,7 +97,8 @@ class Program p where
     notFoundFixSuggestion :: String
     notFoundFixSuggestion = "please make sure it is visible in PATH"
 
-    -- |Equivalent of "System.Process.Typed"'s 'System.Process.Typed.proc' function.
+    -- | Equivalent of "System.Process.Typed"'s 'System.Process.Typed.proc'
+    -- function.
     proc :: FilePath -- ^Path to program
          -> [String] -- ^Program arguments.
          -> (ProcessConfig () () ())
@@ -128,8 +129,9 @@ call args = prog @p args >>= Process.runProcess_
 -- |Just like 'call' but allows for setting a different working directory.
 callCwd
     :: forall p m. IOProgram m p
-    => FilePath -- ^Working directory. NOTE: must point to existing directory, or the call will fail.
-    -> [String] -- ^Program arguments.
+    => FilePath -- ^ Working directory. NOTE: must point to existing directory,
+                --   or the call will fail.
+    -> [String] -- ^ Program arguments.
     -> m ()
 callCwd cwd args = progCwd @p cwd args >>= Process.runProcess_
 
@@ -144,24 +146,29 @@ read' :: forall p m. IOProgram m p => [String] -> m (ByteString, ByteString)
 read' args = Process.readProcess_ =<< prog @p args
 
 -- | Just like 'prog' but also sets custom working directory.
-progCwd :: forall p m. IOProgram m p
-        => FilePath -- ^Working directory. NOTE: must point to existing directory, or the call will fail.
-        -> [String] -- ^Program arguments.
-        -> m (ProcessConfig () () ())
+progCwd 
+    :: forall p m. IOProgram m p
+    => FilePath -- ^ Working directory. NOTE: must point to existing directory, 
+                --   or the call will fail.
+    -> [String] -- ^ Program arguments.
+    -> m (ProcessConfig () () ())
 progCwd cwdToUse args = do
     (Process.setWorkingDir cwdToUse) <$> prog @p args
 
--- |Function return an absolute path to the first executable name from the list
--- that can be found.
+-- | Function return an absolute path to the first executable name from the list
+--   that can be found.
 lookupExecutable :: (MonadIO m)
-                 => [FilePath] -- ^List of executable names.
-                 -> [FilePath] -- ^List of additional locations to be checked in addition to default ones.
+                 => [FilePath] -- ^ List of executable names.
+                 -> [FilePath] -- ^ List of additional locations to be checked 
+                               --  in addition to default ones.
                  -> m (Maybe FilePath)
 lookupExecutable [] _ = pure Nothing
 lookupExecutable (exeName : exeNamesTail) additionalDirs = do
     let locations = Cabal.ProgramSearchPathDefault
                   : (Cabal.ProgramSearchPathDir <$> additionalDirs)
-    fmap fst <$> (liftIO $ Cabal.findProgramOnSearchPath Cabal.silent locations exeName) >>= \case
+    mLookupResult <- liftIO 
+        $ Cabal.findProgramOnSearchPath Cabal.silent locations exeName
+    case fst <$> mLookupResult of
         Just path -> pure $ Just path
         Nothing -> lookupExecutable exeNamesTail additionalDirs
 

@@ -11,30 +11,54 @@ import System.Directory (createDirectoryIfMissing)
 import Text.Printf      (printf)
 
 
+
+-------------------
+-- === CMake === --
+-------------------
+
+-- === Definition === --
+
 data CMake
+
 instance Program CMake where
     executableName = "cmake"
 
-type VariableName = String
-type VariableValue = String
+-- === Switches === --
 
-data BuildType = Debug | ReleaseWithDebInfo
-
-data Option = OptionSetVariable (VariableName, VariableValue)
+data Option = OptionSetVariable SetVariable
             | OptionBuildType BuildType
 
-formatOption :: Option -> [String]
-formatOption (OptionSetVariable (name, value)) = [printf "-D%s=%s" name value]
-formatOption (OptionBuildType Debug) = formatOption $ OptionSetVariable ("CMAKE_BUILD_TYPE", "Debug")
-formatOption (OptionBuildType ReleaseWithDebInfo) = formatOption $ OptionSetVariable ("CMAKE_BUILD_TYPE", "RelWithDebInfo")
+data BuildType = Debug | ReleaseWithDebInfo deriving (Show)
 
-formatOptions :: [Option] -> [String]
-formatOptions opts = concat $ formatOption <$> opts
+data SetVariable = SetVariable
+    { _name :: String
+    , _value :: String
+    } deriving (Show)
+makeLenses ''SetVariable
+
+
+formatVariable :: SetVariable -> String
+formatVariable var = printf "-D%s=%s" (var ^. name) (var ^. value)
+
+formatBuildType :: BuildType -> String
+formatBuildType = \case 
+    Debug              -> "Debug"
+    ReleaseWithDebInfo -> "RelWithDebInfo"
+
+instance Program.Argument Option where
+    format = pure . \case 
+        OptionSetVariable var     -> formatVariable var
+        OptionBuildType buildType -> formatVariable var 
+            where var = SetVariable "CMAKE_BUILD_TYPE" buildTypeFmt
+                  buildTypeFmt = formatBuildType buildType
+
+                  
+-- === API === --
 
 cmake :: (MonadIO m) => FilePath -> FilePath -> [Option] -> m ()
 cmake whereToRun whatToBuild options = do
     liftIO $ createDirectoryIfMissing True whereToRun
-    let varOptions = formatOptions options
+    let varOptions = Program.format options
     Program.callCwd @CMake whereToRun (varOptions <> [whatToBuild])
 
 -- FIXME: drop dependency on make, use --build

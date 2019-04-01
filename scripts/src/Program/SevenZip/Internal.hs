@@ -54,9 +54,7 @@ instance Program SevenZip where
 
 -- === Output parsing === --
 
--- parser progress from text output by 7z
--- supported input text must be like
--- "65% file.txt"
+-- | Parses "line" of 7z output, see 'parseProgress'
 progressParser :: Parser UnpackProgressInfo
 progressParser = UnpackProgressInfo
     <$> Attoparsec.decimal
@@ -64,6 +62,8 @@ progressParser = UnpackProgressInfo
     <*> Attoparsec.takeText
     <*  Attoparsec.endOfInput
 
+-- | parses progress from text output by 7z. Expected chunks of texts are like:
+-- "65% file.txt"
 parseProgress :: Text -> Maybe UnpackProgressInfo
 parseProgress chunk = hush $ parseChunk where
     parseChunk = Attoparsec.parseOnly progressParser chunk
@@ -235,8 +235,6 @@ call command switches baseArchive arguments =
         <> Program.format switches
         <> [baseArchive]
         <> arguments
-
-
 
 ------------------------
 -- === Exceptions === --

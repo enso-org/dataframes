@@ -12,9 +12,32 @@ import Program (Program)
 -- === Curl === --
 ------------------
 
+-- === Definition === --
+
 data Curl
 instance Program Curl where
     executableName = "curl"
+    
+-- === API === --
 
-download :: MonadIO m => String -> FilePath -> m ()
-download url destPath = Program.call @Curl ["-fSL", "-o", destPath, url]
+download 
+    :: MonadIO m 
+    => String  -- ^ URL to be fetched
+    -> FilePath -- ^ Output file
+    -> m ()
+download url destPath = Program.call @Curl $ Program.format switches where
+    switches = [FollowRedirect, OutputFile destPath] 
+    
+
+-- === Switches === --
+
+data Switch
+    = FollowRedirect
+    | OutputFile FilePath 
+    | Silent -- ^ Suppress progress indicator
+
+instance Program.Argument Switch where
+    format = \case
+        FollowRedirect  -> ["-f"]
+        OutputFile path -> ["-o", path]
+        Silent          -> ["-s"]

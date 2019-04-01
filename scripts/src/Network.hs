@@ -83,8 +83,8 @@ downloadFileTo url targetPath
 
 downloadFileTo'
     :: MonadIO m
-    => String
-    -> FilePath
+    => String   -- ^ URL to download
+    -> FilePath -- ^ Location to store the file
     -> (DownloadProgress -> IO ())
     -> m ()
 downloadFileTo' url targetPath cb = liftIO $ do

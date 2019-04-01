@@ -143,8 +143,10 @@ buildProject repoDir stagingDir = do
             let buildDir = stagingDir </> "build"
             let pythonLibLocation = pythonPrefix </> "lib/libpython" <> pythonVersion <> "m" <.> dynamicLibraryExtension
             let numpyIncludeDir = pythonPrefix </> "lib/python" <> pythonVersion <> "/site-packages/numpy/core/include"
-            let cmakeVariables =  [ ("PYTHON_LIBRARY",           pythonLibLocation)
-                                  , ("PYTHON_NUMPY_INCLUDE_DIR", numpyIncludeDir)]
+            let cmakeVariables =  
+                    [ CMake.SetVariable "PYTHON_LIBRARY"           pythonLibLocation
+                    , CMake.SetVariable "PYTHON_NUMPY_INCLUDE_DIR" numpyIncludeDir
+                    ]
             let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo : (CMake.OptionSetVariable <$> cmakeVariables)
             CMake.build buildDir dataframesLibPath options
 
