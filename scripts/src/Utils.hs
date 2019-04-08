@@ -10,6 +10,12 @@ import System.Environment        (lookupEnv)
 import System.FilePath           (normalise, takeFileName, (</>))
 import System.IO.Error           (isDoesNotExistError)
 
+-- | Ensures: directory under given path exists and is empty
+prepareEmptyDirectory :: MonadIO m => FilePath -> m ()
+prepareEmptyDirectory path = liftIO $ do
+    removeDirectoryRecursiveIfExists path
+    createDirectoryIfMissing True path
+
 -- | As 'removeDirectoryRecursive' but doesn't fail when the path does not
 -- exist.
 removeDirectoryRecursiveIfExists :: (MonadIO m) => FilePath -> m ()

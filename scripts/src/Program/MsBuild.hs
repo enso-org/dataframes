@@ -5,11 +5,17 @@ import Prologue
 import qualified Program as Program
 
 import Program (Program)
+import System.FilePath ((</>))
 
 data MsBuild
 instance Program MsBuild where
-    defaultLocations = [ "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\MSBuild\\15.0\\Bin\\amd64"
-                       , "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Enterprise\\MSBuild\\15.0\\Bin\\amd64"]
+    defaultLocations = do
+        let editions = ["Community", "Enterprise"]
+        let vsDirRoot = "C:\\Program Files (x86)\\Microsoft Visual Studio"
+        let vsToMsBuild msBuildVer = "MSBuild" </> msBuildVer </> "Bin\\amd64"
+        pure $
+               [vsDirRoot </> "2019" </> edition </> vsToMsBuild "Current" | edition <- editions]
+            <> [vsDirRoot </> "2017" </> edition </> vsToMsBuild "15.0"    | edition <- editions]
     executableName   = "MSBuild.exe"
 
 build :: (MonadIO m) => FilePath -> m ()

@@ -60,8 +60,8 @@ class Program p where
     --   environment variable). Default implementation returns just an empty
     --   list. This function can be useful when the program has a well-known
     --   install location but usually is not added to @PATH@.
-    defaultLocations :: [FilePath]
-    defaultLocations = []
+    defaultLocations :: MonadIO m => m [FilePath]
+    defaultLocations = pure []
 
     -- | Name of the executable with this program. It is not necessary to
     --   include @.exe@ extension on Windows.
@@ -82,7 +82,9 @@ class Program p where
     -- program specific locations (see 'defaultLocations'). If the program
     -- cannot be found, silently returns 'Nothing'.
     lookupProgram :: MonadIO m => m (Maybe FilePath)
-    lookupProgram = lookupExecutable (executableNames @p) (defaultLocations @p)
+    lookupProgram = do
+        additionalLocationsToCheck <- defaultLocations @p
+        lookupExecutable (executableNames @p) [] additionalLocationsToCheck
 
     -- |Error message that shall be raised on failure to find the program.
     notFoundError :: String
@@ -159,18 +161,19 @@ progCwd cwdToUse args = do
 --   that can be found.
 lookupExecutable :: (MonadIO m)
                  => [FilePath] -- ^ List of executable names.
-                 -> [FilePath] -- ^ List of additional locations to be checked 
-                               --  in addition to default ones.
+                 -> [FilePath] -- ^ List of preferred locations
+                 -> [FilePath] -- ^ List of fallback locations
                  -> m (Maybe FilePath)
-lookupExecutable [] _ = pure Nothing
-lookupExecutable (exeName : exeNamesTail) additionalDirs = do
-    let locations = Cabal.ProgramSearchPathDefault
-                  : (Cabal.ProgramSearchPathDir <$> additionalDirs)
+lookupExecutable [] _ _ = pure Nothing
+lookupExecutable (exeName : exeNamesTail) prefferedDirs fallbackDirs = do
+    let locations = (Cabal.ProgramSearchPathDir <$> prefferedDirs)
+                 <> [Cabal.ProgramSearchPathDefault]
+                 <> (Cabal.ProgramSearchPathDir <$> fallbackDirs)
     mLookupResult <- liftIO 
         $ Cabal.findProgramOnSearchPath Cabal.silent locations exeName
     case fst <$> mLookupResult of
         Just path -> pure $ Just path
-        Nothing -> lookupExecutable exeNamesTail additionalDirs
+        Nothing -> lookupExecutable exeNamesTail prefferedDirs fallbackDirs
 
 
 

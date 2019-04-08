@@ -44,7 +44,7 @@ instance Progress.Progress UnpackProgressInfo where
 data SevenZip
 instance Program SevenZip where
     -- On Windows installer by default does not add 7zip to PATH
-    defaultLocations = ["C:\\Program Files\\7-Zip" | buildOS == Windows]
+    defaultLocations = pure ["C:\\Program Files\\7-Zip" | buildOS == Windows]
 
     -- Any of these is fine but usually only one is available
     executableNames = ["7z", "7za"]

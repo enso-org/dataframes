@@ -25,7 +25,7 @@ download
     => String  -- ^ URL to be fetched
     -> FilePath -- ^ Output file
     -> m ()
-download url destPath = Program.call @Curl $ Program.format switches where
+download url destPath = Program.call @Curl $ Program.format switches <> [url] where
     switches = [FollowRedirect, OutputFile destPath] 
     
 

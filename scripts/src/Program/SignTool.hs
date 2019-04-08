@@ -9,7 +9,7 @@ import Distribution.System (OS(Windows), buildOS)
 
 data SignTool
 instance Program.Program SignTool where
-    defaultLocations = case buildOS of 
+    defaultLocations = pure $ case buildOS of 
         Windows ->
             [ "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\x64"
             , "C:\\Program Files (x86)\\Windows Kits\\10\\App Certification Kit"

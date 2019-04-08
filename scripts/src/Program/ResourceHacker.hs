@@ -21,7 +21,7 @@ import System.IO.Temp      (withSystemTempDirectory)
 
 data ResourceHacker
 instance Program.Program ResourceHacker where
-    defaultLocations = ["C:\\Program Files (x86)\\Resource Hacker" | buildOS == Windows]
+    defaultLocations = pure ["C:\\Program Files (x86)\\Resource Hacker" | buildOS == Windows]
     executableName = "ResourceHacker"
     -- | All calls shall use custom 'formatShellCommand' and use shell-style calls, see 'formatShellCommand'.
     proc program args = Process.shell $ formatShellCommand program args

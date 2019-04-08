@@ -18,3 +18,5 @@ packages:
     - lib/monoid
     - lib/monad-branch
     - lib/th-builder
+- extra-dep: true
+  location: {commit: 481d69b5a3c5d61d6a4abf856bb56a61b5a40c36, git: 'https://github.com/mwu-tow/pecoff'}

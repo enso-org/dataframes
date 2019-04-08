@@ -31,8 +31,8 @@ import qualified Platform.MacOS   as MacOS
 import qualified Platform.Linux as Linux
 
 depsArchiveUrl, packageBaseUrl :: String
-depsArchiveUrl = "https://packages.luna-lang.org/dataframes/libs-dev-v140.7z"
-packageBaseUrl = "https://packages.luna-lang.org/dataframes/windows-package-base.7z"
+depsArchiveUrl = "https://packages.luna-lang.org/dataframes/libs-dev-v140-v2.7z"
+packageBaseUrl = "https://packages.luna-lang.org/dataframes/windows-package-base-v2.7z"
 
 -- Function downloads archive from given URL and extracts it to the target dir.
 -- The archive is placed in temp folder, so function doesn't leave any trash behind.
@@ -239,8 +239,8 @@ runTests repoDir buildArtifacts packageArtifacts = do
 
 main :: IO ()
 main = do
-    withSystemTempDirectory "" $ \stagingDir -> do
-        -- let stagingDir = "C:\\Users\\mwurb\\AppData\\Local\\Temp\\-777f232250ff9e9c"
+    -- withSystemTempDirectory "" $ \stagingDir -> do
+        let stagingDir = "C:\\Users\\mwu\\AppData\\Local\\Temp\\-777f232250ff9e9c"
         prepareEnvironment stagingDir
         repoDir <- repoDir
         buildArtifacts <- buildProject repoDir stagingDir
