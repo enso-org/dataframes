@@ -84,7 +84,7 @@ class Program p where
     lookupProgram :: MonadIO m => m (Maybe FilePath)
     lookupProgram = do
         additionalLocationsToCheck <- defaultLocations @p
-        lookupExecutable (executableNames @p) [] additionalLocationsToCheck
+        lookupExecutable (executableNames @p) additionalLocationsToCheck
 
     -- |Error message that shall be raised on failure to find the program.
     notFoundError :: String
@@ -161,19 +161,17 @@ progCwd cwdToUse args = do
 --   that can be found.
 lookupExecutable :: (MonadIO m)
                  => [FilePath] -- ^ List of executable names.
-                 -> [FilePath] -- ^ List of preferred locations
                  -> [FilePath] -- ^ List of fallback locations
                  -> m (Maybe FilePath)
-lookupExecutable [] _ _ = pure Nothing
-lookupExecutable (exeName : exeNamesTail) prefferedDirs fallbackDirs = do
-    let locations = (Cabal.ProgramSearchPathDir <$> prefferedDirs)
-                 <> [Cabal.ProgramSearchPathDefault]
-                 <> (Cabal.ProgramSearchPathDir <$> fallbackDirs)
+lookupExecutable [] _ = pure Nothing
+lookupExecutable (exeName : exeNamesTail) fallbackDirs = do
+    let locations = Cabal.ProgramSearchPathDefault
+                  : (Cabal.ProgramSearchPathDir <$> fallbackDirs)
     mLookupResult <- liftIO 
         $ Cabal.findProgramOnSearchPath Cabal.silent locations exeName
     case fst <$> mLookupResult of
         Just path -> pure $ Just path
-        Nothing -> lookupExecutable exeNamesTail prefferedDirs fallbackDirs
+        Nothing -> lookupExecutable exeNamesTail fallbackDirs
 
 
 

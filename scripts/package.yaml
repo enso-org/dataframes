@@ -45,6 +45,7 @@ default-extensions:
 - QuasiQuotes
 - RankNTypes
 - RecursiveDo
+- RecordWildCards
 - RelaxedPolyRec
 - ScopedTypeVariables
 - StandaloneDeriving
@@ -80,6 +81,7 @@ dependencies:
 - conduit-extra
 - containers
 - directory
+- errors
 - extra
 - file-embed
 - filepath

@@ -78,6 +78,7 @@ language_extensions:
     - QuasiQuotes
     - RankNTypes
     - RecursiveDo
+    - RecordWildCards
     - RelaxedPolyRec
     - ScopedTypeVariables
     - StandaloneDeriving

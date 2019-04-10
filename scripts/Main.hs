@@ -4,6 +4,7 @@ import Control.Monad.Extra
 import Data.List
 import Data.Maybe
 import Data.Monoid
+import Data.String.Utils (split)
 import Distribution.Simple.Utils
 import Distribution.System
 import Distribution.Verbosity
@@ -28,14 +29,29 @@ import qualified Program.Otool           as Otool
 import qualified Program.InstallNameTool as INT
 
 import qualified Platform.MacOS   as MacOS
-import qualified Platform.Linux as Linux
+import qualified Platform.Linux   as Linux
+import qualified Platform.Windows as Windows
 
 depsArchiveUrl, packageBaseUrl :: String
 depsArchiveUrl = "https://packages.luna-lang.org/dataframes/libs-dev-v140-v2.7z"
-packageBaseUrl = "https://packages.luna-lang.org/dataframes/windows-package-base-v2.7z"
+packageBaseUrl = "https://packages.luna-lang.org/dataframes/windows-package-base-v3.7z"
 
--- Function downloads archive from given URL and extracts it to the target dir.
--- The archive is placed in temp folder, so function doesn't leave any trash behind.
+-- | Packaging script always builds Release-mode 64-bit executables
+msBuildConfig :: MsBuild.BuildConfiguration
+msBuildConfig = MsBuild.BuildConfiguration MsBuild.Release MsBuild.X64
+
+-- | All paths below are functions over repository directory (or package root,
+-- if applicable)
+nativeLibs, nativeLibsSrc, nativeLibsBin, solutionFile, dataframeVsProject :: FilePath -> FilePath
+nativeLibs         = (</> "native_libs")
+nativeLibsSrc      = (</> "src")                     . nativeLibs
+nativeLibsBin      = (</> nativeLibsOsDir)           . nativeLibs
+solutionFile       = (</> "DataframeHelper.sln")     . nativeLibsSrc
+dataframeVsProject = (</> "DataframeHelper.vcxproj") . nativeLibsSrc
+
+-- | Function downloads archive from given URL and extracts it to the target
+--  dir. The archive is placed in temp folder, so function doesn't leave any
+--  trash behind.
 downloadAndUnpack7z :: FilePath -> FilePath -> IO ()
 downloadAndUnpack7z archiveUrl targetDirectory = do
     withSystemTempDirectory "" $ \tmpDir -> do
@@ -43,16 +59,16 @@ downloadAndUnpack7z archiveUrl targetDirectory = do
         Curl.download archiveUrl archiveLocalPath
         SevenZip.unpack archiveLocalPath targetDirectory
 
--- Gets path to the local copy of the Dataframes repo
+-- | Gets path to the local copy of the Dataframes repo
 repoDir :: IO FilePath
 repoDir = getEnvRequired "DATAFRAMES_REPO_PATH" -- TODO: should be able to deduce from this packaging executable location
 
--- Path to directory with Python installation, should not contain other things
+-- | Path to directory with Python installation, should not contain other things
 -- (that was passed as --prefix to Python's configure script)
 pythonPrefix :: IO FilePath
 pythonPrefix = getEnvRequired "PYTHON_PREFIX_PATH" -- TODO: should be able to deduce by looking for python in PATH
 
--- Python version that we package, assumed to be already installed on packaging system.
+-- | Python version that we package, assumed to be already installed on packaging system.
 pythonVersion :: String
 pythonVersion = "3.7"
 
@@ -134,23 +150,29 @@ data DataframesBuildArtifacts = DataframesBuildArtifacts
 -- It builds the project and produces build artifacts.
 buildProject :: FilePath -> FilePath -> IO DataframesBuildArtifacts
 buildProject repoDir stagingDir = do
-    let dataframesLibPath = repoDir </> "native_libs" </> "src"
+    let srcDir = nativeLibsSrc repoDir
     case buildOS of
         Windows -> do
-            MsBuild.build $ dataframesLibPath </> "DataframeHelper.sln"
+            -- On Windows we don't care about Python, as it is discovered thanks
+            -- to env's `PythonDir` and MS Build property sheets imported from
+            -- deps package
+            let solutionPath = srcDir </> "DataframeHelper.sln"
+            MsBuild.build msBuildConfig solutionPath
         _ -> do
             pythonPrefix <- pythonPrefix
             let buildDir = stagingDir </> "build"
-            let pythonLibLocation = pythonPrefix </> "lib/libpython" <> pythonVersion <> "m" <.> dynamicLibraryExtension
-            let numpyIncludeDir = pythonPrefix </> "lib/python" <> pythonVersion <> "/site-packages/numpy/core/include"
+            let pythonLibDir = pythonPrefix </> "lib"
+            let pythonLibLocation = pythonLibDir </> "libpython" <> pythonVersion <> "m" <.> dynamicLibraryExtension
+            let numpyIncludeDir = pythonLibDir </> "python" <> pythonVersion <> "/site-packages/numpy/core/include"
             let cmakeVariables =  
                     [ CMake.SetVariable "PYTHON_LIBRARY"           pythonLibLocation
                     , CMake.SetVariable "PYTHON_NUMPY_INCLUDE_DIR" numpyIncludeDir
                     ]
-            let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo : (CMake.OptionSetVariable <$> cmakeVariables)
-            CMake.build buildDir dataframesLibPath options
+            let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo 
+                        : (CMake.OptionSetVariable <$> cmakeVariables)
+            CMake.build buildDir srcDir options
 
-    let builtBinariesDir = repoDir </> "native_libs" </> nativeLibsOsDir
+    let builtBinariesDir = nativeLibsBin repoDir
     builtDlls <- glob $ builtBinariesDir </> "*" <.> dynamicLibraryExtension
     pure $ DataframesBuildArtifacts
         { dataframesBinaries = builtDlls
@@ -172,11 +194,24 @@ copyInPythonLibs pythonPrefix packageRoot = do
     removePathForcibly $ to </> "config-" <> pythonVersion <> "m-x86_64-linux-gnu"
     removePathForcibly $ to </> "test"
 
+-- | Windows-only, uses data provided by our MS Build property sheets to get
+-- locations with dependenciess
+additionalLocationsWithBinaries :: FilePath -> IO [FilePath]
+additionalLocationsWithBinaries repoDir = do
+    let projectPath = dataframeVsProject repoDir
+    pathAdditions <- MsBuild.queryProperty msBuildConfig projectPath "PathAdditions"
+    pure $ case pathAdditions of
+            Just additions -> split ";" additions
+            Nothing        -> []
+
 package :: FilePath -> FilePath -> DataframesBuildArtifacts -> IO DataframesPackageArtifacts
 package repoDir stagingDir buildArtifacts = do
     let packageRoot = stagingDir </> "Dataframes"
-    let packageBinariesDir = packageRoot </> "native_libs" </> nativeLibsOsDir
+    let packageBinariesDir = nativeLibsBin packageRoot
 
+    putStrLn $ "Creating package at " <> packageRoot
+    prepareEmptyDirectory packageRoot
+    
     let dirsToCopy = ["src", "visualizers", ".luna-package"]
     mapM (copyDirectory repoDir packageRoot) dirsToCopy
 
@@ -185,10 +220,13 @@ package repoDir stagingDir buildArtifacts = do
 
     case buildOS of
         Windows -> do
+            additionalLocations <- additionalLocationsWithBinaries repoDir
             downloadAndUnpack7z packageBaseUrl packageBinariesDir
-            when (null builtDlls) $ error "failed to found built .dll files"
-            mapM (copyToDir packageBinariesDir) builtDlls
-            return ()
+            installResult <- Windows.installBinaries packageBinariesDir builtDlls additionalLocations
+            case installResult of
+                Left unresolved -> error $ "Failed to package binaries, unresolved dependencies: " <> show unresolved
+                Right _ -> pure ()
+
         Linux -> do
             dependencies <- Linux.dependenciesToPackage builtDlls
             mapM (Linux.installDependencyTo packageBinariesDir) dependencies
@@ -217,7 +255,7 @@ package repoDir stagingDir buildArtifacts = do
             pythonPrefix <- pythonPrefix
             copyInPythonLibs pythonPrefix packageRoot
 
-    packDirectory packageRoot dataframesPackageName
+    -- packDirectory packageRoot dataframesPackageName
     putStrLn $ "Packaging done, file saved to: " <> dataframesPackageName
     pure $ DataframesPackageArtifacts
         { dataframesPackageArchive = dataframesPackageName
@@ -230,7 +268,7 @@ runTests repoDir buildArtifacts packageArtifacts = do
     -- so all the dependencies are properly visible.
     -- The CWD must be repository though for test to properly find
     -- the data files.
-    let packageDirBinaries = dataframesPackageDirectory packageArtifacts </> "native_libs" </> nativeLibsOsDir
+    let packageDirBinaries = nativeLibsBin $ dataframesPackageDirectory packageArtifacts
     tests <- mapM (copyToDir packageDirBinaries) (dataframesTests buildArtifacts)
     withCurrentDirectory repoDir $ do
         let configs = flip proc ["--report_level=detailed"] <$> tests
@@ -239,8 +277,8 @@ runTests repoDir buildArtifacts packageArtifacts = do
 
 main :: IO ()
 main = do
-    -- withSystemTempDirectory "" $ \stagingDir -> do
-        let stagingDir = "C:\\Users\\mwu\\AppData\\Local\\Temp\\-777f232250ff9e9c"
+    withSystemTempDirectory "" $ \stagingDir -> do
+        -- let stagingDir = "C:\\Users\\mwu\\AppData\\Local\\Temp\\-777f232250ff9e9c"
         prepareEnvironment stagingDir
         repoDir <- repoDir
         buildArtifacts <- buildProject repoDir stagingDir

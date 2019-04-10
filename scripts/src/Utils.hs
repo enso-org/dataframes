@@ -10,6 +10,12 @@ import System.Environment        (lookupEnv)
 import System.FilePath           (normalise, takeFileName, (</>))
 import System.IO.Error           (isDoesNotExistError)
 
+-- | If True returns Just value, else Nothing
+toMaybe :: Bool -> a -> Maybe a
+toMaybe = \case
+    True -> Just
+    False -> const Nothing
+
 -- | Ensures: directory under given path exists and is empty
 prepareEmptyDirectory :: MonadIO m => FilePath -> m ()
 prepareEmptyDirectory path = liftIO $ do

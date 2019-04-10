@@ -3,10 +3,13 @@ import Std.Foreign.C.Value
 
 import Dataframes.Internal.Utils
 import Dataframes.Array
+import Dataframes.Column
 import Dataframes.Types
 import Dataframes.Internal.Test.Test
 
 
 def main:
-    setHelperVerbosity False
-    benchmark "running tests" TestArrayBuilder.run
+    l1 = [11,24,36,14,35,26,94,18,29,10,11,22,73,44,15,18,27,58,19,5]
+    column = Column.fromList "col1" Int64Type l1
+    print $ column.ptr.data.chunkAt 0 . data . bufferAt 0 . data
+    print l1
