@@ -396,7 +396,7 @@ class Plot:
 
     def setStyle s: Plot self.series1 self.series2 s self.label self.color self.alpha
 
-    # Add legend to the plot.
+    # Adds a legend to the plot.
     # 
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -418,7 +418,7 @@ class Plot:
 
     def setLabel l: Plot self.series1 self.series2 self.style (Just l) self.color self.alpha
 
-    # Change plot color.
+    # Changes a plot color.
     # 
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -451,7 +451,7 @@ class Plot:
 
     def setColor c: Plot self.series1 self.series2 self.style self.label (Just c) self.alpha
 
-    # Change plot transparency.
+    # Changes a plot transparency.
     # 
     # The value for alpha should be between 0 and 1. 
     # 0 is for fully transparent plot and 1 for solid plot.
@@ -471,6 +471,8 @@ class Plot:
     # >     None
     #
     # `a`: Float value for desired alpha.
+    #      The value for alpha should be between 0 and 1. 
+    #      0 is for fully transparent plot and 1 for solid plot.
     #
     # `return`: ![](data/docs/docs40.png)
 
@@ -546,7 +548,7 @@ class FillBetween:
 
     def toJSON: self.toChart.toJSON
 
-    # Add legend to the plot.
+    # Adds a legend to the plot.
     # 
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -570,7 +572,7 @@ class FillBetween:
 
     def setLabel l: FillBetween self.series1 self.series2 self.series3 (Just l) self.color self.alpha
 
-    # Change plot color.
+    # Changes a plot color.
     # 
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -594,7 +596,7 @@ class FillBetween:
 
     def setColor c: FillBetween self.series1 self.series2 self.series3 self.label (Just c) self.alpha
 
-    # Change plot transparency.
+    # Changes a plot transparency.
     # 
     # The value for alpha should be between 0 and 1. 
     # 0 is for fully transparent plot and 1 for solid plot.

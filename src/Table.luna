@@ -65,7 +65,7 @@ class Table:
     def fromSchemaAndColumns schema columns:
         self.fromWrapper $ createTableWrapper schema.ptr (columns.each .ptr)
 
-    # Constructing `Table` from a list of `Column` values.
+    # Constructs `Table` from a list of `Column` values.
     #
     # If empty list is given the return value is equivalent to `Table.empty`.
     # If columns have different rows counts: Table with different amount of rows in different columns is returned. To be fixed by https://github.com/luna/Dataframes/issues/62
@@ -215,7 +215,8 @@ class Table:
 
     # Inserts a single `Column` value to `Table` under given index.
     #
-    # Columns are indexed from 0. After inserting the column under the `index` and all of the next columns will be shifted by 1. If the index will be increased by 1 number  of columns newly added column will be at the end of the table.
+    # Columns are indexed from 0. After inserting the column under the `index` and all of the next columns will be shifted by 1.
+    # If the index will be increased by 1 number  of columns newly added column will be at the end of the table.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -266,7 +267,8 @@ class Table:
     # >     concatenateTable = Table.concat [table1, table2]
     # >     None 
     #
-    # `ts`: List of tables to concat. The columns in all tables should have unique names, otherwise there will be duplicates in resulting table. Tables should have the same row count.
+    # `ts`: List of tables to concat. The columns in all tables should have unique names,
+    #       otherwise there will be duplicates in resulting table. Tables should have the same row count.
     #
     # `return`: `Table` value containig all tables from the `ts` list.
     def concat ts:
@@ -274,6 +276,8 @@ class Table:
         self.fromColumns cols
 
     # Concatenates `self` table with a table passed as an argument.
+    #
+    # Tables are concatenated by columns. 
     # 
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -293,7 +297,8 @@ class Table:
     # >     concatenateTable = table1.+ table2
     # >     None 
     #
-    # `that`: Table to concatenate with `self` table. The columns in both tables should have unique names, otherwise there will be duplicates in resulting table. Tables should have the same row count.
+    # `that`: Table to concatenate with `self` table. The columns in both tables should have unique names,
+    #         otherwise there will be duplicates in resulting table. Tables should have the same row count.
     #
     # `return`: `Table` value containing columns of `self` followed by the columns of table passed as the argument.
     def + that: Table.concat [self, that]
@@ -323,7 +328,8 @@ class Table:
     def at name:
         self.columns [name]
 
-    # Replaces the column with the name `name` by `column`. If there is no column with such name in `self` it is appended at the end of the table.
+    # Replaces the column with the name `name` by `column`.
+    # If there is no column with such name in `self` it is appended at the end of the table.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -385,7 +391,8 @@ class Table:
 
     # Returns a `Table` value with subset of columns from `self` designated by the given name list.
     #
-    # If name does not uniquely identify the column (when multiple columns share the same name) it is not specified which of the columns will be returned.
+    # If name does not uniquely identify the column (when multiple columns share the same name)
+    # it is not specified which of the columns will be returned.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -497,6 +504,7 @@ class Table:
     # Checks if two tables are equal.
     # 
     # Takes `self` table and compares it to the one passed as an argument.
+    # The two tables are equal if they have the same number of coluns, with the same names and records.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -747,7 +755,8 @@ class Table:
         self.setAt name r
 
     # sortBy :: [(Column, SortOrder, NullPosition)]
-    # Sorts the table by given columns. The sorting order can be ascending or descending and nulls can be at the end or beginning of a sorted column. 
+    # Sorts the table by given columns using lexicographical order. 
+    # The sorting order can be ascending or descending and nulls can be at the end or beginning of a sorted column.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -765,17 +774,19 @@ class Table:
     # >     None
     #
     # `sortBy`: A list of tuples. Each tuple contain: column, sort order and null position. 
-    # Column is a column to sort by.
-    # Sort order can be `Ascending` or `Descending`.
-    # Null position can be `NullsAfter` if nulls should be added at the end of a column or `NullsBefore` if they should be places at the beginning.
+    #           Column is a column to sort by.
+    #           Sort order can be `Ascending` or `Descending`.
+    #           Null position can be `NullsAfter` if nulls should be placed at the end of a column or 
+    #           `NullsBefore` if they should be placed at the beginning.
     #
-    # `return`: Sorted table.
+    # `return`: Sorted table. 
 
     def sortByColumn sortBy:
         self.fromWrapper $ self.ptr.sort (sortBy.each (col, b, c): (col.ptr, b, c))
 
     # sortBy is list of triples: [(column name :: Text, SortOrder, NullPosition)]
-    # Sorts the table by given columns pointed by name. The sorting order can be ascending or descending and nulls can be at the end or beginning of a sorted column. 
+    # Sorts the table by set of columns with given names using lexicographical order.
+    # The sorting order can be ascending or descending and nulls can be at the end or beginning of a sorted column. 
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -792,10 +803,14 @@ class Table:
     # >     newTable = table.sortMultiples [("col1", Ascending, NullsAfter), ("col2", Descending, NullsBefore)]
     # >     None
     #
+    # errors:
+    # If columns by given name are not present in the table error will occur.
+    #
     # `sortBy`: A list of tuples. Each tuple contain: column name, sort order and null position. 
-    # Column name is a name of a column to sort by.
-    # Sort order can be `Ascending` or `Descending`.
-    # Null position can be `NullsAfter` if nulls should be added at the end of a column or `NullsBefore` if they should be places at the beginning.
+    #           Column name is a name of a column to sort by.
+    #           Sort order can be `Ascending` or `Descending`.
+    #           Null position can be `NullsAfter` if nulls should be placed at the end of a column or 
+    #           `NullsBefore` if they should be placed at the beginning.
     #
     # `return`: Sorted table.
 
@@ -821,9 +836,12 @@ class Table:
     # >     newTable = table.sortDescending "col1"
     # >     None
     #
+    # errors:
+    # If column by given name is not present in the table error will occur.
+    #
     # `columnName`: Column name in table.
     #
-    # `return`: table sorted by bolumn with name `columnName` with descending order and with nulls at the end of a column.
+    # `return`: Table sorted by column with name `columnName` with descending order and with nulls at the end of a column.
 
     def sortDescending columnName: self.sortMultiples [(columnName, Descending, NullsAfter)]
 
@@ -845,9 +863,12 @@ class Table:
     # >     newTable = table.sortAscending "col1"
     # >     None
     #
+    # errors:
+    # If column by given name is not present in the table error will occur.
+    #
     # `columnName`: Column name in table.
     #
-    # `return`: table sorted by bolumn with name `columnName` with ascending order and with nulls at the end of a column.
+    # `return`: Table sorted by column with name `columnName` with ascending order and with nulls at the end of a column.
 
     def sortAscending columnName: self.sortMultiples [(columnName, Ascending, NullsAfter)]
 
@@ -868,9 +889,12 @@ class Table:
     # >     newTable = table.sort "col1"
     # >     None
     #
+    # errors:
+    # If column by given name is not present in the table error will occur.
+    #
     # `columnName`: Column name in table.
     #
-    # `return`: table sorted by bolumn with name `columnName` with ascending order and with nulls at the end of a column.
+    # `return`: Table sorted by column with name `columnName` with ascending order and with nulls at the end of a column.
 
     def sort columnName: self.sortAscending columnName
 
@@ -968,7 +992,7 @@ class Table:
     def fillNaAt columnName valueToFillWith:
         self.fromWrapper $ self.ptr.fillNaAt columnName valueToFillWith
 
-    # Linear interpolation of missing values in table.
+    # Interpolates missing values in the table.
     #
     # Apply just to numerical columns.
     #
@@ -985,8 +1009,9 @@ class Table:
     # >     newTable = table.interpolate
     # >     None
     #
-    # `return`: `Table` with nulls interpolated in each numerical column. If nulls are at the beginning of a column they will be filled with first existing value in a column. 
-    # If they are at the end, they will be filled with the last existing value.
+    # `return`: `Table` with nulls interpolated in each numerical column.
+    #            If nulls are at the beginning of a column they will be filled with first existing value in a column. 
+    #            If they are at the end, they will be filled with the last existing value.
     def interpolate:
         self.fromWrapper $ self.ptr.interpolate
     def toColumn:
@@ -1086,9 +1111,11 @@ class Table:
         col2 = Column.fromList ("corr_with_" + columnName) DoubleType vals
         Table.fromColumns [col1, col2]
 
-    # Generates descriptive statistics that summarize the central tendency, dispersion and shape of the values in given column distribution.
+    # Generates descriptive statistics that summarize the central tendency,
+    # dispersion and shape of the values in given column distribution.
     #
-    # Analyzes just the numeric values, excluding null values. Returns statistics: mean, standard deviation, minimum, 1st quantile, median, 3rd quantile, maximum.
+    # Analyzes just the numeric values, excluding null values. Returns statistics:
+    # mean, standard deviation, minimum, 1st quantile, median, 3rd quantile, maximum.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -1145,7 +1172,7 @@ class Table:
         self.at columnName . toColumn . countValues
 
     # aggregateBy :: Text -> [(Text, [AggregateFunction])] -> Table
-    # Aggregate using one or more operations over specified columns. 
+    # Aggregates using one or more operations over specified columns. 
     #
     # Predefined aggregate functions are available: Minimum, Maximum, Mean, Length, Median, First, Last, Sum, RSI, Std.
     #
@@ -1176,7 +1203,7 @@ class Table:
         aggregationWithWrappers = aggregations.each (colname, aggrs): (self.column colname . ptr, aggrs.each .toInt)
         self.fromWrapper $ self.ptr.aggregateBy keyColumnWrapper aggregationWithWrappers
 
-    # Aggregate using `aggregateFunction` over specific column.
+    # Aggregates using `aggregateFunction` over specific column.
     #
     # Predefined aggregate functions are available: Minimum, Maximum, Mean, Length, Median, First, Last, Sum, RSI, Std.
     #
@@ -1206,7 +1233,8 @@ class Table:
     def aggregate keyColumnName columnToAggregateName aggregateFunction:
         self.aggregateBy keyColumnName [(columnToAggregateName,[aggregateFunction])]
 
-    # Returns informations about whole table: standard deviation, minimum, maximum, mean, median qunatile 0.25 and 0.75 for each column.
+    # Returns informations about whole table:
+    # standard deviation, minimum, maximum, mean, median qunatile 0.25 and 0.75 for each column.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -1266,7 +1294,8 @@ class Table:
         col8 = Column.fromList "Max" DoubleType maxFlatList
         Table.fromColumns [col1, col2, col3, col4, col5, col6, col7, col8]
 
-    # Provides rolling window calculations. Rolling is provided over `keyColumnName`. The windows size is defined by `interval` and the statistic operation over the values are defined by `aggregation`.
+    # Provides rolling window calculations. Rolling is provided over `keyColumnName`.
+    # The windows size is defined by `interval` and the statistic operation over the values are defined by `aggregation`.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -1297,7 +1326,8 @@ class Table:
         aggregationWithWrappers = aggregations.each (colname, aggrs): (self.column colname . ptr, aggrs.each .toInt)
         self.fromWrapper $ self.ptr.rollingInterval keyColumnWrapper (interval.toMicroseconds * 1000) aggregationWithWrappers
 
-    # Provides rolling window calculations. Rolling is provided over `keyColumnName`. The windows size is defined by `interval` and the statistic operation over the values in column `aggregateColumnName` is defined by `aggregateFunction`.
+    # Provides rolling window calculations. Rolling is provided over `keyColumnName`.
+    # The windows size is defined by `interval` and the statistic operation over the values in column `aggregateColumnName` is defined by `aggregateFunction`.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -1326,7 +1356,8 @@ class Table:
     def rollingInterval keyColumnName interval aggregateColumnName aggregateFunction:
         self.rollingIntervalMultiple keyColumnName interval [(aggregateColumnName,[aggregateFunction])]
 
-    # Shift index by desired number of periods for selected column.
+    # Generates new column with shifted values from selected column.
+    # The values are shifted by desired number of periods.
     # 
     # Newly created column is added at the end of the table. The index value can be both positive and negative. 
     # Missing values in newly created column will be filled with `0`. 
@@ -1362,7 +1393,8 @@ class Table:
 
     def chart: ChartBuilder self
 
-    # Plots y versus x. Default style for plot is marker.
+    # Plots y versus x. Default style for plot is scatter plot. 
+    # To change plot style use `setStyle` method.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -1377,8 +1409,8 @@ class Table:
     # >     plot1 = table.plot "col1" "col2"
     # >     None
     #
-    # `columnName1`: X column name.
-    # `columnName2`: Y column name.
+    # `columnName1`: Name of the column to be used for X-axis.
+    # `columnName2`: Name of the column to be used for Y-axis.
     #
     # `return`: ![](data/docs/docs22.png)
 
@@ -1399,13 +1431,13 @@ class Table:
     # >     plot1 = table.histogram "col1"
     # >     None
     #
-    # `columnName`: X column name.
+    # `columnName`: Name of the column to be used for X-axis.
     #
     # `return`: ![](data/docs/docs23.png)
 
     def histogram: self.chart.histogram
 
-    # Plots y versus x with markers.
+    # Plots y versus x as scatter plot.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -1420,8 +1452,8 @@ class Table:
     # >     plot1 = table.scatter "col1" "col2"
     # >     None
     #
-    # `columnName1`: X column name.
-    # `columnName2`: Y column name.
+    # `columnName1`: Name of the column to be used for X-axis.
+    # `columnName2`: Name of the column to be used for Y-axis.
     #
     # `return`: ![](data/docs/docs27.png)
 
@@ -1486,8 +1518,8 @@ class Table:
     # >     plot1 = table.plotDate "col1" "col2"
     # >     None
     # 
-    # `columnName1`: X column name.
-    # `columnName2`: Y column name.
+    # `columnName1`: Name of the column to be used for X-axis.
+    # `columnName2`: Name of the column to be used for Y-axis.
     #
     # `return`: ![](data/docs/docs28.png)
     def plotDate: self.chart.plotDate
@@ -1512,7 +1544,7 @@ class Table:
 
     def heatmap: self.chart.heatmap
 
-    # Fills the area between two horizontal curves. The cuves are defined by the two sests of points (x, y1) and (x, y2).
+    # Fills the area between two horizontal curves. The curves are defined by the two sets of points (x, y1) and (x, y2).
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -1529,9 +1561,9 @@ class Table:
     # >     plot = table.fillBetween "col1" "col2" "col3"
     # >     None
     #
-    # `cname1`: X column name.
-    # `cname2`: Y1 column name for first curve.
-    # `cname3`: Y2 column name for second curve.
+    # `cname1`: Name of the column to be used for X-axis.
+    # `cname2`: Name of the column to be used for Y-axis for first curve.
+    # `cname3`: Name of the column to be used for Y-axis for second curve.
     #
     # `return`: ![](data/docs/docs29.png)
     
@@ -1556,8 +1588,8 @@ class ChartBuilder:
     # >     plot1 = table.chart.plot "col1" "col2"
     # >     None
     #
-    # `columnName1`: X column name.
-    # `columnName2`: Y column name.
+    # `columnName1`: Name of the column to be used for X-axis.
+    # `columnName2`: Name of the column to be used for Y-axis.
     #
     # `return`: ![](data/docs/docs22.png)
 
@@ -1582,8 +1614,8 @@ class ChartBuilder:
     # >     plot1 = table.chart.plotDate "col1" "col2"
     # >     None
     # 
-    # `columnName1`: X column name.
-    # `columnName2`: Y column name.
+    # `columnName1`: Name of the column to be used for X-axis.
+    # `columnName2`: Name of the column to be used for Y-axis.
     #
     # `return`: ![](data/docs/docs28.png)
 
@@ -1607,8 +1639,8 @@ class ChartBuilder:
     # >     plot1 = table.chart.scatter "col1" "col2"
     # >     None
     #
-    # `columnName1`: X column name.
-    # `columnName2`: Y column name.
+    # `columnName1`: Name of the column to be used for X-axis.
+    # `columnName2`: Name of the column to be used for Y-axis.
     #
     # `return`: ![](data/docs/docs27.png)
         
@@ -1632,7 +1664,7 @@ class ChartBuilder:
     # >     plot1 = table.chart.histogram "col1"
     # >     None
     #
-    # `columnName`: X column name.
+    # `columnName`: Name of the column to be used for X-axis.
     #
     # `return`: ![](data/docs/docs23.png)
 
@@ -1726,9 +1758,9 @@ class ChartBuilder:
     # >     plot = table.chart.fillBetween "col1" "col2" "col3"
     # >     None
     #
-    # `cname1`: X column name.
-    # `cname2`: Y1 column name for first curve.
-    # `cname3`: Y2 column name for second curve.
+    # `cname1`: Name of the column to be used for X-axis.
+    # `cname2`: Name of the column to be used for Y-axis for first curve.
+    # `cname3`: Name of the column to be used for Y-axis for second curve.
     #
     # `return`: ![](data/docs/docs29.png)
 
