@@ -11,7 +11,7 @@ import System.Environment
 import System.FilePath
 import System.FilePath.Glob
 import System.IO.Temp
-import System.Process
+import System.Process.Typed hiding (setEnv)
 
 import Program
 import Utils
@@ -26,7 +26,7 @@ import qualified Program.Tar             as Tar
 import qualified Program.Otool           as Otool
 import qualified Program.InstallNameTool as INT
 
-import qualified Platform.OSX   as OSX
+import qualified Platform.MacOS   as MacOS
 import qualified Platform.Linux as Linux
 
 depsArchiveUrl, packageBaseUrl :: String
@@ -133,6 +133,7 @@ data DataframesBuildArtifacts = DataframesBuildArtifacts
 -- It builds the project and produces build artifacts.
 buildProject :: FilePath -> FilePath -> IO DataframesBuildArtifacts
 buildProject repoDir stagingDir = do
+    putStrLn $ "Building project"
     let dataframesLibPath = repoDir </> "native_libs" </> "src"
     case buildOS of
         Windows -> do
@@ -171,6 +172,7 @@ copyInPythonLibs pythonPrefix packageRoot = do
 
 package :: FilePath -> FilePath -> DataframesBuildArtifacts -> IO DataframesPackageArtifacts
 package repoDir stagingDir buildArtifacts = do
+    putStrLn $ "Packaging build artifacts..."
     let packageRoot = stagingDir </> "Dataframes"
     let packageBinariesDir = packageRoot </> "native_libs" </> nativeLibsOsDir
 
@@ -188,8 +190,8 @@ package repoDir stagingDir buildArtifacts = do
             return ()
         Linux -> do
             dependencies <- Linux.dependenciesToPackage builtDlls
-            mapM (Patchelf.installDependencyTo packageBinariesDir) dependencies
-            mapM (Patchelf.installBinary packageBinariesDir packageBinariesDir) builtDlls
+            mapM (Linux.installDependencyTo packageBinariesDir) dependencies
+            mapM (Linux.installBinary packageBinariesDir packageBinariesDir) builtDlls
 
             -- Copy Python installation to the package and remove some parts that are heavy and not needed.
             pythonPrefix <- pythonPrefix
@@ -198,17 +200,17 @@ package repoDir stagingDir buildArtifacts = do
             let testsBinary = head $ dataframesTests buildArtifacts
             -- Note: This code assumed that all redistributable build artifacts are dylibs.
             --       It might need generalization in future.
-            allDeps <- OSX.getDependenciesOfDylibs builtDlls
+            allDeps <- MacOS.getDependenciesOfDylibs builtDlls
 
-            let trulyLocalDependency path = OSX.isLocalDep path && (not $ elem path builtDlls)
+            let trulyLocalDependency path = MacOS.isLocalDep path && (not $ elem path builtDlls)
             let localDependencies = filter trulyLocalDependency allDeps
             let binariesToInstall = localDependencies <> builtDlls
             putStrLn $ "Binaries to install: " <> show binariesToInstall
             -- Place all artifact binaries and their local dependencies in the destination directory
-            binariesInstalled <- flip mapM binariesToInstall $ OSX.installBinary packageBinariesDir
+            binariesInstalled <- flip mapM binariesToInstall $ MacOS.installBinary packageBinariesDir
 
             -- Workaround possible issues caused by deps install names referring to symlinks
-            OSX.workaroundSymlinkedDeps binariesInstalled
+            MacOS.workaroundSymlinkedDeps binariesInstalled
 
             -- Copy Python installation to the package and remove some parts that are heavy and not needed.
             pythonPrefix <- pythonPrefix
@@ -230,14 +232,18 @@ runTests repoDir buildArtifacts packageArtifacts = do
     let packageDirBinaries = dataframesPackageDirectory packageArtifacts </> "native_libs" </> nativeLibsOsDir
     tests <- mapM (copyToDir packageDirBinaries) (dataframesTests buildArtifacts)
     withCurrentDirectory repoDir $ do
-        mapM_ (flip callProcess ["--report_level=detailed"]) tests
+        let configs = flip proc ["--report_level=detailed"] <$> tests
+        mapM_ runProcess_ configs
 
 
 main :: IO ()
 main = do
+    putStrLn $ "Starting Dataframes build"
     withSystemTempDirectory "" $ \stagingDir -> do
         -- let stagingDir = "C:\\Users\\mwurb\\AppData\\Local\\Temp\\-777f232250ff9e9c"
+        putStrLn $ "Preparing environment..."
         prepareEnvironment stagingDir
+        putStrLn $ "Obtaining repository directory..."
         repoDir <- repoDir
         buildArtifacts <- buildProject repoDir stagingDir
         packageArtifacts <- package repoDir stagingDir buildArtifacts

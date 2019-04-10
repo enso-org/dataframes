@@ -42,6 +42,8 @@ arrow::Type::type deduceType(std::string_view text)
 
 ParsedCsv parseCsvData(std::string data, char fieldSeparator /*= ','*/, char recordSeparator /*= '\n'*/, char quote /*= '"'*/)
 {
+    // we are going to return string_views inside buffer
+    // and due to SSO that disallows us from moving std::string -- it needs to be single object
     auto bufferPtr = std::make_unique<std::string>(std::move(data));
     CsvParser parser{bufferPtr->data(), bufferPtr->data() + bufferPtr->size(), fieldSeparator, recordSeparator, quote};
     auto table = parser.parseCsvTable();
@@ -455,6 +457,24 @@ void generateCsv(std::ostream &out, const arrow::Table &table, GeneratorHeaderPo
         }
     }
 }
+
+CsvParser::CsvParser(char *bufferStart, char *bufferEnd, char fieldSeparator, char recordSeparator, char quote)
+    : bufferStart(bufferStart), bufferIterator(bufferStart)
+    , bufferEnd(bufferEnd), fieldSeparator(fieldSeparator)
+    , recordSeparator(recordSeparator), quote(quote)
+{
+    // Parser supports ASCII or UTF-8 encoded files. UTF-8 file can start with
+    // the Byte Order Mark. If so, we skip it, as it is not part of the data.
+    constexpr char BOM[] = { '\xEF', '\xBB', '\xBF' };
+    if(!std::strncmp(bufferIterator, BOM, std::size(BOM)))
+    {
+        std::advance(bufferIterator, std::size(BOM));
+    }
+}
+
+CsvParser::CsvParser(std::string &s)
+    : CsvParser(s.data(), s.data() + s.length(), ',', '\n', '"')
+{}
 
 std::string_view CsvParser::parseField()
 {

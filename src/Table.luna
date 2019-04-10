@@ -1355,6 +1355,11 @@ class Table:
         newTable = self.setAt newColumnname shiftedColumn
         newTable
 
+    # ungroupSplittingOn :: Text -> Text -> Table
+    def ungroupSplittingOn stringColumnName separator:
+        stringColumnWrapper = self.column stringColumnName . ptr
+        self.fromWrapper $ self.ptr.ungroupSplittingOn stringColumnWrapper separator
+
     def chart: ChartBuilder self
 
     # Plots y versus x. Default style for plot is marker.
