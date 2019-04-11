@@ -68,7 +68,8 @@ repoDir = getEnvRequired "DATAFRAMES_REPO_PATH" -- TODO: should be able to deduc
 pythonPrefix :: IO FilePath
 pythonPrefix = getEnvRequired "PYTHON_PREFIX_PATH" -- TODO: should be able to deduce by looking for python in PATH
 
--- | Python version that we package, assumed to be already installed on packaging system.
+-- | Python version that we package, assumed to be already installed on
+-- packaging system.
 pythonVersion :: String
 pythonVersion = "3.7"
 
@@ -93,12 +94,27 @@ packDirectory pathToPack outputArchive = do
             ".lzma" -> tarPack Tar.LZMA
             _       -> fail $ "packDirectory: cannot deduce compression algorithm from extension: " <> takeExtension outputArchive
 
+dynamicLibraryPrefix :: String
+dynamicLibraryPrefix = case buildOS of
+    Windows -> ""
+    _       -> "lib"
+
 dynamicLibraryExtension :: String
 dynamicLibraryExtension = case buildOS of
     Windows -> "dll"
     Linux   -> "so"
     OSX     -> "dylib"
     _       -> error $ "dynamicLibraryExtension: not implemented: " <> show buildOS
+
+-- | Converts root name into os-specific library filename, e.g.:
+--   @DataframeHelper@ becomes @DataframeHelper.dll@ on Windows or
+--   @libDataframeHelper.so@ on Linux.
+libraryFilename :: String -> FilePath
+libraryFilename name 
+    = dynamicLibraryPrefix <> name <.> dynamicLibraryExtension
+
+executableFilename :: String -> FilePath
+executableFilename = (<.> exeExtension)
 
 nativeLibsOsDir :: String
 nativeLibsOsDir = case buildOS of
@@ -146,26 +162,49 @@ data DataframesBuildArtifacts = DataframesBuildArtifacts
     , dataframesTests :: [FilePath]
     } deriving (Eq, Show)
 
+-- | Function raises error if any of the reported build artifacts cannot be
+--   found at the declared location.
+verifyArtifacts :: DataframesBuildArtifacts -> IO ()
+verifyArtifacts DataframesBuildArtifacts{..} = do
+    let binaries = dataframesBinaries <> dataframesTests
+    forM_ binaries $ \binary -> 
+        unlessM (doesFileExist binary) 
+            $ error $ "Failed to find built target binary: " <> binary
+
 -- This function should be called only in a properly prepared build environment.
 -- It builds the project and produces build artifacts.
 buildProject :: FilePath -> FilePath -> IO DataframesBuildArtifacts
 buildProject repoDir stagingDir = do
     putStrLn $ "Building project"
-    let srcDir = nativeLibsSrc repoDir
+
+    -- In theory we could scan output directory for binaries… but the build
+    -- script should know what it wants to build, so it feels better to just fix
+    -- names here. Note that they need to be in sync with C++ project files
+    -- (both CMake and MSBuild).
+    let targetLibraries = libraryFilename    <$> ["DataframeHelper", "DataframePlotter", "Learn"]
+    let targetTests     = executableFilename <$> ["DataframeHelperTests"]
+    let targets         = targetLibraries <> targetTests
+
     case buildOS of
         Windows -> do
             -- On Windows we don't care about Python, as it is discovered thanks
             -- to env's `PythonDir` and MS Build property sheets imported from
-            -- deps package
+            -- deps package.
+            -- All setup work is already done.
             MsBuild.build msBuildConfig $ solutionFile repoDir
         _ -> do
+            -- CMake needs to get paths to:
+            -- 1) python the library
+            -- 2) numpy includes
             pythonPrefix <- pythonPrefix
             let buildDir = stagingDir </> "build"
+            let srcDir = nativeLibsSrc repoDir
             let pythonLibDir = pythonPrefix </> "lib"
-            let pythonLibLocation = pythonLibDir </> "libpython" <> pythonVersion <> "m" <.> dynamicLibraryExtension
-            let numpyIncludeDir = pythonLibDir </> "python" <> pythonVersion <> "/site-packages/numpy/core/include"
+            let pythonLibName = "libpython" <> pythonVersion <> "m" <.> dynamicLibraryExtension
+            let pythonLibPath = pythonLibDir </> pythonLibName
+            let numpyIncludeDir = pythonLibDir </> "python" <> pythonVersion </> "site-packages/numpy/core/include"
             let cmakeVariables =  
-                    [ CMake.SetVariable "PYTHON_LIBRARY"           pythonLibLocation
+                    [ CMake.SetVariable "PYTHON_LIBRARY"           pythonLibPath
                     , CMake.SetVariable "PYTHON_NUMPY_INCLUDE_DIR" numpyIncludeDir
                     ]
             let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo 
@@ -173,11 +212,12 @@ buildProject repoDir stagingDir = do
             CMake.build buildDir srcDir options
 
     let builtBinariesDir = nativeLibsBin repoDir
-    builtDlls <- glob $ builtBinariesDir </> "*" <.> dynamicLibraryExtension
-    pure $ DataframesBuildArtifacts
-        { dataframesBinaries = builtDlls
-        , dataframesTests = [builtBinariesDir </> "DataframeHelperTests" <.> exeExtension]
-        }
+    let expectedArtifacts = DataframesBuildArtifacts
+            { dataframesBinaries = (builtBinariesDir </>) <$> targetLibraries
+            , dataframesTests    = (builtBinariesDir </>) <$> targetTests
+            }
+    verifyArtifacts expectedArtifacts
+    pure expectedArtifacts
 
 data DataframesPackageArtifacts = DataframesPackageArtifacts
     { dataframesPackageArchive :: FilePath
@@ -256,7 +296,7 @@ package repoDir stagingDir buildArtifacts = do
             pythonPrefix <- pythonPrefix
             copyInPythonLibs pythonPrefix packageRoot
 
-    -- packDirectory packageRoot dataframesPackageName
+    packDirectory packageRoot dataframesPackageName
     putStrLn $ "Packaging done, file saved to: " <> dataframesPackageName
     pure $ DataframesPackageArtifacts
         { dataframesPackageArchive = dataframesPackageName

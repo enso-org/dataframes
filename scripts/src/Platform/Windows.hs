@@ -5,7 +5,6 @@ import Prologue
 import qualified Data.Pecoff                      as Pecoff
 import qualified Data.Pecoff.Imports              as Pecoff
 import qualified Data.Set                         as Set
-import qualified Distribution.Simple.Program.Find as Cabal
 import qualified Program                          as Program
 import qualified Utils                            as Utils
 
@@ -18,6 +17,10 @@ import System.FilePath      (takeFileName, (</>))
 import System.FilePath.Glob (glob)
 
 data DependencyType = System | Local | UCRT | MSVCRT deriving (Eq, Show)
+
+-- | Path being a toupper mapped filename. 
+newtype NormalizedFilename = NormalizedFilename { filename :: FilePath }
+    deriving (Eq, Ord, Show)
 
 -- | Libraries that should not be packaged and distributed.
 knownSystemLibraries :: [FilePath]
@@ -37,8 +40,8 @@ knownSystemLibraries =
 
 -- | We compare library names only after normalizing them - eg. KERNEL32.dll and
 -- Kernel32.dll are the same.
-normalizeBinaryName :: FilePath -> FilePath
-normalizeBinaryName = fmap toUpper . takeFileName
+normalizeBinaryName :: FilePath -> NormalizedFilename
+normalizeBinaryName = NormalizedFilename . fmap toUpper . takeFileName
 
 -- | Returns directory containing MSVC runtime redistributable DLLs. Depends on
 -- finding the MSVC installation.
@@ -62,33 +65,14 @@ lookupUCRTRedist = do
     matchingLocations <- liftIO $ glob ucrtPathPattern
     pure $ maximum matchingLocations
 
--- | If file by given name exists in directory, return path to this file
-lookupFileInDir :: MonadIO m => FilePath -> FilePath -> m (Maybe FilePath)
-lookupFileInDir file dir = do
-    -- putStrLn $ "Looking for " <> file <> " in " <> dir
-    let path = dir </> file
-    exists <- liftIO $ doesFileExist path
-    pure $ Utils.toMaybe exists path
-
-lookupInPATH :: MonadIO m => [FilePath] -> FilePath -> m (Maybe FilePath)
-lookupInPATH additionalPaths dll = do
-    -- putStrLn $ "Looking for " <> dll
-    systemPaths <- liftIO $ Cabal.getSystemSearchPath -- ^ includes PATH env
-    let paths = additionalPaths <> systemPaths
-    let testPaths (head : tail) = lookupFileInDir dll head >>= \case
-            Just dir -> pure $ Just dir
-            Nothing  -> testPaths tail
-        testPaths [] = pure Nothing
-    testPaths paths
-
 installBinariesInternal
     :: MonadIO m
     => FilePath  -- ^ Target directory, where binaries are to be placed
     -> [FilePath] -- ^ Additional DLL lookup directories
-    -> Set FilePath -- ^ Binaries to be placed (arbitrary paths)
-    -> Set FilePath -- ^ Dependencies to be resolved and placed (normalized filenames)
-    -> Set FilePath -- ^ Binaries already placed (normalized filenames)
-    -> Set FilePath -- ^ Dependencies that were failed to be resolved (normalized filenames)
+    -> Set FilePath -- ^ Binaries to be placed
+    -> Set NormalizedFilename -- ^ Dependencies to be resolved and placed
+    -> Set NormalizedFilename -- ^ Binaries already placed
+    -> Set NormalizedFilename -- ^ Dependencies that were failed to be resolved
     -> m (Either [FilePath] [FilePath])
 installBinariesInternal targetDir lookupDirs binariesToInstall dependenciesToInstall installed unresolvedBinaries
     | (not . Set.null) binariesToInstall = do
@@ -107,7 +91,7 @@ installBinariesInternal targetDir lookupDirs binariesToInstall dependenciesToIns
         installBinariesInternal targetDir lookupDirs (binariesToInstall') (Set.union newDeps dependenciesToInstall) installed' unresolvedBinaries
     | (not . Set.null) dependenciesToInstall = do
         let (head, dependenciesToInstall') = Set.deleteFindMin dependenciesToInstall
-        resolvedDependency <- lookupInPATH lookupDirs head
+        resolvedDependency <- Utils.lookupInPATH lookupDirs $ filename head
         case resolvedDependency of
             -- If dependency can be resolved, treat it as additional binary to
             -- install. Otherwise, add to unresolved list.
@@ -115,8 +99,8 @@ installBinariesInternal targetDir lookupDirs binariesToInstall dependenciesToIns
             Nothing  -> installBinariesInternal targetDir lookupDirs (Set.empty)         dependenciesToInstall' installed (Set.insert head unresolvedBinaries)
     | otherwise = do
         pure $ if Set.null unresolvedBinaries
-            then Right $ Set.toList installed
-            else Left  $ Set.toList unresolvedBinaries
+            then Right $ filename <$> Set.toList installed
+            else Left  $ filename <$> Set.toList unresolvedBinaries
 
 installBinaries
     :: MonadIO m

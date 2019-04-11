@@ -2,14 +2,16 @@ module Utils where
 
 import Prologue
 
+import qualified Distribution.Simple.Program.Find as Cabal
+
+import Conduit                   (ConduitM, await, yield)
 import Distribution.Simple.Utils (copyDirectoryRecursive, shortRelativePath)
 import Distribution.Verbosity    (silent)
 import System.Directory          (copyFile, createDirectoryIfMissing,
-                                  removeDirectoryRecursive)
+                                  doesFileExist, removeDirectoryRecursive)
 import System.Environment        (lookupEnv)
 import System.FilePath           (normalise, takeFileName, (</>))
 import System.IO.Error           (isDoesNotExistError)
-import Conduit                   (ConduitM, await, yield)
 
 -- | If True returns Just value, else Nothing
 toMaybe :: Bool -> a -> Maybe a
@@ -88,3 +90,23 @@ processChunk state processor = await >>= \case
         newState <- liftIO $ processor state chunk
         yield chunk
         processChunk newState processor
+
+-- | If file by given name exists in directory, return path to this file
+lookupFileInDir :: MonadIO m => FilePath -> FilePath -> m (Maybe FilePath)
+lookupFileInDir file dir = do
+    -- putStrLn $ "Looking for " <> file <> " in " <> dir
+    let path = dir </> file
+    exists <- liftIO $ doesFileExist path
+    pure $ Utils.toMaybe exists path
+
+-- | Looks for given path under directories listed in system search path and
+--   given additional directory list.
+lookupInPATH :: MonadIO m => [FilePath] -> FilePath -> m (Maybe FilePath)
+lookupInPATH additionalPaths dll = do
+    systemPaths <- liftIO $ Cabal.getSystemSearchPath -- ^ includes PATH env
+    let paths = additionalPaths <> systemPaths
+    let testPaths (head : tail) = lookupFileInDir dll head >>= \case
+            Just dir -> pure $ Just dir
+            Nothing  -> testPaths tail
+        testPaths [] = pure Nothing
+    testPaths paths

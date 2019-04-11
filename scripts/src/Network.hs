@@ -7,6 +7,7 @@ import qualified Data.Attoparsec.ByteString.Char8 as Attoparsec
 import qualified Data.ByteString                  as ByteString
 import qualified Data.ByteString.Char8            as ByteStringChar8
 import qualified Progress                         as Progress
+import qualified Utils                            as Utils
 
 import Conduit                   (ConduitM, await, runConduit, runResourceT,
                                   sinkFile, yield, (.|))
@@ -48,34 +49,11 @@ instance Progress.Progress DownloadProgress where
 advanceProgress :: ByteString -> DownloadProgress -> DownloadProgress
 advanceProgress chunk = bytesCompleted %~ (+ ByteString.length chunk)
 
-
--- -- | Stateful chunk processor in ConduitM.
--- processChunk
---     :: MonadIO m
---     => s -- ^ initial state
---     -> (a -> m a) -- ^
---     -> ConduitM a a m ()
--- updateProgress callback previousProgress = await >>= \case
---     Nothing    -> pure ()
---     Just chunk -> do
---         let newProgress = advanceProgress chunk previousProgress
---         liftIO $ callback newProgress
---         yield chunk
---         updateProgress callback newProgress
-
-
-updateProgress
-    :: MonadIO m
-    => ProgressCallback
-    -> DownloadProgress
-    -> ConduitM ByteString ByteString m ()
-updateProgress callback previousProgress = await >>= \case
-    Nothing    -> pure ()
-    Just chunk -> do
-        let newProgress = advanceProgress chunk previousProgress
-        liftIO $ callback newProgress
-        yield chunk
-        updateProgress callback newProgress
+progressProcessor :: ProgressCallback -> DownloadProgress -> ByteString -> IO DownloadProgress
+progressProcessor callback progressSoFar chunk = do
+    let newProgress = advanceProgress chunk progressSoFar
+    callback newProgress
+    pure newProgress
 
 parseLength :: ByteString -> Maybe Int
 parseLength bs = do
@@ -109,5 +87,5 @@ downloadFileToInternal url targetPath cb = liftIO $ do
         response <- http request manager
         let initialProgress = DownloadProgress 0 (contentLength response)
         runConduit $ responseBody response
-                  .| updateProgress cb initialProgress
+                  .| Utils.processChunk initialProgress (progressProcessor cb)
                   .| sinkFile targetPath
