@@ -85,10 +85,10 @@ installBinariesInternal
     :: MonadIO m
     => FilePath  -- ^ Target directory, where binaries are to be placed
     -> [FilePath] -- ^ Additional DLL lookup directories
-    -> Set FilePath -- ^ Binaries to be placed
-    -> Set FilePath -- ^ Dependencies to be resolved and placed (normalized names)
-    -> Set FilePath -- ^ Binaries already placed (normalized names)
-    -> Set FilePath -- ^ Dependencies that were failed to be resolved (normalized names)
+    -> Set FilePath -- ^ Binaries to be placed (arbitrary paths)
+    -> Set FilePath -- ^ Dependencies to be resolved and placed (normalized filenames)
+    -> Set FilePath -- ^ Binaries already placed (normalized filenames)
+    -> Set FilePath -- ^ Dependencies that were failed to be resolved (normalized filenames)
     -> m (Either [FilePath] [FilePath])
 installBinariesInternal targetDir lookupDirs binariesToInstall dependenciesToInstall installed unresolvedBinaries
     | (not . Set.null) binariesToInstall = do

@@ -48,6 +48,22 @@ instance Progress.Progress DownloadProgress where
 advanceProgress :: ByteString -> DownloadProgress -> DownloadProgress
 advanceProgress chunk = bytesCompleted %~ (+ ByteString.length chunk)
 
+
+-- -- | Stateful chunk processor in ConduitM.
+-- processChunk
+--     :: MonadIO m
+--     => s -- ^ initial state
+--     -> (a -> m a) -- ^
+--     -> ConduitM a a m ()
+-- updateProgress callback previousProgress = await >>= \case
+--     Nothing    -> pure ()
+--     Just chunk -> do
+--         let newProgress = advanceProgress chunk previousProgress
+--         liftIO $ callback newProgress
+--         yield chunk
+--         updateProgress callback newProgress
+
+
 updateProgress
     :: MonadIO m
     => ProgressCallback
@@ -74,20 +90,19 @@ contentLength response = do
 
 downloadFileTo
     :: (MonadMask m, MonadIO m)
-    => String   -- ^ URL to download
+    => Progress.Observer DownloadProgress
+    -> String   -- ^ URL to download
     -> FilePath -- ^ Location to store the file
-    -> Progress.Observer DownloadProgress
     -> m ()
-downloadFileTo url targetPath
-    = Progress.runProgressible $ downloadFileTo' url targetPath
+downloadFileTo cb = Progress.runProgressible cb .: downloadFileToInternal
 
-downloadFileTo'
+downloadFileToInternal
     :: MonadIO m
     => String   -- ^ URL to download
     -> FilePath -- ^ Location to store the file
     -> (DownloadProgress -> IO ())
     -> m ()
-downloadFileTo' url targetPath cb = liftIO $ do
+downloadFileToInternal url targetPath cb = liftIO $ do
     request <- parseRequest url
     manager <- newManager tlsManagerSettings
     runResourceT $ do

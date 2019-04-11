@@ -66,8 +66,10 @@ withTextProgressBar width progress = do
 
 -- | Guarantees to emit Started and Finished notifications.
 runProgressible :: (MonadMask m, MonadIO m)
-    => Progressible p m a -> Observer p -> m a
-runProgressible action cb = bracket
+    => Observer p 
+    -> Progressible p m a
+    -> m a
+runProgressible cb action = bracket
     (liftIO $ cb Started)
     (const . liftIO $ cb Finished)
     (const . action $ cb . Ongoing)

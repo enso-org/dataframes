@@ -133,9 +133,24 @@ installBinary targetBinariesDir sourcePath = do
                     $ "@loader_path" </> takeFileName installName
     pure destinationPath
 
--- | If installed libraries list contains library with the same name (until dot)
---   then it will used instead of current install name.
---   See workaroundSymlinkedDeps for a full explanation.
+-- | Returns file name prefix until the first dot character
+--   e.g. @/foo/bar/libicudata.63.dylib@ -> @libicudata@
+takeNamePrefix :: FilePath -> FilePath
+takeNamePrefix = takeWhile (/= '.') . takeFileName
+
+-- | Returns a predicate that checks if given file has the same name as the
+--   first argument up to the first dot.
+--   E.g. @libicudata.63.dylib@ matches @libicudata.63.1.dylib@
+matchesPrefix 
+    :: FilePath -- ^ Path to compare against
+    -> (FilePath -> Bool) -- ^ Resulting predicate
+matchesPrefix lhs rhs = takeNamePrefix lhs == takeNamePrefix rhs
+
+-- | Tries to resolve unresolved dependency by using a library with the same
+--   name but different version. If such library is found among installed
+--   dependencies, its install name shall be used. See 'workaroundSymlinkedDeps'
+--   for a full explanation.
+--   Fails when the library cannot be resolved.
 fixUnresolvedDependency 
     :: (MonadIO m) 
     => [FilePath] -- ^ All installed dependencies
@@ -143,21 +158,15 @@ fixUnresolvedDependency
     -> String  -- ^ Dependency of the bianry
     -> m ()
 fixUnresolvedDependency installedBinaries binary dependency = do
-    let depName = takeFileName dependency
-    let missingDotMsg = printf 
-            "dependency install name %s is expected to contain a dot character"
-            dependency
-    let dotPosition = Utils.fromJustVerbose missingDotMsg (elemIndex '.' depName)
-    let namePrefix = take dotPosition depName
-    let matchesPrefix binaryPath = isPrefixOf namePrefix $ takeFileName binaryPath
-    let match = find matchesPrefix installedBinaries
+    let match = find (matchesPrefix dependency) installedBinaries
     case match of
         Nothing -> error 
-            $ printf "installed binary: %s: cannot resolve dependency: %s" 
+            $ printf "for binary %s: cannot resolve dependency: %s" 
               binary dependency
         Just matchingPath -> do
             let adjustedDependency = replaceFileName dependency $ takeFileName matchingPath
-            liftIO $ putStrLn $ printf "\tpatching %s -> %s" dependency adjustedDependency 
+            liftIO $ putStrLn 
+                   $ printf "\tpatching %s -> %s" dependency adjustedDependency 
             INT.change binary dependency adjustedDependency
 
 -- | Checks if this is a dependency expected to be next to the loaded binary

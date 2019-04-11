@@ -114,22 +114,22 @@ unpackWithProgress
     -> FilePath -- ^ Output directory
     -> m ()
 unpackWithProgress callback
-    = flip Progress.runProgressible callback .: unpackWithProgress'
+    = Progress.runProgressible callback .: unpackWithProgress'
 
 unpackWithProgress' :: (MonadThrow m, MonadIO m)
     => FilePath -> FilePath -> (UnpackProgressInfo -> IO ()) -> m ()
 unpackWithProgress' archivePath outputDirectory callback = do
-    program <- Program.get @SevenZip
     let command  =  ExtractWithFullPaths
     let switches = [ OverwriteMode OverwriteAll
                    , RedirectStream ProgressInformation RedirectToStdout
                    , SetCharset UTF8
                    , OutputDirectory outputDirectory
                    ]
-    let procCfg  = Process.proc program
-                 $ Program.format command
-                <> Program.format switches
-                <> [archivePath]
+    let args = Program.format command
+            <> Program.format switches
+            <> [archivePath]
+
+    procCfg <- Program.prog' @SevenZip args
 
     let inputConduit = pure ()
     -- Note: even though we set the flag, 7z does not handle very well

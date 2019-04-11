@@ -9,6 +9,7 @@ import System.Directory          (copyFile, createDirectoryIfMissing,
 import System.Environment        (lookupEnv)
 import System.FilePath           (normalise, takeFileName, (</>))
 import System.IO.Error           (isDoesNotExistError)
+import Conduit                   (ConduitM, await, yield)
 
 -- | If True returns Just value, else Nothing
 toMaybe :: Bool -> a -> Maybe a
@@ -73,3 +74,17 @@ getEnvRequired variableName = liftIO $ lookupEnv variableName >>= \case
 -- normalised everywhere else
 relativeNormalisedPath :: FilePath -> FilePath -> FilePath
 relativeNormalisedPath (normalise -> p1) (normalise -> p2) = shortRelativePath p1 p2
+
+-- | Conduit that passess data through, while applying on stateful, monadic
+-- processor.
+processChunk
+    :: MonadIO m
+    => s -- ^ initial state
+    -> (s -> a -> IO s) -- ^ processor applied at chunk to obtain the new state
+    -> ConduitM a a m ()
+processChunk state processor = await >>= \case
+    Nothing    -> pure ()
+    Just chunk -> do
+        newState <- liftIO $ processor state chunk
+        yield chunk
+        processChunk newState processor

@@ -157,8 +157,7 @@ buildProject repoDir stagingDir = do
             -- On Windows we don't care about Python, as it is discovered thanks
             -- to env's `PythonDir` and MS Build property sheets imported from
             -- deps package
-            let solutionPath = srcDir </> "DataframeHelper.sln"
-            MsBuild.build msBuildConfig solutionPath
+            MsBuild.build msBuildConfig $ solutionFile repoDir
         _ -> do
             pythonPrefix <- pythonPrefix
             let buildDir = stagingDir </> "build"

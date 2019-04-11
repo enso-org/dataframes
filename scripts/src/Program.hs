@@ -13,13 +13,15 @@ import Prologue hiding (log)
 import qualified Distribution.Simple.Program.Find as Cabal
 import qualified Distribution.Simple.Utils        as Cabal
 import qualified Distribution.Verbosity           as Cabal
+import qualified System.Process                   as ProcessUntyped
+import qualified System.Process.Typed             as Process
 
-import           Data.ByteString.Lazy (ByteString)
-import qualified System.Process.Typed as Process
-
+import Data.ByteString.Lazy (ByteString)
 import System.Process.Typed (ProcessConfig)
 import Text.Printf          (printf)
 
+
+type IOProgram m p = (Program p, MonadIO m)
 
 -- | Values that can be used as an arguments when calling a process.
 class Argument arg where
@@ -106,19 +108,33 @@ class Program p where
          -> (ProcessConfig () () ())
     proc = Process.proc
 
-type IOProgram m p = (Program p, MonadIO m)
+    -- | Equivalent of "System.Process"'s 'System.Process.proc'
+    -- function.
+    proc' :: FilePath -- ^Path to program
+         -> [String] -- ^Program arguments.
+         -> ProcessUntyped.CreateProcess
+    proc' = ProcessUntyped.proc
 
--- |Throwing variant of 'lookupProgram'.
+
+-- | Throwing variant of 'lookupProgram'.
 get :: forall p m. IOProgram m p => m FilePath
 get = liftIO $ fromJust (error $ notFoundError @p) <$> lookupProgram @p
 
--- |Finds program and prepares 'ProcessConfig'.
+-- | Finds program and prepares 'ProcessConfig'.
 prog :: forall p m. IOProgram m p
         => [String] -- ^Program arguments.
         -> m (ProcessConfig () () ())
 prog args = do
     programPath <- get @p
     pure $ proc @p programPath args
+
+-- | Finds program and prepares 'System.Process.CreateProcess'.
+prog' :: forall p m. IOProgram m p
+    => [String] -- ^Program arguments.
+    -> m ProcessUntyped.CreateProcess
+prog' args = do
+    programPath <- get @p
+    pure $ proc' @p programPath args
 
 -- |Calls the program with given argument set. Waits for the process to
 -- finish. Throws if program cannot be started or if it returned non-zero
@@ -148,9 +164,9 @@ read' :: forall p m. IOProgram m p => [String] -> m (ByteString, ByteString)
 read' args = Process.readProcess_ =<< prog @p args
 
 -- | Just like 'prog' but also sets custom working directory.
-progCwd 
+progCwd
     :: forall p m. IOProgram m p
-    => FilePath -- ^ Working directory. NOTE: must point to existing directory, 
+    => FilePath -- ^ Working directory. NOTE: must point to existing directory,
                 --   or the call will fail.
     -> [String] -- ^ Program arguments.
     -> m (ProcessConfig () () ())
@@ -167,11 +183,11 @@ lookupExecutable [] _ = pure Nothing
 lookupExecutable (exeName : exeNamesTail) fallbackDirs = do
     let locations = Cabal.ProgramSearchPathDefault
                   : (Cabal.ProgramSearchPathDir <$> fallbackDirs)
-    mLookupResult <- liftIO 
+    mLookupResult <- liftIO
         $ Cabal.findProgramOnSearchPath Cabal.silent locations exeName
     case fst <$> mLookupResult of
         Just path -> pure $ Just path
-        Nothing -> lookupExecutable exeNamesTail fallbackDirs
+        Nothing   -> lookupExecutable exeNamesTail fallbackDirs
 
 
 
