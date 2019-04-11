@@ -1295,7 +1295,7 @@ class Table:
         Table.fromColumns [col1, col2, col3, col4, col5, col6, col7, col8]
 
     # Provides rolling window calculations. Rolling is provided over `keyColumnName`.
-    # The windows size is defined by `interval` and the statistic operation over the values are defined by `aggregation`.
+    # The window size is defined by `interval` and the statistical operation over the values are defined by `aggregation`.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
