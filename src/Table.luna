@@ -1439,7 +1439,7 @@ class Table:
     # 
     # Newly created column is added at the end of the table.
     # The index value can be both positive and negative.
-    # Missing values in newly created column will be filled with `0`. 
+    # Missing values in newly created column will be filled with nulls. 
     # 
     # > import Dataframes.Column
     # > import Dataframes.Types
