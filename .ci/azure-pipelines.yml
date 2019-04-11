@@ -4,6 +4,12 @@ trigger:
   branches:
     include:
     - "*"
+  paths:
+    exclude:
+    - README.md
+    - LICENSE
+
+pr: none
 
 variables:
   Dataframes.Repo.Path: $(Build.SourcesDirectory) # this one is required by the build script
