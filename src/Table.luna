@@ -270,8 +270,8 @@ class Table:
     # >     concatenateTable = Table.concat [table1, table2]
     # >     None 
     #
-    # `ts`: List of tables to concat. The columns in all tables should have unique names,
-    #       otherwise there will be duplicates in resulting table.
+    # `ts`: List of tables to concat. The columns in all tables should have
+    #       unique names, otherwise there will be duplicates in resulting table.
     #       Tables should have the same row count.
     #
     # `return`: `Table` value containig all tables from the `ts` list.
@@ -302,8 +302,8 @@ class Table:
     # >     None 
     #
     # `that`: Table to concatenate with `self` table. The columns in both tables 
-    #         should have unique names, otherwise there will be duplicates in resulting table.
-    #         Tables should have the same row count.
+    #         should have unique names, otherwise there will be duplicates in
+    #         resulting table. Tables should have the same row count.
     #
     # `return`: `Table` value containing columns of `self` followed by the columns
     #            of table passed as the argument.
@@ -335,7 +335,8 @@ class Table:
         self.columns [name]
 
     # Replaces the column with the name `name` by `column`.
-    # If there is no column with such name in `self` it is appended at the end of the table.
+    # If there is no column with such name in `self` it is appended at the end
+    # of the table.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -395,10 +396,11 @@ class Table:
         ix = self.schema.getFieldIndexByName name
         self.columnAt ix
 
-    # Returns a `Table` value with subset of columns from `self` designated by the given name list.
+    # Returns a `Table` value with subset of columns from `self` designated by
+    # the given name list.
     #
-    # If name does not uniquely identify the column (when multiple columns share the same name)
-    # it is not specified which of the columns will be returned.
+    # If name does not uniquely identify the column (when multiple columns share
+    # the same name) it is not specified which of the columns will be returned.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -414,7 +416,8 @@ class Table:
     # >     None
     #
     # errors:
-    # If any name on the list does not identify column in the table, runtime error will occur.
+    # If any name on the list does not identify column in the table,
+    # runtime error will occur.
     #
     # `names`: List of column names to be returned.
     #
@@ -543,7 +546,8 @@ class Table:
     # Checks if two tables are equal.
     # 
     # Takes `self` table and compares it to the one passed as an argument.
-    # The two tables are equal if they have the same number of coluns, with the same names and records.
+    # The two tables are equal if they have the same number of coluns,
+    # with the same names and records.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -618,7 +622,8 @@ class Table:
     # >     None
     #
     # errors:
-    # If `count` is negative or greater than table's row count, runtime error will occur.
+    # If `count` is negative or greater than table's row count,
+    # runtime error will occur.
     #
     # `count`: Number of rows to take.
     #
@@ -645,7 +650,8 @@ class Table:
     # >     None
     #
     # errors:
-    # If `count` is negative or greater than table's row count, runtime error will occur.
+    # If `count` is negative or greater than table's row count,
+    # runtime error will occur.
     #
     # `count`: Number of rows to drop.
     #
@@ -715,7 +721,8 @@ class Table:
         filtered = cols.filter pred
         self.fromColumns filtered
 
-    # Returns `Table` value with results of applied functions on each of the columns from `self` table.
+    # Returns `Table` value with results of applied functions on each of
+    # the columns from `self` table.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -788,7 +795,8 @@ class Table:
     # `name`: Name of newly created column in result table.
     # `f`: LQuery function to apply on `self` table.
     #
-    # `return`: `self` with additional column `name` containing values returned by f for each row.
+    # `return`: `self` with additional column `name` containing values returned by
+    #            `f` for each row.
     # ![](data/docs/docs13.png)
 
     def eachTo name f:
@@ -797,7 +805,8 @@ class Table:
 
     # sortBy :: [(Column, SortOrder, NullPosition)]
     # Sorts the table by given columns using lexicographical order. 
-    # The sorting order can be ascending or descending and nulls can be at the end or beginning of a sorted column.
+    # The sorting order can be ascending or descending and nulls can be at the end
+    # or beginning of a sorted column.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -827,7 +836,8 @@ class Table:
 
     # sortBy is list of triples: [(column name :: Text, SortOrder, NullPosition)]
     # Sorts the table by set of columns with given names using a lexicographic ordering.
-    # The sorting order can be ascending or descending and nulls can be at the end or beginning of a sorted column. 
+    # The sorting order can be ascending or descending and nulls can be at the end
+    # or beginning of a sorted column. 
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -850,8 +860,8 @@ class Table:
     # `sortBy`: A list of tuples. Each tuple contain: column name, sort order and null position. 
     #           Column name is a String with a name of a column to sort by.
     #           Sort order can be `Ascending` or `Descending`.
-    #           Null position can be `NullsAfter` if nulls should be placed at the end of a column or 
-    #           `NullsBefore` if they should be placed at the beginning.
+    #           Null position can be `NullsAfter` if nulls should be placed at the end
+    #           of a column or `NullsBefore` if they should be placed at the beginning.
     #
     # `return`: Sorted table.
 
@@ -962,7 +972,8 @@ class Table:
     def dropNa:
         self.fromWrapper $ self.ptr.dropNa
 
-    # Creates `Table` value from `self` table with removed rows where null values occur for given column.
+    # Creates `Table` value from `self` table with removed rows where null values 
+    # occur for given column.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -1008,7 +1019,8 @@ class Table:
     def fillNa valueToFillWith:
         self.fromWrapper $ self.ptr.fillNa valueToFillWith
 
-    # Creates `Table` value from `self` table with null values replaced with `valueToFillWith` in column `columnName`
+    # Creates `Table` value from `self` table with null values replaced with 
+    # `valueToFillWith` in column `columnName`
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -1029,7 +1041,7 @@ class Table:
     # `columnName`: Name of the column to fill nulls in.
     # `valueToFillWith`: Value to use to fill nulls (e.g. 0).
     #
-    # `return`: `Table` with nulls in column `columnName` filled with `valueToFillWith `.
+    # `return`: `Table` with nulls in column `columnName` filled with `valueToFillWith`.
     # ![](data/docs/docs17.png)
 
     def fillNaAt columnName valueToFillWith:
@@ -1053,8 +1065,9 @@ class Table:
     # >     None
     #
     # `return`: `Table` with nulls interpolated in each numerical column.
-    #            If nulls are at the beginning of a column they will be filled with first existing value in a column. 
-    #            If they are at the end, they will be filled with the last existing value.
+    #            If nulls are at the beginning of a column they will be filled
+    #            with first existing value in a column. If they are at the end,
+    #            they will be filled with the last existing value.
     def interpolate:
         self.fromWrapper $ self.ptr.interpolate
     def toColumn:
@@ -1110,7 +1123,8 @@ class Table:
     # >     correlations = table.correlations
     # >     None
     #
-    # `return`: The `self` table value with pairwise correlations calculated for `self` table.
+    # `return`: The `self` table value with pairwise correlations calculated for
+    #           `self` table.
     # ![](data/docs/docs19.png)
 
     def correlations:
@@ -1137,7 +1151,8 @@ class Table:
     #
     # `columnName`: Column for which the correlations are calculated.
     #
-    # `return`: `Table` value including correlations with `columnName` column calculated for `self` table.
+    # `return`: `Table` value including correlations with `columnName` column
+    #            calculated for `self` table.
     # ![](data/docs/docs20.png)
 
     def correlationsWith columnName:
@@ -1209,7 +1224,8 @@ class Table:
     #
     # `columnName`: Text value, name of the column to summary unique values for.
     #
-    # `return`: Table with all unique values in first column and their counts in the selected column in the second.
+    # `return`: Table with all unique values in first column and their counts in
+    #           the selected column in the second.
 
     def countValues columnName:
         self.at columnName . toColumn . countValues
@@ -1217,7 +1233,8 @@ class Table:
     # aggregateBy :: Text -> [(Text, [AggregateFunction])] -> Table
     # Aggregates using one or more operations over specified columns. 
     #
-    # Predefined aggregate functions are available: Minimum, Maximum, Mean, Length, Median, First, Last, Sum, RSI, Std.
+    # Predefined aggregate functions are available:
+    # Minimum, Maximum, Mean, Length, Median, First, Last, Sum, RSI, Std.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -1238,7 +1255,8 @@ class Table:
     # 
     # `keyColumnName`: Column to aggregate over.
     # `aggregations`: List of aggregations. Single aggregation is a two argument tuple.
-    #                 First element is a name of a column for aggregation and second is a list of aggregate functions.
+    #                 First element is a name of a column for aggregation and second is
+    #                 a list of aggregate functions.
     #
     # `return`: `Table` value containing given aggregations calculated over
     #            key column for columns and aggreate functions from the second argument.
@@ -1343,7 +1361,8 @@ class Table:
         Table.fromColumns [col1, col2, col3, col4, col5, col6, col7, col8]
 
     # Provides rolling window calculations. Rolling is provided over `keyColumnName`.
-    # The window size is defined by `interval` and the statistical operation over the values are defined by `aggregation`.
+    # The window size is defined by `interval` and the statistical operation over
+    # the values are defined by `aggregation`.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -1351,7 +1370,11 @@ class Table:
     # > import Std.Time
     # > 
     # > def main:
-    # >     l1 = ["2013-01-01 09:00:00", "2013-01-01 09:00:02", "2013-01-01 09:00:03", "2013-01-01 09:00:05", "2013-01-01 09:00:06"].each (Time.parseFmt "%F %T")
+    # >     l1 = ["2013-01-01 09:00:00",
+    # >           "2013-01-01 09:00:02",
+    # >           "2013-01-01 09:00:03",
+    # >           "2013-01-01 09:00:05",
+    # >           "2013-01-01 09:00:06"] . each (Time.parseFmt "%F %T")
     # >     l2 = [11,12,13,14,15]
     # >     l3 = [21,22,23,24,25]
     # >     l4 = [31,32,33,34,35]
@@ -1365,8 +1388,9 @@ class Table:
     #
     # `keyColumnName`: Text name for column which will be an indexing column.
     # `interval`: Time interval for rolling window, i.e. `2.days`.
-    # `aggregations`: List of aggregations. Single aggregation is a two argument tuple.
-    #                 First element is a name of a column for aggregation and second is a list of aggregate functions.
+    # `aggregations`: List of aggregations. Single aggregation is a two argument
+    #                 tuple. First element is a name of a column for aggregation
+    #                 and second is a list of aggregate functions.
     #
     # `return`: `Table` value with key column and resulting columns for each aggregation. 
 
@@ -1385,7 +1409,11 @@ class Table:
     # > import Std.Time
     # > 
     # > def main:
-    # >     l1 = ["2013-01-01 09:00:00", "2013-01-01 09:00:02", "2013-01-01 09:00:03", "2013-01-01 09:00:05", "2013-01-01 09:00:06"].each (Time.parseFmt "%F %T")
+    # >     l1 = ["2013-01-01 09:00:00",
+    # >           "2013-01-01 09:00:02",
+    # >           "2013-01-01 09:00:03",
+    # >           "2013-01-01 09:00:05",
+    # >           "2013-01-01 09:00:06"] . each (Time.parseFmt "%F %T")
     # >     l2 = [11,12,13,14,15]
     # >     l3 = [21,22,23,24,25]
     # >     l4 = [31,32,33,34,35]
@@ -1409,7 +1437,8 @@ class Table:
     # Generates new column with shifted values from selected column.
     # The values are shifted by desired number of periods.
     # 
-    # Newly created column is added at the end of the table. The index value can be both positive and negative. 
+    # Newly created column is added at the end of the table.
+    # The index value can be both positive and negative.
     # Missing values in newly created column will be filled with `0`. 
     # 
     # > import Dataframes.Column
@@ -1428,7 +1457,8 @@ class Table:
     # `columnName`: Name of a column to shift.
     # `periods`: Number of periods to shift selected column by.
     #
-    # `return`: The `self` table value with additional column containing the values after shift operation.
+    # `return`: The `self` table value with additional column containing
+    #           the values after shift operation.
     def shift columnName periods:
         columnToShift = self.column columnName
         shiftedColumn = columnToShift.shift periods
@@ -1440,7 +1470,8 @@ class Table:
     def ungroupSplittingOn stringColumnName separator:
         stringColumnWrapper = self.column stringColumnName . ptr
         self.fromWrapper $ self.ptr.ungroupSplittingOn stringColumnWrapper separator
-
+    
+    # Generates chart from table.
     def chart: ChartBuilder self
 
     # Plots y versus x. Default style for plot is scatter plot. 
@@ -1560,7 +1591,11 @@ class Table:
     # > import Std.Time
     # > 
     # > def main:
-    # >     l1 = ["2013-01-01 09:00:00", "2013-01-01 09:00:02", "2013-01-01 09:00:03", "2013-01-01 09:00:05", "2013-01-01 09:00:06"].each (Time.parseFmt "%F %T")
+    # >     l1 = ["2013-01-01 09:00:00",
+    # >           "2013-01-01 09:00:02",
+    # >           "2013-01-01 09:00:03",
+    # >           "2013-01-01 09:00:05",
+    # >           "2013-01-01 09:00:06"] . each (Time.parseFmt "%F %T")
     # >     l2 = [11,12,13,14,15]
     # >     col1 = Column.fromList "col1" TimestampType l1
     # >     col2 = Column.fromList "col2" Int64Type l2
@@ -1657,7 +1692,11 @@ class ChartBuilder:
     # > import Std.Time
     # > 
     # > def main:
-    # >     l1 = ["2013-01-01 09:00:00", "2013-01-01 09:00:02", "2013-01-01 09:00:03", "2013-01-01 09:00:05", "2013-01-01 09:00:06"].each (Time.parseFmt "%F %T")
+    # >     l1 = ["2013-01-01 09:00:00",
+    # >           "2013-01-01 09:00:02",
+    # >           "2013-01-01 09:00:03",
+    # >           "2013-01-01 09:00:05",
+    # >           "2013-01-01 09:00:06"] . each (Time.parseFmt "%F %T")
     # >     l2 = [11,12,13,14,15]
     # >     col1 = Column.fromList "col1" TimestampType l1
     # >     col2 = Column.fromList "col2" Int64Type l2
