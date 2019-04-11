@@ -15,6 +15,7 @@ jobs:
   variables: 
     PYTHON_PREFIX_PATH: /python-dist
   steps:
+  - script: sudo yum install zlib-devel
   - script: |
       cd scripts
       stack run
