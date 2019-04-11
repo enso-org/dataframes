@@ -68,14 +68,16 @@ class Table:
     # Constructs `Table` from a list of `Column` values.
     #
     # If empty list is given the return value is equivalent to `Table.empty`.
-    # If columns have different rows counts: Table with different amount of rows in different columns is returned. To be fixed by https://github.com/luna/Dataframes/issues/62
+    # If columns have different rows counts: Table with row count like in
+    # the longest column will be returned.
+    # Missing values in shorter columns will be filled with nulls.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
     # > import Dataframes.Table
     # >
     # > def main:
-    # >     l1 = [1,2,3,4,5]
+    # >     l1 = [1,2,3,4,5,6,7]
     # >     l2 = [11,12,13,14,15]
     # >     col1 = Column.fromList "col1" Int64Type l1
     # >     col2 = Column.fromList "col2" Int64Type l2
@@ -107,7 +109,7 @@ class Table:
     # errors:
     # If extension is missing from path or is not one of recognized extensions,
     # error shall be reported. Also, error will be reported if the requested
-    # file location is not available or the file is corrupted.
+    # file location is not available or the file is unable to be read.
     #
     # `path`: Path to the file to read.
     #
@@ -215,8 +217,9 @@ class Table:
 
     # Inserts a single `Column` value to `Table` under given index.
     #
-    # Columns are indexed from 0. After inserting the column under the `index` and all of the next columns will be shifted by 1.
-    # If the index will be increased by 1 number  of columns newly added column will be at the end of the table.
+    # Columns are indexed from 0. After inserting the column under the `index`
+    # and all of the next columns will be shifted by 1. If the index will be 
+    # increased by 1 number of columns newly added column will be at the end of the table.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -268,7 +271,8 @@ class Table:
     # >     None 
     #
     # `ts`: List of tables to concat. The columns in all tables should have unique names,
-    #       otherwise there will be duplicates in resulting table. Tables should have the same row count.
+    #       otherwise there will be duplicates in resulting table.
+    #       Tables should have the same row count.
     #
     # `return`: `Table` value containig all tables from the `ts` list.
     def concat ts:
@@ -297,10 +301,12 @@ class Table:
     # >     concatenateTable = table1.+ table2
     # >     None 
     #
-    # `that`: Table to concatenate with `self` table. The columns in both tables should have unique names,
-    #         otherwise there will be duplicates in resulting table. Tables should have the same row count.
+    # `that`: Table to concatenate with `self` table. The columns in both tables 
+    #         should have unique names, otherwise there will be duplicates in resulting table.
+    #         Tables should have the same row count.
     #
-    # `return`: `Table` value containing columns of `self` followed by the columns of table passed as the argument.
+    # `return`: `Table` value containing columns of `self` followed by the columns
+    #            of table passed as the argument.
     def + that: Table.concat [self, that]
 
     # Returns a `Table` value contain column matching given name.
@@ -471,11 +477,44 @@ class Table:
     # `name`: Text value with name of a column to delete from table.
     #
     # `return`: `Table` value without the column with given name.
-
     def remove name:
         self.removeByIndex $ self.schema.getFieldIndexByName name
+    
+    # Unsafe. Returns list of lists.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     txt = table.toList
+    # >     None
+    #
+    # `returns`: A list containing a lists for each column from `self` table.
     def toList:
         self.ptr.toList.each Column.fromColumnWrapper
+    
+    # Display a Table as text.
+    # 
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     txt = table.toText
+    # >     None
+    #
+    # `returns`: Text value for `self` table.
     def toText:
         self.toList.toText
 
@@ -694,7 +733,8 @@ class Table:
     # errors:
     # If the predicate can not be applied for one of the columns runtime error will appear.
     #
-    # `pred`: Function from `Column` into `Column`. Supported ones include {`.min`, `.max`, `.mean`, `.median`, `.std`, `.var`, `.sum`}.
+    # `pred`: Function from `Column` into `Column`. Supported ones include
+    #         {`.min`, `.max`, `.mean`, `.median`, `.std`, `.var`, `.sum`}.
     #
     # `return`: Table with function application results.
     # ![](data/docs/docs11.png)
@@ -729,7 +769,8 @@ class Table:
         columnWrapper = self.ptr.eachToColumn "Result" mapper
         Column.fromColumnWrapper columnWrapper
 
-    # Creates a table with columns from `self` and an additional column named `name` being a result of application function `f` on the `self` table.
+    # Creates a table with columns from `self` and an additional column named
+    # `name` being a result of application function `f` on the `self` table.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -785,7 +826,7 @@ class Table:
         self.fromWrapper $ self.ptr.sort (sortBy.each (col, b, c): (col.ptr, b, c))
 
     # sortBy is list of triples: [(column name :: Text, SortOrder, NullPosition)]
-    # Sorts the table by set of columns with given names using lexicographical order.
+    # Sorts the table by set of columns with given names using a lexicographic ordering.
     # The sorting order can be ascending or descending and nulls can be at the end or beginning of a sorted column. 
     #
     # > import Dataframes.Column
@@ -807,7 +848,7 @@ class Table:
     # If columns by given name are not present in the table error will occur.
     #
     # `sortBy`: A list of tuples. Each tuple contain: column name, sort order and null position. 
-    #           Column name is a name of a column to sort by.
+    #           Column name is a String with a name of a column to sort by.
     #           Sort order can be `Ascending` or `Descending`.
     #           Null position can be `NullsAfter` if nulls should be placed at the end of a column or 
     #           `NullsBefore` if they should be placed at the beginning.
@@ -841,7 +882,8 @@ class Table:
     #
     # `columnName`: Column name in table.
     #
-    # `return`: Table sorted by column with name `columnName` with descending order and with nulls at the end of a column.
+    # `return`: Table sorted by column with name `columnName` with descending 
+    #           order and with nulls at the end of a column.
 
     def sortDescending columnName: self.sortMultiples [(columnName, Descending, NullsAfter)]
 
@@ -868,8 +910,8 @@ class Table:
     #
     # `columnName`: Column name in table.
     #
-    # `return`: Table sorted by column with name `columnName` with ascending order and with nulls at the end of a column.
-
+    # `return`: Table sorted by column with name `columnName` with ascending order
+    #           and with nulls at the end of a column.
     def sortAscending columnName: self.sortMultiples [(columnName, Ascending, NullsAfter)]
 
     # Sorts the `self` table by a column in ascending order.
@@ -894,7 +936,8 @@ class Table:
     #
     # `columnName`: Column name in table.
     #
-    # `return`: Table sorted by column with name `columnName` with ascending order and with nulls at the end of a column.
+    # `return`: Table sorted by column with name `columnName` with ascending order
+    #           and with nulls at the end of a column.
 
     def sort columnName: self.sortAscending columnName
 
@@ -994,7 +1037,7 @@ class Table:
 
     # Interpolates missing values in the table.
     #
-    # Apply just to numerical columns.
+    # Only applies to numerical columns.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -1149,7 +1192,7 @@ class Table:
         quart3 = col.quantile 0.75
         Table.fromColumns [mean, std, min, quart1, median, quart3, max]
 
-    # Returns table with unique values counts for selected column.
+    # Returns table with the count of unique values for the selected column.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -1194,9 +1237,11 @@ class Table:
     # >     None
     # 
     # `keyColumnName`: Column to aggregate over.
-    # `aggregations`: List of aggregations. Single aggregation is a two argument tuple. First element is a name of a column for aggregation and second is a list of aggregate functions.
+    # `aggregations`: List of aggregations. Single aggregation is a two argument tuple.
+    #                 First element is a name of a column for aggregation and second is a list of aggregate functions.
     #
-    # `return`: `Table` value containing given aggregations calculated over key column for columns and aggreate functions from the second argument.
+    # `return`: `Table` value containing given aggregations calculated over
+    #            key column for columns and aggreate functions from the second argument.
 
     def aggregateBy keyColumnName aggregations:
         keyColumnWrapper = self.column keyColumnName . ptr
@@ -1205,7 +1250,8 @@ class Table:
 
     # Aggregates using `aggregateFunction` over specific column.
     #
-    # Predefined aggregate functions are available: Minimum, Maximum, Mean, Length, Median, First, Last, Sum, RSI, Std.
+    # Predefined aggregate functions are available:
+    # Minimum, Maximum, Mean, Length, Median, First, Last, Sum, RSI, Std.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -1226,9 +1272,11 @@ class Table:
     # 
     # `keyColumnName`: Column to aggregate over.
     # `columnToAggregateName`: Name of a column to calculate the statistics for.
-    # `aggregateFunction`: One of the predefined aggregate functions: Minimum, Maximum, Mean, Length, Median, First, Last, Sum, RSI, Std.
+    # `aggregateFunction`: One of the predefined aggregate functions:
+    #                      Minimum, Maximum, Mean, Length, Median, First, Last, Sum, RSI, Std.
     #
-    # `return`: `Table` value containing given aggregation calculated over `keyColumnName` for `columnToAggregateName` with `aggregateFunction`.
+    # `return`: `Table` value containing given aggregation calculated over
+    #           `keyColumnName` for `columnToAggregateName` with `aggregateFunction`.
 
     def aggregate keyColumnName columnToAggregateName aggregateFunction:
         self.aggregateBy keyColumnName [(columnToAggregateName,[aggregateFunction])]
@@ -1317,7 +1365,8 @@ class Table:
     #
     # `keyColumnName`: Text name for column which will be an indexing column.
     # `interval`: Time interval for rolling window, i.e. `2.days`.
-    # `aggregations`: List of aggregations. Single aggregation is a two argument tuple. First element is a name of a column for aggregation and second is a list of aggregate functions.
+    # `aggregations`: List of aggregations. Single aggregation is a two argument tuple.
+    #                 First element is a name of a column for aggregation and second is a list of aggregate functions.
     #
     # `return`: `Table` value with key column and resulting columns for each aggregation. 
 
@@ -1327,7 +1376,8 @@ class Table:
         self.fromWrapper $ self.ptr.rollingInterval keyColumnWrapper (interval.toMicroseconds * 1000) aggregationWithWrappers
 
     # Provides rolling window calculations. Rolling is provided over `keyColumnName`.
-    # The windows size is defined by `interval` and the statistic operation over the values in column `aggregateColumnName` is defined by `aggregateFunction`.
+    # The windows size is defined by `interval` and the statistic operation over
+    #  the values in column `aggregateColumnName` is defined by `aggregateFunction`.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -1544,7 +1594,8 @@ class Table:
 
     def heatmap: self.chart.heatmap
 
-    # Fills the area between two horizontal curves. The curves are defined by the two sets of points (x, y1) and (x, y2).
+    # Fills the area between two horizontal curves.
+    # The curves are defined by the two sets of points (x, y1) and (x, y2).
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -1741,7 +1792,8 @@ class ChartBuilder:
     def heatmap:
         Heatmap self.table "RdBu_r" Nothing
 
-    # Fills the area between two horizontal curves. The cuves are defined by the two sests of points (x, y1) and (x, y2).
+    # Fills the area between two horizontal curves.
+    # The cuves are defined by the two sests of points (x, y1) and (x, y2).
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
