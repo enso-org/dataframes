@@ -152,7 +152,7 @@ class Histogram:
 
     def setBins b: Histogram self.data b self.options
 
-    # Creates a chart with given subplots arranged vertically
+    # Creates a chart with the given subplots arranged vertically
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
