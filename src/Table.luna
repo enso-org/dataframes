@@ -1166,7 +1166,7 @@ class Table:
     #
     # `columnName`: Text value, name of the column to summary unique values for.
     #
-    # `return`: Table with all unique values in first column and their counts in second for selected column.
+    # `return`: Table with all unique values in first column and their counts in the selected column in the second.
 
     def countValues columnName:
         self.at columnName . toColumn . countValues
