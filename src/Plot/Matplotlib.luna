@@ -58,6 +58,35 @@ class Matplotlib:
         result = self.callHandlingError "getPngBase64" CString []
         result.toText
 
+    # Saves the chart to an image file.
+    #
+    # Image will have dimensions as requested in function arguments. 
+    # The image file format is deduced from filename extension.
+    # Supported formats: eps, pdf, pgf, png, ps, raw, rgba, svg, svgz.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plt = table.plot "col1" "col2" . write 800 600 "foo.png"
+    # >     None
+    #
+    # errors:
+    # An exception is raised when output file is not writable.
+    # An exception is raised when output file extension is not of one of supported image formats.
+    # An exception is raised when requested image width or height is less or equal to zero.
+    #
+    # `width`: Requested width of the image, must be greater than zero.
+    # `height`: Requested height of the image, must be greater than zero.
+    # `filename`: Output path where image will be stored, must be writable.
+    #
+    # `return`: None
     def write fname:
         CString.with fname fnameC:
             self.callHandlingError "savefig" None [fnameC.toCArg]
@@ -87,7 +116,7 @@ class Chart:
         Matplotlib.init w h
         self.render
         Matplotlib.getPNG
-        
+       
     def write w h fname:
         Matplotlib.init w h
         self.render
@@ -139,7 +168,35 @@ class Histogram:
         self.toChart.+ that
 
     def toJSON: self.toChart.toJSON
-
+    
+    # Saves the chart to an image file.
+    #
+    # Image will have dimensions as requested in function arguments. 
+    # The image file format is deduced from filename extension. Supported formats: eps, pdf, pgf, png, ps, raw, rgba, svg, svgz.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plt = table.plot "col1" "col2" . write 800 600 "foo.png"
+    # >     None
+    #
+    # errors:
+    # An exception is raised when output file is not writable.
+    # An exception is raised when output file extension is not of one of supported image formats.
+    # An exception is raised when requested image width or height is less or equal to zero.
+    #
+    # `width`: Requested width of the image, must be greater than zero.
+    # `height`: Requested height of the image, must be greater than zero.
+    # `filename`: Output path where image will be stored, must be writable.
+    #
+    # `return`: None
     def write: self.toChart.write
     
     # Defines the number of equal-width bins in the given range (10, by default) for a histogram plot.
@@ -297,8 +354,37 @@ class Scatter:
 
     def toJSON: self.toChart.toJSON
 
+    # Saves the chart to an image file.
+    #
+    # Image will have dimensions as requested in function arguments. 
+    # The image file format is deduced from filename extension.
+    # Supported formats: eps, pdf, pgf, png, ps, raw, rgba, svg, svgz.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plt = table.plot "col1" "col2" . write 800 600 "foo.png"
+    # >     None
+    #
+    # errors:
+    # An exception is raised when output file is not writable.
+    # An exception is raised when output file extension is not of one of supported image formats.
+    # An exception is raised when requested image width or height is less or equal to zero.
+    #
+    # `width`: Requested width of the image, must be greater than zero.
+    # `height`: Requested height of the image, must be greater than zero.
+    # `filename`: Output path where image will be stored, must be writable.
+    #
+    # `return`: None
     def write: self.toChart.write
-    
+
     # Creates a chart with given subplots arranged vertically
     #
     # > import Dataframes.Column
@@ -366,7 +452,36 @@ class Plot:
         self.toChart.+ that
 
     def toJSON: self.toChart.toJSON
-
+    
+    # Saves the chart to an image file.
+    #
+    # Image will have dimensions as requested in function arguments. 
+    # The image file format is deduced from filename extension.
+    # Supported formats: eps, pdf, pgf, png, ps, raw, rgba, svg, svgz.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plt = table.plot "col1" "col2" . write 800 600 "foo.png"
+    # >     None
+    #
+    # errors:
+    # An exception is raised when output file is not writable.
+    # An exception is raised when output file extension is not of one of supported image formats.
+    # An exception is raised when requested image width or height is less or equal to zero.
+    #
+    # `width`: Requested width of the image, must be greater than zero.
+    # `height`: Requested height of the image, must be greater than zero.
+    # `filename`: Output path where image will be stored, must be writable.
+    #
+    # `return`: None
     def write: self.toChart.write
     
     # Change plot style from markers to different type.
@@ -572,7 +687,36 @@ class FillBetween:
         self.toChart.+ that
 
     def toJSON: self.toChart.toJSON
-
+    
+    # Saves the chart to an image file.
+    #
+    # Image will have dimensions as requested in function arguments. 
+    # The image file format is deduced from filename extension.
+    # Supported formats: eps, pdf, pgf, png, ps, raw, rgba, svg, svgz.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plt = table.plot "col1" "col2" . write 800 600 "foo.png"
+    # >     None
+    #
+    # errors:
+    # An exception is raised when output file is not writable.
+    # An exception is raised when output file extension is not of one of supported image formats.
+    # An exception is raised when requested image width or height is less or equal to zero.
+    #
+    # `width`: Requested width of the image, must be greater than zero.
+    # `height`: Requested height of the image, must be greater than zero.
+    # `filename`: Output path where image will be stored, must be writable.
+    #
+    # `return`: None
     def write: self.toChart.write
     
     # Adds a legend to the plot.
@@ -695,6 +839,35 @@ class KDE2:
 
     def toJSON: self.toChart.toJSON
 
+    # Saves the chart to an image file.
+    #
+    # Image will have dimensions as requested in function arguments. 
+    # The image file format is deduced from filename extension.
+    # Supported formats: eps, pdf, pgf, png, ps, raw, rgba, svg, svgz.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plt = table.plot "col1" "col2" . write 800 600 "foo.png"
+    # >     None
+    #
+    # errors:
+    # An exception is raised when output file is not writable.
+    # An exception is raised when output file extension is not of one of supported image formats.
+    # An exception is raised when requested image width or height is less or equal to zero.
+    #
+    # `width`: Requested width of the image, must be greater than zero.
+    # `height`: Requested height of the image, must be greater than zero.
+    # `filename`: Output path where image will be stored, must be writable.
+    #
+    # `return`: None
     def write: self.toChart.write
 
     def setColorMap s: KDE2 self.series1 self.series2 s
@@ -717,7 +890,36 @@ class KDE:
         self.toChart.+ that
 
     def toJSON: self.toChart.toJSON
-
+    
+    # Saves the chart to an image file.
+    #
+    # Image will have dimensions as requested in function arguments. 
+    # The image file format is deduced from filename extension.
+    # Supported formats: eps, pdf, pgf, png, ps, raw, rgba, svg, svgz.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plt = table.plot "col1" "col2" . write 800 600 "foo.png"
+    # >     None
+    #
+    # errors:
+    # An exception is raised when output file is not writable.
+    # An exception is raised when output file extension is not of one of supported image formats.
+    # An exception is raised when requested image width or height is less or equal to zero.
+    #
+    # `width`: Requested width of the image, must be greater than zero.
+    # `height`: Requested height of the image, must be greater than zero.
+    # `filename`: Output path where image will be stored, must be writable.
+    #
+    # `return`: None
     def write: self.toChart.write
 
     def setLabel l: KDE self.data (Just l)
@@ -740,6 +942,35 @@ class Grid:
 
     def toJSON: self.toChart.toJSON
 
+    # Saves the chart to an image file.
+    #
+    # Image will have dimensions as requested in function arguments. 
+    # The image file format is deduced from filename extension.
+    # Supported formats: eps, pdf, pgf, png, ps, raw, rgba, svg, svgz.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plt = table.plot "col1" "col2" . write 800 600 "foo.png"
+    # >     None
+    #
+    # errors:
+    # An exception is raised when output file is not writable.
+    # An exception is raised when output file extension is not of one of supported image formats.
+    # An exception is raised when requested image width or height is less or equal to zero.
+    #
+    # `width`: Requested width of the image, must be greater than zero.
+    # `height`: Requested height of the image, must be greater than zero.
+    # `filename`: Output path where image will be stored, must be writable.
+    #
+    # `return`: None
     def write: self.toChart.write
 
     def setLabel l: self.label = (Just l)
