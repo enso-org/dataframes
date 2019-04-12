@@ -228,9 +228,8 @@ class PlotDate:
 
     def toJSON: self.toChart.toJSON
 
-<<<<<<< HEAD
     def write: self.toChart.write
-=======
+    
     # Creates a chart with given subplots arranged vertically
     #
     # > import Dataframes.Column
@@ -258,7 +257,6 @@ class PlotDate:
     #
     # `return`: Multiple plots arranged vertically.
     # ![](data/docs/docs34.png)
->>>>>>> origin
 
     def verticalLayout: Chart None . verticalLayout
 
@@ -299,9 +297,8 @@ class Scatter:
 
     def toJSON: self.toChart.toJSON
 
-<<<<<<< HEAD
     def write: self.toChart.write
-=======
+    
     # Creates a chart with given subplots arranged vertically
     #
     # > import Dataframes.Column
@@ -325,7 +322,6 @@ class Scatter:
     #
     # `return`: Multiple plots arranged vertically.
     # ![](data/docs/docs35.png)
->>>>>>> origin
 
     def verticalLayout: Chart None . verticalLayout
 
@@ -371,9 +367,8 @@ class Plot:
 
     def toJSON: self.toChart.toJSON
 
-<<<<<<< HEAD
     def write: self.toChart.write
-=======
+    
     # Change plot style from markers to different type.
     # 
     # Available styles are:
@@ -423,7 +418,6 @@ class Plot:
     # `s`: Style to apply to the plot.
     #
     # `return`: ![](data/docs/docs37.png)
->>>>>>> origin
 
     def setStyle s: Plot self.series1 self.series2 s self.label self.color self.alpha
 
@@ -579,9 +573,8 @@ class FillBetween:
 
     def toJSON: self.toChart.toJSON
 
-<<<<<<< HEAD
     def write: self.toChart.write
-=======
+    
     # Adds a legend to the plot.
     # 
     # > import Dataframes.Column
@@ -603,7 +596,6 @@ class FillBetween:
     # `l`: Text with plot series description.
     #
     # `return`: TODO print screen 
->>>>>>> origin
 
     def setLabel l: FillBetween self.series1 self.series2 self.series3 (Just l) self.color self.alpha
 
