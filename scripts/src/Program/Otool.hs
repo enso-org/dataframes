@@ -1,6 +1,7 @@
 module Program.Otool where
 
 import Control.Monad
+import Control.Monad.IO.Class (MonadIO)
 import Data.List
 import Data.String.Utils (strip)
 
@@ -10,7 +11,7 @@ data Otool
 instance Program Otool where
     executableName = "otool"
 
-usedLibraries :: FilePath -> IO [FilePath]
+usedLibraries :: (MonadIO m) => FilePath -> m [FilePath]
 usedLibraries path = do
     (lines -> output) <- readProgram @Otool ["-L", path]
     when (null output) $ error "otool must output at least one line"

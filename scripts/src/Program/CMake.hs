@@ -1,10 +1,11 @@
 module Program.CMake where
 
-import GHC.Conc
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import System.Directory
 import Text.Printf
 
 import Program
+import Program.Make (make)
 import Utils
 
 data CMake
@@ -26,23 +27,14 @@ formatOption (OptionBuildType ReleaseWithDebInfo) = formatOption $ OptionSetVari
 formatOptions :: [Option] -> [String]
 formatOptions opts = concat $ formatOption <$> opts
 
-cmake :: FilePath -> FilePath -> [Option] -> IO ()
+cmake :: (MonadIO m) => FilePath -> FilePath -> [Option] -> m ()
 cmake whereToRun whatToBuild options = do
-    createDirectoryIfMissing True whereToRun
+    liftIO $ createDirectoryIfMissing True whereToRun
     let varOptions = formatOptions options
     callCwd @CMake whereToRun (varOptions <> [whatToBuild])
 
-build :: FilePath -> FilePath -> [Option] -> IO ()
+-- FIXME: drop dependency on make, use --build
+build :: (MonadIO m) => FilePath -> FilePath -> [Option] -> m ()
 build whereToRun whatToBuild options = do
     cmake whereToRun whatToBuild options
     make whereToRun
-
-data Make
-instance Program Make where
-    executableName = "make"
-
-make :: FilePath -> IO ()
-make location = do
-    cpuCount <- getNumProcessors
-    jobCount <- getEnvDefault "JOB_COUNT" (show cpuCount)
-    callCwd @Make location ["-j", jobCount]
