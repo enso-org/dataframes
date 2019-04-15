@@ -23,14 +23,14 @@ Dataframes.Table:
     - name: filterColumns .isNumeric
       documentation: Filter columns in the table.
     - name: dropNa
-      documentation: Remove null values.
+      documentation: Remove rows with null values.
     - name: filterColumns .isNumeric . fillNA 0
       documentation: Fill nulls with given value.
     - name: filterColumns .isNumeric . correlations
       documentation: Compute pairwise Pearson's correlation of columns.
   Histogram:
-    - name: setBins 7
-      documentaion: Change number of bins for histogram.
+    - name: setBins 5
+      documentaion: Change number of bins for histogram. Default number of bins is 10.
     - name: write 600 800 "./myHistogram.png"
       documentaion: Save the chart to an image file.
   Plot:
