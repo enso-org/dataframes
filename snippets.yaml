@@ -4,8 +4,8 @@ Dataframes.Table:
       documentation: Read table from file.
   
   Table:
-    - name: write "path/to/file"
-      documentation: Save the table as a file.
+    - name: write "./myTable.csv"
+      documentation: Save the table as a file. Supported file formats are: csv, txt, xlsx and feather.
     - name: describeNa
       documentation: Calculate number and percentage of null values for each column.
     - name: describe
@@ -26,9 +26,11 @@ Dataframes.Table:
       documentation: Remove null values.
     - name: filterColumns .isNumeric . fillNA 0
       documentation: Fill nulls with given value.
+    - name: filterColumns .isNumeric . correlations
+      documentation: Compute pairwise Pearson's correlation of columns.
   Histogram:
     - name: setBins 7
-      documentaion:
+      documentaion: Change number of bins for histogram.
     - name: write 600 800 "./myHistogram.png"
       documentaion: Save the chart to an image file.
   Plot:
@@ -59,7 +61,7 @@ Dataframes.Table:
       documentaion: Save the chart to an image file.
   KDE:
     - name: write 600 800 "./myPlot.png"
-      documentaion:
+      documentaion: Save the chart to an image file.
   Scatter:
     - name: write 600 800 "./myPlot.png"
       documentaion: Save the chart to an image file.
