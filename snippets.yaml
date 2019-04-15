@@ -1,0 +1,66 @@
+Dataframes.Table:
+  $global:
+    - name: read "path/to/data"
+      documentation: Read table from file.
+  
+  Table:
+    - name: write "path/to/file"
+      documentation: Save the table as a file.
+    - name: describeNa
+      documentation: Calculate number and percentage of null values for each column.
+    - name: describe
+      documentation: Calculate statistics: standard deviation, minimum, maximum, mean, median qunatile 0.25 and 0.75 for each column. 
+    - name: rowCount
+      documentation: Number of rows in the table.
+    - name: columnCount
+      documentation: Number of columns in the table.
+    - name: columnNames
+      documentation: A list of columns names.
+    - name: take 1
+      documentation: Take first `n` rows.
+    - name: drop 1
+      documentation: Drop first `n` rows.
+    - name: filterColumns .isNumeric
+      documentation: Filter columns in the table.
+    - name: dropNa
+      documentation: Remove null values.
+    - name: filterColumns .isNumeric . fillNA 0
+      documentation: Fill nulls with given value.
+  Histogram:
+    - name: setBins 7
+      documentaion:
+    - name: write 600 800 "./myHistogram.png"
+      documentaion: Save the chart to an image file.
+  Plot:
+    - name: write 600 800 "./myPlot.png"
+      documentaion: Save the chart to an image file.
+    - name: setStyle "o"
+      documentaion: Change plot style.
+    - name: setLabel "example plot"
+      documentaion: Add legend to the plot.
+    - name: setColor "g"
+      documentaion: Change a plot color.
+    - name: setAlpha 0.5
+      documentaion: Change plot transparency.
+  PlotBetween:
+    - name: write 600 800 "./myPlot.png"
+      documentaion: Save the chart to an image file.
+    - name: setLabel "example plot"
+      documentaion: Add legend to the plot.
+    - name: setColor "g"
+      documentaion: Change a plot color.
+    - name: setAlpha 0.5
+      documentaion: Change plot transparency.
+  Scatter:
+    - name: write 600 800 "./myPlot.png"
+      documentaion: Save the chart to an image file.
+  KDE2:
+    - name: write 600 800 "./myPlot.png"
+      documentaion: Save the chart to an image file.
+  KDE:
+    - name: write 600 800 "./myPlot.png"
+      documentaion:
+  Scatter:
+    - name: write 600 800 "./myPlot.png"
+      documentaion: Save the chart to an image file.
+  
