@@ -9,7 +9,7 @@ Dataframes.Table:
     - name: describeNa
       documentation: Calculate number and percentage of null values for each column.
     - name: describe
-      documentation: Calculate statistics: standard deviation, minimum, maximum, mean, median qunatile 0.25 and 0.75 for each column. 
+      documentation: Calculate statistics: standard deviation, minimum, maximum, mean, median quantile 0.25 and 0.75 for each column. 
     - name: rowCount
       documentation: Number of rows in the table.
     - name: columnCount
