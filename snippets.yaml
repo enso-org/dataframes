@@ -1,6 +1,6 @@
 Dataframes.Table:
   $global:
-    - name: read "path/to/data"
+    - name: Table.read "path/to/data"
       documentation: Read table from file.
   
   Table:
