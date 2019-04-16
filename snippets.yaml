@@ -30,7 +30,7 @@ Dataframes.Table:
       documentation: Compute pairwise Pearson's correlation of columns.
   Histogram:
     - name: setBins 5
-      documentaion: Change number of bins for histogram. Default number of bins is 10.
+      documentaion: Change the number of bins for histogram. Default: 10.
     - name: write 600 800 "./myHistogram.png"
       documentaion: Save the chart to an image file.
   Plot:
