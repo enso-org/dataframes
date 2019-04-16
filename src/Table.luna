@@ -1401,7 +1401,7 @@ class Table:
 
     # Provides rolling window calculations. Rolling is provided over `keyColumnName`.
     # The windows size is defined by `interval` and the statistic operation over
-    #  the values in column `aggregateColumnName` is defined by `aggregateFunction`.
+    # the values in column `aggregateColumnName` is defined by `aggregateFunction`.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -1428,7 +1428,8 @@ class Table:
     # `keyColumnName`: Text name for column which will be an indexing column.
     # `interval`: Time interval for rolling window, i.e. `2.days`.
     # `aggregateColumnName`: Name of a column for aggregation.
-    # `aggregateFunction`:
+    # `aggregateFunction`: One of the predefined aggregate functions:
+    #                      Minimum, Maximum, Mean, Length, Median, First, Last, Sum, RSI, Std.
     #
     # `return`: `Table` value with key column and resulting columns for each aggregation. 
     def rollingInterval keyColumnName interval aggregateColumnName aggregateFunction:

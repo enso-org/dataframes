@@ -10,6 +10,7 @@ namespace arrow
 }
 
 EXPORT std::string getPNG();
+EXPORT void saveFigure(const std::string &fname);
 
 extern "C"
 {
@@ -25,4 +26,5 @@ extern "C"
 	EXPORT void init(size_t w, size_t h, const char **outError) noexcept;
 	EXPORT void subplot(long nrows, long ncols, long plot_number, const char **outError) noexcept;
 	EXPORT const char* getPngBase64(const char **outError) noexcept;
+	EXPORT void savefig(const char *fname, const char **outError) noexcept;
 }
