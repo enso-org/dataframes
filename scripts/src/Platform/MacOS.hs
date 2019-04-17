@@ -196,14 +196,12 @@ unresolvedLocalDependency installedBinary dependencyInstallName = do
 --   In the long-term this solution should be abandoned, dependencies should be
 --   described by packages, just like binaries to install.
 workaroundSymlinkedDeps :: (MonadIO m) => [FilePath] -> m ()
-workaroundSymlinkedDeps installedBinaries = do
-    let handleBinary target = liftIO $ do
-            putStrLn $ "Looking into " <> target
-            deps <- Otool.usedLibraries target
-            let localDeps = filter (isPrefixOf "@loader_path") deps
-            missingDeps <- filterM (unresolvedLocalDependency target) localDeps
-            unless (null missingDeps) $ do
-                putStrLn $ "Will try patching paths for dependencies of " <> target
-                mapM_ (fixUnresolvedDependency installedBinaries target) missingDeps
-           
-    mapM_ handleBinary installedBinaries
+workaroundSymlinkedDeps installedBinaries = 
+    for_ installedBinaries $ \target -> do
+        putStrLn $ "Looking into " <> target
+        deps <- Otool.usedLibraries target
+        let localDeps = filter (isPrefixOf "@loader_path") deps
+        missingDeps <- filterM (unresolvedLocalDependency target) localDeps
+        unless (null missingDeps) $ do
+            putStrLn $ "Will try patching paths for dependencies of " <> target
+            for_ missingDeps $ fixUnresolvedDependency installedBinaries target

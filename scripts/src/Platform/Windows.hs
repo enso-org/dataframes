@@ -22,6 +22,9 @@ data DependencyType = System | Local | UCRT | MSVCRT deriving (Eq, Show)
 newtype NormalizedFilename = NormalizedFilename { filename :: FilePath }
     deriving (Eq, Ord, Show)
 
+getProgramFiles86 :: MonadIO m => m FilePath
+getProgramFiles86 = Utils.getEnvDefault "ProgramFiles(x86)" "C:\\Program Files (x86)"
+
 -- | Libraries that should not be packaged and distributed.
 knownSystemLibraries :: [FilePath]
 knownSystemLibraries =
@@ -48,7 +51,8 @@ normalizeBinaryName = NormalizedFilename . fmap toUpper . takeFileName
 lookupMSVCRedist :: MonadIO m => m (Maybe FilePath)
 lookupMSVCRedist = do
     -- eg. C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Redist\MSVC\14.16.27012\x64\Microsoft.VC141.CRT
-    let redistPathPattern = "C:\\Program Files (x86)\\Microsoft Visual Studio\\*\\*\\VC\\Redist\\MSVC\\*\\x64\\Microsoft.VC*.CRT"
+    vsDir <- getProgramFiles86 <&> (</> "Microsoft Visual Studio")
+    let redistPathPattern = vsDir </> "*\\*\\VC\\Redist\\MSVC\\*\\x64\\Microsoft.VC*.CRT"
     matchingLocations <- liftIO $ glob redistPathPattern
     -- we don't want to use "Preview" VS installations
     let matchingLocationsStable = filter (not . isInfixOf "Preview") matchingLocations
@@ -57,11 +61,12 @@ lookupMSVCRedist = do
     -- compatible only this way (you can use newer in the place of older)
 
 -- | Returns directory containing Universal CRT redistributable DLLs. Depends on
--- finding Windows SDK kit.
+-- finding Windows SDK kit. UCRT redist, unlike MSVC redist, is an OS component.
 lookupUCRTRedist :: MonadIO m => m (Maybe FilePath)
 lookupUCRTRedist = do
     -- eg. C:\Program Files (x86)\Windows Kits\10\Redist\10.0.17763.0\ucrt\DLLs\x64
-    let ucrtPathPattern = "C:\\Program Files (x86)\\Windows Kits\\10\\Redist\\10.*\\ucrt\\DLLs\\x64"
+    winSdkDir <- getProgramFiles86 <&> (</> "Windows Kits")
+    let ucrtPathPattern = winSdkDir </> "10\\Redist\\10.*\\ucrt\\DLLs\\x64"
     matchingLocations <- liftIO $ glob ucrtPathPattern
     pure $ maximum matchingLocations
 
@@ -102,18 +107,23 @@ installBinariesInternal targetDir lookupDirs binariesToInstall dependenciesToIns
             then Right $ filename <$> Set.toList installed
             else Left  $ filename <$> Set.toList unresolvedBinaries
 
+-- | The target binaries and their DLL dependencies get copied into target
+--   directory. Even if some dependency cannot be resolved, function tries to
+--   place as much dependencies and binaries and possible.
 installBinaries
     :: MonadIO m
     => FilePath  -- ^ Target directory to place binaries within
     -> [FilePath] -- ^ Binaries to be installed
     -> [FilePath] -- ^ Additional locations with binaries
-    -> m (Either [FilePath] [FilePath])
+    -> m (Either [FilePath] [FilePath]) -- ^ On success: list of installed binaries (their target path). On failure: list of unresolved dependencies.
 installBinaries targetDir binaries additionalLocations = do
     -- liftIO $ putStrLn $ "Installing " <> show binaries
+    
     maybeRedistDir <- lookupMSVCRedist
     maybeUCRTDir <- lookupUCRTRedist
     let redistDir = Utils.fromJustVerbose "cannot find MSVC redist" maybeRedistDir
     let ucrtDir = Utils.fromJustVerbose "cannot find UCRT redist" maybeUCRTDir
+    let allPotentialLocations = [redistDir, ucrtDir] <> additionalLocations
     -- get rid of not existing directories (usually there are some) to save checking
-    binLocations <- liftIO $ filterM doesDirectoryExist $ [redistDir, ucrtDir] <> additionalLocations
+    binLocations <- liftIO $ filterM doesDirectoryExist allPotentialLocations
     installBinariesInternal targetDir binLocations (Set.fromList binaries) def def def

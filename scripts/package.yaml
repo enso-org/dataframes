@@ -91,7 +91,7 @@ dependencies:
 - lens
 - MissingH
 - neat-interpolation
-- pecoff
+- pecoff-fork
 - process
 - prologue
 - safe-exceptions

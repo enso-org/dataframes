@@ -4,7 +4,6 @@ Description : Common interface for finding and calling programs.
 The module defines abstractions common for all programs that can be called
 through this library.
 -}
-{-# LANGUAGE UndecidableInstances #-}
 
 module Program where
 
@@ -188,51 +187,3 @@ lookupExecutable (exeName : exeNamesTail) fallbackDirs = do
     case fst <$> mLookupResult of
         Just path -> pure $ Just path
         Nothing   -> lookupExecutable exeNamesTail fallbackDirs
-
-
-
-
-
-
-
-
-class Logger m where
-    log :: Text -> m ()
-
-instance {-# OVERLAPPABLE #-}
-    ( Monad m
-    , Monad (t m)
-    , MonadTrans t
-    , Logger m
-    ) => Logger (t m) where
-    log = lift . log
-    {-# INLINE log #-}
-
-
-newtype SilentT m a = SilentT (IdentityT m a)
-    deriving (Functor, Applicative, Monad, MonadTrans)
-makeLenses ''SilentT
-
-runSilent :: SilentT m a -> m a
-runSilent = runIdentityT . unwrap
-{-# INLINE runSilent #-}
-
-instance Logger IO where
-    log = putStrLn . convert
-    {-# INLINE log #-}
-
-instance Applicative m => Logger (SilentT m) where
-    log = const $ pure ()
-    {-# INLINE log #-}
-
-
-
-test :: (Logger m, MonadIO m) => m ()
-test = do
-    log "fooo"
-    print "hello"
-
-
--- main = do
---     test
---     runSilent test

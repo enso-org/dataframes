@@ -9,6 +9,7 @@ native_libs/linux/**
 .luna-package/
 .obj/
 .stack-work/
+.vscode/
 
 *.cabal
 

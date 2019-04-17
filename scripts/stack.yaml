@@ -19,4 +19,4 @@ packages:
     - lib/monad-branch
     - lib/th-builder
 - extra-dep: true
-  location: {commit: 1fac424d52e5eb1b3324aa4eeb23b18e7d7e20ea, git: 'https://github.com/mwu-tow/pecoff'}
+  location: {commit: e322bdd961262fd2811320774d17b14fe07b297a, git: 'https://github.com/mwu-tow/pecoff'}
