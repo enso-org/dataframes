@@ -25,7 +25,6 @@ class TypedColumn a:
 
     def fromChunks field chunks:
         self.fromWrapper $ createColumnWrapper field.ptr chunks.ptr
-
     def nullCount: self.ptr.nullCount
     def countMissing: self.nullCount
     def length: self.ptr.length
@@ -149,6 +148,9 @@ class Column:
         typedCol = TypedColumn typeTag . fromChunks field.ptr chunks.ptr
         typeTag.makeColumn typedCol
 
+    def shortRep: case self of
+        Column _: "Column<1×" + self.length.toText + ">"
+
     def createIndex n:
         wrapper = createIntSequenceColumnWrapper "index" 0 n 1
         self.fromColumnWrapper wrapper
@@ -183,7 +185,7 @@ class Column:
         self.fromColumnWrapper $ self.ptr.shift periods
     def autoCorr lag:
         self.ptr.autoCorr lag
-    
+
     def minValue: self.min.toList.head.get
     def maxValue: self.max.toList.head.get
     def meanValue: self.mean.toList.head.get

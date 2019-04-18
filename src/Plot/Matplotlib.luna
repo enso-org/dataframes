@@ -77,6 +77,8 @@ class Chart:
 
     def toChart: self
 
+    def shortRep: "Chart"
+
     def + that:
         def seqRend:
             self.render
@@ -90,7 +92,7 @@ class Chart:
 
     # Saves the chart to an image file.
     #
-    # Image will have dimensions as requested in function arguments. 
+    # Image will have dimensions as requested in function arguments.
     # The image file format is deduced from filename extension.
     # Supported formats: eps, pdf, pgf, png, ps, raw, rgba, svg, svgz.
     #
@@ -130,7 +132,9 @@ class Chart:
         JSON.empty.insert "small" (self.makeDataUrl small) . insert "big" (self.makeDataUrl big)
 
 class Subplot:
-    def verticalLayout: Chart None . verticalLayout 
+    def verticalLayout: Chart None . verticalLayout
+
+    def shortRep: "Subplot"
 
 class Histogram:
     data :: Column
@@ -142,7 +146,9 @@ class Histogram:
 
     def toChart: Chart self.render
 
-    # Combines two plots into one. 
+    def shortRep: "Histogram"
+
+    # Combines two plots into one.
     # All kinds of plots can be combined. Each plot adds more series to the resulting plot.
     #
     # > import Dataframes.Column
@@ -168,10 +174,10 @@ class Histogram:
         self.toChart.+ that
 
     def toJSON: self.toChart.toJSON
-    
+
     # Saves the chart to an image file.
     #
-    # Image will have dimensions as requested in function arguments. 
+    # Image will have dimensions as requested in function arguments.
     # The image file format is deduced from filename extension. Supported formats: eps, pdf, pgf, png, ps, raw, rgba, svg, svgz.
     #
     # > import Dataframes.Column
@@ -197,7 +203,7 @@ class Histogram:
     #
     # `return`: None
     def write: self.toChart.write
-    
+
     # Defines the number of equal-width bins in the given range (10, by default) for a histogram plot.
     #
     # > import Dataframes.Column
@@ -252,6 +258,8 @@ class PlotDate:
 
     def toChart: Chart self.render
 
+    def shortRep: "Date Plot"
+
     # Combines two plots into one.
     # All kinds of plots can be combined. Each plot adds more series to the resulting plot.
     #
@@ -286,7 +294,7 @@ class PlotDate:
 
     # Saves the chart to an image file.
     #
-    # Image will have dimensions as requested in function arguments. 
+    # Image will have dimensions as requested in function arguments.
     # The image file format is deduced from filename extension. Supported formats: eps, pdf, pgf, png, ps, raw, rgba, svg, svgz.
     #
     # > import Dataframes.Column
@@ -318,7 +326,7 @@ class PlotDate:
     #
     # `return`: None
     def write: self.toChart.write
-    
+
     # Creates a chart with given subplots arranged vertically
     #
     # > import Dataframes.Column
@@ -358,6 +366,8 @@ class Scatter:
 
     def toChart: Chart self.render
 
+    def shortRep: "Scatter Plot"
+
     # Combines two plots into one.
     # All kinds of plots can be combined. Each plot adds more series to the resulting plot.
     #
@@ -388,7 +398,7 @@ class Scatter:
 
     # Saves the chart to an image file.
     #
-    # Image will have dimensions as requested in function arguments. 
+    # Image will have dimensions as requested in function arguments.
     # The image file format is deduced from filename extension.
     # Supported formats: eps, pdf, pgf, png, ps, raw, rgba, svg, svgz.
     #
@@ -402,7 +412,7 @@ class Scatter:
     # >     col1 = Column.fromList "col1" Int64Type l1
     # >     col2 = Column.fromList "col2" Int64Type l2
     # >     table = Table.fromColumns [col1 , col2]
-    # >     plt = table.scatter "col1" "col2" 
+    # >     plt = table.scatter "col1" "col2"
     # >     file = plt . write 800 600 "foo.png"
     # >     None
     #
@@ -457,6 +467,8 @@ class Plot:
 
     def toChart: Chart self.render
 
+    def shortRep: "Plot"
+
     # Combines two plots into one.
     # All kinds of plots can be combined. Each plot adds more series to the resulting plot.
     #
@@ -485,10 +497,10 @@ class Plot:
         self.toChart.+ that
 
     def toJSON: self.toChart.toJSON
-    
+
     # Saves the chart to an image file.
     #
-    # Image will have dimensions as requested in function arguments. 
+    # Image will have dimensions as requested in function arguments.
     # The image file format is deduced from filename extension.
     # Supported formats: eps, pdf, pgf, png, ps, raw, rgba, svg, svgz.
     #
@@ -516,9 +528,9 @@ class Plot:
     #
     # `return`: None
     def write: self.toChart.write
-    
+
     # Change plot style from markers to different type.
-    # 
+    #
     # Available styles are:
     # Markers:
     #  `"."` point marker
@@ -570,7 +582,7 @@ class Plot:
     def setStyle s: Plot self.series1 self.series2 s self.label self.color self.alpha
 
     # Adds a legend to the plot.
-    # 
+    #
     # > import Dataframes.Column
     # > import Dataframes.Types
     # > import Dataframes.Table
@@ -587,12 +599,12 @@ class Plot:
     #
     # `l`: Text with plot series description.
     #
-    # `return`: ![](data/docs/docs38.png) 
+    # `return`: ![](data/docs/docs38.png)
 
     def setLabel l: Plot self.series1 self.series2 self.style (Just l) self.color self.alpha
 
     # Changes a plot color.
-    # 
+    #
     # > import Dataframes.Column
     # > import Dataframes.Types
     # > import Dataframes.Table
@@ -620,13 +632,13 @@ class Plot:
     #           `'w'`: white
     #       HTML hex string like: `'#eeefff'`
     #
-    # `return`: ![](data/docs/docs39.png) 
+    # `return`: ![](data/docs/docs39.png)
 
     def setColor c: Plot self.series1 self.series2 self.style self.label (Just c) self.alpha
 
     # Changes a plot transparency.
-    # 
-    # The value for alpha should be between 0 and 1. 
+    #
+    # The value for alpha should be between 0 and 1.
     # 0 is for fully transparent plot and 1 for solid plot.
     #
     # > import Dataframes.Column
@@ -644,7 +656,7 @@ class Plot:
     # >     None
     #
     # `a`: Float value for desired alpha.
-    #      The value for alpha should be between 0 and 1. 
+    #      The value for alpha should be between 0 and 1.
     #      0 is for fully transparent plot and 1 for solid plot.
     #
     # `return`: ![](data/docs/docs40.png)
@@ -690,6 +702,8 @@ class FillBetween:
 
     def toChart: Chart self.render
 
+    def shortRep: "FillBetween Plot"
+
     # Combines two plots into one.
     # All kinds of plots can be combined. Each plot adds more series to the resulting plot.
     #
@@ -720,10 +734,10 @@ class FillBetween:
         self.toChart.+ that
 
     def toJSON: self.toChart.toJSON
-    
+
     # Saves the chart to an image file.
     #
-    # Image will have dimensions as requested in function arguments. 
+    # Image will have dimensions as requested in function arguments.
     # The image file format is deduced from filename extension.
     # Supported formats: eps, pdf, pgf, png, ps, raw, rgba, svg, svgz.
     #
@@ -754,9 +768,9 @@ class FillBetween:
     #
     # `return`: None
     def write: self.toChart.write
-    
+
     # Adds a legend to the plot.
-    # 
+    #
     # > import Dataframes.Column
     # > import Dataframes.Types
     # > import Dataframes.Table
@@ -775,12 +789,12 @@ class FillBetween:
     #
     # `l`: Text with plot series description.
     #
-    # `return`: TODO print screen 
+    # `return`: TODO print screen
 
     def setLabel l: FillBetween self.series1 self.series2 self.series3 (Just l) self.color self.alpha
 
     # Changes a plot color.
-    # 
+    #
     # > import Dataframes.Column
     # > import Dataframes.Types
     # > import Dataframes.Table
@@ -799,13 +813,13 @@ class FillBetween:
     #
     # `c`: Text with color to fill the plot.
     #
-    # `return`: TODO print screen 
+    # `return`: TODO print screen
 
     def setColor c: FillBetween self.series1 self.series2 self.series3 self.label (Just c) self.alpha
 
     # Changes a plot transparency.
-    # 
-    # The value for alpha should be between 0 and 1. 
+    #
+    # The value for alpha should be between 0 and 1.
     # 0 is for fully transparent plot and 1 for solid plot.
     #
     # > import Dataframes.Column
@@ -868,6 +882,8 @@ class KDE2:
 
     def toChart: Chart self.render
 
+    def shortRep: "KDE2 Plot"
+
     # Combines two plots into one.
     # All kinds of plots can be combined. Each plot adds more series to the resulting plot.
     def + that:
@@ -877,7 +893,7 @@ class KDE2:
 
     # Saves the chart to an image file.
     #
-    # Image will have dimensions as requested in function arguments. 
+    # Image will have dimensions as requested in function arguments.
     # The image file format is deduced from filename extension.
     # Supported formats: eps, pdf, pgf, png, ps, raw, rgba, svg, svgz.
     #
@@ -921,16 +937,18 @@ class KDE:
 
     def toChart: Chart self.render
 
+    def shortRep: "KDE Plot"
+
     # Combines two plots into one.
     # All kinds of plots can be combined. Each plot adds more series to the resulting plot.
     def + that:
         self.toChart.+ that
 
     def toJSON: self.toChart.toJSON
-    
+
     # Saves the chart to an image file.
     #
-    # Image will have dimensions as requested in function arguments. 
+    # Image will have dimensions as requested in function arguments.
     # The image file format is deduced from filename extension.
     # Supported formats: eps, pdf, pgf, png, ps, raw, rgba, svg, svgz.
     #
