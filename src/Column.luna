@@ -149,7 +149,8 @@ class Column:
         typeTag.makeColumn typedCol
 
     def shortRep: case self of
-        Column _: "Column<1×" + self.length.toText + ">"
+        Column: "Column"
+        _: "Column<1×" + self.length.toText + ">"
 
     def createIndex n:
         wrapper = createIntSequenceColumnWrapper "index" 0 n 1

@@ -16,6 +16,10 @@ class Array a:
         wrapper' = wrapper
         ArrayVal self.typeTag wrapper'
 
+    def shortRep:case self of
+        Array t: "Array"
+        _: "Array<1x" + self.length.toText + ">"
+
     def fromList list:
         builder = ArrayBuilder self.typeTag . create
         builder.appendMany list
