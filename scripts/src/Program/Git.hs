@@ -24,8 +24,9 @@ instance Program.Program Git where
 -- === Utils === --
 
 
--- | A few git query-like commands return a text line output on success.
--- Output line may be followed by an empty line.
+-- | A few git query-like commands print a text line on stdout on success.
+--   Output line may be followed by an empty line. This function obtains the
+--   non-empty line. Both stdout and stderr are consumed. stderr is ignored.
 expectSingleLineOut :: MonadIO m => Process.ProcessConfig () () () -> m (Maybe String)
 expectSingleLineOut cmd = runMaybeT $ do
     let cmd' = Process.setStderr Process.closed cmd
@@ -48,9 +49,10 @@ isRepositorySubtree path = do
     maybeLine <- expectSingleLineOut cmd
     pure $ maybeLine == Just "true"
 
--- Returns repository root (without trailing .git directory) when given a path
--- to repository or its subtree.
--- Returns Nothing if given path does not belong to repository.
+-- | Returns repository root (without trailing .git directory) when given a path
+--   to repository or its subtree. Returns Nothing if given path does not belong
+--   to repository. WARNING: behavior is defined only for directories that
+--   exist.
 repositoryRoot :: FilePath -> IO (Maybe FilePath)
 repositoryRoot path = do
     cmd <- Program.progCwd @Git path ["rev-parse", "--git-dir"]

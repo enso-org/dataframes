@@ -243,29 +243,11 @@ packageNativeLibs :: FilePath -> DataframesBuildArtifacts -> FilePath -> IO ()
 packageNativeLibs repoDir buildArtifacts nativeLibsDest = do
     let builtDlls = dataframesBinaries buildArtifacts
     when (null builtDlls) $ error "Build Library.action $ n have not build any binaries despite declaring success!"
-    case buildOS of
-        Windows -> do
-            additionalLocations <- additionalLocationsWithBinaries repoDir
-            void $ Windows.packageBinaries nativeLibsDest builtDlls additionalLocations
-        Linux -> do
-            dependencies <- Linux.dependenciesToPackage builtDlls
-            forM_ dependencies $ Linux.installDependencyTo nativeLibsDest
-            forM_ builtDlls   $ Linux.installBinary nativeLibsDest nativeLibsDest
-        OSX -> do
-            -- Note: This code assumed that all redistributable build artifacts are dylibs.
-            --       It might need generalization in future.
-            allDeps <- MacOS.getDependenciesOfDylibs builtDlls
-
-            let trulyLocalDependency path = MacOS.isLocalDep path && (not $ elem path builtDlls)
-            let localDependencies = filter trulyLocalDependency allDeps
-            let binariesToInstall = localDependencies <> builtDlls
-            putStrLn $ "Binaries to install: " <> show binariesToInstall
-
-            -- Place all artifact binaries and their local dependencies in the destination directory
-            binariesInstalled <- flip mapM binariesToInstall $ MacOS.installBinary nativeLibsDest
-
-            -- Workaround possible issues caused by deps install names referring to symlinks
-            MacOS.workaroundSymlinkedDeps binariesInstalled
+    additionalDependencyDirs <- case buildOS of
+            Windows -> additionalLocationsWithBinaries repoDir
+            _       -> pure []
+    Platform.packageBinaries nativeLibsDest builtDlls additionalDependencyDirs
+    pure ()
 
 package :: FilePath -> FilePath -> DataframesBuildArtifacts -> IO DataframesPackageArtifacts
 package repoDir stagingDir buildArtifacts = do
