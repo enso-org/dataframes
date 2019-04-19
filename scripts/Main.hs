@@ -282,8 +282,8 @@ runTests repoDir buildArtifacts packageArtifacts = do
 main :: IO ()
 main = do
     -- putStrLn $ "Starting Dataframes build"
-    -- withSystemTempDirectory "" $ \stagingDir -> do
-        let stagingDir = "C:\\Users\\mwu\\AppData\\Local\\Temp\\-777f232250ff9e9c"
+    withSystemTempDirectory "" $ \stagingDir -> do
+        -- let stagingDir = "C:\\Users\\mwu\\AppData\\Local\\Temp\\-777f232250ff9e9c"
         putStrLn $ "Preparing environment..."
         prepareEnvironment stagingDir
         putStrLn $ "Obtaining repository directory..."
