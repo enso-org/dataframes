@@ -102,3 +102,4 @@ dependencies:
 - text
 - unix-compat
 - unliftio-core
+- utf8-string

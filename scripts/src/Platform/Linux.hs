@@ -44,7 +44,8 @@ isDistributable libraryPath
         librariesNotToBeDistributed
 
 -- | Function collects the list of shared library dependencies that should
---   package along the given set of binaries.
+--   package along the given set of binaries. This is implemented on top of
+--   @ldd@ command.
 --
 --   Note that when packaging, all the binaries (including dependencies) should
 --   be also patched to properly prefer shipped libraries over the ones
@@ -64,21 +65,37 @@ dependenciesToPackage binaries
 --   to the output directory)
 installBinary
     :: (MonadIO m)
-    => FilePath -- ^ Output directory where the binary will be copied into.
-    -> FilePath -- ^ Directory containing library dependencies (in the same
-                --   package structure as output directory).
-    -> FilePath -- ^ Binary to be copied and patched.
-    -> m ()
+    => FilePath   -- ^ Output directory where the binary will be copied into.
+    -> FilePath   -- ^ Directory containing library dependencies (in the same
+                  --   package structure as output directory).
+    -> FilePath   -- ^ Binary to be copied and patched.
+    -> m FilePath -- ^ Path to the packaged binary.
 installBinary outputDirectory dependenciesDirectory sourcePath = do
     newBinaryPath <- Utils.copyToDir outputDirectory sourcePath
     Unix.withWritableFile newBinaryPath $
         Patchelf.setRelativeRpath 
             newBinaryPath 
             [dependenciesDirectory, outputDirectory]
+    pure newBinaryPath
 
 -- | Installs binary to the folder and sets this folder as rpath. Typically used
 --   with dependencies (when install-to directory and dependencies directory are
 --   same)
-installDependencyTo :: (MonadIO m) => FilePath -> FilePath -> m ()
-installDependencyTo targetDirectory sourcePath 
-    = installBinary targetDirectory targetDirectory sourcePath
+installDependencyTo :: (MonadIO m) => FilePath -> FilePath -> m FilePath
+installDependencyTo targetDirectory 
+    = installBinary targetDirectory targetDirectory
+
+    
+-- | The target binaries and their shared library dependencies get copied into
+--   target directory. Fails if there are unresolved dependencies.
+packageBinaries 
+    :: MonadIO m 
+    => FilePath  -- ^ Target directory to place binaries within
+    -> [FilePath] -- ^ Binaries to be installed
+    -> [FilePath] -- ^ Additional locations with binaries
+    -> m [FilePath] -- ^ List of installed binaries (their target path).
+packageBinaries targetDir binaries additionalLocations = do
+    unless (null additionalLocations)
+        (error "additional library location not supported on Linux" :: m ())
+    dependencies <- dependenciesToPackage binaries
+    for (dependencies <> binaries) $ installDependencyTo targetDir

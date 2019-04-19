@@ -15,11 +15,14 @@ import System.FilePath.Glob
 import System.IO.Temp
 import System.Process.Typed hiding (setEnv)
 
+import qualified Package.Library as Library
 import Utils
 
+import qualified Platform                as Platform
 import qualified Program                 as Program
 import qualified Program.CMake           as CMake
 import qualified Program.Curl            as Curl
+import qualified Program.Git             as Git
 import qualified Program.Ldd             as Ldd
 import qualified Program.Patchelf        as Patchelf
 import qualified Program.MsBuild         as MsBuild
@@ -42,10 +45,7 @@ msBuildConfig = MsBuild.BuildConfiguration MsBuild.Release MsBuild.X64
 
 -- | All paths below are functions over repository directory (or package root,
 -- if applicable)
-nativeLibs, nativeLibsSrc, nativeLibsBin, solutionFile, dataframeVsProject :: FilePath -> FilePath
-nativeLibs         = (</> "native_libs")
-nativeLibsSrc      = (</> "src")                     . nativeLibs
-nativeLibsBin      = (</> nativeLibsOsDir)           . nativeLibs
+nativeLibsSrc      = (</> Library.nativeLibs </> "src")
 solutionFile       = (</> "DataframeHelper.sln")     . nativeLibsSrc
 dataframeVsProject = (</> "DataframeHelper.vcxproj") . nativeLibsSrc
 
@@ -61,7 +61,18 @@ downloadAndUnpack7z archiveUrl targetDirectory = do
 
 -- | Gets path to the local copy of the Dataframes repo
 repoDir :: IO FilePath
-repoDir = getEnvRequired "DATAFRAMES_REPO_PATH" -- TODO: should be able to deduce from this packaging executable location
+repoDir = lookupEnv "BUILD_SOURCESDIRECTORY" >>= \case
+    Just path -> pure path
+    Nothing -> do
+        exePath <- getExecutablePath 
+        Git.repositoryRoot (takeDirectory exePath) >>= \case
+            Just path -> pure path
+            Nothing   -> do
+                cwdDir <- getCurrentDirectory
+                Git.repositoryRoot cwdDir >>= \case
+                    Just path -> pure path
+                    Nothing   -> error $ "cannot deduce repository root path, please define BUILD_SOURCESDIRECTORY"
+
 
 -- | Path to directory with Python installation, should not contain other things
 -- (that was passed as --prefix to Python's configure script)
@@ -93,35 +104,6 @@ packDirectory pathToPack outputArchive = do
             ".xz"   -> tarPack Tar.XZ
             ".lzma" -> tarPack Tar.LZMA
             _       -> fail $ "packDirectory: cannot deduce compression algorithm from extension: " <> takeExtension outputArchive
-
-dynamicLibraryPrefix :: String
-dynamicLibraryPrefix = case buildOS of
-    Windows -> ""
-    _       -> "lib"
-
-dynamicLibraryExtension :: String
-dynamicLibraryExtension = case buildOS of
-    Windows -> "dll"
-    Linux   -> "so"
-    OSX     -> "dylib"
-    _       -> error $ "dynamicLibraryExtension: not implemented: " <> show buildOS
-
--- | Converts root name into os-specific library filename, e.g.:
---   @DataframeHelper@ becomes @DataframeHelper.dll@ on Windows or
---   @libDataframeHelper.so@ on Linux.
-libraryFilename :: String -> FilePath
-libraryFilename name 
-    = dynamicLibraryPrefix <> name <.> dynamicLibraryExtension
-
-executableFilename :: String -> FilePath
-executableFilename = (<.> exeExtension)
-
-nativeLibsOsDir :: String
-nativeLibsOsDir = case buildOS of
-    Windows -> "windows"
-    Linux   -> "linux"
-    OSX     -> "macos"
-    _       -> error $ "nativeLibsOsDir: not implemented: " <> show buildOS
 
 dataframesPackageName :: String
 dataframesPackageName = case buildOS of
@@ -181,8 +163,10 @@ buildProject repoDir stagingDir = do
     -- script should know what it wants to build, so it feels better to just fix
     -- names here. Note that they need to be in sync with C++ project files
     -- (both CMake and MSBuild).
-    let targetLibraries = libraryFilename    <$> ["DataframeHelper", "DataframePlotter", "Learn"]
-    let targetTests     = executableFilename <$> ["DataframeHelperTests"]
+    let targetLibraries = Platform.libraryFilename 
+                          <$> ["DataframeHelper", "DataframePlotter", "Learn"]
+    let targetTests     = Platform.executableFilename 
+                          <$> ["DataframeHelperTests"]
     let targets         = targetLibraries <> targetTests
 
     case buildOS of
@@ -200,7 +184,7 @@ buildProject repoDir stagingDir = do
             let buildDir = stagingDir </> "build"
             let srcDir = nativeLibsSrc repoDir
             let pythonLibDir = pythonPrefix </> "lib"
-            let pythonLibName = "libpython" <> pythonVersion <> "m" <.> dynamicLibraryExtension
+            let pythonLibName = "libpython" <> pythonVersion <> "m" <.> Platform.dllExtension
             let pythonLibPath = pythonLibDir </> pythonLibName
             let numpyIncludeDir = pythonLibDir </> "python" <> pythonVersion </> "site-packages/numpy/core/include"
             let cmakeVariables =  
@@ -211,7 +195,7 @@ buildProject repoDir stagingDir = do
                         : (CMake.OptionSetVariable <$> cmakeVariables)
             CMake.build buildDir srcDir options
 
-    let builtBinariesDir = nativeLibsBin repoDir
+    let builtBinariesDir = repoDir </> Library.nativeLibsBin
     let expectedArtifacts = DataframesBuildArtifacts
             { dataframesBinaries = (builtBinariesDir </>) <$> targetLibraries
             , dataframesTests    = (builtBinariesDir </>) <$> targetTests
@@ -244,40 +228,30 @@ additionalLocationsWithBinaries repoDir = do
             Just additions -> split ";" additions
             Nothing        -> []
 
-package :: FilePath -> FilePath -> DataframesBuildArtifacts -> IO DataframesPackageArtifacts
-package repoDir stagingDir buildArtifacts = do
-    putStrLn $ "Packaging build artifacts..."
-    let packageRoot = stagingDir </> "Dataframes"
-    let packageBinariesDir = nativeLibsBin packageRoot
-
-    putStrLn $ "Creating package at " <> packageRoot
-    prepareEmptyDirectory packageRoot
-    
-    let dirsToCopy = ["src", "visualizers", ".luna-package"]
-    mapM (copyDirectory repoDir packageRoot) dirsToCopy
-
-    let builtDlls = dataframesBinaries buildArtifacts
-    when (null builtDlls) $ error "Build action have not build any binaries despite declaring success!"
-
+packagePython :: FilePath -> FilePath -> IO ()
+packagePython repoDir packageRoot = do
     case buildOS of
-        Windows -> do
-            additionalLocations <- additionalLocationsWithBinaries repoDir
-            downloadAndUnpack7z packageBaseUrl packageBinariesDir
-            installResult <- Windows.installBinaries packageBinariesDir builtDlls additionalLocations
-            case installResult of
-                Left unresolved -> error $ "Failed to package binaries, unresolved dependencies: " <> show unresolved
-                Right _ -> pure ()
-
-        Linux -> do
-            dependencies <- Linux.dependenciesToPackage builtDlls
-            mapM (Linux.installDependencyTo packageBinariesDir) dependencies
-            mapM (Linux.installBinary packageBinariesDir packageBinariesDir) builtDlls
-
+        Windows -> 
+            -- We use pre-built package.
+            downloadAndUnpack7z packageBaseUrl $ packageRoot </> Library.nativeLibsBin
+        _ -> do
             -- Copy Python installation to the package and remove some parts that are heavy and not needed.
             pythonPrefix <- pythonPrefix
             copyInPythonLibs pythonPrefix packageRoot
+
+packageNativeLibs :: FilePath -> DataframesBuildArtifacts -> FilePath -> IO ()
+packageNativeLibs repoDir buildArtifacts nativeLibsDest = do
+    let builtDlls = dataframesBinaries buildArtifacts
+    when (null builtDlls) $ error "Build Library.action $ n have not build any binaries despite declaring success!"
+    case buildOS of
+        Windows -> do
+            additionalLocations <- additionalLocationsWithBinaries repoDir
+            void $ Windows.packageBinaries nativeLibsDest builtDlls additionalLocations
+        Linux -> do
+            dependencies <- Linux.dependenciesToPackage builtDlls
+            forM_ dependencies $ Linux.installDependencyTo nativeLibsDest
+            forM_ builtDlls   $ Linux.installBinary nativeLibsDest nativeLibsDest
         OSX -> do
-            let testsBinary = head $ dataframesTests buildArtifacts
             -- Note: This code assumed that all redistributable build artifacts are dylibs.
             --       It might need generalization in future.
             allDeps <- MacOS.getDependenciesOfDylibs builtDlls
@@ -286,16 +260,23 @@ package repoDir stagingDir buildArtifacts = do
             let localDependencies = filter trulyLocalDependency allDeps
             let binariesToInstall = localDependencies <> builtDlls
             putStrLn $ "Binaries to install: " <> show binariesToInstall
+
             -- Place all artifact binaries and their local dependencies in the destination directory
-            binariesInstalled <- flip mapM binariesToInstall $ MacOS.installBinary packageBinariesDir
+            binariesInstalled <- flip mapM binariesToInstall $ MacOS.installBinary nativeLibsDest
 
             -- Workaround possible issues caused by deps install names referring to symlinks
             MacOS.workaroundSymlinkedDeps binariesInstalled
 
-            -- Copy Python installation to the package and remove some parts that are heavy and not needed.
-            pythonPrefix <- pythonPrefix
-            copyInPythonLibs pythonPrefix packageRoot
+package :: FilePath -> FilePath -> DataframesBuildArtifacts -> IO DataframesPackageArtifacts
+package repoDir stagingDir buildArtifacts = do
+    putStrLn $ "Packaging build artifacts..."
+    let packageRoot = stagingDir </> "Dataframes"
+    let packageNativeLibsHook nativeLibsDest = do
+            packagePython repoDir packageRoot
+            packageNativeLibs repoDir buildArtifacts nativeLibsDest
 
+    Library.package repoDir packageRoot $ Library.Hooks
+        { _installNativeLibs = Library.Hook $ packageNativeLibsHook }
     packDirectory packageRoot dataframesPackageName
     putStrLn $ "Packaging done, file saved to: " <> dataframesPackageName
     pure $ DataframesPackageArtifacts
@@ -309,7 +290,7 @@ runTests repoDir buildArtifacts packageArtifacts = do
     -- so all the dependencies are properly visible.
     -- The CWD must be repository though for test to properly find
     -- the data files.
-    let packageDirBinaries = nativeLibsBin $ dataframesPackageDirectory packageArtifacts
+    let packageDirBinaries = dataframesPackageDirectory packageArtifacts </> Library.nativeLibsBin
     tests <- mapM (copyToDir packageDirBinaries) (dataframesTests buildArtifacts)
     withCurrentDirectory repoDir $ do
         let configs = flip proc ["--report_level=detailed"] <$> tests
@@ -318,9 +299,9 @@ runTests repoDir buildArtifacts packageArtifacts = do
 
 main :: IO ()
 main = do
-    putStrLn $ "Starting Dataframes build"
-    withSystemTempDirectory "" $ \stagingDir -> do
-        -- let stagingDir = "C:\\Users\\mwu\\AppData\\Local\\Temp\\-777f232250ff9e9c"
+    -- putStrLn $ "Starting Dataframes build"
+    -- withSystemTempDirectory "" $ \stagingDir -> do
+        let stagingDir = "C:\\Users\\mwu\\AppData\\Local\\Temp\\-777f232250ff9e9c"
         putStrLn $ "Preparing environment..."
         prepareEnvironment stagingDir
         putStrLn $ "Obtaining repository directory..."

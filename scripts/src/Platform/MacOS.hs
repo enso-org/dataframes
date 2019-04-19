@@ -11,18 +11,20 @@ import qualified Program.Otool           as Otool
 import qualified System.Process.Typed    as Process
 import qualified Utils                   as Utils
 
-import Control.Monad             (filterM)
-import Data.FileEmbed            (embedFile)
-import Data.List                 (delete, elemIndex, find, isPrefixOf,
-                                  partition)
-import Distribution.Simple.Utils (fromUTF8LBS)
-import System.Directory          (doesPathExist)
-import System.Exit               (ExitCode (ExitFailure))
-import System.FilePath           (replaceFileName, takeDirectory, takeFileName,
-                                  (</>))
-import System.FilePath.Glob      (Pattern, compile, match)
-import System.IO.Temp            (withSystemTempDirectory)
-import Text.Printf               (printf)
+import Control.Monad                  (filterM)
+import Data.FileEmbed                 (embedFile)
+import Data.List                      (delete, elemIndex, find, isPrefixOf,
+                                       partition)
+import Distribution.Simple.BuildPaths (dllExtension)
+import Distribution.Simple.Utils      (fromUTF8LBS)
+import Distribution.System            (buildPlatform)
+import System.Directory               (doesPathExist)
+import System.Exit                    (ExitCode (ExitFailure))
+import System.FilePath                (replaceFileName, takeDirectory,
+                                       takeExtension, takeFileName, (</>))
+import System.FilePath.Glob           (Pattern, compile, match)
+import System.IO.Temp                 (withSystemTempDirectory)
+import Text.Printf                    (printf)
 
 
 -- | Source code of C++ program that loads dybamic libraries passed as its
@@ -41,19 +43,19 @@ dlopenProgram = $(embedFile "helpers/main.cpp")
 --
 --   NOTE: when dependency is accessed through symlink, the target location will
 --   be returned (see 'workaroundSymlinkedDeps')
-getDependenciesOfExecutable 
-    :: (MonadIO m) 
+getDependenciesOfExecutable
+    :: (MonadIO m)
     => FilePath -- ^ Executable path
     -> [String] -- ^ Arguments to be used to call executable.
     -> m [FilePath]
 getDependenciesOfExecutable exePath args = do
     let envToAdd = [("DYLD_PRINT_LIBRARIES", "1")]
     let spawnInfo = (Process.setEnv envToAdd $ Process.proc exePath args)
-    (code, fromUTF8LBS -> out, fromUTF8LBS -> err) 
+    (code, fromUTF8LBS -> out, fromUTF8LBS -> err)
         <- Process.readProcess spawnInfo
     case code of
-        ExitFailure code -> 
-            liftIO $ fail $ printf 
+        ExitFailure code ->
+            liftIO $ fail $ printf
                 "call failed: %s:\nout: %s\nerr: %s\nreturn code %d"
                 (show spawnInfo) out err code
         _ -> pure ()
@@ -68,12 +70,12 @@ getDependenciesOfExecutable exePath args = do
 --   libraries is loaded. Internally builds program that loads them and runs it.
 --   Requires @clang++@ compiler to be available.
 getDependenciesOfDylibs :: (MonadIO m) => [FilePath] -> m [FilePath]
-getDependenciesOfDylibs targets 
+getDependenciesOfDylibs targets
     = liftIO $ withSystemTempDirectory "" $ \tempDir -> do
     let programSrcPath = tempDir </> "main.cpp"
     let programExePath = tempDir </> "moje"
     BS.writeFile programSrcPath dlopenProgram
-    Process.runProcess_ 
+    Process.runProcess_
         $ Process.proc "clang++" [programSrcPath, "-o" <> programExePath]
     getDependenciesOfExecutable programExePath targets
 
@@ -85,7 +87,7 @@ internalPythonPath = compile "**/lib/python*.*/**/*"
 
 -- | All dynamic library dependencies on macOS can be split to the following
 --   categories, depending on how we want to package and redistribute them.
-data DependencyCategory = 
+data DependencyCategory =
       System -- ^ a dependency that is assumed to be present out-of-the box on
              --   all targeted OSX systems. Should not be distributed.
     | Python -- ^ a dependency belonging to the Python installation. Should be
@@ -100,7 +102,7 @@ categorizeDependency :: FilePath -- ^ An absolute path to dynamic library.
 categorizeDependency dependencyFullPath =
     if match internalPythonPath dependencyFullPath
         then Python
-        else if (isPrefixOf "/usr/lib/system/" dependencyFullPath) 
+        else if (isPrefixOf "/usr/lib/system/" dependencyFullPath)
              || (isPrefixOf "/System" dependencyFullPath)
             then System
             else if takeDirectory dependencyFullPath == "/usr/lib"
@@ -125,11 +127,11 @@ installBinary targetBinariesDir sourcePath = do
         for_ directDeps $ \installName -> do
             when (isLocalDep installName) $ do
                 -- local dependencies of local dependencies are in the same
-                -- folder as the current binary 
+                -- folder as the current binary
                 --
                 -- NOTE: in future, in multi-package world, there might be more
                 -- folders
-                INT.change destinationPath installName 
+                INT.change destinationPath installName
                     $ "@loader_path" </> takeFileName installName
     pure destinationPath
 
@@ -141,7 +143,7 @@ takeNamePrefix = takeWhile (/= '.') . takeFileName
 -- | Returns a predicate that checks if given file has the same name as the
 --   first argument up to the first dot.
 --   E.g. @libicudata.63.dylib@ matches @libicudata.63.1.dylib@
-matchesPrefix 
+matchesPrefix
     :: FilePath -- ^ Path to compare against
     -> (FilePath -> Bool) -- ^ Resulting predicate
 matchesPrefix lhs rhs = takeNamePrefix lhs == takeNamePrefix rhs
@@ -151,8 +153,8 @@ matchesPrefix lhs rhs = takeNamePrefix lhs == takeNamePrefix rhs
 --   dependencies, its install name shall be used. See 'workaroundSymlinkedDeps'
 --   for a full explanation.
 --   Fails when the library cannot be resolved.
-fixUnresolvedDependency 
-    :: (MonadIO m) 
+fixUnresolvedDependency
+    :: (MonadIO m)
     => [FilePath] -- ^ All installed dependencies
     -> FilePath  -- ^ Binary to be patched
     -> String  -- ^ Dependency of the bianry
@@ -160,13 +162,14 @@ fixUnresolvedDependency
 fixUnresolvedDependency installedBinaries binary dependency = do
     let match = find (matchesPrefix dependency) installedBinaries
     case match of
-        Nothing -> error 
-            $ printf "for binary %s: cannot resolve dependency: %s" 
+        Nothing -> error
+            $ printf "for binary %s: cannot resolve dependency: %s"
               binary dependency
         Just matchingPath -> do
-            let adjustedDependency = replaceFileName dependency $ takeFileName matchingPath
-            liftIO $ putStrLn 
-                   $ printf "\tpatching %s -> %s" dependency adjustedDependency 
+            let matchedFileName = takeFileName matchingPath
+            let adjustedDependency = replaceFileName dependency matchedFileName
+            liftIO $ putStrLn
+                   $ printf "\tpatching %s -> %s" dependency adjustedDependency
             INT.change binary dependency adjustedDependency
 
 -- | Checks if this is a dependency expected to be next to the loaded binary
@@ -196,7 +199,7 @@ unresolvedLocalDependency installedBinary dependencyInstallName = do
 --   In the long-term this solution should be abandoned, dependencies should be
 --   described by packages, just like binaries to install.
 workaroundSymlinkedDeps :: (MonadIO m) => [FilePath] -> m ()
-workaroundSymlinkedDeps installedBinaries = 
+workaroundSymlinkedDeps installedBinaries =
     for_ installedBinaries $ \target -> do
         putStrLn $ "Looking into " <> target
         deps <- Otool.usedLibraries target
@@ -205,3 +208,38 @@ workaroundSymlinkedDeps installedBinaries =
         unless (null missingDeps) $ do
             putStrLn $ "Will try patching paths for dependencies of " <> target
             for_ missingDeps $ fixUnresolvedDependency installedBinaries target
+
+-- | The target binaries and their shared library dependencies get copied into
+--   target directory.
+packageBinaries
+    :: MonadIO m
+    => FilePath  -- ^ Target directory to place binaries within
+    -> [FilePath] -- ^ Binaries to be installed
+    -> [FilePath] -- ^ Additional locations with binaries
+    -> m [FilePath] -- ^ List of installed binaries (their target path).
+packageBinaries targetDir binaries additionalLocations = do
+    unless (null additionalLocations)
+        (error "additional library location not supported on macOS" :: m ())
+
+    let isDylib = (== dllExtension buildPlatform) . takeExtension
+    let (dylibBinaries, exeBinaries) = partition isDylib binaries
+    -- Note: This code assumed that all redistributable build artifacts are dylibs.
+    --       It might need generalization in future.
+    dylibDeps <- getDependenciesOfDylibs dylibBinaries
+    unless (null exeBinaries)
+        (error "packaging arbtitrary executables not supported on macOS" :: m ())
+
+    let allDeps = dylibDeps <> [] -- FIXME: exe deps
+
+    let trulyLocalDependency path = isLocalDep path && (not $ elem path binaries)
+    let localDependencies = filter trulyLocalDependency allDeps
+    let binariesToInstall = localDependencies <> binaries
+    putStrLn $ "Binaries to install: " <> show binariesToInstall
+
+    -- Place all artifact binaries and their local dependencies in the destination directory
+    binariesInstalled <- for binariesToInstall $ installBinary targetDir
+
+    -- Workaround possible issues caused by deps install names referring to symlinks
+    workaroundSymlinkedDeps binariesInstalled
+
+    pure binariesInstalled

@@ -96,6 +96,7 @@ data BuildConfiguration = BuildConfiguration Configuration Platform
 instance Switchlike BuildConfiguration where
     toSwitches (BuildConfiguration c p) = toSwitches c <> toSwitches p
 
+-- | By default targets x64 in Release mode.
 instance Default BuildConfiguration where
     def = BuildConfiguration Release X64
 

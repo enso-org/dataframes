@@ -127,3 +127,16 @@ installBinaries targetDir binaries additionalLocations = do
     -- get rid of not existing directories (usually there are some) to save checking
     binLocations <- liftIO $ filterM doesDirectoryExist allPotentialLocations
     installBinariesInternal targetDir binLocations (Set.fromList binaries) def def def
+
+-- | The target binaries and their DLL dependencies get copied into target
+--   directory. Fails if there are unresolved dependencies.
+packageBinaries 
+    :: MonadIO m 
+    => FilePath  -- ^ Target directory to place binaries within
+    -> [FilePath] -- ^ Binaries to be installed
+    -> [FilePath] -- ^ Additional locations with binaries
+    -> m [FilePath] -- ^ List of installed binaries (their target path).
+packageBinaries targetDir binaries additionalLocations = do
+    installBinaries targetDir binaries additionalLocations >>= \case
+        Left unresolved -> error $ "Failed to package binaries, unresolved dependencies: " <> show unresolved
+        Right paths -> pure paths

@@ -5,13 +5,11 @@ trigger:
     include:
     - "*"
 
-variables:
-  Dataframes.Repo.Path: $(Build.SourcesDirectory) # this one is required by the build script
 jobs:
 - job: Linux
   pool:
     vmImage: 'Ubuntu-16.04'
-  container: lunalang/dataframes-package:1.0.3
+  container: lunalang/dataframes-package:1.0.4
   variables: 
     PYTHON_PREFIX_PATH: /python-dist
   steps:
