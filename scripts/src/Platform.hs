@@ -35,11 +35,7 @@ packageBinaries
     -> [FilePath] -- ^ Binaries to be installed
     -> [FilePath] -- ^ Additional locations with binaries
     -> m [FilePath] -- ^ List of installed binaries (their target path).
-packageBinaries targetDir binaries additionalLocations = do
-    case buildOS of
-        Windows -> 
-            Windows.packageBinaries targetDir binaries additionalLocations
-        Linux ->
-            Windows.packageBinaries targetDir binaries additionalLocations
-        OSX -> do
-            MacOS.packageBinaries targetDir binaries additionalLocations
+packageBinaries = case buildOS of
+    Windows -> Windows.packageBinaries
+    Linux   -> Linux.packageBinaries
+    OSX     -> MacOS.packageBinaries
