@@ -227,7 +227,7 @@ packageBinaries targetDir binaries additionalLocations = do
     --       It might need generalization in future.
     dylibDeps <- getDependenciesOfDylibs dylibBinaries
     unless (null exeBinaries)
-        (error "packaging arbtitrary executables not supported on macOS" :: m ())
+        (error $ "packaging arbtitrary executables not supported on macOS, encountered: " <> show exeBinaries :: m ())
 
     let allDeps = dylibDeps <> [] -- FIXME: exe deps
 
