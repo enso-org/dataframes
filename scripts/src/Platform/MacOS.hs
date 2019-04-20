@@ -209,6 +209,10 @@ workaroundSymlinkedDeps installedBinaries =
             putStrLn $ "Will try patching paths for dependencies of " <> target
             for_ missingDeps $ fixUnresolvedDependency installedBinaries target
 
+-- | Checks filename extension.
+isDylib :: FilePath -> Bool
+isDylib path = takeExtension path == '.' : dllExtension buildPlatform
+
 -- | The target binaries and their shared library dependencies get copied into
 --   target directory.
 packageBinaries
@@ -221,7 +225,6 @@ packageBinaries targetDir binaries additionalLocations = do
     unless (null additionalLocations)
         (error "additional library location not supported on macOS" :: m ())
 
-    let isDylib = (== dllExtension buildPlatform) . takeExtension
     let (dylibBinaries, exeBinaries) = partition isDylib binaries
     -- Note: This code assumed that all redistributable build artifacts are dylibs.
     --       It might need generalization in future.
