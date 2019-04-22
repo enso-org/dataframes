@@ -4,6 +4,12 @@ trigger:
   branches:
     include:
     - "*"
+  paths:
+    exclude:
+    - README.md
+    - LICENSE
+
+pr: none
 
 jobs:
 - job: Linux

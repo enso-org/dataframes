@@ -65,17 +65,19 @@ class Table:
     def fromSchemaAndColumns schema columns:
         self.fromWrapper $ createTableWrapper schema.ptr (columns.each .ptr)
 
-    # Constructing `Table` from a list of `Column` values.
+    # Constructs `Table` from a list of `Column` values.
     #
     # If empty list is given the return value is equivalent to `Table.empty`.
-    # If columns have different rows counts: Table with different amount of rows in different columns is returned. To be fixed by https://github.com/luna/Dataframes/issues/62
+    # If columns have different rows counts: Table with row count like in
+    # the longest column will be returned.
+    # Missing values in shorter columns will be filled with nulls.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
     # > import Dataframes.Table
     # >
     # > def main:
-    # >     l1 = [1,2,3,4,5]
+    # >     l1 = [1,2,3,4,5,6,7]
     # >     l2 = [11,12,13,14,15]
     # >     col1 = Column.fromList "col1" Int64Type l1
     # >     col2 = Column.fromList "col2" Int64Type l2
@@ -92,6 +94,26 @@ class Table:
         ptrs = columns.each .ptr
         schema = Schema.fromFields fields
         self.fromWrapper $ createTableWrapper schema.ptr ptrs
+
+    # Reads `Table` from file under given path.
+    #
+    # Supported formats are CSV (*.csv and *.txt), Microsoft Excel Open XML
+    # (*.xlsx) and Apache Feather (*.feather).
+    #
+    # > import Dataframes.Table 
+    # > 
+    # > def main:
+    # >     table = Table.read "./data/example.txt"
+    # >     None 
+    #
+    # errors:
+    # If extension is missing from path or is not one of recognized extensions,
+    # error shall be reported. Also, error will be reported if the requested
+    # file location is not available or the file is unable to be read.
+    #
+    # `path`: Path to the file to read.
+    #
+    # `return`: `Table` value with the content of the file.
     def read path:
         self.fromWrapper $ readTableFromFile path
 
@@ -126,7 +148,39 @@ class Table:
     def write path:
         self.ptr.write path
 
+    # Returns number of columns in a given table.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     columns = table.columnCount
+    # >     None
+    #
+    # `return`: Number of columns.
     def columnCount: self.ptr.columnCount
+    # Returns number of rows in given table.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     rows = table.rowCount
+    # >     None
+    #
+    # `return`: Number of rows.
     def rowCount: self.ptr.rowCount
     def schema:
         wrapper = self.ptr.schema
@@ -163,7 +217,9 @@ class Table:
 
     # Inserts a single `Column` value to `Table` under given index.
     #
-    # Columns are indexed from 0. After inserting the column under the `index` and all of the next columns will be shifted by 1. If the index will be increased by 1 number  of columns newly added column will be at the end of the table.
+    # Columns are indexed from 0. After inserting the column under the `index`
+    # and all of the next columns will be shifted by 1. If the index will be 
+    # increased by 1 number of columns newly added column will be at the end of the table.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -191,9 +247,66 @@ class Table:
 
     def addColumn index column:
         self.fromWrapper $ self.ptr.addColumn index column.ptr
+    
+    # Concatenates tables from given list. 
+    #
+    # Tables are concatenated by columns. 
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table1 = Table.fromColumns [col1 , col2]
+    # >     l3 = [21,22,23,24,25]
+    # >     l4 = [31,32,33,34,35]
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     col4 = Column.fromList "col4" Int64Type l4
+    # >     table2 = Table.fromColumns [col3 , col4]
+    # >     concatenateTable = Table.concat [table1, table2]
+    # >     None 
+    #
+    # `ts`: List of tables to concat. The columns in all tables should have
+    #       unique names, otherwise there will be duplicates in resulting table.
+    #       Tables should have the same row count.
+    #
+    # `return`: `Table` value containig all tables from the `ts` list.
     def concat ts:
         cols = ts . each .toList . concat
         self.fromColumns cols
+
+    # Concatenates `self` table with a table passed as an argument.
+    #
+    # Tables are concatenated by columns. 
+    # 
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table1 = Table.fromColumns [col1 , col2]
+    # >     l3 = [21,22,23,24,25]
+    # >     l4 = [31,32,33,34,35]
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     col4 = Column.fromList "col4" Int64Type l4
+    # >     table2 = Table.fromColumns [col3 , col4]
+    # >     concatenateTable = table1.+ table2
+    # >     None 
+    #
+    # `that`: Table to concatenate with `self` table. The columns in both tables 
+    #         should have unique names, otherwise there will be duplicates in
+    #         resulting table. Tables should have the same row count.
+    #
+    # `return`: `Table` value containing columns of `self` followed by the columns
+    #            of table passed as the argument.
     def + that: Table.concat [self, that]
 
     # Returns a `Table` value contain column matching given name.
@@ -221,7 +334,9 @@ class Table:
     def at name:
         self.columns [name]
 
-    # Replaces the column with the name `name` by `column`. If there is no column with such name in `self` it is appended at the end of the table.
+    # Replaces the column with the name `name` by `column`.
+    # If there is no column with such name in `self` it is appended at the end
+    # of the table.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -270,7 +385,7 @@ class Table:
     # >     None
     #
     # errors:
-    # If column `name` is not in table runtime error will occur.
+    # If column `name` is not in table runtime error shall occur.
     #
     # `name`: Name of the column to return.
     #
@@ -281,9 +396,11 @@ class Table:
         ix = self.schema.getFieldIndexByName name
         self.columnAt ix
 
-    # Returns a `Table` value with subset of columns from `self` designated by the given name list.
+    # Returns a `Table` value with subset of columns from `self` designated by
+    # the given name list.
     #
-    # If name does not uniquely identify the column (when multiple columns share the same name) it is not specified which of the columns will be returned.
+    # If name does not uniquely identify the column (when multiple columns share
+    # the same name) it is not specified which of the columns will be returned.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -299,7 +416,8 @@ class Table:
     # >     None
     #
     # errors:
-    # If any name on the list does not identify column in the table, runtime error will occur.
+    # If any name on the list does not identify column in the table,
+    # runtime error will occur.
     #
     # `names`: List of column names to be returned.
     #
@@ -310,21 +428,177 @@ class Table:
         columns = names.each self.column
         self.fromColumns columns
 
-    # removeByIndex :: Int -> Table
+    # Removes column under given index from the `self` table.
+    #
+    # Colums are indexed from 0.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     l3 = [21,22,23,24,25]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1 , col2, col3]
+    # >     newTable = table.removeByIndex 1
+    # >     None 
+    #
+    # errors: 
+    # If index is out of bounds error shall occur. 
+    #
+    # `index`: Index of a column to delete from table.
+    #
+    # `return`: `Table` value without the column under given index.
+
     def removeByIndex index:
         self.fromWrapper $ self.ptr.removeColumn index
 
-    # remove :: Text -> Table
+    # Removes column under given name from `self` table.
+    # 
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     l3 = [21,22,23,24,25]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1 , col2, col3]
+    # >     newTable = table.remove "col2"
+    # >     None 
+    #
+    # errors: 
+    # If column by given name cannot be found error shall occur. 
+    #
+    # `name`: Text value with name of a column to delete from table.
+    #
+    # `return`: `Table` value without the column with given name.
     def remove name:
         self.removeByIndex $ self.schema.getFieldIndexByName name
+    
+    # Unsafe. Returns list of lists.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     txt = table.toList
+    # >     None
+    #
+    # `returns`: A list containing a lists for each column from `self` table.
     def toList:
         self.ptr.toList.each Column.fromColumnWrapper
+    
+    # Display a Table as text.
+    # 
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     txt = table.toText
+    # >     None
+    #
+    # `returns`: Text value for `self` table.
     def toText:
         self.toList.toText
+
+    # Returns list of columns names.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     l3 = [21,22,23,24,25]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1 , col2, col3]
+    # >     listOfNames = table.columnNames
+    # >     None 
+    #
+    # `return`: List of columns names.
+
     def columnNames:
         self.toList.each .name
+
+    # Checks if two tables are equal.
+    # 
+    # Takes `self` table and compares it to the one passed as an argument.
+    # The two tables are equal if they have the same number of coluns,
+    # with the same names and records.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table1 = Table.fromColumns [col1 , col2]
+    # >     l3 = [21,22,23,24,25]
+    # >     l4 = [31,32,33,34,35]
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     col4 = Column.fromList "col4" Int64Type l4
+    # >     table2 = Table.fromColumns [col3 , col4]
+    # >     notEqual = table1.== table2
+    # >     equal = table1.== table1
+    # >     None 
+    # 
+    # `that`: Table to compare with `self` table.
+    # `return`: `True` if the two tables are identical and `False` if they are not.
+
     def == that:
         self.ptr.equals that.ptr
+
+    # Selects rows form `self` table.
+    #
+    # Rows are indexed from 0. 
+    # 
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table1 = Table.fromColumns [col1 , col2]
+    # >     sliced = table1.slice 1 3
+    # >     None 
+    #
+    # errors: 
+    # If requested slice is out of bounds error shall occur.
+    #
+    # `beg`: Starting index for rows selection.
+    # `count`: Range of rows to select.
+    #
+    # `return`: `Table` value with selected rows.
+
     def slice beg count:
         cols = self.toList
         slicedCols = cols.each (_.slice beg count)
@@ -348,7 +622,8 @@ class Table:
     # >     None
     #
     # errors:
-    # If `count` is negative or greater than table's row count, runtime error will occur.
+    # If `count` is negative or greater than table's row count,
+    # runtime error will occur.
     #
     # `count`: Number of rows to take.
     #
@@ -375,7 +650,8 @@ class Table:
     # >     None
     #
     # errors:
-    # If `count` is negative or greater than table's row count, runtime error will occur.
+    # If `count` is negative or greater than table's row count,
+    # runtime error will occur.
     #
     # `count`: Number of rows to drop.
     #
@@ -445,7 +721,8 @@ class Table:
         filtered = cols.filter pred
         self.fromColumns filtered
 
-    # Returns `Table` value with results of applied functions on each of the columns from `self` table.
+    # Returns `Table` value with results of applied functions on each of
+    # the columns from `self` table.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -463,7 +740,8 @@ class Table:
     # errors:
     # If the predicate can not be applied for one of the columns runtime error will appear.
     #
-    # `pred`: Function from `Column` into `Column`. Supported ones include {`.min`, `.max`, `.mean`, `.median`, `.std`, `.var`, `.sum`}.
+    # `pred`: Function from `Column` into `Column`. Supported ones include
+    #         {`.min`, `.max`, `.mean`, `.median`, `.std`, `.var`, `.sum`}.
     #
     # `return`: Table with function application results.
     # ![](data/docs/docs11.png)
@@ -498,7 +776,8 @@ class Table:
         columnWrapper = self.ptr.eachToColumn "Result" mapper
         Column.fromColumnWrapper columnWrapper
 
-    # Creates a table with columns from `self` and an additional column named `name` being a result of application function `f` on the `self` table.
+    # Creates a table with columns from `self` and an additional column named
+    # `name` being a result of application function `f` on the `self` table.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -516,7 +795,8 @@ class Table:
     # `name`: Name of newly created column in result table.
     # `f`: LQuery function to apply on `self` table.
     #
-    # `return`: `self` with additional column `name` containing values returned by f for each row.
+    # `return`: `self` with additional column `name` containing values returned by
+    #            `f` for each row.
     # ![](data/docs/docs13.png)
 
     def eachTo name f:
@@ -524,19 +804,150 @@ class Table:
         self.setAt name r
 
     # sortBy :: [(Column, SortOrder, NullPosition)]
+    # Sorts the table by given columns using lexicographical order. 
+    # The sorting order can be ascending or descending and nulls can be at the end
+    # or beginning of a sorted column.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [3,1,2,4,5]
+    # >     l2 = [17,12,15,11,19]
+    # >     l3 = [21,26,24,29,28]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1 , col2, col3]
+    # >     newTable = table.sortByColumn [(col1, Ascending, NullsAfter), (col2, Descending, NullsBefore)]
+    # >     None
+    #
+    # `sortBy`: A list of tuples. Each tuple contain: column, sort order and null position. 
+    #           Column is a column to sort by.
+    #           Sort order can be `Ascending` or `Descending`.
+    #           Null position can be `NullsAfter` if nulls should be placed at the end of a column or 
+    #           `NullsBefore` if they should be placed at the beginning.
+    #
+    # `return`: Sorted table. 
+
     def sortByColumn sortBy:
         self.fromWrapper $ self.ptr.sort (sortBy.each (col, b, c): (col.ptr, b, c))
 
     # sortBy is list of triples: [(column name :: Text, SortOrder, NullPosition)]
+    # Sorts the table by set of columns with given names using a lexicographic ordering.
+    # The sorting order can be ascending or descending and nulls can be at the end
+    # or beginning of a sorted column. 
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [3,1,2,4,5]
+    # >     l2 = [17,12,15,11,19]
+    # >     l3 = [21,26,24,29,28]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1 , col2, col3]
+    # >     newTable = table.sortMultiples [("col1", Ascending, NullsAfter), ("col2", Descending, NullsBefore)]
+    # >     None
+    #
+    # errors:
+    # If columns by given name are not present in the table error will occur.
+    #
+    # `sortBy`: A list of tuples. Each tuple contain: column name, sort order and null position. 
+    #           Column name is a String with a name of a column to sort by.
+    #           Sort order can be `Ascending` or `Descending`.
+    #           Null position can be `NullsAfter` if nulls should be placed at the end
+    #           of a column or `NullsBefore` if they should be placed at the beginning.
+    #
+    # `return`: Sorted table.
+
     def sortMultiples sortBy:
         sortByColumns = sortBy.each (colName, order, pos): (self.column colName, order, pos)
         self.sortByColumn sortByColumns
 
-    # sortBy :: column name :: Text
+    # columnName :: Text
+    # Sorts the `self` table by a column in descending order.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [3,1,2,4,5]
+    # >     l2 = [17,12,15,11,19]
+    # >     l3 = [21,26,24,29,28]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1 , col2, col3]
+    # >     newTable = table.sortDescending "col1"
+    # >     None
+    #
+    # errors:
+    # If column by given name is not present in the table error will occur.
+    #
+    # `columnName`: Column name in table.
+    #
+    # `return`: Table sorted by column with name `columnName` with descending 
+    #           order and with nulls at the end of a column.
+
     def sortDescending columnName: self.sortMultiples [(columnName, Descending, NullsAfter)]
 
-    # sortBy :: column name :: Text
+    # columnName :: Text
+    # Sorts the `self` table by a column in ascending order.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [3,1,2,4,5]
+    # >     l2 = [17,12,15,11,19]
+    # >     l3 = [21,26,24,29,28]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1 , col2, col3]
+    # >     newTable = table.sortAscending "col1"
+    # >     None
+    #
+    # errors:
+    # If column by given name is not present in the table error will occur.
+    #
+    # `columnName`: Column name in table.
+    #
+    # `return`: Table sorted by column with name `columnName` with ascending order
+    #           and with nulls at the end of a column.
     def sortAscending columnName: self.sortMultiples [(columnName, Ascending, NullsAfter)]
+
+    # Sorts the `self` table by a column in ascending order.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [3,1,2,4,5]
+    # >     l2 = [17,12,15,11,19]
+    # >     l3 = [21,26,24,29,28]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1 , col2, col3]
+    # >     newTable = table.sort "col1"
+    # >     None
+    #
+    # errors:
+    # If column by given name is not present in the table error will occur.
+    #
+    # `columnName`: Column name in table.
+    #
+    # `return`: Table sorted by column with name `columnName` with ascending order
+    #           and with nulls at the end of a column.
 
     def sort columnName: self.sortAscending columnName
 
@@ -561,7 +972,8 @@ class Table:
     def dropNa:
         self.fromWrapper $ self.ptr.dropNa
 
-    # Creates `Table` value from `self` table with removed rows where null values occur for given column.
+    # Creates `Table` value from `self` table with removed rows where null values 
+    # occur for given column.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -607,7 +1019,8 @@ class Table:
     def fillNa valueToFillWith:
         self.fromWrapper $ self.ptr.fillNa valueToFillWith
 
-    # Creates `Table` value from `self` table with null values replaced with `valueToFillWith` in column `columnName`
+    # Creates `Table` value from `self` table with null values replaced with 
+    # `valueToFillWith` in column `columnName`
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -628,12 +1041,33 @@ class Table:
     # `columnName`: Name of the column to fill nulls in.
     # `valueToFillWith`: Value to use to fill nulls (e.g. 0).
     #
-    # `return`: `Table` with nulls in column `columnName` filled with `valueToFillWith `.
+    # `return`: `Table` with nulls in column `columnName` filled with `valueToFillWith`.
     # ![](data/docs/docs17.png)
 
     def fillNaAt columnName valueToFillWith:
         self.fromWrapper $ self.ptr.fillNaAt columnName valueToFillWith
 
+    # Interpolates missing values in the table.
+    #
+    # Only applies to numerical columns.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [Just 1, Nothing, Just 3, Just 4, Just 5]
+    # >     l2 = [Nothing, Just 12, Just 13, Just 14, Just 15]
+    # >     col1 = Column.fromList "col1" MaybeInt64Type l1
+    # >     col2 = Column.fromList "col2" MaybeInt64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     newTable = table.interpolate
+    # >     None
+    #
+    # `return`: `Table` with nulls interpolated in each numerical column.
+    #            If nulls are at the beginning of a column they will be filled
+    #            with first existing value in a column. If they are at the end,
+    #            they will be filled with the last existing value.
     def interpolate:
         self.fromWrapper $ self.ptr.interpolate
     def toColumn:
@@ -689,7 +1123,8 @@ class Table:
     # >     correlations = table.correlations
     # >     None
     #
-    # `return`: The `self` table value with pairwise correlations calculated for `self` table.
+    # `return`: The `self` table value with pairwise correlations calculated for
+    #           `self` table.
     # ![](data/docs/docs19.png)
 
     def correlations:
@@ -716,7 +1151,8 @@ class Table:
     #
     # `columnName`: Column for which the correlations are calculated.
     #
-    # `return`: `Table` value including correlations with `columnName` column calculated for `self` table.
+    # `return`: `Table` value including correlations with `columnName` column
+    #            calculated for `self` table.
     # ![](data/docs/docs20.png)
 
     def correlationsWith columnName:
@@ -733,9 +1169,11 @@ class Table:
         col2 = Column.fromList ("corr_with_" + columnName) DoubleType vals
         Table.fromColumns [col1, col2]
 
-    # Generates descriptive statistics that summarize the central tendency, dispersion and shape of the values in given column distribution.
+    # Generates descriptive statistics that summarize the central tendency,
+    # dispersion and shape of the values in given column distribution.
     #
-    # Analyzes just the numeric values, excluding null values. Returns statistics: mean, standard deviation, minimum, 1st quantile, median, 3rd quantile, maximum.
+    # Analyzes just the numeric values, excluding null values. Returns statistics:
+    # mean, standard deviation, minimum, 1st quantile, median, 3rd quantile, maximum.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -753,7 +1191,7 @@ class Table:
     # errors:
     # If column does not exist in table runtime error will be returned.
     #
-    # `columnName`: String value, name of the column to calculate the statistics for.
+    # `columnName`: Text value, name of the column to calculate the statistics for.
     #
     # `return`: `Table` value with the statistics for given column.
     # ![](data/docs/docs21.png)
@@ -769,22 +1207,100 @@ class Table:
         quart3 = col.quantile 0.75
         Table.fromColumns [mean, std, min, quart1, median, quart3, max]
 
+    # Returns table with the count of unique values for the selected column.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,11,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     unique = table.countValues "col2"
+    # >     None
+    #
+    # `columnName`: Text value, name of the column to summary unique values for.
+    #
+    # `return`: Table with all unique values in first column and their counts in
+    #           the selected column in the second.
+
     def countValues columnName:
         self.at columnName . toColumn . countValues
 
     # aggregateBy :: Text -> [(Text, [AggregateFunction])] -> Table
+    # Aggregates using one or more operations over specified columns. 
+    #
+    # Predefined aggregate functions are available:
+    # Minimum, Maximum, Mean, Length, Median, First, Last, Sum, RSI, Std.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,1,4,2]
+    # >     l2 = [11,12,13,14,15]
+    # >     l3 = [21,22,23,24,25]
+    # >     l4 = [31,32,33,34,35]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     col4 = Column.fromList "col4" Int64Type l4
+    # >     table = Table.fromColumns [col1 , col2, col3, col4]
+    # >     aggregated = table.aggregateBy "col1" [("col2", [Mean]),("col4", [Minimum, Median])]
+    # >     None
+    # 
+    # `keyColumnName`: Column to aggregate over.
+    # `aggregations`: List of aggregations. Single aggregation is a two argument tuple.
+    #                 First element is a name of a column for aggregation and second is
+    #                 a list of aggregate functions.
+    #
+    # `return`: `Table` value containing given aggregations calculated over
+    #            key column for columns and aggreate functions from the second argument.
+
     def aggregateBy keyColumnName aggregations:
         keyColumnWrapper = self.column keyColumnName . ptr
         aggregationWithWrappers = aggregations.each (colname, aggrs): (self.column colname . ptr, aggrs.each .toInt)
         self.fromWrapper $ self.ptr.aggregateBy keyColumnWrapper aggregationWithWrappers
 
-    # Aggregate using `aggregateFunction` over specific column.
+    # Aggregates using `aggregateFunction` over specific column.
     #
-    # aggregate :: Text -> Text -> AggregateFunction -> Table
+    # Predefined aggregate functions are available:
+    # Minimum, Maximum, Mean, Length, Median, First, Last, Sum, RSI, Std.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,1,4,2]
+    # >     l2 = [11,12,13,14,15]
+    # >     l3 = [21,22,23,24,25]
+    # >     l4 = [31,32,33,34,35]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     col4 = Column.fromList "col4" Int64Type l4
+    # >     table = Table.fromColumns [col1 , col2, col3, col4]
+    # >     aggregated = table.aggregate "col1" "col2" Mean
+    # >     None
+    # 
+    # `keyColumnName`: Column to aggregate over.
+    # `columnToAggregateName`: Name of a column to calculate the statistics for.
+    # `aggregateFunction`: One of the predefined aggregate functions:
+    #                      Minimum, Maximum, Mean, Length, Median, First, Last, Sum, RSI, Std.
+    #
+    # `return`: `Table` value containing given aggregation calculated over
+    #           `keyColumnName` for `columnToAggregateName` with `aggregateFunction`.
+
     def aggregate keyColumnName columnToAggregateName aggregateFunction:
         self.aggregateBy keyColumnName [(columnToAggregateName,[aggregateFunction])]
 
-    # Returns informations about whole table: standard deviation, minimum, maximum, mean, median qunatile 0.25 and 0.75 for each column.
+    # Returns informations about whole table:
+    # standard deviation, minimum, maximum, mean, median qunatile 0.25 and 0.75 for each column.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -794,7 +1310,7 @@ class Table:
     # >     l1 = [1,2,3,4,5]
     # >     l2 = [11,12,13,14,15]
     # >     col1 = Column.fromList "col1" Int64Type l1
-    # >     col2 = Column.fromList "col2" StringType l2
+    # >     col2 = Column.fromList "col2" Int64Type l2
     # >     table = Table.fromColumns [col1 , col2]
     # >     correlations = table.describe
     # >     None
@@ -844,22 +1360,106 @@ class Table:
         col8 = Column.fromList "Max" DoubleType maxFlatList
         Table.fromColumns [col1, col2, col3, col4, col5, col6, col7, col8]
 
-    # rollingIntervalMultiple :: Text -> TimeInterval -> [(Text, [AggregateFunction])] -> Table
+    # Provides rolling window calculations. Rolling is provided over `keyColumnName`.
+    # The window size is defined by `interval` and the statistical operation over
+    # the values are defined by `aggregation`.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     l1 = ["2013-01-01 09:00:00",
+    # >           "2013-01-01 09:00:02",
+    # >           "2013-01-01 09:00:03",
+    # >           "2013-01-01 09:00:05",
+    # >           "2013-01-01 09:00:06"] . each (Time.parseFmt "%F %T")
+    # >     l2 = [11,12,13,14,15]
+    # >     l3 = [21,22,23,24,25]
+    # >     l4 = [31,32,33,34,35]
+    # >     col1 = Column.fromList "col1" TimestampType l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     col4 = Column.fromList "col4" Int64Type l4
+    # >     table = Table.fromColumns [col1 , col2, col3, col4]
+    # >     rolling = table.rollingIntervalMultiple "col1" 2.seconds [("col2", [Mean, Std])]
+    # >     None
+    #
+    # `keyColumnName`: Text name for column which will be an indexing column.
+    # `interval`: Time interval for rolling window, i.e. `2.days`.
+    # `aggregations`: List of aggregations. Single aggregation is a two argument
+    #                 tuple. First element is a name of a column for aggregation
+    #                 and second is a list of aggregate functions.
+    #
+    # `return`: `Table` value with key column and resulting columns for each aggregation. 
+
     def rollingIntervalMultiple keyColumnName interval aggregations:
         keyColumnWrapper = self.column keyColumnName . ptr
         aggregationWithWrappers = aggregations.each (colname, aggrs): (self.column colname . ptr, aggrs.each .toInt)
         self.fromWrapper $ self.ptr.rollingInterval keyColumnWrapper (interval.toMicroseconds * 1000) aggregationWithWrappers
 
-    # rollingInterval :: Text -> TimeInterval -> Text -> AggregateFunction -> Table
+    # Provides rolling window calculations. Rolling is provided over `keyColumnName`.
+    # The windows size is defined by `interval` and the statistic operation over
+    # the values in column `aggregateColumnName` is defined by `aggregateFunction`.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     l1 = ["2013-01-01 09:00:00",
+    # >           "2013-01-01 09:00:02",
+    # >           "2013-01-01 09:00:03",
+    # >           "2013-01-01 09:00:05",
+    # >           "2013-01-01 09:00:06"] . each (Time.parseFmt "%F %T")
+    # >     l2 = [11,12,13,14,15]
+    # >     l3 = [21,22,23,24,25]
+    # >     l4 = [31,32,33,34,35]
+    # >     col1 = Column.fromList "col1" TimestampType l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     col4 = Column.fromList "col4" Int64Type l4
+    # >     table = Table.fromColumns [col1 , col2, col3, col4]
+    # >     rolling = table.rollingInterval "col1" 2.seconds "col2" Mean
+    # >     None
+    #
+    # `keyColumnName`: Text name for column which will be an indexing column.
+    # `interval`: Time interval for rolling window, i.e. `2.days`.
+    # `aggregateColumnName`: Name of a column for aggregation.
+    # `aggregateFunction`: One of the predefined aggregate functions:
+    #                      Minimum, Maximum, Mean, Length, Median, First, Last, Sum, RSI, Std.
+    #
+    # `return`: `Table` value with key column and resulting columns for each aggregation. 
     def rollingInterval keyColumnName interval aggregateColumnName aggregateFunction:
         self.rollingIntervalMultiple keyColumnName interval [(aggregateColumnName,[aggregateFunction])]
 
-    # ungroupSplittingOn :: Text -> Text -> Table
-    def ungroupSplittingOn stringColumnName separator:
-        stringColumnWrapper = self.column stringColumnName . ptr
-        self.fromWrapper $ self.ptr.ungroupSplittingOn stringColumnWrapper separator
-
-    # shift :: Text -> Int -> Table
+    # Generates new column with shifted values from selected column.
+    # The values are shifted by desired number of periods.
+    # 
+    # Newly created column is added at the end of the table.
+    # The index value can be both positive and negative.
+    # Missing values in newly created column will be filled with nulls. 
+    # 
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     newTable = table.shift "col2" 3
+    # >     None
+    #
+    # `columnName`: Name of a column to shift.
+    # `periods`: Number of periods to shift selected column by.
+    #
+    # `return`: The `self` table value with additional column containing
+    #           the values after shift operation.
     def shift columnName periods:
         columnToShift = self.column columnName
         shiftedColumn = columnToShift.shift periods
@@ -867,14 +1467,193 @@ class Table:
         newTable = self.setAt newColumnname shiftedColumn
         newTable
 
+    # ungroupSplittingOn :: Text -> Text -> Table
+    def ungroupSplittingOn stringColumnName separator:
+        stringColumnWrapper = self.column stringColumnName . ptr
+        self.fromWrapper $ self.ptr.ungroupSplittingOn stringColumnWrapper separator
+    
+    # Generates chart from table.
     def chart: ChartBuilder self
+
+    # Plots y versus x. Default style for plot is scatter plot. 
+    # To change plot style use `setStyle` method.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plot1 = table.plot "col1" "col2"
+    # >     None
+    #
+    # `columnName1`: Name of the column to be used for X-axis.
+    # `columnName2`: Name of the column to be used for Y-axis.
+    #
+    # `return`: ![](data/docs/docs22.png)
+
     def plot: self.chart.plot
+
+    # Plots a histogram.
+    #
+    # Compute and plot histogram of x.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,23,78,4,12,7,89,6,7,19,17,13,15,56,89,23,0,1,45,30]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     table = Table.fromColumns [col1]
+    # >     plot1 = table.histogram "col1"
+    # >     None
+    #
+    # `columnName`: Name of the column to be used for X-axis.
+    #
+    # `return`: ![](data/docs/docs23.png)
+
     def histogram: self.chart.histogram
+
+    # Plots y versus x as scatter plot.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plot1 = table.scatter "col1" "col2"
+    # >     None
+    #
+    # `columnName1`: Name of the column to be used for X-axis.
+    # `columnName2`: Name of the column to be used for Y-axis.
+    #
+    # `return`: ![](data/docs/docs27.png)
+
     def scatter: self.chart.scatter
+
+    # Fits and plots a univariate kernel density estimate.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [12,16,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plot1 = table.kde "col2"
+    # >     None
+    #
+    # `columnName`: Input column name.
+    #
+    # `return`: ![](data/docs/docs25.png)
+
     def kde: self.chart.kde
+
+    # Fits and plots a bivariate kernel density estimate.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [12,16,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plot1 = table.kde2 "col1" "col2"
+    # >     None
+    #
+    # `columnName1`: First column name.
+    # `columnName2`: Second column name.
+    #
+    # `return`: ![](data/docs/docs24.png)
+
     def kde2: self.chart.kde2
+
+    # Plots dates data. The axis labels are formatted as dates.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     l1 = ["2013-01-01 09:00:00",
+    # >           "2013-01-01 09:00:02",
+    # >           "2013-01-01 09:00:03",
+    # >           "2013-01-01 09:00:05",
+    # >           "2013-01-01 09:00:06"] . each (Time.parseFmt "%F %T")
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" TimestampType l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plot1 = table.plotDate "col1" "col2"
+    # >     None
+    # 
+    # `columnName1`: Name of the column to be used for X-axis.
+    # `columnName2`: Name of the column to be used for Y-axis.
+    #
+    # `return`: ![](data/docs/docs28.png)
     def plotDate: self.chart.plotDate
+
+    # Plots rectangular data as a color-encoded matrix.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [12,16,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     correlations = table.correlations
+    # >     heatmapPlot = correlations.heatmap
+    # >     None
+    #
+    # `return`: ![](data/docs/docs26.png)
+
     def heatmap: self.chart.heatmap
+
+    # Fills the area between two horizontal curves.
+    # The curves are defined by the two sets of points (x, y1) and (x, y2).
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [12,16,13,14,15]
+    # >     l3 = [22,19,23,21,27]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1 , col2, col3]
+    # >     plot = table.fillBetween "col1" "col2" "col3"
+    # >     None
+    #
+    # `cname1`: Name of the column to be used for X-axis.
+    # `cname2`: Name of the column to be used for Y-axis for first curve.
+    # `cname3`: Name of the column to be used for Y-axis for second curve.
+    #
+    # `return`: ![](data/docs/docs29.png)
+    
     def fillBetween: self.chart.fillBetween
 
 
@@ -896,8 +1675,8 @@ class ChartBuilder:
     # >     plot1 = table.chart.plot "col1" "col2"
     # >     None
     #
-    # `columnName1`: X column name.
-    # `columnName2`: Y column name.
+    # `columnName1`: Name of the column to be used for X-axis.
+    # `columnName2`: Name of the column to be used for Y-axis.
     #
     # `return`: ![](data/docs/docs22.png)
 
@@ -906,11 +1685,56 @@ class ChartBuilder:
         c2 = self.table.at columnName2 . toColumn
         Plot c1 c2 "o" Nothing Nothing Nothing
 
+    # Plots dates data. The axis labels are formatted as dates.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     l1 = ["2013-01-01 09:00:00",
+    # >           "2013-01-01 09:00:02",
+    # >           "2013-01-01 09:00:03",
+    # >           "2013-01-01 09:00:05",
+    # >           "2013-01-01 09:00:06"] . each (Time.parseFmt "%F %T")
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" TimestampType l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plot1 = table.chart.plotDate "col1" "col2"
+    # >     None
+    # 
+    # `columnName1`: Name of the column to be used for X-axis.
+    # `columnName2`: Name of the column to be used for Y-axis.
+    #
+    # `return`: ![](data/docs/docs28.png)
+
     def plotDate columnName1 columnName2:
         c1 = self.table.at columnName1 . toColumn
         c2 = self.table.at columnName2 . toColumn
         PlotDate c1 c2
 
+    # Plots y versus x with markers.
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [11,12,13,14,15]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     table = Table.fromColumns [col1 , col2]
+    # >     plot1 = table.chart.scatter "col1" "col2"
+    # >     None
+    #
+    # `columnName1`: Name of the column to be used for X-axis.
+    # `columnName2`: Name of the column to be used for Y-axis.
+    #
+    # `return`: ![](data/docs/docs27.png)
+        
     def scatter columnName1 columnName2:
         c1 = self.table.at columnName1 . toColumn
         c2 = self.table.at columnName2 . toColumn
@@ -931,7 +1755,7 @@ class ChartBuilder:
     # >     plot1 = table.chart.histogram "col1"
     # >     None
     #
-    # `columnName`: X column name.
+    # `columnName`: Name of the column to be used for X-axis.
     #
     # `return`: ![](data/docs/docs23.png)
 
@@ -1007,6 +1831,30 @@ class ChartBuilder:
 
     def heatmap:
         Heatmap self.table "RdBu_r" Nothing
+
+    # Fills the area between two horizontal curves.
+    # The cuves are defined by the two sests of points (x, y1) and (x, y2).
+    #
+    # > import Dataframes.Column
+    # > import Dataframes.Types
+    # > import Dataframes.Table
+    # >
+    # > def main:
+    # >     l1 = [1,2,3,4,5]
+    # >     l2 = [12,16,13,14,15]
+    # >     l3 = [22,19,23,21,27]
+    # >     col1 = Column.fromList "col1" Int64Type l1
+    # >     col2 = Column.fromList "col2" Int64Type l2
+    # >     col3 = Column.fromList "col3" Int64Type l3
+    # >     table = Table.fromColumns [col1 , col2, col3]
+    # >     plot = table.chart.fillBetween "col1" "col2" "col3"
+    # >     None
+    #
+    # `cname1`: Name of the column to be used for X-axis.
+    # `cname2`: Name of the column to be used for Y-axis for first curve.
+    # `cname3`: Name of the column to be used for Y-axis for second curve.
+    #
+    # `return`: ![](data/docs/docs29.png)
 
     def fillBetween cname1 cname2 cname3:
         c1 = self.table.at cname1 . toColumn
