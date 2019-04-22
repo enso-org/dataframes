@@ -7,12 +7,13 @@ module IO where
 import Prologue
 
 
+import System.IO          (Handle, hPutStr, stdout)
+
 #ifdef mingw32_HOST_OS
 --------------------------------------------------------------------------------
 import Data.Text          (Text)
 import Data.Text.Foreign  (useAsPtr)
 import Foreign.Ptr        (Ptr)
-import System.IO          (Handle, hPutStr, stdout)
 import System.Win32.Types (HANDLE, withHandleToHANDLE)
 
 foreign import ccall unsafe "writeText" writeTextC :: Ptr Word16 -> Int32 -> HANDLE -> IO Int64
