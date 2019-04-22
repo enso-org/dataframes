@@ -63,7 +63,7 @@ default-extensions:
 library:
   source-dirs: src
   cxx-sources: src/cbits/Console.cpp
-  cxx-options: -std=gnu++11
+  cxx-options: -std=gnu++17
   extra-libraries: stdc++
 tests:
   test:
