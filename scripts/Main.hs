@@ -1,38 +1,39 @@
-import Prelude
 import Control.Monad
 import Control.Monad.Extra
 import Data.List
 import Data.Maybe
 import Data.Monoid
-import Data.String.Utils (split)
+import Data.String.Utils         (split)
 import Distribution.Simple.Utils
 import Distribution.System
 import Distribution.Verbosity
+import Prelude
 import System.Directory
 import System.Environment
 import System.FilePath
 import System.FilePath.Glob
 import System.IO.Temp
-import System.Process.Typed hiding (setEnv)
+import System.Process.Typed      hiding (setEnv)
 
-import qualified Package.Library as Library
 import Utils
 
+import qualified Logger                  as Logger
+import qualified Package.Library         as Library
 import qualified Platform                as Platform
 import qualified Program                 as Program
 import qualified Program.CMake           as CMake
 import qualified Program.Curl            as Curl
 import qualified Program.Git             as Git
+import qualified Program.InstallNameTool as INT
 import qualified Program.Ldd             as Ldd
-import qualified Program.Patchelf        as Patchelf
 import qualified Program.MsBuild         as MsBuild
+import qualified Program.Otool           as Otool
+import qualified Program.Patchelf        as Patchelf
 import qualified Program.SevenZip        as SevenZip
 import qualified Program.Tar             as Tar
-import qualified Program.Otool           as Otool
-import qualified Program.InstallNameTool as INT
 
-import qualified Platform.MacOS   as MacOS
 import qualified Platform.Linux   as Linux
+import qualified Platform.MacOS   as MacOS
 import qualified Platform.Windows as Windows
 
 depsArchiveUrl, packageBaseUrl :: String
@@ -64,7 +65,7 @@ repoDir :: IO FilePath
 repoDir = lookupEnv "BUILD_SOURCESDIRECTORY" >>= \case
     Just path -> pure path
     Nothing -> do
-        exePath <- getExecutablePath 
+        exePath <- getExecutablePath
         Git.repositoryRoot (takeDirectory exePath) >>= \case
             Just path -> pure path
             Nothing   -> do
@@ -141,7 +142,7 @@ prepareEnvironment tempDir = do
 
 data DataframesBuildArtifacts = DataframesBuildArtifacts
     { dataframesBinaries :: [FilePath]
-    , dataframesTests :: [FilePath]
+    , dataframesTests    :: [FilePath]
     } deriving (Eq, Show)
 
 -- | Function raises error if any of the reported build artifacts cannot be
@@ -149,8 +150,8 @@ data DataframesBuildArtifacts = DataframesBuildArtifacts
 verifyArtifacts :: DataframesBuildArtifacts -> IO ()
 verifyArtifacts DataframesBuildArtifacts{..} = do
     let binaries = dataframesBinaries <> dataframesTests
-    forM_ binaries $ \binary -> 
-        unlessM (doesFileExist binary) 
+    forM_ binaries $ \binary ->
+        unlessM (doesFileExist binary)
             $ error $ "Failed to find built target binary: " <> binary
 
 -- This function should be called only in a properly prepared build environment.
@@ -163,9 +164,9 @@ buildProject repoDir stagingDir = do
     -- script should know what it wants to build, so it feels better to just fix
     -- names here. Note that they need to be in sync with C++ project files
     -- (both CMake and MSBuild).
-    let targetLibraries = Platform.libraryFilename 
+    let targetLibraries = Platform.libraryFilename
                           <$> ["DataframeHelper", "DataframePlotter", "Learn"]
-    let targetTests     = Platform.executableFilename 
+    let targetTests     = Platform.executableFilename
                           <$> ["DataframeHelperTests"]
     let targets         = targetLibraries <> targetTests
 
@@ -187,11 +188,11 @@ buildProject repoDir stagingDir = do
             let pythonLibName = "libpython" <> pythonVersion <> "m" <.> Platform.dllExtension
             let pythonLibPath = pythonLibDir </> pythonLibName
             let numpyIncludeDir = pythonLibDir </> "python" <> pythonVersion </> "site-packages/numpy/core/include"
-            let cmakeVariables =  
+            let cmakeVariables =
                     [ CMake.SetVariable "PYTHON_LIBRARY"           pythonLibPath
                     , CMake.SetVariable "PYTHON_NUMPY_INCLUDE_DIR" numpyIncludeDir
                     ]
-            let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo 
+            let options = CMake.OptionBuildType CMake.ReleaseWithDebInfo
                         : (CMake.OptionSetVariable <$> cmakeVariables)
             CMake.build buildDir srcDir options
 
@@ -204,7 +205,7 @@ buildProject repoDir stagingDir = do
     pure expectedArtifacts
 
 data DataframesPackageArtifacts = DataframesPackageArtifacts
-    { dataframesPackageArchive :: FilePath
+    { dataframesPackageArchive   :: FilePath
     , dataframesPackageDirectory :: FilePath
     } deriving (Eq, Show)
 
@@ -231,7 +232,7 @@ additionalLocationsWithBinaries repoDir = do
 packagePython :: FilePath -> FilePath -> IO ()
 packagePython repoDir packageRoot = do
     case buildOS of
-        Windows -> 
+        Windows ->
             -- We use pre-built package.
             downloadAndUnpack7z packageBaseUrl $ packageRoot </> Library.nativeLibsBin
         _ -> do
@@ -281,6 +282,7 @@ runTests repoDir buildArtifacts packageArtifacts = do
 
 main :: IO ()
 main = do
+    Logger.log "Dzień dobry, 世界"
     -- putStrLn $ "Starting Dataframes build"
     withSystemTempDirectory "" $ \stagingDir -> do
         -- let stagingDir = "C:\\Users\\mwu\\AppData\\Local\\Temp\\-777f232250ff9e9c"

@@ -62,6 +62,9 @@ default-extensions:
 
 library:
   source-dirs: src
+  cxx-sources: src/cbits/Console.cpp
+  cxx-options: -std=gnu++11
+  extra-libraries: stdc++
 tests:
   test:
     main: Test.hs
@@ -103,3 +106,6 @@ dependencies:
 - unix-compat
 - unliftio-core
 - utf8-string
+when:
+  - condition: os(windows)
+    dependencies: Win32

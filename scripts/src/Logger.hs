@@ -4,14 +4,22 @@ module Logger where
 
 import Prologue
 
-import qualified Data.Text as Text
+import qualified Data.Text      as Text
 import qualified Data.Text.Lazy as TextLazy
+import qualified IO             as IO
 
 class Logger m where
-    log :: (ToString s) => s -> m ()
+    logText :: Text -> m ()
+
+    log :: (ToText s) => s -> m ()
+    log = logText . convert
+
+    logS :: String -> m ()
+    logS = logText . convert
+
 
 instance Logger IO where
-    log = putStrLn . toString
+    logText = IO.putTextLn
 
 instance {-# OVERLAPPABLE #-}
     ( Monad m
@@ -19,8 +27,8 @@ instance {-# OVERLAPPABLE #-}
     , MonadTrans t
     , Logger m
     ) => Logger (t m) where
-    log = lift . Logger.log
-    {-# INLINE log #-}
+    logText = lift . Logger.logText
+    {-# INLINE logText #-}
 
 
 newtype SilentT m a = SilentT (IdentityT m a)
@@ -32,5 +40,5 @@ runSilent = runIdentityT . unwrap
 {-# INLINE runSilent #-}
 
 instance Applicative m => Logger (SilentT m) where
-    log = const $ pure ()
-    {-# INLINE log #-}
+    logText = const $ pure ()
+    {-# INLINE logText #-}

@@ -74,14 +74,19 @@ data UnpackProgressInfo = UnpackProgressInfo
     } deriving (Show)
 
 
-updateChunk :: MonadIO m =>  (UnpackProgressInfo -> IO ()) -> Int -> Int -> ConduitM ByteString ByteString m ()
+updateChunk 
+    :: MonadIO m 
+    => (UnpackProgressInfo -> IO ()) -- ^ Callback.
+    -> Int -- ^ Total file count.
+    -> Int -- ^ Files processed so far.
+    -> ConduitM ByteString ByteString m ()
 updateChunk callback totalCount currentCount = 
     Utils.processChunk 1 $ \currentCount _ -> do
         liftIO $ callback $ UnpackProgressInfo currentCount totalCount
         pure $ currentCount + 1
 
 instance Progress.Progress UnpackProgressInfo where
-    ratio UnpackProgressInfo{..} = Just $ (fromIntegral doneFiles / fromIntegral allFiles)
+    ratio UnpackProgressInfo{..} = Just $ fromIntegral doneFiles / fromIntegral allFiles
 
 
 ------------------
