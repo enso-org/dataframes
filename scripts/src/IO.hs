@@ -15,10 +15,10 @@ import Foreign.Ptr        (Ptr)
 import System.IO          (Handle, hPutStr, stdout)
 import System.Win32.Types (HANDLE, withHandleToHANDLE)
 
-foreign import ccall unsafe "writeText" writeTextC :: Ptr Word16 -> Int32 -> HANDLE -> IO ()
+foreign import ccall unsafe "writeText" writeTextC :: Ptr Word16 -> Int32 -> HANDLE -> IO Int64
 
 hPutText :: (MonadIO m) => Handle -> Text -> m ()
-hPutText handle text = liftIO $ useAsPtr text $ \ptr length -> do
+hPutText handle text = liftIO $ void $ useAsPtr text $ \ptr length -> do
     withHandleToHANDLE handle $
         writeTextC ptr (fromIntegral length)
 --------------------------------------------------------------------------------
