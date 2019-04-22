@@ -13,12 +13,23 @@ std::string GetLastErrorAsString()
 	if(errorMessageID == 0)
 		return std::string(); //No error message has been recorded
 
-	LPSTR messageBuffer = nullptr;
-	size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)& messageBuffer, 0, nullptr);
+    struct BufferHolder
+    {
+        LPSTR buffer = nullptr;
 
-	std::string message(messageBuffer, size);
-	LocalFree(messageBuffer);
-	return message;
+        ~BufferHolder()
+        {
+            if(buffer)
+                LocalFree(buffer);
+        }
+        std::string toString(size_t size) const
+        {
+            return {buffer, size};
+        }
+    } message;
+	
+	size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&message.buffer, 0, nullptr);
+    return message.toString(size);
 }
 
 std::string utf16ToUtf8(const wchar_t* text, int32_t textLength)
@@ -55,21 +66,25 @@ extern "C"
 {
     int64_t writeText(const char16_t* text, int32_t length, HANDLE handle) noexcept
     {
-        auto utf8Buffer = utf16ToUtf8(std::wstring(reinterpret_cast<const wchar_t*>(text), length));
-        DWORD writtenCount = 0;
-        if(isConsole(handle))
-        {
-            WriteConsoleW(handle, text, length, &writtenCount, nullptr);
-        }
-        else
+        try
         {
             auto utf8Buffer = utf16ToUtf8(std::wstring(reinterpret_cast<const wchar_t*>(text), length));
-            if(!WriteFile(handle, utf8Buffer.data(), utf8Buffer.size(), &writtenCount, nullptr))
+            DWORD writtenCount = 0;
+            if(isConsole(handle))
             {
-                //error..
-                return -1;
+                WriteConsoleW(handle, text, length, &writtenCount, nullptr);
             }
+            else
+            {
+                auto utf8Buffer = utf16ToUtf8(std::wstring(reinterpret_cast<const wchar_t*>(text), length));
+                if(!WriteFile(handle, utf8Buffer.data(), utf8Buffer.size(), &writtenCount, nullptr))
+                    return -1;
+            }
+            return writtenCount;
         }
-        return writtenCount;
+        catch(...)
+        {
+            return -1;
+        }
     }
 }
