@@ -282,7 +282,7 @@ runTests repoDir buildArtifacts packageArtifacts = do
 
 main :: IO ()
 main = do
-    Logger.log "Dzień dobry, 世界"
+    Logger.logS "Dzień dobry, 世界"
     -- putStrLn $ "Starting Dataframes build"
     withSystemTempDirectory "" $ \stagingDir -> do
         -- let stagingDir = "C:\\Users\\mwu\\AppData\\Local\\Temp\\-777f232250ff9e9c"
