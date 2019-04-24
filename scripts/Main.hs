@@ -1,3 +1,4 @@
+import Control.Lens hiding ((<.>))
 import Control.Monad
 import Control.Monad.Extra
 import Data.List
@@ -7,18 +8,22 @@ import Data.String.Utils         (split)
 import Distribution.Simple.Utils
 import Distribution.System
 import Distribution.Verbosity
+import GHC.IO.Encoding
 import Prelude
 import System.Directory
 import System.Environment
 import System.FilePath
 import System.FilePath.Glob
+import System.IO
 import System.IO.Temp
 import System.Process.Typed      hiding (setEnv)
 
 import Utils
 
+import qualified Archive                 as Archive
 import qualified Logger                  as Logger
 import qualified Package.Library         as Library
+import qualified Paths                   as Paths
 import qualified Platform                as Platform
 import qualified Program                 as Program
 import qualified Program.CMake           as CMake
@@ -60,21 +65,6 @@ downloadAndUnpack7z archiveUrl targetDirectory = do
         Curl.download archiveUrl archiveLocalPath
         SevenZip.unpack archiveLocalPath targetDirectory
 
--- | Gets path to the local copy of the Dataframes repo
-repoDir :: IO FilePath
-repoDir = lookupEnv "BUILD_SOURCESDIRECTORY" >>= \case
-    Just path -> pure path
-    Nothing -> do
-        exePath <- getExecutablePath
-        Git.repositoryRoot (takeDirectory exePath) >>= \case
-            Just path -> pure path
-            Nothing   -> do
-                cwdDir <- getCurrentDirectory
-                Git.repositoryRoot cwdDir >>= \case
-                    Just path -> pure path
-                    Nothing   -> error $ "cannot deduce repository root path, please define BUILD_SOURCESDIRECTORY"
-
-
 -- | Path to directory with Python installation, should not contain other things
 -- (that was passed as --prefix to Python's configure script)
 pythonPrefix :: IO FilePath
@@ -85,33 +75,8 @@ pythonPrefix = getEnvRequired "PYTHON_PREFIX_PATH" -- TODO: should be able to de
 pythonVersion :: String
 pythonVersion = "3.7"
 
--- Helper that does two things:
--- 1) use file extension to deduce compression method
--- 2) switch CWD so tar shall pack the folder at archive's root
---    (without maintaining directory's absolute path in archive)
-packDirectory :: FilePath -> FilePath -> IO ()
-packDirectory pathToPack outputArchive = do
-    -- As we switch cwd, relative path to output might get affected.
-    -- Let's store it as absolute path first.
-    outputArchiveAbs <- makeAbsolute outputArchive
-    withCurrentDirectory (takeDirectory pathToPack) $ do
-        -- Input path must be relative though.
-        pathToPackRel <- makeRelativeToCurrentDirectory pathToPack
-        let tarPack =  Tar.pack [pathToPackRel] outputArchiveAbs
-        case takeExtension outputArchive of
-            ".7z"   -> SevenZip.pack [pathToPack] outputArchiveAbs
-            ".gz"   -> tarPack Tar.GZIP
-            ".bz2"  -> tarPack Tar.BZIP2
-            ".xz"   -> tarPack Tar.XZ
-            ".lzma" -> tarPack Tar.LZMA
-            _       -> fail $ "packDirectory: cannot deduce compression algorithm from extension: " <> takeExtension outputArchive
-
 dataframesPackageName :: String
-dataframesPackageName = case buildOS of
-    Windows -> "Dataframes-Win-x64.7z"
-    Linux   -> "Dataframes-Linux-x64.tar.gz"
-    OSX     -> "Dataframes-macOS-x64.tar.gz"
-    _       -> error $ "dataframesPackageName: not implemented: " <> show buildOS
+dataframesPackageName = Paths.packageFileName "Dataframes"
 
 -- This function purpose is to transform environment from its initial state
 -- to the state where build step can be executed - so all dependencies and
@@ -119,6 +84,7 @@ dataframesPackageName = case buildOS of
 -- must be set.
 prepareEnvironment :: FilePath -> IO ()
 prepareEnvironment tempDir = do
+    putStrLn $ "Preparing environment..."
     case buildOS of
         Windows -> do
             -- We need to extract the package with dev libraries and set the environment
@@ -156,8 +122,8 @@ verifyArtifacts DataframesBuildArtifacts{..} = do
 
 -- This function should be called only in a properly prepared build environment.
 -- It builds the project and produces build artifacts.
-buildProject :: FilePath -> FilePath -> IO DataframesBuildArtifacts
-buildProject repoDir stagingDir = do
+buildProject :: FilePath -> FilePath -> () -> IO DataframesBuildArtifacts
+buildProject repoDir stagingDir _ = do
     putStrLn $ "Building project"
 
     -- In theory we could scan output directory for binaries… but the build
@@ -240,8 +206,8 @@ packagePython repoDir packageRoot = do
             pythonPrefix <- pythonPrefix
             copyInPythonLibs pythonPrefix packageRoot
 
-packageNativeLibs :: FilePath -> DataframesBuildArtifacts -> FilePath -> IO ()
-packageNativeLibs repoDir buildArtifacts nativeLibsDest = do
+packageNativeLibs :: FilePath -> ((), DataframesBuildArtifacts, FilePath) -> IO ()
+packageNativeLibs repoDir (_, buildArtifacts, nativeLibsDest) = do
     let builtDlls = dataframesBinaries buildArtifacts
     when (null builtDlls) $ error "Build Library.action $ n have not build any binaries despite declaring success!"
     additionalDependencyDirs <- case buildOS of
@@ -250,31 +216,32 @@ packageNativeLibs repoDir buildArtifacts nativeLibsDest = do
     Platform.packageBinaries nativeLibsDest builtDlls additionalDependencyDirs
     pure ()
 
-package :: FilePath -> FilePath -> DataframesBuildArtifacts -> IO DataframesPackageArtifacts
-package repoDir stagingDir buildArtifacts = do
-    putStrLn $ "Packaging build artifacts..."
-    let packageRoot = stagingDir </> "Dataframes"
-    let packageNativeLibsHook nativeLibsDest = do
-            packagePython repoDir packageRoot
-            packageNativeLibs repoDir buildArtifacts nativeLibsDest
+-- package :: FilePath -> FilePath -> DataframesBuildArtifacts -> IO DataframesPackageArtifacts
+-- package repoDir stagingDir buildArtifacts = do
+--     putStrLn $ "Packaging build artifacts..."
+--     let packageRoot = stagingDir </> "Dataframes"
+--     let packageNativeLibsHook nativeLibsDest = do
+--             packagePython repoDir packageRoot
+--             packageNativeLibs repoDir buildArtifacts nativeLibsDest
 
-    Library.package repoDir packageRoot $ Library.Hooks
-        { _installNativeLibs = Library.Hook $ packageNativeLibsHook }
-    packDirectory packageRoot dataframesPackageName
-    putStrLn $ "Packaging done, file saved to: " <> dataframesPackageName
-    pure $ DataframesPackageArtifacts
-        { dataframesPackageArchive = dataframesPackageName
-        , dataframesPackageDirectory = packageRoot
-        }
+--     Library.package repoDir packageRoot $ Library.Hooks
+--         { _installNativeLibs = Library.Hook $ packageNativeLibsHook }
+--     Archive.packDirectory packageRoot dataframesPackageName
+--     putStrLn $ "Packaging done, file saved to: " <> dataframesPackageName
+--     pure $ DataframesPackageArtifacts
+--         { dataframesPackageArchive = dataframesPackageName
+--         , dataframesPackageDirectory = packageRoot
+--         }
 
-runTests :: FilePath -> DataframesBuildArtifacts -> DataframesPackageArtifacts -> IO ()
-runTests repoDir buildArtifacts packageArtifacts = do
+runTests :: FilePath -> Library.TestInput () DataframesBuildArtifacts () -> IO ()
+runTests repoDir info = do
+    let outDir = info ^. Library.outputDirectory
     -- The test executable must be placed in the package directory
     -- so all the dependencies are properly visible.
     -- The CWD must be repository though for test to properly find
     -- the data files.
-    let packageDirBinaries = dataframesPackageDirectory packageArtifacts </> Library.nativeLibsBin
-    tests <- mapM (copyToDir packageDirBinaries) (dataframesTests buildArtifacts)
+    let packageDirBinaries = outDir </> Library.nativeLibsBin
+    tests <- mapM (copyToDir packageDirBinaries) (dataframesTests $ info ^. Library.builtData4)
     withCurrentDirectory repoDir $ do
         let configs = flip proc ["--report_level=detailed"] <$> tests
         mapM_ runProcess_ configs
@@ -282,14 +249,26 @@ runTests repoDir buildArtifacts packageArtifacts = do
 
 main :: IO ()
 main = do
-    Logger.logS "Dzień dobry, 世界"
+    -- Needed, so on Windows file handles are default to read/write UTF-8.
+    -- Console output needs to be done through WriteConsole anyway.
+    setLocaleEncoding utf8
+    Logger.logS "Привет, 世界! Zażółć gęślą jaźń."
     -- putStrLn $ "Starting Dataframes build"
     withSystemTempDirectory "" $ \stagingDir -> do
         -- let stagingDir = "C:\\Users\\mwu\\AppData\\Local\\Temp\\-777f232250ff9e9c"
-        putStrLn $ "Preparing environment..."
-        prepareEnvironment stagingDir
-        putStrLn $ "Obtaining repository directory..."
-        repoDir <- repoDir
-        buildArtifacts <- buildProject repoDir stagingDir
-        packageArtifacts <- package repoDir stagingDir buildArtifacts
-        runTests repoDir buildArtifacts packageArtifacts
+        target <- Library.deduceTarget stagingDir
+        let repoDir = Library._rootDir target 
+        let hooks = Library.Hooks
+                { _initialize = prepareEnvironment stagingDir
+                , _buildNativeLibs = buildProject repoDir stagingDir
+                , _installNativeLibs = packageNativeLibs repoDir
+                , _runTests = runTests repoDir
+                }
+        Library.package target stagingDir hooks
+
+        
+        -- putStrLn $ "Obtaining repository directory..."
+        -- repoDir <- Paths.repoDir
+        -- buildArtifacts <- buildProject repoDir stagingDir
+        -- packageArtifacts <- package repoDir stagingDir buildArtifacts
+        -- runTests repoDir buildArtifacts packageArtifacts

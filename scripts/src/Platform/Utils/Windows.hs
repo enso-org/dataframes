@@ -6,6 +6,8 @@ import qualified Utils as Utils
 
 import System.FilePath ((</>))
 
+-- | Returns program files directory for 32-bit programs, typically @C:\\Program
+--   Files (x86)@.
 programFiles86 :: MonadIO m => m FilePath
 programFiles86 = Utils.getEnvDefault "ProgramFiles(x86)" "C:\\Program Files (x86)"
 
