@@ -152,7 +152,7 @@ def createChunkedArrayWrapperSingleton arrayWrapper:
     wrapReleasableResouce ChunkedArrayWrapper ptr
 
 def createChunkedArrayWrapperChunks arrayWrappers:
-    Array (Pointer None) . with (arrayWrappers.each .ptr.ptr) arrayC:
+    Array (Pointer None) . with (arrayWrappers.each .ptr.pointer) arrayC:
         ptr = callHandlingError "chunkedArrayNewChunks" (Pointer None) [arrayC.ptr.toCArg, CInt32.fromInt arrayC.size . toCArg]
         wrapReleasableResouce ChunkedArrayWrapper ptr
 
@@ -277,7 +277,7 @@ class SchemaWrapper:
         0 . upto (self.fieldCount - 1) . each self.fieldAt
 
 def createSchemaWrapper fieldWrappers:
-    Array (Pointer None) . with (fieldWrappers.each (_.ptr . ptr)) arrayC:
+    Array (Pointer None) . with (fieldWrappers.each (_.ptr . pointer)) arrayC:
         ptr = callHandlingError "schemaNew" (Pointer None) [arrayC.ptr . toCArg, CInt32.fromInt arrayC.size . toCArg]
         wrapReleasableResouce SchemaWrapper ptr
 
@@ -348,7 +348,7 @@ class TableWrapper:
     # sortBy :: [(ColumnWrapper, SortOrder, NullPosition))]
     def sort sortBy:
         columnWrapperManagedPtrs = sortBy.each (col, _, _): col.ptr
-        columnWrapperPtrs = columnWrapperManagedPtrs.each .ptr
+        columnWrapperPtrs = columnWrapperManagedPtrs.each .pointer
         orders = sortBy.each (_, order, _): order.toCArg
         nullPositions = sortBy.each (_, _, nullPosition): nullPosition.toCArg
         ptr = Array (Pointer None) . with columnWrapperPtrs columnsC:
@@ -363,7 +363,7 @@ class TableWrapper:
     # aggregateBy :: ColumnWrapper -> [(ColumnWrapper, [Int])]
     def aggregateBy keyColumn aggregation:
         aggregatedColumnWrapperManagedPtrs = aggregation.each (col, _): col.ptr
-        aggregatedColumnWrapperPtrs = aggregatedColumnWrapperManagedPtrs.each .ptr
+        aggregatedColumnWrapperPtrs = aggregatedColumnWrapperManagedPtrs.each .pointer
         aggregationFunctionIds = aggregation.each (_, aggs): aggs.each CInt8.fromInt
         aggregationFunctionCounts = aggregationFunctionIds.each (CInt8.fromInt _.length)
         ptr = Array (Pointer None) . with aggregatedColumnWrapperPtrs aggregatedColumnsC:
@@ -376,7 +376,7 @@ class TableWrapper:
     # rollingInterval :: ColumnWrapper -> Int -> [(ColumnWrapper, [Int])]
     def rollingInterval keyColumn intervalNs aggregation:
         aggregatedColumnWrapperManagedPtrs = aggregation.each (col, _): col.ptr
-        aggregatedColumnWrapperPtrs = aggregatedColumnWrapperManagedPtrs.each .ptr
+        aggregatedColumnWrapperPtrs = aggregatedColumnWrapperManagedPtrs.each .pointer
         aggregationFunctionIds = aggregation.each (_, aggs): aggs.each CInt8.fromInt
         aggregationFunctionCounts = aggregationFunctionIds.each (CInt8.fromInt _.length)
         ptr = Array (Pointer None) . with aggregatedColumnWrapperPtrs aggregatedColumnsC:
@@ -398,7 +398,7 @@ class TableWrapper:
             callHandlingError "writeTableToFile" None [pathC.toCArg, self.ptr.toCArg]
 
 def createTableWrapper schemaWrapper columnWrappers:
-    Array (Pointer None) . with (columnWrappers.each (_.ptr . ptr)) columnsCArray:
+    Array (Pointer None) . with (columnWrappers.each (_.ptr . pointer)) columnsCArray:
         ptr = callHandlingError "tableNewFromSchemaAndColumns" (Pointer None) [schemaWrapper.ptr . toCArg, columnsCArray.ptr.toCArg, CInt32.fromInt columnsCArray.size . toCArg]
         wrapReleasableResouce TableWrapper ptr
 
