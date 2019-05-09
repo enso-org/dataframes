@@ -1,0 +1,70 @@
+Dataframes.Table:
+  $global:
+    - name: Table.read "path/to/data"
+      documentation: Read table from file.
+  
+  Table:
+    - name: write "./myTable.csv"
+      documentation: Save the table as a file. Supported file formats are: csv, txt, xlsx and feather.
+    - name: describeNa
+      documentation: Calculate number and percentage of null values for each column.
+    - name: describe
+      documentation: Calculate statistics: standard deviation, minimum, maximum, mean, median quantile 0.25 and 0.75 for each column. 
+    - name: rowCount
+      documentation: Number of rows in the table.
+    - name: columnCount
+      documentation: Number of columns in the table.
+    - name: columnNames
+      documentation: A list of columns names.
+    - name: take 1
+      documentation: Take first `n` rows.
+    - name: drop 1
+      documentation: Drop first `n` rows.
+    - name: filterColumns .isNumeric
+      documentation: Filter columns in the table.
+    - name: dropNa
+      documentation: Remove rows with null values.
+    - name: columnAt 0
+      documentation: Get column from the table for given index.
+    - name: filterColumns .isNumeric . fillNA 0
+      documentation: Fill null values with given value.
+    - name: filterColumns .isNumeric . correlations
+      documentation: Compute pairwise Pearson's correlation of columns.
+  Histogram:
+    - name: setBins 5
+      documentaion: Change the number of bins for histogram. Default: 10.
+    - name: write 600 800 "./myHistogram.png"
+      documentaion: Save the chart to an image file.
+  Plot:
+    - name: write 600 800 "./myPlot.png"
+      documentaion: Save the chart to an image file.
+    - name: setStyle "o"
+      documentaion: Change plot style.
+    - name: setLabel "example plot"
+      documentaion: Add legend to the plot.
+    - name: setColor "g"
+      documentaion: Change a plot color.
+    - name: setAlpha 0.5
+      documentaion: Change plot transparency.
+  PlotBetween:
+    - name: write 600 800 "./myPlot.png"
+      documentaion: Save the chart to an image file.
+    - name: setLabel "example plot"
+      documentaion: Add legend to the plot.
+    - name: setColor "g"
+      documentaion: Change a plot color.
+    - name: setAlpha 0.5
+      documentaion: Change plot transparency.
+  Scatter:
+    - name: write 600 800 "./myPlot.png"
+      documentaion: Save the chart to an image file.
+  KDE2:
+    - name: write 600 800 "./myPlot.png"
+      documentaion: Save the chart to an image file.
+  KDE:
+    - name: write 600 800 "./myPlot.png"
+      documentaion: Save the chart to an image file.
+  Scatter:
+    - name: write 600 800 "./myPlot.png"
+      documentaion: Save the chart to an image file.
+  

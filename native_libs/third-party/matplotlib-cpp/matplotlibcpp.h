@@ -962,20 +962,11 @@ inline void show(pybind11::bool_ block = true)
 //     Py_DECREF(res);
 // }
 // 
-// inline void save(const std::string& filename)
-// {
-//     PyObject* pyfilename = PyString_FromString(filename.c_str());
-// 
-//     PyObject* args = PyTuple_New(1);
-//     PyTuple_SetItem(args, 0, pyfilename);
-// 
-//     PyObject* res = PyObject_CallObject(detail::_interpreter::get().s_python_function_save, args);
-//     if (!res) throw std::runtime_error("Call to save() failed.");
-// 
-//     Py_DECREF(args);
-//     Py_DECREF(res);
-// }
-// 
+inline void save(const std::string& filename)
+{
+    detail::_interpreter::get().s_python_function_save(filename);
+}
+ 
 inline std::string getPNG()
 {
     auto bytesIO = detail::_interpreter::get().s_python_function_newbytesio();
