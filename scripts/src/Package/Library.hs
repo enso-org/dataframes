@@ -8,6 +8,7 @@ import System.Directory (createDirectoryIfMissing)
 import System.FilePath
 import System.FilePath.Glob
 
+import qualified Archive as Archive
 import qualified Paths as Paths
 import qualified Utils as Utils
 
@@ -46,25 +47,30 @@ deduceTarget :: MonadIO m => FilePath -> m BuildInformation
 deduceTarget out = do
     repoDir <- Paths.repoDir
     let name = takeFileName repoDir
-    pure $ BuildInformation repoDir name out
+    pure $ BuildInformation repoDir name out (Paths.packageFileName name)
 
 data BuildInformation = BuildInformation
     { _rootDir :: FilePath
     , _libraryName :: String
     , _outputDirectory :: FilePath
+    , _outputArchiveName :: FilePath
     } deriving (Show)
 makeLenses ''BuildInformation
 
-data InitInput = InitInput { _buildInformation1 :: BuildInformation }
+data InitInput = InitInput 
+    { _buildInformation1 :: BuildInformation }
 makeLenses ''InitInput
 
-data BuildInput inited = BuildInput { _buildInformation2 :: BuildInformation, _initData2 :: inited }
+data BuildInput inited = BuildInput 
+    { _buildInformation2 :: BuildInformation, _initData2 :: inited }
 makeLenses ''BuildInput
 
-data InstallInput inited built = InstallInput { _buildInformation3 :: BuildInformation, _initData3 :: inited, _builtData3 :: built }
+data InstallInput inited built = InstallInput 
+    { _buildInformation3 :: BuildInformation, _initData3 :: inited, _builtData3 :: built, _nativeLibsBinDir :: FilePath }
 makeLenses ''InstallInput
 
-data TestInput inited built packaged = TestInput { _buildInformation4 :: BuildInformation, _initData4 :: inited, _builtData4 :: built, _packagedData4 :: packaged }
+data TestInput inited built packaged = TestInput 
+    { _buildInformation4 :: BuildInformation, _initData4 :: inited, _builtData4 :: built, _packagedData4 :: packaged }
 makeLenses ''TestInput
 
 
@@ -109,8 +115,11 @@ package build pack = do
     logS $ "Building native libraries"
     built <- (pack ^. buildNativeLibs) (BuildInput build inited)
     logS $ "Installing native libraries"
-    package <- runHook (pack ^. installNativeLibs) (InstallInput build inited built) -- , outDir </> nativeLibsBin)
+    package <- runHook (pack ^. installNativeLibs) (InstallInput build inited built $ outDir </> nativeLibsBin)
     logS $ "Testing"
-    package <- runHook (pack ^. runTests) (TestInput build inited built package) -- (inited, built, package)
+    package <- runHook (pack ^. runTests) (TestInput build inited built package)
     logS $ "Package structure ready at " <> outDir
+
+    logS $ "Creating an archive..."
+    Archive.packDirectory outDir $ build ^. outputArchiveName
     pure ()

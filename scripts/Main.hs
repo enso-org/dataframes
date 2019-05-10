@@ -82,8 +82,8 @@ dataframesPackageName = Paths.packageFileName "Dataframes"
 -- to the state where build step can be executed - so all dependencies and
 -- other global state (like environment variable) that build script is using
 -- must be set.
-prepareEnvironment :: FilePath -> IO ()
-prepareEnvironment tempDir = do
+prepareEnvironment :: FilePath -> Library.InitInput -> IO ()
+prepareEnvironment tempDir _ = do
     putStrLn $ "Preparing environment..."
     case buildOS of
         Windows -> do
@@ -122,7 +122,7 @@ verifyArtifacts DataframesBuildArtifacts{..} = do
 
 -- This function should be called only in a properly prepared build environment.
 -- It builds the project and produces build artifacts.
-buildProject :: FilePath -> FilePath -> () -> IO DataframesBuildArtifacts
+buildProject :: FilePath -> FilePath -> Library.BuildInput () -> IO DataframesBuildArtifacts
 buildProject repoDir stagingDir _ = do
     putStrLn $ "Building project"
 
@@ -170,11 +170,6 @@ buildProject repoDir stagingDir _ = do
     verifyArtifacts expectedArtifacts
     pure expectedArtifacts
 
-data DataframesPackageArtifacts = DataframesPackageArtifacts
-    { dataframesPackageArchive   :: FilePath
-    , dataframesPackageDirectory :: FilePath
-    } deriving (Eq, Show)
-
 copyInPythonLibs :: FilePath -> FilePath -> IO ()
 copyInPythonLibs pythonPrefix packageRoot = do
     let from = pythonPrefix </> "lib" </> "python" <> pythonVersion <> ""
@@ -206,36 +201,18 @@ packagePython repoDir packageRoot = do
             pythonPrefix <- pythonPrefix
             copyInPythonLibs pythonPrefix packageRoot
 
-packageNativeLibs :: FilePath -> ((), DataframesBuildArtifacts, FilePath) -> IO ()
-packageNativeLibs repoDir (_, buildArtifacts, nativeLibsDest) = do
-    let builtDlls = dataframesBinaries buildArtifacts
-    when (null builtDlls) $ error "Build Library.action $ n have not build any binaries despite declaring success!"
+packageNativeLibs :: FilePath -> Library.InstallInput () DataframesBuildArtifacts -> IO ()
+packageNativeLibs repoDir input = do
     additionalDependencyDirs <- case buildOS of
             Windows -> additionalLocationsWithBinaries repoDir
             _       -> pure []
-    Platform.packageBinaries nativeLibsDest builtDlls additionalDependencyDirs
+    let builtDlls = dataframesBinaries $ input ^. Library.builtData3
+    Platform.packageBinaries (input ^. Library.nativeLibsBinDir) builtDlls additionalDependencyDirs
     pure ()
-
--- package :: FilePath -> FilePath -> DataframesBuildArtifacts -> IO DataframesPackageArtifacts
--- package repoDir stagingDir buildArtifacts = do
---     putStrLn $ "Packaging build artifacts..."
---     let packageRoot = stagingDir </> "Dataframes"
---     let packageNativeLibsHook nativeLibsDest = do
---             packagePython repoDir packageRoot
---             packageNativeLibs repoDir buildArtifacts nativeLibsDest
-
---     Library.package repoDir packageRoot $ Library.Hooks
---         { _installNativeLibs = Library.Hook $ packageNativeLibsHook }
---     Archive.packDirectory packageRoot dataframesPackageName
---     putStrLn $ "Packaging done, file saved to: " <> dataframesPackageName
---     pure $ DataframesPackageArtifacts
---         { dataframesPackageArchive = dataframesPackageName
---         , dataframesPackageDirectory = packageRoot
---         }
 
 runTests :: FilePath -> Library.TestInput () DataframesBuildArtifacts () -> IO ()
 runTests repoDir info = do
-    let outDir = info ^. Library.outputDirectory
+    let outDir = info ^. Library.buildInformation4 ^. Library.outputDirectory
     -- The test executable must be placed in the package directory
     -- so all the dependencies are properly visible.
     -- The CWD must be repository though for test to properly find
@@ -252,8 +229,7 @@ main = do
     -- Needed, so on Windows file handles are default to read/write UTF-8.
     -- Console output needs to be done through WriteConsole anyway.
     setLocaleEncoding utf8
-    Logger.logS "Привет, 世界! Zażółć gęślą jaźń."
-    -- putStrLn $ "Starting Dataframes build"
+    putStrLn $ "Starting Dataframes build"
     withSystemTempDirectory "" $ \stagingDir -> do
         -- let stagingDir = "C:\\Users\\mwu\\AppData\\Local\\Temp\\-777f232250ff9e9c"
         target <- Library.deduceTarget stagingDir
@@ -264,11 +240,4 @@ main = do
                 , _installNativeLibs = packageNativeLibs repoDir
                 , _runTests = runTests repoDir
                 }
-        Library.package target stagingDir hooks
-
-        
-        -- putStrLn $ "Obtaining repository directory..."
-        -- repoDir <- Paths.repoDir
-        -- buildArtifacts <- buildProject repoDir stagingDir
-        -- packageArtifacts <- package repoDir stagingDir buildArtifacts
-        -- runTests repoDir buildArtifacts packageArtifacts
+        Library.package target hooks

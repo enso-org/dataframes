@@ -15,8 +15,8 @@ import System.FilePath  (takeDirectory, takeExtension)
 -- 
 -- 2. switch CWD so tar shall pack the folder at archive's root
 --    (without maintaining directory's absolute path in archive)
-packDirectory :: FilePath -> FilePath -> IO ()
-packDirectory pathToPack outputArchive = do
+packDirectory :: MonadIO m => FilePath -> FilePath -> m ()
+packDirectory pathToPack outputArchive = liftIO $ do
     -- As we switch cwd, relative path to output might get affected.
     -- Let's store it as absolute path first.
     outputArchiveAbs <- makeAbsolute outputArchive

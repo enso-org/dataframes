@@ -50,7 +50,7 @@ testDownload = do
 
 runTestCase :: String -> IO () -> IO ()
 runTestCase name action = withSystemTempDirectory name $ \dir -> do
-    putStrLn $ "Running `" <> name <> "` in " <> dir
+    putStrLn $ "Running `" <> name <> "` in " <> di
     withCurrentDirectory dir action
 
 main = do
