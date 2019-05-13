@@ -4,6 +4,7 @@ import Dataframes.Field
 import Dataframes.Schema
 import Dataframes.Table
 import Dataframes.Types
+import Dataframes.Value
 
 import Dataframes.Internal.CWrappers
 import Dataframes.Internal.Utils
@@ -74,16 +75,17 @@ class Column:
             ColumnMaybeText      tc: tc.ptr
             ColumnTimestamp      tc: tc.ptr
             ColumnMaybeTimestamp tc: tc.ptr
+
     def toList:
         case self of
-            ColumnInt            tc: tc.toList
-            ColumnMaybeInt       tc: tc.toList
-            ColumnReal           tc: tc.toList
-            ColumnMaybeReal      tc: tc.toList
-            ColumnText           tc: tc.toList
-            ColumnMaybeText      tc: tc.toList
-            ColumnTimestamp      tc: tc.toList
-            ColumnMaybeTimestamp tc: tc.toList
+            ColumnInt            tc: tc.toList.each ValueInt
+            ColumnMaybeInt       tc: tc.toList.each ValueMaybeInt
+            ColumnReal           tc: tc.toList.each ValueReal
+            ColumnMaybeReal      tc: tc.toList.each ValueMaybeReal
+            ColumnText           tc: tc.toList.each ValueText
+            ColumnMaybeText      tc: tc.toList.each ValueMaybeText
+            ColumnTimestamp      tc: tc.toList.each ValueTimestamp
+            ColumnMaybeTimestamp tc: tc.toList.each ValueMaybeTimestamp
 
     def slice fromIndex length:
         case self of

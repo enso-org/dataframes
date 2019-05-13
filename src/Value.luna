@@ -1,0 +1,68 @@
+import Dataframes.Types
+
+class Value:
+    Value
+    ValueInt            (Int)
+    ValueMaybeInt       (Maybe Int)
+    ValueReal           (Real)
+    ValueMaybeReal      (Maybe Real)
+    ValueText           (Text)
+    ValueMaybeText      (Maybe Text)
+    ValueTimestamp      (Time)
+    ValueMaybeTimestamp (Maybe Time)
+
+    # Returns the stored Int value. If the stored value is a Real value, it
+    # will be rounded down.
+    def toInt:
+        case self of
+            ValueInt            val: val
+            ValueReal           val: val.floor
+            _                      : 
+                throw $ "toInt: value not convertible to Int: " + self.toText
+
+    # Returns the stored Real value. If the stored value is a Int value, it
+    # will be converted.
+    def toReal:
+        case self of
+            ValueInt            val: val.toReal
+            ValueReal           val: val
+            _                      : 
+                throw "toReal: value not convertible to Real: " + self.toText
+
+    # Returns the stored Text value. If the stored value is of another type, it
+    # will be pretty-printed.
+    def toText:
+        case self of
+            ValueInt            val: val.toText
+            ValueMaybeInt       val: val.toText
+            ValueReal           val: val.toText
+            ValueMaybeReal      val: val.toText
+            ValueText           val: val.toText
+            ValueMaybeText      val: val.toText
+            ValueTimestamp      val: val.toText
+            ValueMaybeTimestamp val: val.toText
+
+    # Converts a value to JSON.
+    def toJSON:
+        case self of
+            ValueInt            val: val.toJSON
+            ValueMaybeInt       val: val.toJSON
+            ValueReal           val: val.toJSON
+            ValueMaybeReal      val: val.toJSON
+            ValueText           val: val.toJSON
+            ValueMaybeText      val: val.toJSON
+            ValueTimestamp      val: val.toJSON
+            ValueMaybeTimestamp val: val.toJSON
+
+    # Displays a short representation of `Value` object for use in interactive 
+    # mode.
+    def shortRep:
+        case self of
+            ValueInt            val: val.shortRep
+            ValueMaybeInt       val: val.shortRep
+            ValueReal           val: val.shortRep
+            ValueMaybeReal      val: val.shortRep
+            ValueText           val: val.shortRep
+            ValueMaybeText      val: val.shortRep
+            ValueTimestamp      val: val.shortRep
+            ValueMaybeTimestamp val: val.shortRep
