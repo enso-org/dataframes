@@ -220,7 +220,7 @@ pybind11::object PythonInterpreter::toPyDateTime(Timestamp timestamp) const
     using namespace date;
     auto daypoint = floor<days>(timestamp);
     auto ymd = year_month_day(daypoint);   // calendar date
-    time_of_day tod = make_time(timestamp - daypoint); // Yields time_of_day type
+    auto tod = make_time(timestamp - daypoint); // Yields time_of_day type
 
                                                // Obtain individual components as integers
     auto y = (int)ymd.year();
