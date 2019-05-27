@@ -23,7 +23,6 @@ instance Program.Program Git where
 
 -- === Utils === --
 
-
 -- | A few git query-like commands print a text line on stdout on success.
 --   Output line may be followed by an empty line. This function obtains the
 --   non-empty line. Both stdout and stderr are consumed. stderr is ignored.
@@ -38,7 +37,8 @@ expectSingleLineOut cmd = runMaybeT $ do
         firstLine : []      -> pure $ firstLine
         firstLine : "" : [] -> pure $ firstLine
         _                   -> fail "output may be followed by a single blank line only"
-    
+
+        
 -- === API === --
 
 -- | Returns true if given path points to git repository or its subtree.

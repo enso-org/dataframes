@@ -1,3 +1,5 @@
+-- | Module for high-level platform-specific utilities that can be feasibly
+-- exposed under unified interface.
 module Platform where
 
 import Prologue
@@ -16,19 +18,22 @@ dynamicLibraryPrefix = case buildOS of
     Windows -> ""
     _       -> "lib"
 
-dllExtension :: String
-dllExtension = Cabal.dllExtension buildPlatform
+dynamicLibraryExtension :: String
+dynamicLibraryExtension = Cabal.dllExtension buildPlatform
 
 -- | Converts root name into os-specific library filename, e.g.:
 --   @DataframeHelper@ becomes @DataframeHelper.dll@ on Windows or
 --   @libDataframeHelper.so@ on Linux.
 libraryFilename :: FilePath -> FilePath
-libraryFilename name = dynamicLibraryPrefix <> name <.> dllExtension
+libraryFilename name = dynamicLibraryPrefix <> name <.> dynamicLibraryExtension
 
 -- | Adds, if needed, a platform-appropriate executable extensions.
 executableFilename :: FilePath -> FilePath
 executableFilename = (-<.> exeExtension)
 
+-- | Places the binaries and their dependencies (shared libraries) in the target
+--   directory. Binaries might get patched to properly discover their packaged
+--   dependencies.
 packageBinaries 
     :: MonadIO m 
     => FilePath  -- ^ Target directory to place binaries within

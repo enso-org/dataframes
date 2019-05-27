@@ -1,3 +1,4 @@
+-- | Module for low-level platform-independent utilities.
 module Utils where
 
 import Prologue
@@ -8,7 +9,8 @@ import Conduit                   (ConduitM, await, yield)
 import Distribution.Simple.Utils (copyDirectoryRecursive, shortRelativePath)
 import Distribution.Verbosity    (silent)
 import System.Directory          (copyFile, createDirectoryIfMissing,
-                                  doesFileExist, removeDirectoryRecursive)
+                                  doesFileExist, removeDirectoryRecursive,
+                                  removeFile)
 import System.Environment        (lookupEnv)
 import System.FilePath           (normalise, takeFileName, (</>))
 import System.IO.Error           (isDoesNotExistError)
@@ -31,6 +33,13 @@ removeDirectoryRecursiveIfExists :: (MonadIO m) => FilePath -> m ()
 removeDirectoryRecursiveIfExists path = liftIO $ catchJust
     (\e -> if isDoesNotExistError e then Just () else Nothing)
     (removeDirectoryRecursive path)
+    (const $ pure ())
+
+-- | As 'removeFile' but doesn't fail when the path does not exist.
+removeFileIfExists :: (MonadIO m) => FilePath -> m ()
+removeFileIfExists path = liftIO $ catchJust
+    (\e -> if isDoesNotExistError e then Just () else Nothing)
+    (removeFile path)
     (const $ pure ())
 
 -- | As fromJust but provides an error message if called on Nothing
@@ -103,7 +112,7 @@ lookupFileInDir file dir = do
 --   given additional directory list.
 lookupInPATH :: MonadIO m => [FilePath] -> FilePath -> m (Maybe FilePath)
 lookupInPATH additionalPaths dll = do
-    systemPaths <- liftIO $ Cabal.getSystemSearchPath -- ^ includes PATH env
+    systemPaths <- liftIO $ Cabal.getSystemSearchPath -- includes PATH env
     let paths = additionalPaths <> systemPaths
     let testPaths (head : tail) = lookupFileInDir dll head >>= \case
             Just dir -> pure $ Just dir

@@ -19,4 +19,3 @@ systemRoot = Utils.getEnvDefault "SystemRoot" "C:\\Windows"
 --   and libraries. Despite its name, it is native also on 64-bit Windows.
 system32 :: MonadIO m => m FilePath
 system32 = systemRoot <&> (</> "System32")
-    -- %SystemRoot%\system32\WindowsPowerShell\v1.0\Modules

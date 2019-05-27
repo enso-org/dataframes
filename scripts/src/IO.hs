@@ -1,7 +1,13 @@
 {-# OPTIONS -cpp #-}
 
 -- | This module provides custom IO functions that support outputting non-ascii
---   characters on Windows console.
+--   characters on Windows console. When writing text to handles to the console,
+--   functions from this module should be used to prevent crashes on non-ascii
+--   characters.
+--
+--   The 'hPutStr' and 'hPutText' take arbitrary handle and if it points to a
+--   Windows console buffer use special 'writeConsole' function, otherwise
+--   falling back to base's `System.IO.hPutStr'.
 module IO where
 
 import Prologue
@@ -23,7 +29,7 @@ import System.Win32.Types (HANDLE, withHandleToHANDLE)
 foreign import ccall unsafe "writeConsole" writeConsoleC :: Ptr Word16 -> Int32 -> HANDLE -> IO Int64
 foreign import ccall unsafe "isConsole" isConsoleC :: HANDLE -> IO Bool
 
--- | Checks if this is a handle to the console screen buffer.
+-- | Checks if this is a handle to the Windows console screen buffer.
 isConsole :: (MonadIO m) => Handle -> m Bool
 isConsole handle = liftIO <$> withHandleToHANDLE handle $ isConsoleC
 
@@ -34,6 +40,8 @@ isConsole handle = liftIO <$> withHandleToHANDLE handle $ isConsoleC
 -- Returns the number of written characters on success or -1 on failure.
 writeConsole :: (MonadIO m) => Handle -> Text -> m Int64
 writeConsole handle text = liftIO $
+    -- possible improvement here: useAsPtr copies the text, though we do
+    -- read-only operation, so copy should not be needed
     useAsPtr text $ \textPtr textLength -> do
         withHandleToHANDLE handle $ do
             writeConsoleC textPtr (fromIntegral textLength)
@@ -67,4 +75,3 @@ putText = hPutText stdout
 
 putTextLn :: (MonadIO m) => Text -> m ()
 putTextLn = hPutTextLn stdout
-

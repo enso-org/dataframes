@@ -1,5 +1,5 @@
-name: dataframes-package
-synopsis: Utility program to build, test and create relocatable package with Dataframes library
+name: build-support
+synopsis: Utility library to support building, testing and packaging of Luna project packages.
 version: "1.0"
 author: New Byte Order <contact@newbyteorder.com>
 maintainer: New Byte Order <contact@newbyteorder.com>
@@ -71,10 +71,10 @@ tests:
   test:
     main: Test.hs
     source-dirs: test
-    dependencies: dataframes-package
+    dependencies: build-support
 executable:
   main: Main.hs
-  dependencies: dataframes-package
+  dependencies: build-support
 
 dependencies:
 - async

@@ -57,7 +57,7 @@ lookupMSVCRedist = do
     -- we don't want to use "Preview" VS installations
     let matchingLocationsStable = filter (not . isInfixOf "Preview") matchingLocations
     pure $ maximum matchingLocationsStable
-    -- ^ maximum, because we want to use latest redist, as they are
+    -- maximum, because we want to use latest redist, as they are
     -- compatible only this way (you can use newer in the place of older)
 
 -- | Returns directory containing Universal CRT redistributable DLLs. Depends on

@@ -26,7 +26,8 @@ instance Program Tar where
 -- === Command  === --
 ----------------------
     
-data Format = GZIP | BZIP2 | XZ | LZMA
+data Format = GZIP | BZIP2 | XZ | LZMA deriving (Show, Eq)
+
 instance Program.Argument Format where
     format = \case
         GZIP  -> ["-z"]
@@ -113,22 +114,22 @@ unpack outputDirectory archivePath =
     call Extract [] archivePath []
 
 -- | Unpack all files from given archive into directory.
-unpackProgressible
+unpackWithProgress
     :: (MonadIO m, MonadMask m)
     => Progress.Observer UnpackProgressInfo -- ^ callback
     -> FilePath -- ^ Output directory
     -> FilePath -- ^ Archive
     -> m ()
-unpackProgressible callback = Progress.runProgressible callback .: unpackProgressible'
+unpackWithProgress callback = Progress.runProgressible callback .: unpackWithProgress'
 
 -- | Unpack all files from given archive into directory.
-unpackProgressible'
+unpackWithProgress'
     :: (MonadIO m) 
     => FilePath -- ^ Output directory
     -> FilePath -- ^ Archive
     -> (UnpackProgressInfo -> IO ()) -- ^ callback
     -> m ()
-unpackProgressible' outputDirectory archivePath callback = do
+unpackWithProgress' outputDirectory archivePath callback = do
     count    <- fileCount archivePath
     procCfg1 <- Program.prog' @Tar $ callArgs Extract [Verbose] archivePath []
     let procCfg = procCfg1 { Process.cwd = Just outputDirectory }

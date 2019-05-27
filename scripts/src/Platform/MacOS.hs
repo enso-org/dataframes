@@ -27,7 +27,7 @@ import System.IO.Temp                 (withSystemTempDirectory)
 import Text.Printf                    (printf)
 
 
--- | Source code of C++ program that loads dybamic libraries passed as its
+-- | Source code of C++ program that loads dynamic libraries passed as its
 --   arguments. See 'getDependenciesOfExecutable'.
 dlopenProgram :: BS.ByteString
 dlopenProgram = $(embedFile "helpers/main.cpp")

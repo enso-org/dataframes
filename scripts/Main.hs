@@ -51,6 +51,7 @@ msBuildConfig = MsBuild.BuildConfiguration MsBuild.Release MsBuild.X64
 
 -- | All paths below are functions over repository directory (or package root,
 -- if applicable)
+nativeLibsSrc, solutionFile, dataframeVsProject :: FilePath -> FilePath
 nativeLibsSrc      = (</> Library.nativeLibs </> "src")
 solutionFile       = (</> "DataframeHelper.sln")     . nativeLibsSrc
 dataframeVsProject = (</> "DataframeHelper.vcxproj") . nativeLibsSrc
@@ -59,7 +60,7 @@ dataframeVsProject = (</> "DataframeHelper.vcxproj") . nativeLibsSrc
 --  dir. The archive is placed in temp folder, so function doesn't leave any
 --  trash behind.
 downloadAndUnpack7z :: FilePath -> FilePath -> IO ()
-downloadAndUnpack7z archiveUrl targetDirectory = do
+downloadAndUnpack7z archiveUrl targetDirectory =
     withSystemTempDirectory "" $ \tmpDir -> do
         let archiveLocalPath = tmpDir </> takeFileName archiveUrl
         Curl.download archiveUrl archiveLocalPath
@@ -75,15 +76,12 @@ pythonPrefix = getEnvRequired "PYTHON_PREFIX_PATH" -- TODO: should be able to de
 pythonVersion :: String
 pythonVersion = "3.7"
 
-dataframesPackageName :: String
-dataframesPackageName = Paths.packageFileName "Dataframes"
-
 -- This function purpose is to transform environment from its initial state
 -- to the state where build step can be executed - so all dependencies and
 -- other global state (like environment variable) that build script is using
 -- must be set.
-prepareEnvironment :: FilePath -> Library.InitInput -> IO ()
-prepareEnvironment tempDir _ = do
+prepareEnvironment :: Library.InitInput -> IO ()
+prepareEnvironment initInfo = do
     putStrLn $ "Preparing environment..."
     case buildOS of
         Windows -> do
@@ -93,7 +91,7 @@ prepareEnvironment tempDir _ = do
             -- The package contains all dependencies except for Python (with numpy).
             -- Python needs to be provided by CI environment and pointed to by `PythonDir`
             -- environment variable.
-            let depsDirLocal = tempDir </> "deps"
+            let depsDirLocal = (initInfo ^. Library.buildInformation1 ^. Library.tempDirectory) </> "deps"
             downloadAndUnpack7z depsArchiveUrl depsDirLocal
             setEnv "DATAFRAMES_DEPS_DIR" depsDirLocal
         Linux ->
@@ -151,7 +149,7 @@ buildProject repoDir stagingDir _ = do
             let buildDir = stagingDir </> "build"
             let srcDir = nativeLibsSrc repoDir
             let pythonLibDir = pythonPrefix </> "lib"
-            let pythonLibName = "libpython" <> pythonVersion <> "m" <.> Platform.dllExtension
+            let pythonLibName = "libpython" <> pythonVersion <> "m" <.> Platform.dynamicLibraryExtension
             let pythonLibPath = pythonLibDir </> pythonLibName
             let numpyIncludeDir = pythonLibDir </> "python" <> pythonVersion </> "site-packages/numpy/core/include"
             let cmakeVariables =
@@ -203,6 +201,8 @@ packagePython repoDir packageRoot = do
 
 packageNativeLibs :: FilePath -> Library.InstallInput () DataframesBuildArtifacts -> IO ()
 packageNativeLibs repoDir input = do
+    let outputPackageRoot = input ^. Library.buildInformation3 ^. Library.outputDirectory
+    packagePython repoDir outputPackageRoot
     additionalDependencyDirs <- case buildOS of
             Windows -> additionalLocationsWithBinaries repoDir
             _       -> pure []
@@ -235,7 +235,7 @@ main = do
         target <- Library.deduceTarget stagingDir
         let repoDir = Library._rootDir target 
         let hooks = Library.Hooks
-                { _initialize = prepareEnvironment stagingDir
+                { _initialize = prepareEnvironment
                 , _buildNativeLibs = buildProject repoDir stagingDir
                 , _installNativeLibs = packageNativeLibs repoDir
                 , _runTests = runTests repoDir

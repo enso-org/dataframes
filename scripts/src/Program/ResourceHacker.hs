@@ -118,6 +118,7 @@ versionInfo version exeFile name fileDescription companyName = VersionInfo
     { _version = version
     , _companyName = companyName
     , _fileDescription =  fileDescription
+    -- note [mwu] not sure about hardcoding the year below
     , _legalCopyright = "Copyright (c) 2019 " <> companyName
     , _originalFilename = convert $ takeFileName exeFile
     , _productName = name

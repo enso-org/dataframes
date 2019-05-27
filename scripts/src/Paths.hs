@@ -10,15 +10,15 @@ import System.Environment (getExecutablePath, lookupEnv)
 import System.FilePath    (takeDirectory)
 import Text.Printf        (printf)
 
--- | Gets path to the repository root. Basically this involves:
+-- | Attempts to deduce path to the repository root. Basically this involves
+--   checking, if any of the following locations belongs to a git repository:
 --
---   1. check @BUILD_SOURCESDIRECTORY@ environment variable.
+--   1. @BUILD_SOURCESDIRECTORY@ environment variable (automatically set
+--      on Azure Pipelines).
+--   2. current executable path
+--   3. working directory
 --
---   2. check current executable path
---
---   3. check working directory
---
---   If nothing of the above is available, an error is raised.
+--   If none of the above is available, an error is raised.
 repoDir :: MonadIO m => m FilePath
 repoDir = liftIO $ lookupEnv "BUILD_SOURCESDIRECTORY" >>= \case
     Just path -> pure path
@@ -32,6 +32,9 @@ repoDir = liftIO $ lookupEnv "BUILD_SOURCESDIRECTORY" >>= \case
                     Just path -> pure path
                     Nothing   -> error $ "cannot deduce repository root path, please define BUILD_SOURCESDIRECTORY"
 
+-- | Default archive format for current platform. On Linux and macOS we prefer
+--   @tar.gz@, because @tar@ program can typically be assumed to be present. On
+--   Windows we prefer 7z, as it is easier to place on the end-user's machine.
 defaultArchiveFormat :: String
 defaultArchiveFormat = case buildOS of
     Windows -> "7z"
@@ -39,11 +42,18 @@ defaultArchiveFormat = case buildOS of
     OSX     -> "tar.gz"
     _       -> error $ "defaultArchiveFormat: not implemented: " <> show buildOS
 
-packageFileName :: String -> FilePath
-packageFileName projectName = printf "%s-%s-%s.%s" projectName (systemName :: String) (archName :: String) defaultArchiveFormat where
-    archName = "x64" 
-    systemName = case buildOS of
-        Windows -> "Win"
-        Linux   -> "Linux"
-        OSX     -> "macOS"
-        _       -> error $ "packageFileName: not implemented: " <> show buildOS
+-- | Returns a platform-specific name for an archive with a package.
+packageArchiveDefaultName :: String -> FilePath
+packageArchiveDefaultName projectName = 
+    let archName = "x64" 
+        systemName = case buildOS of
+            Windows -> "Win"
+            Linux   -> "Linux"
+            OSX     -> "macOS"
+            _       -> error $ "packageFileName: not implemented: "
+                             <> show buildOS
+    in printf "%s-%s-%s.%s" 
+        projectName 
+        (systemName :: String) 
+        (archName   :: String) 
+        defaultArchiveFormat     where

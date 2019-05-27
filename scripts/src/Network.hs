@@ -1,6 +1,5 @@
 module Network where
 
-
 import Prologue
 
 import qualified Data.Attoparsec.ByteString.Char8 as Attoparsec
@@ -66,6 +65,7 @@ contentLength response = do
     field <- lookup hContentLength (responseHeaders response)
     parseLength field
 
+-- | Downloads file, allowing tracking progress.
 downloadFileTo
     :: (MonadMask m, MonadIO m)
     => Progress.Observer DownloadProgress
