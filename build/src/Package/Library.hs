@@ -54,18 +54,18 @@ instance (Applicative m, Default output)
 prepareBuild 
     :: (Logger.Logger m, MonadIO m) 
     => String  -- ^ Project name.
-    -> FilePath -- ^ Path to the project source root directory.
     -> m BuildInformation
-prepareBuild name out = do
+prepareBuild name = do
     repoDir  <- Paths.repoDir
     let outputArchive = Paths.packageArchiveDefaultName name
     tmpDirRoot <- liftIO Temporary.getCanonicalTemporaryDirectory
     tmpDir <- liftIO $ Temporary.createTempDirectory tmpDirRoot "luna-packaging"
+    let outDir = tmpDir </> name
     Logger.logS $ "Created temporary directory: " <> tmpDir
     pure $ BuildInformation
         { _rootDir           = repoDir
         , _libraryName       = name
-        , _outputDirectory   = out
+        , _outputDirectory   = outDir
         , _outputArchiveName = outputArchive
         , _tempDirectory     = tmpDir
         , _keepTemp          = False

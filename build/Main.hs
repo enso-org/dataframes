@@ -85,19 +85,20 @@ prepareEnvironment initInfo = do
     putStrLn $ "Preparing environment..."
     case buildOS of
         Windows -> do
-            -- We need to extract the package with dev libraries and set the environment
-            -- variable DATAFRAMES_DEPS_DIR so the MSBuild project recognizes it.
+            -- We need to extract the package with dev libraries and set the
+            -- environment variable DATAFRAMES_DEPS_DIR so the MSBuild project
+            -- recognizes it.
             --
-            -- The package contains all dependencies except for Python (with numpy).
-            -- Python needs to be provided by CI environment and pointed to by `PythonDir`
-            -- environment variable.
+            -- The package contains all dependencies except for Python (with
+            -- numpy). Python needs to be provided by CI environment and pointed
+            -- to by `PythonDir` environment variable.
             let depsDirLocal = (initInfo ^. Library.buildInformation1 ^. Library.tempDirectory) </> "deps"
             downloadAndUnpack7z depsArchiveUrl depsDirLocal
             setEnv "DATAFRAMES_DEPS_DIR" depsDirLocal
         Linux ->
-            -- On Linux all dependencies are assumed to be already installed. Such is the case
-            -- with the Docker image used to run Dataframes CI, and should be similarly with
-            -- developer machines.
+            -- On Linux all dependencies are assumed to be already installed.
+            -- Such is the case with the Docker image used to run Dataframes CI,
+            -- and should be similarly with developer machines.
             return ()
         OSX  -> return ()
         _     ->
@@ -121,7 +122,7 @@ verifyArtifacts DataframesBuildArtifacts{..} = do
 -- This function should be called only in a properly prepared build environment.
 -- It builds the project and produces build artifacts.
 buildProject :: FilePath -> FilePath -> Library.BuildInput () -> IO DataframesBuildArtifacts
-buildProject repoDir stagingDir _ = do
+buildProject repoDir buildInput = do
     putStrLn $ "Building project"
 
     -- In theory we could scan output directory for binaries… but the build
@@ -146,7 +147,8 @@ buildProject repoDir stagingDir _ = do
             -- 1) python the library
             -- 2) numpy includes
             pythonPrefix <- pythonPrefix
-            let buildDir = stagingDir </> "build"
+            let tempDir = buildInput ^. Library.buildInformation2 ^. Library.tempDirectory
+            let buildDir = tempDir </> "build"
             let srcDir = nativeLibsSrc repoDir
             let pythonLibDir = pythonPrefix </> "lib"
             let pythonLibName = "libpython" <> pythonVersion <> "m" <.> Platform.dynamicLibraryExtension
@@ -195,7 +197,8 @@ packagePython repoDir packageRoot = do
             -- We use pre-built package.
             downloadAndUnpack7z packageBaseUrl $ packageRoot </> Library.nativeLibsBin
         _ -> do
-            -- Copy Python installation to the package and remove some parts that are heavy and not needed.
+            -- Copy Python installation to the package and remove some parts
+            -- that are heavy and not needed.
             pythonPrefix <- pythonPrefix
             copyInPythonLibs pythonPrefix packageRoot
 
@@ -223,6 +226,8 @@ runTests repoDir info = do
         let configs = flip proc ["--report_level=detailed"] <$> tests
         mapM_ runProcess_ configs
 
+projectName :: String
+projectName = "Dataframes"
 
 main :: IO ()
 main = do
@@ -230,14 +235,12 @@ main = do
     -- Console output needs to be done through WriteConsole anyway.
     setLocaleEncoding utf8
     putStrLn $ "Starting Dataframes build"
-    withSystemTempDirectory "" $ \stagingDir -> do
-        -- let stagingDir = "C:\\Users\\mwu\\AppData\\Local\\Temp\\-777f232250ff9e9c"
-        buildInfo <- Library.prepareBuild "Dataframes" stagingDir
-        let repoDir = Library._rootDir buildInfo 
-        let hooks = Library.Hooks
-                { _initialize = prepareEnvironment
-                , _buildNativeLibs = buildProject repoDir stagingDir
-                , _installNativeLibs = packageNativeLibs repoDir
-                , _runTests = runTests repoDir
-                }
-        Library.package buildInfo hooks
+    buildInfo <- Library.prepareBuild projectName
+    let repoDir = Library._rootDir buildInfo 
+    let hooks = Library.Hooks
+            { _initialize = prepareEnvironment
+            , _buildNativeLibs = buildProject repoDir
+            , _installNativeLibs = packageNativeLibs repoDir
+            , _runTests = runTests repoDir
+            }
+    Library.package buildInfo hooks
