@@ -121,7 +121,7 @@ verifyArtifacts DataframesBuildArtifacts{..} = do
 
 -- This function should be called only in a properly prepared build environment.
 -- It builds the project and produces build artifacts.
-buildProject :: FilePath -> FilePath -> Library.BuildInput () -> IO DataframesBuildArtifacts
+buildProject :: FilePath -> Library.BuildInput () -> IO DataframesBuildArtifacts
 buildProject repoDir buildInput = do
     putStrLn $ "Building project"
 
