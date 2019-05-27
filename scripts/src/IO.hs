@@ -58,7 +58,7 @@ hPutStr handle text = hPutText handle $ convert text
 #else
 --------------------------------------------------------------------------------
 hPutText :: (MonadIO m) => Handle -> Text -> m ()
-hPutText handle text = liftIO $ hPutStr handle $ convert text
+hPutText handle text = liftIO $ IO.hPutStr handle $ convert text
 
 hPutStr :: (MonadIO m) => Handle -> String -> m ()
 hPutStr = liftIO <$> System.IO.hPutStr
