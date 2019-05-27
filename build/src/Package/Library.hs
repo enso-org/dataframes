@@ -49,10 +49,15 @@ instance (Applicative m, Default output)
     def = const $ pure def
     -- def = Hook { _action = const $ pure def }
 
-deduceTarget :: (Logger.Logger m, MonadIO m) => FilePath -> m BuildInformation
-deduceTarget out = do
+-- | Function prepares build by deducing some information and creating the
+--   temporary directory.
+prepareBuild 
+    :: (Logger.Logger m, MonadIO m) 
+    => String  -- ^ Project name.
+    -> FilePath -- ^ Path to the project source root directory.
+    -> m BuildInformation
+prepareBuild name out = do
     repoDir  <- Paths.repoDir
-    let name = takeFileName repoDir
     let outputArchive = Paths.packageArchiveDefaultName name
     tmpDirRoot <- liftIO Temporary.getCanonicalTemporaryDirectory
     tmpDir <- liftIO $ Temporary.createTempDirectory tmpDirRoot "luna-packaging"

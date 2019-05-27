@@ -232,12 +232,12 @@ main = do
     putStrLn $ "Starting Dataframes build"
     withSystemTempDirectory "" $ \stagingDir -> do
         -- let stagingDir = "C:\\Users\\mwu\\AppData\\Local\\Temp\\-777f232250ff9e9c"
-        target <- Library.deduceTarget stagingDir
-        let repoDir = Library._rootDir target 
+        buildInfo <- Library.prepareBuild "Dataframes" stagingDir
+        let repoDir = Library._rootDir buildInfo 
         let hooks = Library.Hooks
                 { _initialize = prepareEnvironment
                 , _buildNativeLibs = buildProject repoDir stagingDir
                 , _installNativeLibs = packageNativeLibs repoDir
                 , _runTests = runTests repoDir
                 }
-        Library.package target hooks
+        Library.package buildInfo hooks

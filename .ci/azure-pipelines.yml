@@ -21,7 +21,7 @@ jobs:
   steps:
   - script: sudo yum install zlib-devel
   - script: |
-      cd scripts
+      cd build
       stack run
     displayName: Build Dataframes
     env: 
@@ -30,7 +30,7 @@ jobs:
       LANG: en_US.UTF-8 
   - task: PublishBuildArtifacts@1
     inputs:
-      pathtoPublish: scripts/Dataframes-Linux-x64.tar.gz
+      pathtoPublish: build/Dataframes-Linux-x64.tar.gz
       artifactName: package
 - job: macOS
   pool:
@@ -75,12 +75,12 @@ jobs:
       export PATH=$PATH:~/.local/bin
       curl -sSL https://get.haskellstack.org/ | sh
       export PYTHON_PREFIX_PATH=~/python-dist/
-      cd scripts
+      cd build
       stack run
     displayName: Build Dataframes
   - task: PublishBuildArtifacts@1
     inputs:
-      pathtoPublish: scripts/Dataframes-macOS-x64.tar.gz
+      pathtoPublish: build/Dataframes-macOS-x64.tar.gz
       artifactName: package
 - job: Windows
   pool:
@@ -99,11 +99,11 @@ jobs:
       set PATH=%PATH%;C:\stack
 
       # Actual build
-      cd scripts
+      cd build
       stack run
     env:
       PythonDir: C:\Python37
   - task: PublishBuildArtifacts@1
     inputs:
-      pathtoPublish: scripts/Dataframes-Win-x64.7z
+      pathtoPublish: build/Dataframes-Win-x64.7z
       artifactName: package
