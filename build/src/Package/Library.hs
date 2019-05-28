@@ -152,8 +152,9 @@ package build pack = do
     let dirsToCopy = ["src", "visualizers", ".luna-package"]
     for dirsToCopy $ Utils.copyDirectory sourceDirectory outDir
 
-    filesToCopy <- liftIO $ filterM doesFileExist ["snippets.yaml"]
-    for filesToCopy $ Utils.copyToDir outDir
+    -- optional files, i.e. no error if not present
+    let optionalFilesToCopy = (sourceDirectory </>) <$> ["snippets.yaml"]
+    for optionalFilesToCopy $ flip Utils.copyFileToDirIfExists outDir
 
     Logger.logS $ "Building native libraries"
     built <- (pack ^. buildNativeLibs) (BuildInput build inited)

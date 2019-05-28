@@ -27,20 +27,34 @@ prepareEmptyDirectory path = liftIO $ do
     removeDirectoryRecursiveIfExists path
     createDirectoryIfMissing True path
 
+-- | Runs given action, catching the exceptions matching 'isDoesNotExistError'.
+catchIfDoesNotExist :: MonadIO m => IO () -> m ()
+catchIfDoesNotExist action = liftIO $ catchJust
+    (\e -> if isDoesNotExistError e then Just () else Nothing)
+    action
+    (const $ pure ())
+
 -- | As 'removeDirectoryRecursive' but doesn't fail when the path does not
 -- exist.
 removeDirectoryRecursiveIfExists :: (MonadIO m) => FilePath -> m ()
-removeDirectoryRecursiveIfExists path = liftIO $ catchJust
-    (\e -> if isDoesNotExistError e then Just () else Nothing)
-    (removeDirectoryRecursive path)
-    (const $ pure ())
+removeDirectoryRecursiveIfExists path =
+    catchIfDoesNotExist $ removeDirectoryRecursive path
 
 -- | As 'removeFile' but doesn't fail when the path does not exist.
 removeFileIfExists :: (MonadIO m) => FilePath -> m ()
-removeFileIfExists path = liftIO $ catchJust
-    (\e -> if isDoesNotExistError e then Just () else Nothing)
-    (removeFile path)
-    (const $ pure ())
+removeFileIfExists path =
+    catchIfDoesNotExist $ removeFile path
+
+-- | As 'copyFile' but doesn't fail when the path does not exist.
+copyFileIfExists :: (MonadIO m) => FilePath -> FilePath -> m ()
+copyFileIfExists src dest =
+    catchIfDoesNotExist $ copyFile src dest
+
+-- | As 'copyFile' but doesn't fail when the path does not exist.
+copyFileToDirIfExists :: (MonadIO m) => FilePath -> FilePath -> m ()
+copyFileToDirIfExists srcFile targetDir = do
+    liftIO $ createDirectoryIfMissing True targetDir
+    copyFileIfExists srcFile $ targetDir </> takeFileName srcFile
 
 -- | As fromJust but provides an error message if called on Nothing
 fromJustVerbose :: String -> Maybe a -> a
