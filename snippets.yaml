@@ -4,12 +4,12 @@ Dataframes.Table:
       documentation: Read table from file.
   
   Table:
-    - name: write "./myTable.csv"
-      documentation: Save the table as a file. Supported file formats are: csv, txt, xlsx and feather.
+    - name: "write \"./myTable.csv\""
+      documentation: "Save the table as a file. Supported file formats are: csv, txt, xlsx and feather."
     - name: describeNa
       documentation: Calculate number and percentage of null values for each column.
     - name: describe
-      documentation: Calculate statistics: standard deviation, minimum, maximum, mean, median quantile 0.25 and 0.75 for each column. 
+      documentation: "Calculate statistics: standard deviation, minimum, maximum, mean, median quantile 0.25 and 0.75 for each column." 
     - name: rowCount
       documentation: Number of rows in the table.
     - name: columnCount
@@ -32,11 +32,11 @@ Dataframes.Table:
       documentation: Compute pairwise Pearson's correlation of columns.
   Histogram:
     - name: setBins 5
-      documentaion: Change the number of bins for histogram. Default: 10.
+      documentaion: "Change the number of bins for histogram. Default: 10."
     - name: write 600 800 "./myHistogram.png"
       documentaion: Save the chart to an image file.
   Plot:
-    - name: write 600 800 "./myPlot.png"
+    - name: "write 600 800 \"./myPlot.png\""
       documentaion: Save the chart to an image file.
     - name: setStyle "o"
       documentaion: Change plot style.
@@ -47,7 +47,7 @@ Dataframes.Table:
     - name: setAlpha 0.5
       documentaion: Change plot transparency.
   PlotBetween:
-    - name: write 600 800 "./myPlot.png"
+    - name: "write 600 800 \"./myPlot.png\""
       documentaion: Save the chart to an image file.
     - name: setLabel "example plot"
       documentaion: Add legend to the plot.
@@ -56,15 +56,15 @@ Dataframes.Table:
     - name: setAlpha 0.5
       documentaion: Change plot transparency.
   Scatter:
-    - name: write 600 800 "./myPlot.png"
+    - name: "write 600 800 \"./myPlot.png\""
       documentaion: Save the chart to an image file.
   KDE2:
-    - name: write 600 800 "./myPlot.png"
+    - name: "write 600 800 \"./myPlot.png\""
       documentaion: Save the chart to an image file.
   KDE:
-    - name: write 600 800 "./myPlot.png"
+    - name: "write 600 800 \"./myPlot.png\""
       documentaion: Save the chart to an image file.
   Scatter:
-    - name: write 600 800 "./myPlot.png"
+    - name: "write 600 800 \"./myPlot.png\""
       documentaion: Save the chart to an image file.
   
