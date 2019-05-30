@@ -1,11 +1,12 @@
 extra-deps: []
-resolver: lts-13.21
+resolver: lts-12.26
 flags: {}
 packages:
 - '.'
 - extra-dep: true
-  location: {commit: 874e53221cf9eea2f96c0a6b907325ce05ee633c, git: 'https://github.com/luna/luna.git'}
+  location: {commit: cb40e2fac03d99f864ac1943bfbd82eef97015c7, git: 'https://github.com/luna/luna'}
   subdirs:
+    - lib/build-support
     - lib/container
     - lib/prologue
     - lib/typelevel

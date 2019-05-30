@@ -1,4 +1,4 @@
-name: build-support
+name: dataframes-build
 synopsis: Utility library to support building, testing and packaging of Luna project packages.
 version: "1.0"
 author: New Byte Order <contact@newbyteorder.com>
@@ -60,54 +60,19 @@ default-extensions:
 - UnicodeSyntax
 - ViewPatterns
 
-library:
-  source-dirs: src
-  when:
-  - condition: os(windows)  
-    cxx-sources: src/cbits/Console.cpp
-    cxx-options: -std=gnu++17
-    extra-libraries: stdc++
-tests:
-  test:
-    main: Test.hs
-    source-dirs: test
-    dependencies: build-support
 executable:
   main: Main.hs
   dependencies: build-support
 
 dependencies:
-- async
-- attoparsec
 - base
-- bytestring
+- build-support
 - Cabal
-- conduit
-- conduit-extra
-- containers
 - directory
-- errors
 - extra
-- file-embed
 - filepath
 - Glob
-- http-conduit
-- http-types
 - lens
 - MissingH
-- neat-interpolation
-- pecoff-fork
-- process
-- prologue
-- safe-exceptions
-- streaming-commons
-# - streaming-process
 - typed-process
 - temporary
-- text
-- unix-compat
-- unliftio-core
-- utf8-string
-when:
-  - condition: os(windows)
-    dependencies: Win32

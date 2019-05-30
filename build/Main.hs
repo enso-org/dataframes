@@ -1,7 +1,6 @@
 import Control.Lens hiding ((<.>))
 import Control.Monad
 import Control.Monad.Extra
-import Data.List
 import Data.Maybe
 import Data.Monoid
 import Data.String.Utils         (split)
@@ -14,32 +13,17 @@ import System.Directory
 import System.Environment
 import System.FilePath
 import System.FilePath.Glob
-import System.IO
 import System.IO.Temp
 import System.Process.Typed      hiding (setEnv)
 
 import Utils
 
-import qualified Archive                 as Archive
-import qualified Logger                  as Logger
 import qualified Package.Library         as Library
-import qualified Paths                   as Paths
 import qualified Platform                as Platform
-import qualified Program                 as Program
 import qualified Program.CMake           as CMake
 import qualified Program.Curl            as Curl
-import qualified Program.Git             as Git
-import qualified Program.InstallNameTool as INT
-import qualified Program.Ldd             as Ldd
 import qualified Program.MsBuild         as MsBuild
-import qualified Program.Otool           as Otool
-import qualified Program.Patchelf        as Patchelf
 import qualified Program.SevenZip        as SevenZip
-import qualified Program.Tar             as Tar
-
-import qualified Platform.Linux   as Linux
-import qualified Platform.MacOS   as MacOS
-import qualified Platform.Windows as Windows
 
 depsArchiveUrl, packageBaseUrl :: String
 depsArchiveUrl = "https://packages.luna-lang.org/dataframes/libs-dev-v140-v2.7z"
@@ -238,9 +222,9 @@ main = do
     buildInfo <- Library.prepareBuild projectName
     let repoDir = Library._rootDir buildInfo 
     let hooks = Library.Hooks
-            { _initialize = prepareEnvironment
-            , _buildNativeLibs = buildProject repoDir
-            , _installNativeLibs = packageNativeLibs repoDir
-            , _runTests = runTests repoDir
+            { _initialize        = Library.Hook $ prepareEnvironment
+            , _buildNativeLibs   = Library.Hook $ buildProject repoDir
+            , _installNativeLibs = Library.Hook $ packageNativeLibs repoDir
+            , _runTests          = Library.Hook $ runTests repoDir
             }
     Library.package buildInfo hooks
