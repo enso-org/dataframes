@@ -15,6 +15,10 @@ class ChunkedArray a:
         wrapper' = wrapper
         ChunkedArrayVal self.typeTag wrapper'
 
+    def shortRep: case self of
+        ChunkedArray: "Chunked Array"
+        _: "Chunked Array: <1x" + self.length.toText + ">"
+
     def fromChunk arrayChunk:
         self.fromWrapper $ createChunkedArrayWrapperSingleton arrayChunk.ptr
 

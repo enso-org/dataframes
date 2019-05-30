@@ -12,6 +12,8 @@ class Schema:
         wrapper' = wrapper
         SchemaVal wrapper'
 
+    def shortRep: "Schema"
+
     def fromFields fields:
         self.fromWrapper $ createSchemaWrapper (fields.each .ptr)
 

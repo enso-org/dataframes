@@ -14,5 +14,6 @@ class DataType:
 
     def name: self.ptr.name
     def toText: self.ptr.toText
+    def shortRep: "DataType"
     def typeId: self.ptr.typeId
     def bitWidth: self.ptr.bitWidth

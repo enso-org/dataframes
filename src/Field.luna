@@ -28,5 +28,6 @@ class Field:
         self.ptr.nullable
     def toText:
         self.ptr.toText
+    def shortRep: "Field"
     def == that:
         self.ptr.equals that.ptr

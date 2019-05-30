@@ -5,6 +5,7 @@ import Dataframes.Internal.Utils
 import Dataframes.Column
 
 class StringType:
+    def shortRep: "String Type"
     def append bw value:
         self.withValueAsC value bw.append
     def withValueAsC value f:
@@ -20,6 +21,7 @@ class StringType:
             ColumnText tc: f tc
             _: throw ("wrong column type, expected " + self.typename)
 class MaybeStringType:
+    def shortRep: "Maybe String Type"
     def append bw value:
         case value of
             Just justValue: self.withValueAsC justValue bw.append
@@ -41,6 +43,7 @@ class MaybeStringType:
             ColumnMaybeText tc: f tc
             _: throw ("wrong column type, expected Maybe " + self.typename)
 class Int32Type:
+    def shortRep: "Int32 Type"
     def append bw value:
         self.withValueAsC value bw.append
     def withValueAsC value f:
@@ -51,6 +54,7 @@ class Int32Type:
         val.toInt
     def nullable: False
 class MaybeInt32Type:
+    def shortRep: "Maybe Int32 Type"
     def append bw value:
         case value of
             Just justValue: self.withValueAsC justValue bw.append
@@ -65,6 +69,7 @@ class MaybeInt32Type:
             False: Just val.toInt
     def nullable: True
 class Int64Type:
+    def shortRep: "Int64 Type"
     def append bw value:
         self.withValueAsC value bw.append
     def withValueAsC value f:
@@ -81,6 +86,7 @@ class Int64Type:
             _: throw ("wrong column type, expected " + self.typename)
 
 class MaybeInt64Type:
+    def shortRep: "Maybe Int64 Type"
     def append bw value:
         case value of
             Just justValue: self.withValueAsC justValue bw.append
@@ -101,6 +107,7 @@ class MaybeInt64Type:
             _: throw ("wrong column type, expected Maybe " + self.typename)
 
 class DoubleType:
+    def shortRep: "Double Type"
     def append bw value:
         self.withValueAsC value bw.append
     def withValueAsC value f:
@@ -116,6 +123,7 @@ class DoubleType:
             ColumnReal tc: f tc
             _: throw ("wrong column type, expected " + self.typename)
 class MaybeDoubleType:
+    def shortRep: "Maybe Double Type"
     def append bw value:
         case value of
             Just justValue: self.withValueAsC justValue bw.append
@@ -136,6 +144,7 @@ class MaybeDoubleType:
             _: throw ("wrong column type, expected " + self.typename)
 
 class TimestampType:
+    def shortRep: "Timestamp Type"
     def append bw value:
         self.withValueAsC value bw.append
     def withValueAsC value f:
@@ -152,6 +161,7 @@ class TimestampType:
             _: throw ("wrong column type, expected " + self.typename)
 
 class MaybeTimestampType:
+    def shortRep: "Maybe Timestamp Type"
     def append bw value:
         case value of
             Just justValue: self.withValueAsC justValue bw.append
