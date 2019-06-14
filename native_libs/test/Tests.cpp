@@ -1164,8 +1164,8 @@ BOOST_AUTO_TEST_CASE(SliceBoundsChecking)
 
 BOOST_AUTO_TEST_CASE(ReadMissingCsvFile)
 {
-    auto pathUnlikelyToExist = "data/gbhfudbfiugbiu.csv";
-    BOOST_CHECK_THROW(readTableFromFile(pathUnlikelyToExist), CannotReadFileException); //bogus name
+    const auto pathUnlikelyToExist = "data/gbhfudbfiugbiu.csv";
+    BOOST_CHECK_THROW(readTableFromFile(pathUnlikelyToExist), CannotReadFileException);
 }
 
 BOOST_AUTO_TEST_CASE(ReadCsvFileWithBOM)

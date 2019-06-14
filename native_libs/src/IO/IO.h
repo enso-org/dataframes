@@ -24,7 +24,7 @@ struct CannotReadFileException : std::runtime_error
     CannotReadFileException(std::string_view path, std::string_view message)
         : std::runtime_error(fmt::format("Cannot read file {}: {}", path, message))
     {}
-    CannotReadFileException(std::string_view path, std::exception &e)
+    CannotReadFileException(std::string_view path, const std::exception &e)
         : CannotReadFileException(path, e.what())
     {}
 };
