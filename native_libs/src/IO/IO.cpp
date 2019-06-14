@@ -86,7 +86,7 @@ std::shared_ptr<arrow::Table> readTableFromFile(std::string_view filepath)
         if(auto table = handler->tryReading(filepath))
             return table;
 
-    THROW("Failed to load file {}: it doesn't parse with default settings as any of the supported formats");
+    THROW("Failed to load file {}: it doesn't parse with default settings as any of the supported formats", filepath);
 }
 
 void writeTableToFile(std::string_view filepath, const arrow::Table &table)
@@ -131,8 +131,18 @@ std::ifstream openFileToRead(std::string_view filepath)
     std::ifstream in{ (std::string)filepath, std::ios::binary };
 #endif
 
-    if(!in)
-        THROW("Cannot open the file to read: {}", filepath);
+    try
+    {
+        const auto initialMask = in.exceptions();
+        // temporarily set mask to force an exception if stream is broken
+        in.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+        in.exceptions(initialMask);
+    }
+    catch(std::ifstream::failure &e)
+    {
+        CannotReadFileException cannotRead{ filepath, e.code().message() };
+        THROW_OBJ(cannotRead);
+    }
 
     return in;
 }
@@ -182,6 +192,11 @@ std::shared_ptr<arrow::Table> TableFileHandler::tryReading(std::string_view file
             return nullptr;
         
         return read(filePath);
+    }
+    catch(CannotReadFileException &)
+    {
+        // this is a serious one -- there is no sense in trying reading something that cannot be read anyway
+        throw;
     }
     catch(...)
     {
