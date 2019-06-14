@@ -19,13 +19,10 @@ namespace arrow
     class DataType;
 }
 
-struct CannotReadFileException : std::runtime_error
+struct CannotOpenToRead : std::runtime_error
 {
-    CannotReadFileException(std::string_view path, std::string_view message)
-        : std::runtime_error(fmt::format("Cannot read file {}: {}", path, message))
-    {}
-    CannotReadFileException(std::string_view path, const std::exception &e)
-        : CannotReadFileException(path, e.what())
+    CannotOpenToRead(std::string_view path)
+        : std::runtime_error(fmt::format("Cannot open file to read: {}", path))
     {}
 };
 

@@ -138,9 +138,12 @@ std::ifstream openFileToRead(std::string_view filepath)
         in.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         in.exceptions(initialMask);
     }
-    catch(std::ifstream::failure &e)
+    catch(std::ifstream::failure &)
     {
-        CannotReadFileException cannotRead{ filepath, e.code().message() };
+        // Do not use `std::system_error::code` - libstdc++ does not implement it.
+        // Even on platforms where it works, the error message doesn't really helps (msvc 19.1)
+        // If we really want to give proper diagnostics for filesystem errors, we would need to get platform-specific.
+        CannotOpenToRead cannotRead{ filepath };
         THROW_OBJ(cannotRead);
     }
 
@@ -193,7 +196,7 @@ std::shared_ptr<arrow::Table> TableFileHandler::tryReading(std::string_view file
         
         return read(filePath);
     }
-    catch(CannotReadFileException &)
+    catch(CannotOpenToRead &)
     {
         // this is a serious one -- there is no sense in trying reading something that cannot be read anyway
         throw;
