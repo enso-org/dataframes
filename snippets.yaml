@@ -32,39 +32,39 @@ Dataframes.Table:
       documentation: Compute pairwise Pearson's correlation of columns.
   Histogram:
     - name: setBins 5
-      documentaion: "Change the number of bins for histogram. Default: 10."
+      documentation: "Change the number of bins for histogram. Default: 10."
     - name: write 600 800 "./myHistogram.png"
-      documentaion: Save the chart to an image file.
+      documentation: Save the chart to an image file.
   Plot:
     - name: "write 600 800 \"./myPlot.png\""
-      documentaion: Save the chart to an image file.
+      documentation: Save the chart to an image file.
     - name: setStyle "o"
-      documentaion: Change plot style.
+      documentation: Change plot style.
     - name: setLabel "example plot"
-      documentaion: Add legend to the plot.
+      documentation: Add legend to the plot.
     - name: setColor "g"
-      documentaion: Change a plot color.
+      documentation: Change a plot color.
     - name: setAlpha 0.5
-      documentaion: Change plot transparency.
+      documentation: Change plot transparency.
   PlotBetween:
     - name: "write 600 800 \"./myPlot.png\""
-      documentaion: Save the chart to an image file.
+      documentation: Save the chart to an image file.
     - name: setLabel "example plot"
-      documentaion: Add legend to the plot.
+      documentation: Add legend to the plot.
     - name: setColor "g"
-      documentaion: Change a plot color.
+      documentation: Change a plot color.
     - name: setAlpha 0.5
-      documentaion: Change plot transparency.
+      documentation: Change plot transparency.
   Scatter:
     - name: "write 600 800 \"./myPlot.png\""
-      documentaion: Save the chart to an image file.
+      documentation: Save the chart to an image file.
   KDE2:
     - name: "write 600 800 \"./myPlot.png\""
-      documentaion: Save the chart to an image file.
+      documentation: Save the chart to an image file.
   KDE:
     - name: "write 600 800 \"./myPlot.png\""
-      documentaion: Save the chart to an image file.
+      documentation: Save the chart to an image file.
   Scatter:
     - name: "write 600 800 \"./myPlot.png\""
-      documentaion: Save the chart to an image file.
+      documentation: Save the chart to an image file.
   
