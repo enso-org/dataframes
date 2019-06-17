@@ -131,17 +131,10 @@ std::ifstream openFileToRead(std::string_view filepath)
     std::ifstream in{ (std::string)filepath, std::ios::binary };
 #endif
 
-    try
+    if(!in)
     {
-        const auto initialMask = in.exceptions();
-        // temporarily set mask to force an exception if stream is broken
-        in.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-        in.exceptions(initialMask);
-    }
-    catch(std::ifstream::failure &)
-    {
-        // Do not use `std::system_error::code` - libstdc++ does not implement it.
-        // Even on platforms where it works, the error message doesn't really helps (msvc 19.1)
+        // Do not bother catching std::ifstream::failure and checking its supposedly inherited `std::system_error::code`.
+        // libstdc++ does not implement it and even on platforms where it works, the error message is not helpful at all.
         // If we really want to give proper diagnostics for filesystem errors, we would need to get platform-specific.
         CannotOpenToRead cannotRead{ filepath };
         THROW_OBJ(cannotRead);
