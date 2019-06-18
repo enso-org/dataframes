@@ -19,6 +19,13 @@ namespace arrow
     class DataType;
 }
 
+struct CannotOpenToRead : std::runtime_error
+{
+    CannotOpenToRead(std::string_view path)
+        : std::runtime_error(fmt::format("Cannot open file to read: {}", path))
+    {}
+};
+
 struct TakeFirstRowAsHeaders {};
 struct GenerateColumnNames {};
 

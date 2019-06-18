@@ -1162,6 +1162,12 @@ BOOST_AUTO_TEST_CASE(SliceBoundsChecking)
     BOOST_CHECK_NO_THROW(slice(column, 0, 5));
 }
 
+BOOST_AUTO_TEST_CASE(ReadMissingCsvFile)
+{
+    const auto pathUnlikelyToExist = "data/gbhfudbfiugbiu.csv";
+    BOOST_CHECK_THROW(readTableFromFile(pathUnlikelyToExist), CannotOpenToRead);
+}
+
 BOOST_AUTO_TEST_CASE(ReadCsvFileWithBOM)
 {
     const auto t = FormatCSV{}.read("data/fileWithBOM.csv");

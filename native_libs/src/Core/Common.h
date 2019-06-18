@@ -167,12 +167,15 @@ std::vector<T> iotaVector(size_t N, T from = T{})
     return ret;
 }
 
+#define THROW_OBJ(EXC_TO_THROW) do {                                                     \
+    std::cerr << __FILE__ << " " << __LINE__ << " " << EXC_TO_THROW.what() << std::endl; \
+    throw EXC_TO_THROW;                                                                  \
+} while(0)
 
-#define THROW(message, ...)  do {                                         \
-	auto msg_ =  fmt::format(message, ##__VA_ARGS__);                     \
-	std::cerr << __FILE__ << " " << __LINE__ << " " << msg_ << std::endl; \
-	std::runtime_error e_to_throw{fmt::format(message, ##__VA_ARGS__)};   \
-	throw e_to_throw;                                                     \
+#define THROW(message, ...)  do {                                       \
+    auto msg_ =  fmt::format(message, ##__VA_ARGS__);                   \
+    std::runtime_error e_to_throw{fmt::format(message, ##__VA_ARGS__)}; \
+    THROW_OBJ(e_to_throw);                                              \
 } while(0)
 
 namespace detail

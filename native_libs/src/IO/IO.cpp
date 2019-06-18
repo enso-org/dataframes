@@ -86,7 +86,7 @@ std::shared_ptr<arrow::Table> readTableFromFile(std::string_view filepath)
         if(auto table = handler->tryReading(filepath))
             return table;
 
-    THROW("Failed to load file {}: it doesn't parse with default settings as any of the supported formats");
+    THROW("Failed to load file {}: it doesn't parse with default settings as any of the supported formats", filepath);
 }
 
 void writeTableToFile(std::string_view filepath, const arrow::Table &table)
@@ -132,7 +132,13 @@ std::ifstream openFileToRead(std::string_view filepath)
 #endif
 
     if(!in)
-        THROW("Cannot open the file to read: {}", filepath);
+    {
+        // Do not bother catching std::ifstream::failure and checking its supposedly inherited `std::system_error::code`.
+        // libstdc++ does not implement it and even on platforms where it works, the error message is not helpful at all.
+        // If we really want to give proper diagnostics for filesystem errors, we would need to get platform-specific.
+        CannotOpenToRead cannotRead{ filepath };
+        THROW_OBJ(cannotRead);
+    }
 
     return in;
 }
@@ -182,6 +188,11 @@ std::shared_ptr<arrow::Table> TableFileHandler::tryReading(std::string_view file
             return nullptr;
         
         return read(filePath);
+    }
+    catch(CannotOpenToRead &)
+    {
+        // this is a serious one -- there is no sense in trying reading something that cannot be read anyway
+        throw;
     }
     catch(...)
     {
