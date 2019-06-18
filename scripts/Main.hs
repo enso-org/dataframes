@@ -178,6 +178,7 @@ package repoDir stagingDir buildArtifacts = do
 
     let dirsToCopy = ["src", "visualizers", ".luna-package"]
     mapM (copyDirectory repoDir packageRoot) dirsToCopy
+    copyToDir packageRoot $ repoDir </> "snippets.yaml"
 
     let builtDlls = dataframesBinaries buildArtifacts
     when (null builtDlls) $ error "Build action have not build any binaries despite declaring success!"
