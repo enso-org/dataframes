@@ -176,7 +176,7 @@ package repoDir stagingDir buildArtifacts = do
     let packageRoot = stagingDir </> "Dataframes"
     let packageBinariesDir = packageRoot </> "native_libs" </> nativeLibsOsDir
 
-    let dirsToCopy = ["src", "visualizers", ".luna-package"]
+    let dirsToCopy = ["src", "visualizers", ".luna-package", "samples", "data"]
     mapM (copyDirectory repoDir packageRoot) dirsToCopy
     copyToDir packageRoot $ repoDir </> "snippets.yaml"
 
