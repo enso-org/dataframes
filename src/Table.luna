@@ -103,7 +103,7 @@ class Table:
     # > import Dataframes.Table
     # >
     # > def main:
-    # >     table = Table.read "./samples/example.txt"
+    # >     table = Table.read "./samples/simple_empty.csv"
     # >     None
     #
     # errors:
