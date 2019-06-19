@@ -87,7 +87,7 @@ class Table:
     # `columns`: List of columns to construct the `Table`.
     #
     # `return`: `Table` value with columns from the list.
-    # ![](samples/docs/docs1.png)
+    # ![](data/docs/docs1.png)
 
     def fromColumns columns:
         fields = columns.each .field
@@ -103,7 +103,7 @@ class Table:
     # > import Dataframes.Table
     # >
     # > def main:
-    # >     table = Table.read "./samples/simple_empty.csv"
+    # >     table = Table.read $ Package.samples "Dataframes" / "simple_empty.csv"
     # >     None
     #
     # errors:
@@ -209,7 +209,7 @@ class Table:
     # `index`: Integer column index.
     #
     # `return`: `Column` value from the `Table` for given index.
-    # ![](samples/docs/docs2.png)
+    # ![](data/docs/docs2.png)
 
     def columnAt index:
         columnWrapper = self.ptr.columnAt index
@@ -243,7 +243,7 @@ class Table:
     # `column`: `Column` value to insert.
     #
     # `return`: `Table` value containing previous `table` with newly inserted column.
-    # ![](samples/docs/docs3.png)
+    # ![](data/docs/docs3.png)
 
     def addColumn index column:
         self.fromWrapper $ self.ptr.addColumn index column.ptr
@@ -329,7 +329,7 @@ class Table:
     # `name`: Column name.
     #
     # `return`: `Table` value from the `table` for given name.
-    # ![](samples/docs/docs4.png)
+    # ![](data/docs/docs4.png)
 
     def at name:
         self.columns [name]
@@ -357,7 +357,7 @@ class Table:
     # `column`: `Column` value to add.
     #
     # `return`: `Table` value containing previous `table` with newly added column.
-    # ![](samples/docs/docs5.png)
+    # ![](data/docs/docs5.png)
 
     def setAt name column:
         cols = self.toList
@@ -390,7 +390,7 @@ class Table:
     # `name`: Name of the column to return.
     #
     # `return`: Single `Column` value selected from `self` table by name.
-    # ![](samples/docs/docs6.png)
+    # ![](data/docs/docs6.png)
 
     def column name:
         ix = self.schema.getFieldIndexByName name
@@ -422,7 +422,7 @@ class Table:
     # `names`: List of column names to be returned.
     #
     # `return`: `Table` value with selected columns from `self` table.
-    # ![](samples/docs/docs6.png)
+    # ![](data/docs/docs6.png)
 
     def columns names:
         columns = names.each self.column
@@ -628,7 +628,7 @@ class Table:
     # `count`: Number of rows to take.
     #
     # `return`: `Table` value with first `count` rows from `self` table.
-    # ![](samples/docs/docs7.png)
+    # ![](data/docs/docs7.png)
 
     def take count: self.slice 0 count
 
@@ -656,7 +656,7 @@ class Table:
     # `count`: Number of rows to drop.
     #
     # `return`: `Table` value without first `count` rows from `self` table.
-    # ![](samples/docs/docs8.png)
+    # ![](data/docs/docs8.png)
 
     def drop count:
         leftCount = self.rowCount - count
@@ -690,7 +690,7 @@ class Table:
     # `f`: The LQuery predicate.
     #
     # `return`: Table with elements satisfying predicate.
-    # ![](samples/docs/docs9.png)
+    # ![](data/docs/docs9.png)
 
     def filter f:
         pred = f TableHandle
@@ -714,7 +714,7 @@ class Table:
     # `f`: The predicate function taking `Column` and returning `Bool`.
     #
     # `return`: Table with columns satisfying predicate.
-    # ![](samples/docs/docs10.png)
+    # ![](data/docs/docs10.png)
 
     def filterColumns pred:
         cols = self.toList
@@ -744,7 +744,7 @@ class Table:
     #         {`.min`, `.max`, `.mean`, `.median`, `.std`, `.var`, `.sum`}.
     #
     # `return`: Table with function application results.
-    # ![](samples/docs/docs11.png)
+    # ![](data/docs/docs11.png)
 
     def eachColumn pred:
         cols = self.toList
@@ -769,7 +769,7 @@ class Table:
     # `f`: LQuery function to apply on `self` table.
     #
     # `return`: `Column` value with function application results.
-    # ![](samples/docs/docs12.png)
+    # ![](data/docs/docs12.png)
 
     def each f:
         mapper = f TableHandle
@@ -797,7 +797,7 @@ class Table:
     #
     # `return`: `self` with additional column `name` containing values returned by
     #            `f` for each row.
-    # ![](samples/docs/docs13.png)
+    # ![](data/docs/docs13.png)
 
     def eachTo name f:
         r = self.each f
@@ -967,7 +967,7 @@ class Table:
     # >     None
     #
     # `return`: `Table` value without rows containing null records.
-    # ![](samples/docs/docs14.png)
+    # ![](data/docs/docs14.png)
 
     def dropNa:
         self.fromWrapper $ self.ptr.dropNa
@@ -991,7 +991,7 @@ class Table:
     # `name`: Column name for which we check null values.
     #
     # `return`: `Table` value without rows containing null records in given column.
-    # ![](samples/docs/docs15.png)
+    # ![](data/docs/docs15.png)
 
     def dropNaAt columnName:
         self.fromWrapper $ self.ptr.dropNaByName columnName
@@ -1014,7 +1014,7 @@ class Table:
     # `valueToFillWith`: Value to use to fill nulls (e.g. 0).
     #
     # `return`: `Table` with nulls filled by `valueToFillWith`.
-    # ![](samples/docs/docs16.png)
+    # ![](data/docs/docs16.png)
 
     def fillNa valueToFillWith:
         self.fromWrapper $ self.ptr.fillNa valueToFillWith
@@ -1042,7 +1042,7 @@ class Table:
     # `valueToFillWith`: Value to use to fill nulls (e.g. 0).
     #
     # `return`: `Table` with nulls in column `columnName` filled with `valueToFillWith`.
-    # ![](samples/docs/docs17.png)
+    # ![](data/docs/docs17.png)
 
     def fillNaAt columnName valueToFillWith:
         self.fromWrapper $ self.ptr.fillNaAt columnName valueToFillWith
@@ -1091,7 +1091,7 @@ class Table:
     # >     None
     #
     # `return`: `Table` value with statistics of null values for each column.
-    # ![](samples/docs/docs18.png)
+    # ![](data/docs/docs18.png)
 
     def describeNa:
         cols = self.toList
@@ -1125,7 +1125,7 @@ class Table:
     #
     # `return`: The `self` table value with pairwise correlations calculated for
     #           `self` table.
-    # ![](samples/docs/docs19.png)
+    # ![](data/docs/docs19.png)
 
     def correlations:
         numeric = self.filterColumns .isNumeric
@@ -1153,7 +1153,7 @@ class Table:
     #
     # `return`: `Table` value including correlations with `columnName` column
     #            calculated for `self` table.
-    # ![](samples/docs/docs20.png)
+    # ![](data/docs/docs20.png)
 
     def correlationsWith columnName:
         numeric = self.filterColumns .isNumeric
@@ -1194,7 +1194,7 @@ class Table:
     # `columnName`: Text value, name of the column to calculate the statistics for.
     #
     # `return`: `Table` value with the statistics for given column.
-    # ![](samples/docs/docs21.png)
+    # ![](data/docs/docs21.png)
 
     def describeColumn columnName:
         col = self.at columnName . toColumn
@@ -1316,7 +1316,7 @@ class Table:
     # >     None
     #
     # `return`: `Table` value with the statistics for `self` table.
-    # ![](samples/docs/docs22.png)
+    # ![](data/docs/docs22.png)
 
     def describe:
         numerics = self.filterColumns .isNumeric
@@ -1494,7 +1494,7 @@ class Table:
     # `columnName1`: Name of the column to be used for X-axis.
     # `columnName2`: Name of the column to be used for Y-axis.
     #
-    # `return`: ![](samples/docs/docs22.png)
+    # `return`: ![](data/docs/docs22.png)
 
     def plot: self.chart.plot
 
@@ -1515,7 +1515,7 @@ class Table:
     #
     # `columnName`: Name of the column to be used for X-axis.
     #
-    # `return`: ![](samples/docs/docs23.png)
+    # `return`: ![](data/docs/docs23.png)
 
     def histogram: self.chart.histogram
 
@@ -1537,7 +1537,7 @@ class Table:
     # `columnName1`: Name of the column to be used for X-axis.
     # `columnName2`: Name of the column to be used for Y-axis.
     #
-    # `return`: ![](samples/docs/docs27.png)
+    # `return`: ![](data/docs/docs27.png)
 
     def scatter: self.chart.scatter
 
@@ -1558,7 +1558,7 @@ class Table:
     #
     # `columnName`: Input column name.
     #
-    # `return`: ![](samples/docs/docs25.png)
+    # `return`: ![](data/docs/docs25.png)
 
     def kde: self.chart.kde
 
@@ -1580,7 +1580,7 @@ class Table:
     # `columnName1`: First column name.
     # `columnName2`: Second column name.
     #
-    # `return`: ![](samples/docs/docs24.png)
+    # `return`: ![](data/docs/docs24.png)
 
     def kde2: self.chart.kde2
 
@@ -1607,7 +1607,7 @@ class Table:
     # `columnName1`: Name of the column to be used for X-axis.
     # `columnName2`: Name of the column to be used for Y-axis.
     #
-    # `return`: ![](samples/docs/docs28.png)
+    # `return`: ![](data/docs/docs28.png)
     def plotDate: self.chart.plotDate
 
     # Plots rectangular data as a color-encoded matrix.
@@ -1626,7 +1626,7 @@ class Table:
     # >     heatmapPlot = correlations.heatmap
     # >     None
     #
-    # `return`: ![](samples/docs/docs26.png)
+    # `return`: ![](data/docs/docs26.png)
 
     def heatmap: self.chart.heatmap
 
@@ -1652,7 +1652,7 @@ class Table:
     # `cname2`: Name of the column to be used for Y-axis for first curve.
     # `cname3`: Name of the column to be used for Y-axis for second curve.
     #
-    # `return`: ![](samples/docs/docs29.png)
+    # `return`: ![](data/docs/docs29.png)
 
     def fillBetween: self.chart.fillBetween
 
@@ -1678,7 +1678,7 @@ class ChartBuilder:
     # `columnName1`: Name of the column to be used for X-axis.
     # `columnName2`: Name of the column to be used for Y-axis.
     #
-    # `return`: ![](samples/docs/docs22.png)
+    # `return`: ![](data/docs/docs22.png)
 
     def plot columnName1 columnName2:
         c1 = self.table.at columnName1 . toColumn
@@ -1708,7 +1708,7 @@ class ChartBuilder:
     # `columnName1`: Name of the column to be used for X-axis.
     # `columnName2`: Name of the column to be used for Y-axis.
     #
-    # `return`: ![](samples/docs/docs28.png)
+    # `return`: ![](data/docs/docs28.png)
 
     def plotDate columnName1 columnName2:
         c1 = self.table.at columnName1 . toColumn
@@ -1733,7 +1733,7 @@ class ChartBuilder:
     # `columnName1`: Name of the column to be used for X-axis.
     # `columnName2`: Name of the column to be used for Y-axis.
     #
-    # `return`: ![](samples/docs/docs27.png)
+    # `return`: ![](data/docs/docs27.png)
 
     def scatter columnName1 columnName2:
         c1 = self.table.at columnName1 . toColumn
@@ -1757,7 +1757,7 @@ class ChartBuilder:
     #
     # `columnName`: Name of the column to be used for X-axis.
     #
-    # `return`: ![](samples/docs/docs23.png)
+    # `return`: ![](data/docs/docs23.png)
 
     def histogram columnName:
         c = self.table.at columnName . toColumn
@@ -1781,7 +1781,7 @@ class ChartBuilder:
     # `columnName1`: First column name.
     # `columnName2`: Second column name.
     #
-    # `return`: ![](samples/docs/docs24.png)
+    # `return`: ![](data/docs/docs24.png)
 
     def kde2 columnName1 columnName2:
         c1 = self.table.at columnName1 . toColumn
@@ -1805,7 +1805,7 @@ class ChartBuilder:
     #
     # `columnName`: Input column name.
     #
-    # `return`: ![](samples/docs/docs25.png)
+    # `return`: ![](data/docs/docs25.png)
 
     def kde columnName:
         c = self.table.at columnName . dropNa . toColumn
@@ -1827,7 +1827,7 @@ class ChartBuilder:
     # >     heatmapPlot = correlations.chart.heatmap
     # >     None
     #
-    # `return`: [] ![](samples/docs/docs26.png)
+    # `return`: [] ![](data/docs/docs26.png)
 
     def heatmap:
         Heatmap self.table "RdBu_r" Nothing
@@ -1854,7 +1854,7 @@ class ChartBuilder:
     # `cname2`: Name of the column to be used for Y-axis for first curve.
     # `cname3`: Name of the column to be used for Y-axis for second curve.
     #
-    # `return`: ![](samples/docs/docs29.png)
+    # `return`: ![](data/docs/docs29.png)
 
     def fillBetween cname1 cname2 cname3:
         c1 = self.table.at cname1 . toColumn

@@ -78,7 +78,7 @@ class CSVParser:
     # > import Dataframes.IO
     # >
     # > def main:
-    # >     CSVParser.readFile "./samples/simple_empty.csv"
+    # >     CSVParser.readFile $ Package.samples "Dataframes" / "simple_empty.csv"
     # >     None
     #
     # `filepath`: Path to the CSV file to read.

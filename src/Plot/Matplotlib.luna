@@ -162,7 +162,7 @@ class Histogram:
     #
     # `that`: Plot to combine with the `self` plot.
     #
-    # `return`: ![](samples/docs/docs30.png)
+    # `return`: ![](data/docs/docs30.png)
 
     def + that:
         self.toChart.+ that
@@ -215,7 +215,7 @@ class Histogram:
     # `b`: Number of bins. The number of bins has to be positive. Otherwise the runtime error will occure.
     #
     # `return`: Histogram plot with predefined number of bins.
-    # ![](samples/docs/docs31.png)
+    # ![](data/docs/docs31.png)
 
     def setBins b: Histogram self.data b self.options
 
@@ -239,7 +239,7 @@ class Histogram:
     # `list`: A list of plots to arrange.
     #
     # `return`: Multiple plots arranged vertically.
-    # ![](samples/docs/docs32.png)
+    # ![](data/docs/docs32.png)
 
     def verticalLayout: Chart None . verticalLayout
 
@@ -278,7 +278,7 @@ class PlotDate:
     #
     # `that`: Plot to combine with the `self` plot.
     #
-    # `return`: ![](samples/docs/docs33.png)
+    # `return`: ![](data/docs/docs33.png)
 
     def + that: self.toChart.+that
 
@@ -345,7 +345,7 @@ class PlotDate:
     # `list`: A list of plots to arrange.
     #
     # `return`: Multiple plots arranged vertically.
-    # ![](samples/docs/docs34.png)
+    # ![](data/docs/docs34.png)
 
     def verticalLayout: Chart None . verticalLayout
 
@@ -380,7 +380,7 @@ class Scatter:
     #
     # `that`: Plot to combine with the `self` scatter plot.
     #
-    # `return`: ![](samples/docs/docs36.png)
+    # `return`: ![](data/docs/docs36.png)
 
     def + that: self.toChart.+that
 
@@ -440,7 +440,7 @@ class Scatter:
     # `list`: A list of plots to arrange.
     #
     # `return`: Multiple plots arranged vertically.
-    # ![](samples/docs/docs35.png)
+    # ![](data/docs/docs35.png)
 
     def verticalLayout: Chart None . verticalLayout
 
@@ -479,7 +479,7 @@ class Plot:
     #
     # `that`: Plot to combine with the `self` plot.
     #
-    # `return`: ![](samples/docs/docs36.png)
+    # `return`: ![](data/docs/docs36.png)
 
     def + that:
         self.toChart.+ that
@@ -565,7 +565,7 @@ class Plot:
     #
     # `s`: Style to apply to the plot.
     #
-    # `return`: ![](samples/docs/docs37.png)
+    # `return`: ![](data/docs/docs37.png)
 
     def setStyle s: Plot self.series1 self.series2 s self.label self.color self.alpha
 
@@ -587,7 +587,7 @@ class Plot:
     #
     # `l`: Text with plot series description.
     #
-    # `return`: ![](samples/docs/docs38.png)
+    # `return`: ![](data/docs/docs38.png)
 
     def setLabel l: Plot self.series1 self.series2 self.style (Just l) self.color self.alpha
 
@@ -620,7 +620,7 @@ class Plot:
     #           `'w'`: white
     #       HTML hex string like: `'#eeefff'`
     #
-    # `return`: ![](samples/docs/docs39.png)
+    # `return`: ![](data/docs/docs39.png)
 
     def setColor c: Plot self.series1 self.series2 self.style self.label (Just c) self.alpha
 
@@ -647,7 +647,7 @@ class Plot:
     #      The value for alpha should be between 0 and 1.
     #      0 is for fully transparent plot and 1 for solid plot.
     #
-    # `return`: ![](samples/docs/docs40.png)
+    # `return`: ![](data/docs/docs40.png)
 
     def setAlpha a: Plot self.series1 self.series2 self.style self.label self.color (Just a)
 
@@ -673,7 +673,7 @@ class Plot:
     # `list`: A list of plots to arrange.
     #
     # `return`: Multiple plots arranged vertically.
-    # ![](samples/docs/docs41.png)
+    # ![](data/docs/docs41.png)
 
     def verticalLayout: Chart None . verticalLayout
 
