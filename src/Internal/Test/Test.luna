@@ -413,7 +413,7 @@ class TestArrayBuilder:
         assertEqual "col 0 toList" (t3.columnAt 0 . toList) [Just 1.0, Just 2.5, Nothing, Just 5.0]
 
         print "CSV parsing case 4 - file"
-        t4 = CSVParser . setTypes [IntElement, MaybeIntElement] . readFile "data/simple_empty.csv"
+        t4 = CSVParser . setTypes [IntElement, MaybeIntElement] . readFile "samples/simple_empty.csv"
         assertEqual "names" t4.columnNames ["a", "b", "c"]
         assertEqual "row count" t4.rowCount 4
         assertEqual "column 0" (t4.columnAt 0 . toList) [1,4,7,10]
@@ -431,7 +431,7 @@ class TestArrayBuilder:
         assertEqual "generated" (CSVGenerator.setHeaderPolicy SkipHeaderLine . generateText t2) '"1,""2,3"'
 
         print "Parse excel 1"
-        te1 = XLSXParser . useGeneratedColumnNames  . readFile "data/sample_xlsx.xlsx"
+        te1 = XLSXParser . useGeneratedColumnNames  . readFile "samples/sample_xlsx.xlsx"
         assertEqual "column 0" (te1.columnAt 0 . toList) ["1", "4", "7", "10"]
         assertEqual "column 1" (te1.columnAt 1 . toList) ["2", "", "8", "11"]
         assertEqual "column 2" (te1.columnAt 2 . toList) ["3", "6", "9", "12"]
@@ -621,8 +621,8 @@ class TestArrayBuilder:
         print "Testing feather forma IO: round-trip"
         ints = Column.fromList "a" MaybeInt64Type  [Just 1, Just -2, Just 3, Nothing, Just 5]
         table = Table.fromColumns [ints]
-        FeatherGenerator.writeFile "data/temp.feather" table
-        table2 = FeatherParser.readFile "data/temp.feather"
+        FeatherGenerator.writeFile "samples/temp.feather" table
+        table2 = FeatherParser.readFile "samples/temp.feather"
         assertEqual "read names" table2.columnNames ["a"]
         assertEqual "read column" (table2.columnAt 0).toList [Just 1, Just -2, Just 3, Nothing, Just 5]
 

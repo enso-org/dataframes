@@ -1,15 +1,15 @@
 Dataframes.Table:
   $global:
-    - name: Table.read "path/to/data"
+    - name: Table.read $ Package.samples "Dataframes" / "simple_empty.csv"
       documentation: Read table from file.
-  
+
   Table:
     - name: "write \"./myTable.csv\""
       documentation: "Save the table as a file. Supported file formats are: csv, txt, xlsx and feather."
     - name: describeNa
       documentation: Calculate number and percentage of null values for each column.
     - name: describe
-      documentation: "Calculate statistics: standard deviation, minimum, maximum, mean, median quantile 0.25 and 0.75 for each column." 
+      documentation: "Calculate statistics: standard deviation, minimum, maximum, mean, median quantile 0.25 and 0.75 for each column."
     - name: rowCount
       documentation: Number of rows in the table.
     - name: columnCount
@@ -67,4 +67,4 @@ Dataframes.Table:
   Scatter:
     - name: "write 600 800 \"./myPlot.png\""
       documentation: Save the chart to an image file.
-  
+
