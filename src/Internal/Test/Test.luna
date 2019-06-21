@@ -431,7 +431,7 @@ class TestArrayBuilder:
         assertEqual "generated" (CSVGenerator.setHeaderPolicy SkipHeaderLine . generateText t2) '"1,""2,3"'
 
         print "Parse excel 1"
-        te1 = XLSXParser . useGeneratedColumnNames  . readFile "samples/sample_xlsx.xlsx"
+        te1 = XLSXParser . useGeneratedColumnNames  . readFile "data/samples/sample_xlsx.xlsx"
         assertEqual "column 0" (te1.columnAt 0 . toList) ["1", "4", "7", "10"]
         assertEqual "column 1" (te1.columnAt 1 . toList) ["2", "", "8", "11"]
         assertEqual "column 2" (te1.columnAt 2 . toList) ["3", "6", "9", "12"]
