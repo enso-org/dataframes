@@ -236,7 +236,7 @@ BOOST_AUTO_TEST_CASE(ParseCsv)
 
 BOOST_AUTO_TEST_CASE(ParseFile)
 {
-	auto path = "data/simple_empty.csv";
+	auto path = "data/samples/simple_empty.csv";
 	auto table = FormatCSV{}.read(path);
 }
 
@@ -398,7 +398,7 @@ BOOST_FIXTURE_TEST_CASE(MapToAbs, FilteringFixture)
 {
 	const auto jsonQuery = R"(
 		{
-			"operation": "abs", 
+			"operation": "abs",
 			"arguments": [ {"column": "a"} ]
 		})";
 	testMap<double>(jsonQuery, { 1, 2, 3, 4, 5 });
@@ -803,7 +803,7 @@ BOOST_AUTO_TEST_CASE(TimestampParsingFromCsv)
 {
     CsvReadOptions opts;
     opts.header = GenerateColumnNames{};
-    auto table = FormatCSV{}.read("data/variedColumn.csv", opts);
+    auto table = FormatCSV{}.read("data/samples/variedColumn.csv", opts);
     auto col = table->column(1);
     BOOST_CHECK_EQUAL(col->type()->id(), arrow::Type::TIMESTAMP);
     BOOST_CHECK_EQUAL(col->null_count(), 1);
@@ -919,7 +919,7 @@ BOOST_AUTO_TEST_CASE(TypeDeducing)
 	BOOST_CHECK_EQUAL(deduceType("five"), arrow::Type::STRING);
 	BOOST_CHECK_EQUAL(deduceType(""), arrow::Type::NA);
 
-	auto table = FormatCSV{}.read("data/variedColumn.csv");
+	auto table = FormatCSV{}.read("data/samples/variedColumn.csv");
     BOOST_REQUIRE_EQUAL(table->num_columns(), 7);
     BOOST_CHECK_EQUAL(table->column(0)->type()->id(), arrow::Type::STRING);
     BOOST_CHECK_EQUAL(table->column(1)->type()->id(), arrow::Type::TIMESTAMP);
@@ -1164,13 +1164,13 @@ BOOST_AUTO_TEST_CASE(SliceBoundsChecking)
 
 BOOST_AUTO_TEST_CASE(ReadMissingCsvFile)
 {
-    const auto pathUnlikelyToExist = "data/gbhfudbfiugbiu.csv";
+    const auto pathUnlikelyToExist = "data/samples/gbhfudbfiugbiu.csv";
     BOOST_CHECK_THROW(readTableFromFile(pathUnlikelyToExist), CannotOpenToRead);
 }
 
 BOOST_AUTO_TEST_CASE(ReadCsvFileWithBOM)
 {
-    const auto t = FormatCSV{}.read("data/fileWithBOM.csv");
+    const auto t = FormatCSV{}.read("data/samples/fileWithBOM.csv");
     BOOST_REQUIRE_EQUAL(t->num_columns(), 1);
     const auto c = t->column(0);
     BOOST_CHECK_EQUAL(c->name(), "foo"); // make sure that BOM didn't get attached to the column name
@@ -1200,8 +1200,8 @@ BOOST_AUTO_TEST_CASE(RelaxedAggregationRules)
     // make sure it works with Timestamp as well
     {
         const std::vector<std::optional<Timestamp>> timestamps
-        { 
-            {2018_y / sep / 01}, {2018_y / sep / 02}, std::nullopt, {2018_y / sep / 01}, std::nullopt 
+        {
+            {2018_y / sep / 01}, {2018_y / sep / 02}, std::nullopt, {2018_y / sep / 01}, std::nullopt
         };
         const auto c = toColumn(timestamps, "timestamps");
         const auto t = tableFromColumns({ c });
@@ -1209,8 +1209,8 @@ BOOST_AUTO_TEST_CASE(RelaxedAggregationRules)
         uglyPrint(*aggregatedT);
 
         const std::vector<std::optional<Timestamp>> expectedAggregatedTimestamps
-        { 
-            std::nullopt, {2018_y / sep / 01}, {2018_y / sep / 02} 
+        {
+            std::nullopt, {2018_y / sep / 01}, {2018_y / sep / 02}
         };
         const std::vector expectedCounts{ 2, 2, 1 };
         const auto [timestampsAggregated, timestampCounts] = toVectors<std::optional<Timestamp>, double>(*aggregatedT);
@@ -1221,7 +1221,7 @@ BOOST_AUTO_TEST_CASE(RelaxedAggregationRules)
 
 BOOST_AUTO_TEST_CASE(UngroupSimple)
 {
-    const auto table = readTableFromFile("data/ungroupable.csv");
+    const auto table = readTableFromFile("data/samples/ungroupable.csv");
     //uglyPrint(*table);
     const auto tableUngrouped = ungroupSplittingOn(*table, *table->column(1), " ");
     //uglyPrint(*table2);

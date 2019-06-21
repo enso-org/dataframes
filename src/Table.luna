@@ -100,11 +100,11 @@ class Table:
     # Supported formats are CSV (*.csv and *.txt), Microsoft Excel Open XML
     # (*.xlsx) and Apache Feather (*.feather).
     #
-    # > import Dataframes.Table 
-    # > 
+    # > import Dataframes.Table
+    # >
     # > def main:
-    # >     table = Table.read "./data/example.txt"
-    # >     None 
+    # >     table = Table.read $ Package.samples "Dataframes" / "simple_empty.csv"
+    # >     None
     #
     # errors:
     # If extension is missing from path or is not one of recognized extensions,
@@ -218,7 +218,7 @@ class Table:
     # Inserts a single `Column` value to `Table` under given index.
     #
     # Columns are indexed from 0. After inserting the column under the `index`
-    # and all of the next columns will be shifted by 1. If the index will be 
+    # and all of the next columns will be shifted by 1. If the index will be
     # increased by 1 number of columns newly added column will be at the end of the table.
     #
     # > import Dataframes.Column
@@ -247,10 +247,10 @@ class Table:
 
     def addColumn index column:
         self.fromWrapper $ self.ptr.addColumn index column.ptr
-    
-    # Concatenates tables from given list. 
+
+    # Concatenates tables from given list.
     #
-    # Tables are concatenated by columns. 
+    # Tables are concatenated by columns.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -268,7 +268,7 @@ class Table:
     # >     col4 = Column.fromList "col4" Int64Type l4
     # >     table2 = Table.fromColumns [col3 , col4]
     # >     concatenateTable = Table.concat [table1, table2]
-    # >     None 
+    # >     None
     #
     # `ts`: List of tables to concat. The columns in all tables should have
     #       unique names, otherwise there will be duplicates in resulting table.
@@ -281,8 +281,8 @@ class Table:
 
     # Concatenates `self` table with a table passed as an argument.
     #
-    # Tables are concatenated by columns. 
-    # 
+    # Tables are concatenated by columns.
+    #
     # > import Dataframes.Column
     # > import Dataframes.Types
     # > import Dataframes.Table
@@ -299,9 +299,9 @@ class Table:
     # >     col4 = Column.fromList "col4" Int64Type l4
     # >     table2 = Table.fromColumns [col3 , col4]
     # >     concatenateTable = table1.+ table2
-    # >     None 
+    # >     None
     #
-    # `that`: Table to concatenate with `self` table. The columns in both tables 
+    # `that`: Table to concatenate with `self` table. The columns in both tables
     #         should have unique names, otherwise there will be duplicates in
     #         resulting table. Tables should have the same row count.
     #
@@ -445,10 +445,10 @@ class Table:
     # >     col3 = Column.fromList "col3" Int64Type l3
     # >     table = Table.fromColumns [col1 , col2, col3]
     # >     newTable = table.removeByIndex 1
-    # >     None 
+    # >     None
     #
-    # errors: 
-    # If index is out of bounds error shall occur. 
+    # errors:
+    # If index is out of bounds error shall occur.
     #
     # `index`: Index of a column to delete from table.
     #
@@ -458,7 +458,7 @@ class Table:
         self.fromWrapper $ self.ptr.removeColumn index
 
     # Removes column under given name from `self` table.
-    # 
+    #
     # > import Dataframes.Column
     # > import Dataframes.Types
     # > import Dataframes.Table
@@ -472,17 +472,17 @@ class Table:
     # >     col3 = Column.fromList "col3" Int64Type l3
     # >     table = Table.fromColumns [col1 , col2, col3]
     # >     newTable = table.remove "col2"
-    # >     None 
+    # >     None
     #
-    # errors: 
-    # If column by given name cannot be found error shall occur. 
+    # errors:
+    # If column by given name cannot be found error shall occur.
     #
     # `name`: Text value with name of a column to delete from table.
     #
     # `return`: `Table` value without the column with given name.
     def remove name:
         self.removeByIndex $ self.schema.getFieldIndexByName name
-    
+
     # Unsafe. Returns list of lists.
     #
     # > import Dataframes.Column
@@ -501,9 +501,9 @@ class Table:
     # `returns`: A list containing a lists for each column from `self` table.
     def toList:
         self.ptr.toList.each Column.fromColumnWrapper
-    
+
     # Display a Table as text.
-    # 
+    #
     # > import Dataframes.Column
     # > import Dataframes.Types
     # > import Dataframes.Table
@@ -536,7 +536,7 @@ class Table:
     # >     col3 = Column.fromList "col3" Int64Type l3
     # >     table = Table.fromColumns [col1 , col2, col3]
     # >     listOfNames = table.columnNames
-    # >     None 
+    # >     None
     #
     # `return`: List of columns names.
 
@@ -544,7 +544,7 @@ class Table:
         self.toList.each .name
 
     # Checks if two tables are equal.
-    # 
+    #
     # Takes `self` table and compares it to the one passed as an argument.
     # The two tables are equal if they have the same number of coluns,
     # with the same names and records.
@@ -566,8 +566,8 @@ class Table:
     # >     table2 = Table.fromColumns [col3 , col4]
     # >     notEqual = table1.== table2
     # >     equal = table1.== table1
-    # >     None 
-    # 
+    # >     None
+    #
     # `that`: Table to compare with `self` table.
     # `return`: `True` if the two tables are identical and `False` if they are not.
 
@@ -576,8 +576,8 @@ class Table:
 
     # Selects rows form `self` table.
     #
-    # Rows are indexed from 0. 
-    # 
+    # Rows are indexed from 0.
+    #
     # > import Dataframes.Column
     # > import Dataframes.Types
     # > import Dataframes.Table
@@ -589,9 +589,9 @@ class Table:
     # >     col2 = Column.fromList "col2" Int64Type l2
     # >     table1 = Table.fromColumns [col1 , col2]
     # >     sliced = table1.slice 1 3
-    # >     None 
+    # >     None
     #
-    # errors: 
+    # errors:
     # If requested slice is out of bounds error shall occur.
     #
     # `beg`: Starting index for rows selection.
@@ -804,7 +804,7 @@ class Table:
         self.setAt name r
 
     # sortBy :: [(Column, SortOrder, NullPosition)]
-    # Sorts the table by given columns using lexicographical order. 
+    # Sorts the table by given columns using lexicographical order.
     # The sorting order can be ascending or descending and nulls can be at the end
     # or beginning of a sorted column.
     #
@@ -823,13 +823,13 @@ class Table:
     # >     newTable = table.sortByColumn [(col1, Ascending, NullsAfter), (col2, Descending, NullsBefore)]
     # >     None
     #
-    # `sortBy`: A list of tuples. Each tuple contain: column, sort order and null position. 
+    # `sortBy`: A list of tuples. Each tuple contain: column, sort order and null position.
     #           Column is a column to sort by.
     #           Sort order can be `Ascending` or `Descending`.
-    #           Null position can be `NullsAfter` if nulls should be placed at the end of a column or 
+    #           Null position can be `NullsAfter` if nulls should be placed at the end of a column or
     #           `NullsBefore` if they should be placed at the beginning.
     #
-    # `return`: Sorted table. 
+    # `return`: Sorted table.
 
     def sortByColumn sortBy:
         self.fromWrapper $ self.ptr.sort (sortBy.each (col, b, c): (col.ptr, b, c))
@@ -837,7 +837,7 @@ class Table:
     # sortBy is list of triples: [(column name :: Text, SortOrder, NullPosition)]
     # Sorts the table by set of columns with given names using a lexicographic ordering.
     # The sorting order can be ascending or descending and nulls can be at the end
-    # or beginning of a sorted column. 
+    # or beginning of a sorted column.
     #
     # > import Dataframes.Column
     # > import Dataframes.Types
@@ -857,7 +857,7 @@ class Table:
     # errors:
     # If columns by given name are not present in the table error will occur.
     #
-    # `sortBy`: A list of tuples. Each tuple contain: column name, sort order and null position. 
+    # `sortBy`: A list of tuples. Each tuple contain: column name, sort order and null position.
     #           Column name is a String with a name of a column to sort by.
     #           Sort order can be `Ascending` or `Descending`.
     #           Null position can be `NullsAfter` if nulls should be placed at the end
@@ -892,7 +892,7 @@ class Table:
     #
     # `columnName`: Column name in table.
     #
-    # `return`: Table sorted by column with name `columnName` with descending 
+    # `return`: Table sorted by column with name `columnName` with descending
     #           order and with nulls at the end of a column.
 
     def sortDescending columnName: self.sortMultiples [(columnName, Descending, NullsAfter)]
@@ -972,7 +972,7 @@ class Table:
     def dropNa:
         self.fromWrapper $ self.ptr.dropNa
 
-    # Creates `Table` value from `self` table with removed rows where null values 
+    # Creates `Table` value from `self` table with removed rows where null values
     # occur for given column.
     #
     # > import Dataframes.Column
@@ -1019,7 +1019,7 @@ class Table:
     def fillNa valueToFillWith:
         self.fromWrapper $ self.ptr.fillNa valueToFillWith
 
-    # Creates `Table` value from `self` table with null values replaced with 
+    # Creates `Table` value from `self` table with null values replaced with
     # `valueToFillWith` in column `columnName`
     #
     # > import Dataframes.Column
@@ -1231,7 +1231,7 @@ class Table:
         self.at columnName . toColumn . countValues
 
     # aggregateBy :: Text -> [(Text, [AggregateFunction])] -> Table
-    # Aggregates using one or more operations over specified columns. 
+    # Aggregates using one or more operations over specified columns.
     #
     # Predefined aggregate functions are available:
     # Minimum, Maximum, Mean, Length, Median, First, Last, Sum, RSI, Std.
@@ -1252,7 +1252,7 @@ class Table:
     # >     table = Table.fromColumns [col1 , col2, col3, col4]
     # >     aggregated = table.aggregateBy "col1" [("col2", [Mean]),("col4", [Minimum, Median])]
     # >     None
-    # 
+    #
     # `keyColumnName`: Column to aggregate over.
     # `aggregations`: List of aggregations. Single aggregation is a two argument tuple.
     #                 First element is a name of a column for aggregation and second is
@@ -1287,7 +1287,7 @@ class Table:
     # >     table = Table.fromColumns [col1 , col2, col3, col4]
     # >     aggregated = table.aggregate "col1" "col2" Mean
     # >     None
-    # 
+    #
     # `keyColumnName`: Column to aggregate over.
     # `columnToAggregateName`: Name of a column to calculate the statistics for.
     # `aggregateFunction`: One of the predefined aggregate functions:
@@ -1368,7 +1368,7 @@ class Table:
     # > import Dataframes.Types
     # > import Dataframes.Table
     # > import Std.Time
-    # > 
+    # >
     # > def main:
     # >     l1 = ["2013-01-01 09:00:00",
     # >           "2013-01-01 09:00:02",
@@ -1392,7 +1392,7 @@ class Table:
     #                 tuple. First element is a name of a column for aggregation
     #                 and second is a list of aggregate functions.
     #
-    # `return`: `Table` value with key column and resulting columns for each aggregation. 
+    # `return`: `Table` value with key column and resulting columns for each aggregation.
 
     def rollingIntervalMultiple keyColumnName interval aggregations:
         keyColumnWrapper = self.column keyColumnName . ptr
@@ -1407,7 +1407,7 @@ class Table:
     # > import Dataframes.Types
     # > import Dataframes.Table
     # > import Std.Time
-    # > 
+    # >
     # > def main:
     # >     l1 = ["2013-01-01 09:00:00",
     # >           "2013-01-01 09:00:02",
@@ -1431,17 +1431,17 @@ class Table:
     # `aggregateFunction`: One of the predefined aggregate functions:
     #                      Minimum, Maximum, Mean, Length, Median, First, Last, Sum, RSI, Std.
     #
-    # `return`: `Table` value with key column and resulting columns for each aggregation. 
+    # `return`: `Table` value with key column and resulting columns for each aggregation.
     def rollingInterval keyColumnName interval aggregateColumnName aggregateFunction:
         self.rollingIntervalMultiple keyColumnName interval [(aggregateColumnName,[aggregateFunction])]
 
     # Generates new column with shifted values from selected column.
     # The values are shifted by desired number of periods.
-    # 
+    #
     # Newly created column is added at the end of the table.
     # The index value can be both positive and negative.
-    # Missing values in newly created column will be filled with nulls. 
-    # 
+    # Missing values in newly created column will be filled with nulls.
+    #
     # > import Dataframes.Column
     # > import Dataframes.Types
     # > import Dataframes.Table
@@ -1471,11 +1471,11 @@ class Table:
     def ungroupSplittingOn stringColumnName separator:
         stringColumnWrapper = self.column stringColumnName . ptr
         self.fromWrapper $ self.ptr.ungroupSplittingOn stringColumnWrapper separator
-    
+
     # Generates chart from table.
     def chart: ChartBuilder self
 
-    # Plots y versus x. Default style for plot is scatter plot. 
+    # Plots y versus x. Default style for plot is scatter plot.
     # To change plot style use `setStyle` method.
     #
     # > import Dataframes.Column
@@ -1590,7 +1590,7 @@ class Table:
     # > import Dataframes.Types
     # > import Dataframes.Table
     # > import Std.Time
-    # > 
+    # >
     # > def main:
     # >     l1 = ["2013-01-01 09:00:00",
     # >           "2013-01-01 09:00:02",
@@ -1603,7 +1603,7 @@ class Table:
     # >     table = Table.fromColumns [col1 , col2]
     # >     plot1 = table.plotDate "col1" "col2"
     # >     None
-    # 
+    #
     # `columnName1`: Name of the column to be used for X-axis.
     # `columnName2`: Name of the column to be used for Y-axis.
     #
@@ -1653,7 +1653,7 @@ class Table:
     # `cname3`: Name of the column to be used for Y-axis for second curve.
     #
     # `return`: ![](data/docs/docs29.png)
-    
+
     def fillBetween: self.chart.fillBetween
 
 
@@ -1691,7 +1691,7 @@ class ChartBuilder:
     # > import Dataframes.Types
     # > import Dataframes.Table
     # > import Std.Time
-    # > 
+    # >
     # > def main:
     # >     l1 = ["2013-01-01 09:00:00",
     # >           "2013-01-01 09:00:02",
@@ -1704,7 +1704,7 @@ class ChartBuilder:
     # >     table = Table.fromColumns [col1 , col2]
     # >     plot1 = table.chart.plotDate "col1" "col2"
     # >     None
-    # 
+    #
     # `columnName1`: Name of the column to be used for X-axis.
     # `columnName2`: Name of the column to be used for Y-axis.
     #
@@ -1734,7 +1734,7 @@ class ChartBuilder:
     # `columnName2`: Name of the column to be used for Y-axis.
     #
     # `return`: ![](data/docs/docs27.png)
-        
+
     def scatter columnName1 columnName2:
         c1 = self.table.at columnName1 . toColumn
         c2 = self.table.at columnName2 . toColumn
