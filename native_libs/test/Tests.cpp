@@ -236,7 +236,7 @@ BOOST_AUTO_TEST_CASE(ParseCsv)
 
 BOOST_AUTO_TEST_CASE(ParseFile)
 {
-	auto path = "samples/simple_empty.csv";
+	auto path = "data/samples/simple_empty.csv";
 	auto table = FormatCSV{}.read(path);
 }
 
@@ -803,7 +803,7 @@ BOOST_AUTO_TEST_CASE(TimestampParsingFromCsv)
 {
     CsvReadOptions opts;
     opts.header = GenerateColumnNames{};
-    auto table = FormatCSV{}.read("samples/variedColumn.csv", opts);
+    auto table = FormatCSV{}.read("data/samples/variedColumn.csv", opts);
     auto col = table->column(1);
     BOOST_CHECK_EQUAL(col->type()->id(), arrow::Type::TIMESTAMP);
     BOOST_CHECK_EQUAL(col->null_count(), 1);
@@ -919,7 +919,7 @@ BOOST_AUTO_TEST_CASE(TypeDeducing)
 	BOOST_CHECK_EQUAL(deduceType("five"), arrow::Type::STRING);
 	BOOST_CHECK_EQUAL(deduceType(""), arrow::Type::NA);
 
-	auto table = FormatCSV{}.read("samples/variedColumn.csv");
+	auto table = FormatCSV{}.read("data/samples/variedColumn.csv");
     BOOST_REQUIRE_EQUAL(table->num_columns(), 7);
     BOOST_CHECK_EQUAL(table->column(0)->type()->id(), arrow::Type::STRING);
     BOOST_CHECK_EQUAL(table->column(1)->type()->id(), arrow::Type::TIMESTAMP);
@@ -1164,13 +1164,13 @@ BOOST_AUTO_TEST_CASE(SliceBoundsChecking)
 
 BOOST_AUTO_TEST_CASE(ReadMissingCsvFile)
 {
-    const auto pathUnlikelyToExist = "samples/gbhfudbfiugbiu.csv";
+    const auto pathUnlikelyToExist = "data/samples/gbhfudbfiugbiu.csv";
     BOOST_CHECK_THROW(readTableFromFile(pathUnlikelyToExist), CannotOpenToRead);
 }
 
 BOOST_AUTO_TEST_CASE(ReadCsvFileWithBOM)
 {
-    const auto t = FormatCSV{}.read("samples/fileWithBOM.csv");
+    const auto t = FormatCSV{}.read("data/samples/fileWithBOM.csv");
     BOOST_REQUIRE_EQUAL(t->num_columns(), 1);
     const auto c = t->column(0);
     BOOST_CHECK_EQUAL(c->name(), "foo"); // make sure that BOM didn't get attached to the column name
@@ -1221,7 +1221,7 @@ BOOST_AUTO_TEST_CASE(RelaxedAggregationRules)
 
 BOOST_AUTO_TEST_CASE(UngroupSimple)
 {
-    const auto table = readTableFromFile("samples/ungroupable.csv");
+    const auto table = readTableFromFile("data/samples/ungroupable.csv");
     //uglyPrint(*table);
     const auto tableUngrouped = ungroupSplittingOn(*table, *table->column(1), " ");
     //uglyPrint(*table2);
