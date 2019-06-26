@@ -26,7 +26,7 @@ Dataframes.Table:
       documentation: Remove rows with null values.
     - name: columnAt 0
       documentation: Get column from the table for given index.
-    - name: filterColumns .isNumeric . fillNA 0
+    - name: filterColumns .isNumeric . fillNa 0
       documentation: Fill null values with given value.
     - name: filterColumns .isNumeric . correlations
       documentation: Compute pairwise Pearson's correlation of columns.
