@@ -30,6 +30,8 @@ Dataframes.Table:
       documentation: Fill null values with given value.
     - name: filterColumns .isNumeric . correlations
       documentation: Compute pairwise Pearson's correlation of columns.
+      
+Dataframes.Plot.Matplotlib:
   Histogram:
     - name: setBins 5
       documentation: "Change the number of bins for histogram. Default: 10."
